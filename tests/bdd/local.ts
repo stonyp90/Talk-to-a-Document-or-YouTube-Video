@@ -101,7 +101,9 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   step("the web service starts", async function () {
     await h.open.call(this);
     await expect(
-      (await h.page(this)).getByRole("heading", { name: "Less scrolling. More understanding." }),
+      (await h.page(this)).getByRole("heading", {
+        name: "Less scrolling. More understanding.",
+      }),
     ).toBeVisible();
   });
   step("the API service starts", async function () {
@@ -273,7 +275,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     contains(
       this,
       /npm run test:gherkin/,
-      /pending steps are not passing|pending.*cannot/i,
+      /pending steps are not passing|pending.*cannot|étapes.*en attente.*échouer/i,
     );
     const pkg = JSON.parse(await readFile("package.json", "utf8"));
     assert.match(pkg.scripts["test:gherkin"], /cucumber-js/);
@@ -310,14 +312,25 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   step(
     "frontend, backend, provider, storage, and infrastructure boundaries are explained",
     function () {
-      contains(this, /Next.js/, /Server routes/, /provider/, /S3/, /Lambda/);
+      contains(
+        this,
+        /Next.js/,
+        /Server routes|routes serveur/,
+        /provider/,
+        /S3/,
+        /Lambda/,
+      );
     },
   );
   step("Lambda container deployment is compared with ECS", function () {
     contains(this, /Lambda/, /always-on ECS|always-running ECS/);
   });
   step("the cheapest suitable demo choice is stated", function () {
-    contains(this, /default runtime is Lambda/, /intermittent/);
+    contains(
+      this,
+      /default runtime is Lambda|Lambda est le choix par défaut/,
+      /intermittent/,
+    );
   });
   step("the YouTube transcript provider limitation is explained", function () {
     contains(this, /cloud.*IP|IP.*limitation/i);
@@ -340,9 +353,9 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     function () {
       contains(
         this,
-        /AI-assisted development/,
-        /requirements decomposition/,
-        /debugging/,
+        /AI-assisted development|assistance IA/,
+        /requirements decomposition|décomposition des exigences/,
+        /debugging|débogage/,
       );
     },
   );
@@ -386,9 +399,9 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     function () {
       contains(
         this,
-        /Android SDK/,
+        /Android SDK|SDK Android/,
         /10\.0\.2\.2/,
-        /adb\s+reverse/,
+        /adb(?:\s+-s\s+\S+)?\s+reverse/,
         /npm run android/,
       );
     },

@@ -4,6 +4,8 @@ Ursly permet de poser des questions sur un **document PDF ou une vidéo YouTube*
 
 Le dépôt contient une **application web**, une **application mobile Android/iOS** et leur **backend commun**. Le nom technique du projet Expo est `talk-to-a-source`.
 
+Pour créer les comptes fournisseurs et activer les services réels, suivre le [guide OpenAI et YouTube](SERVICE-SETUP.md).
+
 ## Télécharger la préversion Android
 
 La [release v0.1.0-demo.1](https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/releases/tag/v0.1.0-demo.1) contient l’APK ARM64 testé, ses sommes SHA-256 et les instructions d’installation. Elle nécessite le backend Docker local et les transferts de ports ADB. C’est une **préversion de démonstration locale**, avec les limites détaillées dans les notes de release.
@@ -215,6 +217,8 @@ npm run test:e2e
 
 Les scénarios Cucumber nécessitent aussi les services locaux. Les prérequis supplémentaires des scénarios d’infrastructure et de sécurité sont expliqués dans le [guide BDD](tests/bdd/README.md). Les scénarios `@external` exigent les fournisseurs ou environnements externes et ne sont pas validés par les mocks.
 
+Les étapes non définies ou en attente font échouer la suite : elles ne constituent pas des tests réussis.
+
 ```bash
 npm run test:gherkin -- --tags 'not @external'
 ```
@@ -267,6 +271,8 @@ Cette commande échoue en mode simulé. Elle vérifie PDF, réponse textuelle et
 
 L’infrastructure Terraform prévoit une image Next.js dans **ECR**, exécutée par **Lambda** derrière **API Gateway**, une Lambda de sous-titres, du stockage **S3** et **Secrets Manager**. GitHub Actions s’authentifie auprès d’AWS avec **OIDC**, sans clé AWS permanente dans le dépôt.
 
+Lambda est le choix par défaut pour cette démo intermittente : le service ne nécessite pas de tâche ECS allumée en permanence. Le coût dépend aussi du trafic, du stockage et des fournisseurs IA.
+
 Avant une ouverture publique, ajouter l’authentification et les quotas des API et traiter les points du rapport de sécurité. La présence de cette infrastructure dans le dépôt ne prouve pas son déploiement.
 
 - [Architecture et règles de dépendance](ARCHITECTURE.md)
@@ -276,4 +282,4 @@ Avant une ouverture publique, ajouter l’authentification et les quotas des API
 - [Couverture des exigences](REQUIREMENTS-AUDIT.md) et [revue de sécurité](SECURITY-REVIEW.md)
 - [Scénario de démonstration](WALKTHROUGH.md)
 
-Le projet a été développé avec une assistance IA pour la conception, l’implémentation, les tests et la revue. Les rapports de vérification distinguent les résultats effectivement observés des fonctionnalités restant à valider.
+Le projet a été développé avec une assistance IA pour la décomposition des exigences, la conception, l’implémentation, le débogage, les tests et la revue. Les rapports de vérification distinguent les résultats effectivement observés des fonctionnalités restant à valider.

@@ -1,10 +1,10 @@
 :root {
   color-scheme: light;
-  --ink: #233d35;
-  --muted: #64736c;
-  --paper: #f8f9f5;
-  --line: #dce3da;
-  --accent: #376b52;
+  --ink: #292735;
+  --muted: #6b6773;
+  --paper: #f8f5ef;
+  --line: #e6e1da;
+  --accent: #a84332;
   --danger: #a23f3f;
   font-family:
     Inter,
@@ -28,7 +28,7 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: radial-gradient(ellipse at 85% 8%, #e7eedf 0, transparent 45%);
+  background: radial-gradient(ellipse at 85% 8%, #e8e1f5 0, transparent 45%);
   pointer-events: none;
 }
 button,
@@ -56,7 +56,7 @@ button {
 }
 button:not(:disabled):hover {
   border-color: var(--accent);
-  box-shadow: 0 3px 12px #233d350c;
+  box-shadow: 0 3px 12px #2927350c;
   transform: translateY(-2px);
 }
 button:not(:disabled):active {
@@ -71,7 +71,7 @@ button:disabled {
   outline-offset: 4px;
 }
 ::selection {
-  background: #d6e8d2;
+  background: #fbe2d6;
 }
 .shell {
   min-height: 100svh;
@@ -103,8 +103,8 @@ button:disabled {
   place-items: center;
   width: 34px;
   height: 34px;
-  border: 1px solid #90a88f;
-  border-radius: 50%;
+  border: 0;
+  border-radius: 11px;
   margin-right: 10px;
 }
 .brand-mark .icon {
@@ -112,7 +112,7 @@ button:disabled {
   height: 20px;
 }
 .brand-dot {
-  color: #739461;
+  color: #f27561;
 }
 .topbar-note,
 .workspace-label {
@@ -152,7 +152,7 @@ h1 {
   letter-spacing: -0.065em;
 }
 h1 span {
-  color: #66835b;
+  color: #a84332;
 }
 h2 {
   margin: 0;
@@ -202,7 +202,7 @@ p {
   border: 1px solid var(--line);
   border-radius: 20px;
   padding: 25px;
-  box-shadow: 0 8px 24px #233d3503;
+  box-shadow: 0 8px 24px #29273503;
   animation: arrive 650ms ease-out both;
 }
 .conversation-card {
@@ -265,9 +265,9 @@ p {
   font-weight: 550;
 }
 .tab.active {
-  border-color: #6e926c;
+  border-color: #a84332;
   color: var(--ink);
-  box-shadow: inset 0 -2px #6e926c;
+  box-shadow: inset 0 -2px #a84332;
 }
 .source-grid {
   display: grid;
@@ -277,7 +277,7 @@ p {
   display: flex;
   align-items: center;
   flex-direction: column;
-  border: 1px dashed #c7d4c0;
+  border: 1px dashed #e6e1da;
   border-radius: 12px;
   padding: 25px 16px 18px;
   text-align: center;
@@ -289,10 +289,10 @@ p {
 .upload-icon {
   display: grid;
   place-items: center;
-  color: #6b8560;
+  color: #a84332;
   width: 44px;
   height: 44px;
-  border: 1px solid #d3dfce;
+  border: 1px solid #e6e1da;
   border-radius: 13px;
   margin: 0 auto 16px;
 }
@@ -308,7 +308,7 @@ p {
   color: var(--muted);
 }
 input::file-selector-button {
-  border: 1px solid #b8c8b2;
+  border: 1px solid #d6b3a9;
   border-radius: 7px;
   background: transparent;
   color: var(--ink);
@@ -361,7 +361,7 @@ input::file-selector-button {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid #bdcbb7;
+  border: 1px solid #d6b3a9;
   border-radius: 9px;
   min-height: 42px;
   padding: 10px 13px;
@@ -370,7 +370,7 @@ input::file-selector-button {
 }
 .primary {
   color: var(--accent);
-  border-color: #7f9e73;
+  border-color: #a84332;
 }
 .secondary {
   color: var(--muted);
@@ -432,23 +432,23 @@ input::file-selector-button {
   height: 62px;
   display: grid;
   place-items: center;
-  border: 1px solid #c3d1b9;
+  border: 1px solid #e8e1f5;
   border-radius: 50%;
   margin-bottom: 23px;
-  background: radial-gradient(circle, #eef4e8, transparent);
+  background: radial-gradient(circle, #fbe2d6, transparent);
 }
 .voice-orbit::after {
   content: "";
   position: absolute;
   inset: -7px;
-  border: 1px solid #dce5d6;
+  border: 1px solid #e8e1f5;
   border-radius: 50%;
   animation: breathe 5s ease-in-out 3;
 }
 .voice-orbit .icon {
   width: 27px;
   height: 27px;
-  color: #6c8b5b;
+  color: #a84332;
 }
 .empty-chat .hint {
   margin: 0;
@@ -481,7 +481,7 @@ input::file-selector-button {
   animation: arrive 220ms ease-out both;
 }
 .message.user {
-  background: #eef3e9;
+  background: #fbe2d6;
   margin-left: auto;
 }
 .message.assistant {
@@ -539,7 +539,7 @@ input:disabled {
   flex-shrink: 0;
   width: 14px;
   height: 14px;
-  border: 1.5px solid #bdcbb7;
+  border: 1.5px solid #d6b3a9;
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 800ms linear infinite;
@@ -578,7 +578,7 @@ input:disabled {
     box-shadow: 0 0 0 5px transparent;
   }
   0% {
-    box-shadow: 0 0 0 0 #7e9d7355;
+    box-shadow: 0 0 0 0 #f2756155;
   }
 }
 @media (min-width: 1400px) {

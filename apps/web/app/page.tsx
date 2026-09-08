@@ -417,11 +417,11 @@ export default function HomePage() {
     <main className="shell">
       <div className="container">
         <header className="topbar">
-          <a className="brand" href="/" aria-label="Talk to a source home">
-            <span className="brand-mark">
-              <Icon name="voice" />
-            </span>
-            talk<span className="brand-dot">.</span>
+          <a className="brand" href="/" aria-label="Ursly home">
+            {/* A vector stays crisp at every screen density. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="brand-mark" src="/brand/ursly-mark.svg" width="36" height="36" alt="" />
+            ursly<span className="brand-dot">.</span>
           </a>
           <span className="topbar-note">A little more understanding.</span>
           <span className="workspace-label">
@@ -716,7 +716,7 @@ export default function HomePage() {
           </section>
         </div>
         <footer className="footer">
-          <span>Made for your next “aha”.</span>
+          <span>Ursly · Made for your next “aha”.</span>
           <span>PDF & YouTube · Voice & text</span>
         </footer>
       </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AccessibilityInfo, Animated, AppState, Easing, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, Easing, Image, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 export const palette = {
   paper: '#F8F5EF', ink: '#292735', muted: '#6B6773', coral: '#F27561',
@@ -70,7 +70,7 @@ export function Wave({ motion, color = palette.ink, large = false }: { motion: b
 }
 
 export function Brand({ small = false }: { small?: boolean }) {
-  return <View accessible accessibilityLabel="Ursly" style={d.brand}><View style={[d.brandMark, small && { width: 27, height: 27, borderRadius: 9 }]}><Wave motion={false} color={palette.white} /></View><Text style={[d.wordmark, small && { fontSize: 27 }]}>ursly<Text style={{ color: palette.coral }}>.</Text></Text></View>;
+  return <View accessible accessibilityLabel="Ursly" style={d.brand}><Image alt="" source={require('../assets/brand-mark.png')} accessible={false} style={[d.brandMark, small && { width: 27, height: 27, borderRadius: 9 }]} /><Text style={[d.wordmark, small && { fontSize: 27 }]}>ursly<Text style={{ color: palette.coral }}>.</Text></Text></View>;
 }
 
 export function SourceIcon({ kind, color = palette.ink }: { kind: 'pdf' | 'youtube'; color?: string }) {

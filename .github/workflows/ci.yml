@@ -68,7 +68,7 @@ jobs:
       - run: terraform fmt -check -recursive infrastructure/terraform
       - name: Validate and test Terraform without cloud credentials
         run: |
-          for target in bootstrap modules/demo environments/demo; do
+          for target in bootstrap modules/demo environments/demo environments/domain; do
             terraform -chdir="infrastructure/terraform/$target" init -backend=false -lockfile=readonly
             terraform -chdir="infrastructure/terraform/$target" validate
           done

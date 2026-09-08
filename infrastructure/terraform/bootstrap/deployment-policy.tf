@@ -37,7 +37,7 @@ resource "aws_iam_role_policy" "deployment" {
       # API IDs are assigned by AWS: this is the documented regional scope exception.
       {
         Sid      = "RegionalHttpApis", Effect = "Allow"
-        Action   = ["apigateway:GET", "apigateway:POST", "apigateway:PUT", "apigateway:PATCH", "apigateway:DELETE"]
+        Action   = ["apigateway:GET", "apigateway:POST", "apigateway:PUT", "apigateway:PATCH", "apigateway:DELETE", "apigateway:TagResource", "apigateway:UntagResource"]
         Resource = ["arn:aws:apigateway:${var.region}::/apis", "arn:aws:apigateway:${var.region}::/apis/*", "arn:aws:apigateway:${var.region}::/tags/*"]
       },
       {

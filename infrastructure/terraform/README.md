@@ -43,6 +43,11 @@ Create the provider secret outside Terraform; supply its exact ARN, never its
 value. A customer-managed KMS key would need an explicitly scoped decrypt grant;
 the current contract assumes the standard Secrets Manager encryption key.
 
+Read `gh api repos/OWNER/REPO/actions/oidc/customization/sub --jq .sub_claim_prefix`
+and set `github_subject_prefix` to that exact value. New GitHub repositories use
+immutable owner/repository IDs in this prefix. Do not guess it from the repository
+name. See [GitHub OIDC subject formats](https://docs.github.com/en/actions/reference/security/oidc).
+
 ```sh
 cp infrastructure/terraform/bootstrap/terraform.tfvars.example infrastructure/terraform/bootstrap/terraform.tfvars
 # Edit region, intended account ID, repository, existing secret ARN and OIDC ARN.

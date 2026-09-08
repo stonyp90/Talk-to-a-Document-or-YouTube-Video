@@ -52,3 +52,16 @@ run "reject_secret_wildcard" {
   variables { openai_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:*" }
   expect_failures = [var.openai_secret_arn]
 }
+run "immutable_repository_identity" {
+  command = plan
+  variables { github_subject_prefix = "repo:example@123/talk@456" }
+  assert {
+    condition     = jsondecode(aws_iam_role.deploy.assume_role_policy).Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:sub"] == "repo:example@123/talk@456:environment:production"
+    error_message = "Preserve immutable owner/repository IDs and the production environment restriction."
+  }
+}
+run "reject_other_repository_subject" {
+  command = plan
+  variables { github_subject_prefix = "repo:example@123/another@456" }
+  expect_failures = [var.github_subject_prefix]
+}

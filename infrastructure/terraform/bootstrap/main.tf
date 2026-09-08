@@ -32,6 +32,17 @@ variable "openai_secret_arn" {
     error_message = "Provide the exact existing secret ARN, without wildcards or secret contents."
   }
 }
+variable "github_subject_prefix" {
+  type    = string
+  default = null
+  validation {
+    condition = var.github_subject_prefix == null ? true : (
+      can(regex("^repo:[A-Za-z0-9_.-]+(@[0-9]+)?/[A-Za-z0-9_.-]+(@[0-9]+)?$", var.github_subject_prefix)) &&
+      replace(var.github_subject_prefix, "/@[0-9]+/", "") == "repo:${var.github_repository}"
+    )
+    error_message = "Use the exact sub_claim_prefix reported by GitHub for this repository, without wildcards or environment suffix."
+  }
+}
 variable "existing_oidc_provider_arn" {
   type    = string
   default = null
@@ -130,7 +141,7 @@ resource "aws_iam_role" "deploy" {
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = { StringEquals = {
         "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-        "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:environment:production"
+        "token.actions.githubusercontent.com:sub" = "${coalesce(var.github_subject_prefix, "repo:${var.github_repository}")}:environment:production"
       } }
     }]
   })

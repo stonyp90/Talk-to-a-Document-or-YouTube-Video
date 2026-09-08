@@ -35,7 +35,7 @@ test("bootstrap separates deployment authority and protects state", () => {
   );
   assert.match(
     bootstrap,
-    /repo:\$\{var.github_repository\}:environment:production/,
+    /coalesce\(var.github_subject_prefix, "repo:\$\{var.github_repository\}"\)\}:environment:production/,
   );
   assert.match(
     bootstrap,

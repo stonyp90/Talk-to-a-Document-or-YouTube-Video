@@ -18,7 +18,7 @@ Le contrôle `node infrastructure/scripts/smoke.mjs https://ursly.io` a réussi 
 
 **Ce déploiement n’est pas une validation complète de production.**
 
-- Le secret `ursly/openai` existe sans valeur et la clé locale n’a pas encore été renseignée. Les appels OpenAI, le quota, les jetons Realtime et l’audio réel restent à valider. Le champ `mode: live` de `/api/health` indique une configuration, pas l’accès effectif au fournisseur.
+- Le secret `ursly/openai` et la clé locale sont configurés. Les appels texte réels et l’émission de jetons Realtime ont été validés le 8 septembre 2026. L’audio réel reste à valider : le navigateur refuse actuellement le microphone. Le champ `mode: live` de `/api/health` indique une configuration, pas l’accès effectif au fournisseur.
 - YouTube refuse la récupération depuis AWS : l’essai réel de `UF8uR6Z6KLc` retourne `CLOUD_BLOCKED` / HTTP 403 côté service. L’inscription Google seule ne corrige pas ce blocage.
 - Les routes de démonstration restent publiques. Ajouter une authentification et des limites par utilisateur avant d’activer un fournisseur payant pour une utilisation publique.
 - L’APK de la release `v0.1.0-demo.1` utilise le backend local. Un nouveau build mobile configuré pour HTTPS et des essais sur téléphones physiques restent nécessaires; un build iOS Simulator n’est pas un IPA pour iPhone.

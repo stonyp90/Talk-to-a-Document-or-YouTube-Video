@@ -1,25 +1,25 @@
 # État de préparation de la démo — 8 septembre 2026
 
-**La démo complète avec services réels n’est pas encore prête.** Le parcours local simulé est opérationnel; il ne prouve pas le fonctionnement OpenAI ou YouTube réel.
+**La démo complète avec services réels n’est pas encore prête.** Le PDF, le chat texte OpenAI et l’émission de jetons Realtime fonctionnent en réel, en local et sur https://ursly.io. L’audio réel et YouTube restent à valider. Voir [la matrice actualisée](REQUIREMENTS-AUDIT.md).
 
 | Contrôle                                    | Résultat observé                                                                          |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Serveur local `http://localhost:3100`       | Disponible, mode `mock`                                                                   |
+| Serveur local `http://localhost:3100`       | Disponible, mode `live`                                                                   |
 | PDF réel                                    | Upload signé MinIO, extraction exacte et rejet d’une seconde extraction : validés         |
 | Web                                         | 18 tests navigateur réussis, dont gestion des erreurs et des réponses tardives            |
 | Android local                               | APK actuel installé; réponse écrite et démarrage/mute/arrêt de session simulée validés    |
 | iOS Simulator                               | Bundle actuel installé; réponse écrite et démarrage/mute/arrêt de session simulée validés |
 | Compte Expo                                 | Session CLI disponible pour `stonyp90`                                                    |
-| Clé OpenAI pour Ursly                       | Absente de l’environnement serveur et des fichiers de configuration examinés              |
-| Quota et accès aux modèles OpenAI           | Non vérifiés, faute de clé API                                                            |
-| Jeton éphémère Realtime réel                | Non émis ni vérifié, faute de clé API                                                     |
+| Clé OpenAI pour Ursly                       | Clé dédiée restreinte configurée dans `.env.local` et AWS Secrets Manager                 |
+| Quota et accès aux modèles OpenAI           | Appels Responses et Realtime réussis; quota futur non garanti                             |
+| Jeton éphémère Realtime réel                | Émission réelle et expiration vérifiées, en local et sur ursly.io                         |
 | Audio OpenAI réel                           | Non validé                                                                                |
 | YouTube réel                                | Deux vidéos testées par le service Python : HTTP 403 `CLOUD_BLOCKED`                      |
 | Téléphones physiques et production publique | Non certifiés par ces vérifications locales                                               |
 
-## Fournir l’accès manquant
+## Configuration de l’accès serveur
 
-Placer la clé dans `.env.local` à la racine, déjà exclu de Git, sans la publier dans la conversation. Le fichier a été préparé avec les ports locaux utilisés par les deux simulateurs. Ne pas l’écraser si une clé y a déjà été ajoutée.
+La clé est maintenant configurée. Pour la remplacer, placer la nouvelle clé dans `.env.local` à la racine, déjà exclu de Git, sans la publier dans la conversation. Le fichier a été préparé avec les ports locaux utilisés par les deux simulateurs. Ne pas l’écraser si une clé y a déjà été ajoutée.
 
 ```dotenv
 OPENAI_API_KEY=<clé-du-projet-OpenAI>

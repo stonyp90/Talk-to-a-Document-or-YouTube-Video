@@ -8,7 +8,7 @@ Le code et les comptes fournisseurs sont deux étapes distinctes. Un déploiemen
 2. Configurer la [facturation API](https://platform.openai.com/settings/organization/billing/overview). L’abonnement ChatGPT ne remplace pas la facturation API.
 3. Créer une [clé API de projet](https://platform.openai.com/api-keys). Vérifier les limites et l’accès aux modèles utilisés : `gpt-4.1-mini` et `gpt-realtime`.
 4. En local, renseigner `OPENAI_API_KEY` dans `.env.local`, puis passer `PROVIDER_MODE=live` et relancer `docker compose --env-file .env.local up -d --build web`.
-5. Sur AWS, enregistrer la clé dans le secret **`ursly/openai`**, région **us-east-1**, compte **436136277668**. Ce secret a été créé sans valeur. Utiliser une chaîne brute ou un objet JSON contenant `OPENAI_API_KEY`. Le backend lit ce secret; ne mettre aucune clé dans les variables `EXPO_PUBLIC_*` ou `NEXT_PUBLIC_*`.
+5. Sur AWS, enregistrer la clé dans le secret **`ursly/openai`**, région **us-east-1**, compte **436136277668**. Une clé dédiée restreinte à Responses et Realtime y a été configurée et testée le 8 septembre 2026. Utiliser une chaîne brute ou un objet JSON contenant `OPENAI_API_KEY`. Le backend lit ce secret; ne mettre aucune clé dans les variables `EXPO_PUBLIC_*` ou `NEXT_PUBLIC_*`.
 6. Lancer `npm run demo:check -- http://localhost:3100` (adapter le port), puis effectuer une conversation vocale réelle. Le contrôle vérifie PDF, réponse texte et émission d’un jeton; il ne remplace pas le test audio.
 
 Avant d’ajouter une clé à un backend public, ajouter le contrôle d’accès applicatif et les limites d’utilisation nécessaires : les routes actuelles de démonstration sont publiques. La limitation de débit AWS ne constitue pas une authentification.

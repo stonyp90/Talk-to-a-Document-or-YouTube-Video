@@ -253,7 +253,7 @@ This rejects mock mode and checks PDF extraction, a real text response, and a re
 
 Terraform deploys the Next.js image to **ECR**, runs it on **Lambda** behind **API Gateway**, and provisions a caption Lambda, **S3**, and **Secrets Manager**. GitHub Actions uses **OIDC**, without permanent AWS keys in the repository.
 
-Lambda suits intermittent demo traffic without an always-running ECS task. Costs also depend on traffic, storage, and AI providers. Public paid endpoints need appropriate access controls and usage limits; review the security findings before commercial use.
+The default runtime is Lambda. It suits intermittent demo traffic without an always-running ECS task. Costs also depend on traffic, storage, and AI providers. Public paid endpoints need appropriate access controls and usage limits; review the security findings before commercial use.
 
 - [Architecture](ARCHITECTURE.md) and [Terraform setup](infrastructure/terraform/README.md)
 - [Native development](apps/mobile/README.md) and [Expo EAS builds](apps/mobile/EAS.md)

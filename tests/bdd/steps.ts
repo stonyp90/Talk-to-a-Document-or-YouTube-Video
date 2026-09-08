@@ -577,7 +577,7 @@ step(
   "user and assistant turns are visually distinguishable",
   async function () {
     const p = await page(this);
-    await expect(p.locator(".chat .message-text").first()).toHaveClass(/user/);
+    await expect(p.locator(".chat .message").first()).toHaveClass(/user/);
     await expect(p.locator(".chat .message").last()).toHaveClass(/assistant/);
   },
 );

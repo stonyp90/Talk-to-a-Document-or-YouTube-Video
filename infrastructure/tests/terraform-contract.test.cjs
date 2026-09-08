@@ -25,7 +25,7 @@ test("deploy only the successful, same-repository main revision through OIDC", (
   );
   assert.match(
     read(".github/workflows/ci.yml"),
-    /needs: \[application, containers, mobile, infrastructure\]/,
+    /needs: \[application, containers, mobile, infrastructure, secrets\]/,
   );
 });
 test("bootstrap separates deployment authority and protects state", () => {

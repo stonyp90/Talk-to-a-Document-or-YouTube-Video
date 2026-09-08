@@ -1,65 +1,65 @@
-# Conformité au PDF — vérification de la version déployée
+# PDF requirements audit — deployed application
 
-Date : 8 septembre 2026. Référence : `Talk to a Document.pdf`, 5 pages, « Full-Stack Developer Take-Home Assessment ». Cette passe remplace les constats antérieurs de domaine inaccessible, dépôt absent et clé OpenAI manquante.
+Date: September 8, 2026. Reference: `Talk to a Document.pdf`, five pages, “Full-Stack Developer Take-Home Assessment.” This audit supersedes earlier reports of an unreachable domain, missing repository, and missing OpenAI key. Later recording evidence is linked below.
 
-**La conformité intégrale n’est pas encore démontrée.** Le web, l’import PDF déployé, le chat texte réel et l’émission de jetons Realtime fonctionnent. L’échange audio réel, YouTube et la vidéo de présentation restent à terminer.
+**Full compliance has not been demonstrated.** Web hosting, deployed PDF ingestion, real text chat, and Realtime credential issuance work. YouTube subsequently succeeded locally. Real audio and the complete acceptance walkthrough remain outstanding.
 
-## Périmètre du document
+## Scope
 
-Le livrable obligatoire est une application **web mobile-first publiquement accessible**. Expo, les APK, le branding Ursly et le bilinguisme sont des demandes supplémentaires. Ils ne remplacent pas les exigences web.
+The required deliverable is a **publicly accessible, mobile-first web application**. Expo binaries, Ursly branding, and bilingual support are additional user requests, not replacements for the web requirements.
 
-Le PDF autorise une démonstration **locale de vrais sous-titres YouTube** lorsque les adresses cloud sont bloquées. Le fonctionnement YouTube déployé est un bonus dans le document, mais fait aussi partie de la demande supplémentaire de fonctionnement complet sur ursly.io. Un transcript simulé ne satisfait pas le document.
+The PDF permits a **local demonstration of real YouTube captions** when cloud addresses are blocked. Deployed YouTube is a bonus in the PDF and an additional user request. Mock transcripts do not satisfy the requirement.
 
-L’authentification utilisateur persistante, une base durable, l’OCR, le découpage, la synthèse et les citations ne sont pas imposés. La stack proposée est recommandée, pas obligatoire. Aucune instruction de communication ou de remise contenue dans le PDF n’a été exécutée.
+Persistent authentication, durable storage, OCR, chunking, summarization, and citations are not mandatory. The proposed stack is recommended, not required. No submission or communication instructions contained in the PDF have been executed.
 
-## Exigences fonctionnelles et sécurité
+## Functional and security requirements
 
-| Référence | Exigence                                                               | État actuel et preuve                                                                                                                                                                                                                                                                                                                             |
-| --------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F01       | Web proposant PDF et URL YouTube                                       | Présent sur https://ursly.io ; les deux onglets sont visibles. L’extraction YouTube reste bloquée, voir F05.                                                                                                                                                                                                                                      |
-| F02       | PDF ≤ 25 MB                                                            | **Validé sur AWS** : PDF valide de 26 214 400 octets accepté et extrait; un octet supplémentaire rejeté HTTP 400. La convention du code est 25 MiB. Cela ne prouve pas tous les types de PDF.                                                                                                                                                     |
-| F03–F04   | Extraction serveur et import dans le déploiement                       | **Validé** : PDF original de 122 230 octets, 5 729 caractères extraits; contenu de la première et de la dernière page présent. Import également effectué dans le navigateur sur ursly.io. Stockage S3 direct, extraction et rejet de relecture après suppression testés.                                                                          |
-| F05–F06   | Vrais sous-titres YouTube, récupération côté serveur                   | Adaptateur serveur présent. **Bloqué** : `UF8uR6Z6KLc` retourne `CLOUD_BLOCKED` / 403 dans AWS et depuis le service local exécuté explicitement en mode live. Aucun transcript réel réussi dans cette passe.                                                                                                                                      |
-| F07       | Aperçu du texte extrait, repliable                                     | **Validé dans le navigateur déployé** : aperçu « Extracted text · 5,729 characters », contenu complet du PDF visible.                                                                                                                                                                                                                             |
-| F08–F09   | Texte disponible comme contexte, sans traitement supplémentaire imposé | Le PDF fourni est transmis au modèle : réponse correcte « 25 MB » à la question sur sa limite. **Écart restant** : validation supplémentaire de 60 000 caractères, absente du cahier des charges. Un PDF de moins de 25 MB peut dépasser cette limite. Ne pas simplement supprimer la limite sans stratégie compatible avec la fenêtre du modèle. |
-| F10–F12   | Start Voice Chat, WebRTC, micro et réponse audio réels                 | Bouton et client présents. **Jeton réel validé**, mais le navigateur refuse l’accès au micro. Une conversation audio réelle et bidirectionnelle n’est donc pas encore prouvée.                                                                                                                                                                    |
-| F13       | Transcript de conversation en temps réel                               | Gestion des événements et tests simulés présents. **À vérifier avec audio réel**; une réponse texte ne valide pas la transcription du micro.                                                                                                                                                                                                      |
-| F14       | Repli texte lorsque le micro manque                                    | **Validé avec OpenAI réel sur le web déployé** : après refus du micro, source et conversation préservées; chat texte disponible. Question sur le PDF → réponse correcte « 25 MB ».                                                                                                                                                                |
-| F15       | Mobile-first autour de 390 px                                          | Vérifié dans le navigateur déployé : viewport 390 px, largeur totale du document 390 px. Ce contrôle ne constitue pas un test Safari ou téléphone physique.                                                                                                                                                                                       |
-| F16–F17   | Start/stop/mute, états et déroulement                                  | Contrôles présents; refus du micro expliqué, source et réponse conservées. Les effets réels mute/stop/reconnexion restent à vérifier pendant une session audio.                                                                                                                                                                                   |
-| F18       | Clé API jamais exposée au client                                       | Clé dédiée créée avec permissions restreintes Responses et Realtime; stockée dans `.env.local` ignoré par Git et protégé en 0600, puis dans Secrets Manager `ursly/openai`. Aucun secret ajouté au dépôt ni affiché dans les sorties. Contrôles CI de secrets et de séparation client/serveur réussis sur la révision déployée.                   |
-| F19–F20   | Tokens éphémères émis côté serveur                                     | **Validé en réel en local et sur ursly.io** : secret non simulé, expiration future; valeur non journalisée. Web et natif utilisent ce secret pour négocier directement avec OpenAI. L’ancienne route `/api/realtime/connect` retourne 410. La négociation audio reste à vérifier après autorisation du micro.                                     |
-| F21       | Stockage léger; pas d’auth persistante obligatoire                     | Mémoire de session et S3 temporaire. Conforme au périmètre; absence de comptes utilisateurs non classée comme écart au PDF. Les routes publiques payantes restent une limite de sécurité pour une ouverture commerciale.                                                                                                                          |
-| F22       | Stack recommandée et backend                                           | Next.js, React, TypeScript, routes serveur Node; service Python de sous-titres complémentaire.                                                                                                                                                                                                                                                    |
+| ID | Requirement | Evidence and remaining limits |
+| --- | --- | --- |
+| F01 | Web interface for PDF and YouTube URL | Both tabs are visible at https://ursly.io. AWS YouTube remains unverified after the previously observed block. |
+| F02 | PDF ≤ 25 MB | **Verified on AWS:** a valid 26,214,400-byte PDF was accepted and extracted; one additional byte was rejected with HTTP 400. The code uses 25 MiB. This does not cover every PDF type. |
+| F03–F04 | Server extraction and deployed PDF ingestion | **Verified:** original 122,230-byte PDF produced 5,729 characters, including first- and last-page content. Browser import, direct S3 upload, extraction, and replay rejection after deletion were tested. |
+| F05–F06 | Real server-side YouTube captions | Initial live tests returned `CLOUD_BLOCKED` / 403 locally and on AWS. **Later local success:** `UF8uR6Z6KLc` produced 12,131 characters and `jNQXAC9IVRw` produced 217 after a network change. Native import and preview were observed; see recording status. |
+| F07 | Collapsible extracted-text preview | **Verified in the deployed browser:** “Extracted text · 5,729 characters” and complete PDF content were visible. |
+| F08–F09 | Source text available as context | Real answer “25 MB” matched the PDF. **Remaining gap:** a 60,000-character limit absent from the requirements. A PDF under 25 MB can exceed it. Address provider context limits rather than simply removing validation. |
+| F10–F12 | Start Voice Chat, WebRTC, real microphone and audio output | Client and button exist; **real credential verified**. Browser microphone denial and later iOS CoreAudio failures prevent complete bidirectional audio proof. |
+| F13 | Real-time conversation transcript | Event handling and simulated tests exist. **Verify with real audio:** text chat does not validate microphone transcription. |
+| F14 | Text fallback when microphone is unavailable | **Verified with real OpenAI on the deployed web:** source and conversation were preserved after microphone denial; text question received the correct “25 MB” answer. |
+| F15 | Mobile-first layout around 390 px | Deployed browser viewport and document width both measured 390 px. This is not Safari or physical-device certification. |
+| F16–F17 | Start/stop/mute and connection states | Controls exist; microphone denial is explained and source retained. Native session controls were moved outside scrolling content. Live mute/stop/reconnection effects remain unverified. |
+| F18 | API key never exposed to clients | Dedicated Responses/Realtime key stored in ignored, mode-0600 `.env.local` and Secrets Manager `ursly/openai`. No secret added to the repository or printed. Deployed-revision CI secret and client/server separation checks passed. |
+| F19–F20 | Server-issued ephemeral credentials | **Verified live locally and on ursly.io:** non-mock credential with future expiration, not logged. Web/native clients use it directly with OpenAI. Legacy `/api/realtime/connect` returns 410. Full audio negotiation remains unverified. |
+| F21 | Lightweight storage; no mandatory persistent authentication | Session memory and temporary S3 fit the scope. Missing user accounts are not a PDF gap; public paid routes remain a commercial security limitation. |
+| F22 | Recommended stack and backend | Next.js, React, TypeScript, Node server routes, and an additional Python caption service. |
 
-## Livrables
+## Deliverables
 
-| Référence | Exigence                                                         | État                                                                                                                                                                                                                         |
-| --------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D01       | Application web hébergée et prête à démontrer                    | **Hébergement validé**, HTTPS et PDF opérationnels; pas encore une démonstration complète pour la voix et YouTube.                                                                                                           |
-| D02–D04   | README, environnement, architecture et compromis YouTube         | Documentation publiée : README, SERVICE-SETUP, ARCHITECTURE, guides Terraform et transcript. L’exception YouTube est expliquée, mais il manque une démonstration locale réelle réussie.                                      |
-| D05–D08   | Vidéo de 10–15 min : parcours, voix, architecture, bibliothèques | **Non livrée**. WALKTHROUGH.md est un script, pas une vidéo. Ne pas remplacer une voix réelle par un enregistrement simulé.                                                                                                  |
-| D09–D11   | GitHub public, code modulaire, dépendances                       | **Validé** : https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video ; frontend, backend, manifests et lockfiles publiés.                                                                                            |
-| D12       | Tests pertinents                                                 | CI et déploiement réussis sur `66a8ad7`. Historique récent : 75 tests unitaires, 64 scénarios BDD / 361 étapes. Tests réels supplémentaires décrits ci-dessous. Ces nombres ne certifient pas les exigences encore bloquées. |
-| D13       | Mention de l’assistance IA                                       | Présente dans le README : exigences, conception, implémentation, débogage et tests.                                                                                                                                          |
-| D14       | Délai de 7 jours ouvrables                                       | Date officielle de réception et éventuel accord de prolongation non fournis; non vérifiable. Aucune communication envoyée au destinataire de l’évaluation.                                                                   |
+| ID | Requirement | Status |
+| --- | --- | --- |
+| D01 | Hosted, demo-ready web app | Hosting, HTTPS, and PDF verified. Complete voice demonstration remains outstanding. |
+| D02–D04 | README, environment, architecture, YouTube tradeoffs | README, SERVICE-SETUP, ARCHITECTURE, Terraform and transcript guides provided. Local YouTube success is recorded separately; cloud limitation remains. |
+| D05–D08 | 10–15 minute workflow, voice, architecture and library walkthrough | A 10:25 narrated review with real import excerpts was exported. **It is not the complete acceptance video:** live voice remains unvalidated. A script or synthetic narration cannot replace real app audio. |
+| D09–D11 | Public GitHub, modular code and dependencies | **Verified:** https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video contains frontend, backend, manifests, and lockfiles. |
+| D12 | Appropriate tests | CI/deployment passed on `66a8ad7`; recent evidence includes 75 unit tests and 64 BDD scenarios / 361 steps. Counts do not certify blocked requirements. |
+| D13 | AI-assistance disclosure | README identifies requirements, design, implementation, debugging, and testing assistance. |
+| D14 | Seven-business-day deadline | Official receipt date and any extension were not supplied. Not verifiable; no submission communication sent. |
 
-## Preuves exécutées dans cette passe
+## Verification evidence
 
-- Lecture complète du texte du PDF original, comparé aux cinq pages déjà rendues lors de l’audit initial.
-- `node infrastructure/scripts/smoke.mjs https://ursly.io` : santé, HTML, POST S3, extraction exacte et rejet après consommation réussis.
-- PDF original et PDF valide de 25 MiB envoyés et extraits depuis AWS; limite + 1 octet rejetée. Sorties locales : `/tmp/ursly-production-ingestion-results.jsonl`.
-- `node scripts/demo/check.mjs http://localhost:3100` et `node scripts/demo/check.mjs https://ursly.io` : les quatre contrôles passent après configuration de la clé. Ils ne certifient pas l’audio.
-- Parcours navigateur : import du PDF, aperçu, question sur la taille maximale et réponse réelle correcte. Start Voice Chat → refus de permission du micro, repli texte conservé.
-- Vérification mobile à 390 × 844 : aucun débordement horizontal.
-- Sous-titres YouTube réels : échec 403 local et AWS, zéro caractère. Aucun mock requalifié en preuve réelle.
+- Read the full original PDF text and compared it with the five previously rendered pages.
+- `node infrastructure/scripts/smoke.mjs https://ursly.io`: health, HTML, signed S3 POST, exact extraction, and replay rejection passed.
+- Original and valid 25 MiB PDFs uploaded/extracted on AWS; limit + 1 byte rejected. Local output: `/tmp/ursly-production-ingestion-results.jsonl`.
+- `node scripts/demo/check.mjs http://localhost:3100` and `node scripts/demo/check.mjs https://ursly.io`: all four checks passed after key configuration; they do not certify audio.
+- Browser import, preview, maximum-size question, and correct real answer observed. Microphone denial retained text fallback.
+- 390 × 844 browser check showed no horizontal overflow.
+- Initial YouTube tests failed with 403 and no text. Subsequent real local success is documented in [recording status](docs/demo/RECORDING-STATUS.md); no mock was reclassified as real evidence.
 
-## Travail restant avant conformité intégrale
+## Remaining work
 
-1. Autoriser le microphone et vérifier un échange audio réel, les transcriptions, interruption, question de suivi, mute/stop et comportement sous réseau dégradé.
-2. Obtenir une récupération YouTube réelle fiable, au minimum localement conformément à l’exception du PDF; le fonctionnement cloud demandé reste également à résoudre.
-3. Traiter explicitement la limite de contexte de 60 000 caractères avec une stratégie respectant les limites du fournisseur et le besoin du document.
-4. Produire la vidéo de démonstration de 10–15 minutes avec ces parcours réellement fonctionnels.
-5. Pour les demandes supplémentaires : nouveaux binaires HTTPS, signature iPhone, essais physiques Android/iOS et correction des dépendances mobiles restantes.
+1. Verify real spoken input/output, transcription, interruption, follow-up, mute/stop, and degraded-network behavior.
+2. Reconfirm reliable local YouTube access for the demo and resolve the additional cloud-use request.
+3. Address the 60,000-character limit within provider constraints and the document's needs.
+4. Record the complete 10–15 minute acceptance walkthrough with functioning live conversations.
+5. For additional user requests: HTTPS binaries, physical-iPhone signing, Android/iOS phone tests, and remaining mobile dependency fixes.
 
-Le solde OpenAI était de 6,24 USD avec recharge automatique préexistante lors de sa consultation. Aucun achat de crédits supplémentaire n’a été confirmé. Le fonctionnement des appels vérifiés ne garantit pas le quota futur ni toutes les limites du compte.
+The observed OpenAI balance was USD 6.24 with pre-existing automatic reload enabled. No additional credit purchase was confirmed. Successful calls do not guarantee future quota or all account limits.

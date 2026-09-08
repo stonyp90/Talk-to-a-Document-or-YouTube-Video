@@ -1,52 +1,50 @@
-# État de préparation de la démo — 8 septembre 2026
+# Demo readiness — September 8, 2026
 
-**La démo complète avec services réels n’est pas encore prête.** Le PDF, le chat texte OpenAI et l’émission de jetons Realtime fonctionnent en réel, en local et sur https://ursly.io. L’audio réel et YouTube restent à valider. Voir [la matrice actualisée](REQUIREMENTS-AUDIT.md).
+**The complete live-service demo is not yet ready.** Real PDF ingestion, OpenAI text chat, and Realtime credential issuance work locally and on https://ursly.io. Local YouTube retrieval subsequently succeeded after a network change. Real audio remains unverified. See the [requirements audit](REQUIREMENTS-AUDIT.md) and [latest recording status](docs/demo/RECORDING-STATUS.md).
 
-| Contrôle                                    | Résultat observé                                                                          |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Serveur local `http://localhost:3100`       | Disponible, mode `live`                                                                   |
-| PDF réel                                    | Upload signé MinIO, extraction exacte et rejet d’une seconde extraction : validés         |
-| Web                                         | 18 tests navigateur réussis, dont gestion des erreurs et des réponses tardives            |
-| Android local                               | APK actuel installé; réponse écrite et démarrage/mute/arrêt de session simulée validés    |
-| iOS Simulator                               | Bundle actuel installé; réponse écrite et démarrage/mute/arrêt de session simulée validés |
-| Compte Expo                                 | Session CLI disponible pour `stonyp90`                                                    |
-| Clé OpenAI pour Ursly                       | Clé dédiée restreinte configurée dans `.env.local` et AWS Secrets Manager                 |
-| Quota et accès aux modèles OpenAI           | Appels Responses et Realtime réussis; quota futur non garanti                             |
-| Jeton éphémère Realtime réel                | Émission réelle et expiration vérifiées, en local et sur ursly.io                         |
-| Audio OpenAI réel                           | Non validé                                                                                |
-| YouTube réel                                | Deux vidéos testées par le service Python : HTTP 403 `CLOUD_BLOCKED`                      |
-| Téléphones physiques et production publique | Non certifiés par ces vérifications locales                                               |
+| Check | Observed result |
+| --- | --- |
+| Local server `http://localhost:3100` | Available in `live` mode |
+| Real PDF | Signed MinIO upload, exact extraction, and replay rejection verified |
+| Web | 18 browser tests passed, including errors and late responses |
+| Earlier local Android/iOS tests | Text responses and simulated start/mute/stop verified |
+| Expo account | CLI session available for `stonyp90` |
+| OpenAI key | Dedicated restricted key configured in `.env.local` and AWS Secrets Manager |
+| Model access and quota | Responses and Realtime calls succeeded; future quota is not guaranteed |
+| Real ephemeral credential | Issuance and expiration verified locally and on ursly.io |
+| Real audio | Not validated; latest iOS simulator recording encountered CoreAudio failures |
+| Real YouTube | Initially blocked; two videos later succeeded locally after changing networks |
+| Physical phones and complete production behavior | Not certified by these checks |
 
-## Configuration de l’accès serveur
+## Server configuration
 
-La clé est maintenant configurée. Pour la remplacer, placer la nouvelle clé dans `.env.local` à la racine, déjà exclu de Git, sans la publier dans la conversation. Le fichier a été préparé avec les ports locaux utilisés par les deux simulateurs. Ne pas l’écraser si une clé y a déjà été ajoutée.
+The key is configured. To replace it, set `OPENAI_API_KEY` in the root `.env.local`, which is excluded from Git. Do not publish the key in chat or overwrite an existing configuration.
 
 ```dotenv
-OPENAI_API_KEY=<clé-du-projet-OpenAI>
+OPENAI_API_KEY=<your-project-key>
 PROVIDER_MODE=live
+TRANSCRIPT_MODE=live
 ```
 
-Les identifiants AWS et la connexion Expo ne remplacent pas une clé API OpenAI. Un abonnement ChatGPT ne constitue pas une preuve de crédit disponible pour cette application API. Ne déclarer l’accès prêt qu’après des appels réels réussis et la vérification des limites du projet concerné.
-
-Relancer le backend après configuration :
+AWS credentials and Expo sign-in do not replace an OpenAI key. A ChatGPT subscription is not proof of API credit. Verify real calls and project limits before declaring readiness.
 
 ```bash
 docker compose --env-file .env.local up -d --wait web
 npm run demo:check -- http://localhost:3100
 ```
 
-`demo:check` refuse le mode simulé, teste un PDF réel, demande une réponse textuelle ancrée dans la source et vérifie la présence et l’expiration d’un jeton vocal réel. Il n’affiche jamais ce jeton. Les appels en mode réel peuvent être facturés. Un succès ne certifie pas le quota restant ni l’audio de bout en bout.
+`demo:check` rejects mock mode, tests a real PDF and text response, and verifies a real ephemeral credential and expiration without printing the credential. Live calls may incur charges. Passing does not certify remaining quota or end-to-end audio.
 
-Terminer ensuite par une conversation entendue et parlée : source PDF, question orale, réponse audible, transcription, interruption, mute, arrêt, reprise après perte réseau et passage anglais/français. Répéter sur les plateformes qui seront montrées pendant la démo.
+Then perform an audible conversation: import a PDF, ask a spoken question, hear the response, inspect transcription, interrupt, mute, stop, recover from network loss, and switch between English and French on the native client. Repeat on every platform shown in the demo.
 
-## Point YouTube séparé
+## YouTube
 
-Le service réel a été testé directement sans modifier la configuration de démonstration en cours. Les deux appels ont été bloqués par YouTube depuis ce réseau. `TRANSCRIPT_MODE=live` ne corrige pas ce blocage. Il faut un service de sous-titres compatible et accessible, ou un accès réseau fonctionnel, puis vérifier les vidéos exactes de la démo. Garder le parcours PDF comme solution de repli, en annonçant explicitement la limitation YouTube.
+The initial real Python-service tests were blocked by YouTube. On the new connection, `UF8uR6Z6KLc` and `jNQXAC9IVRw` returned real captions. Test the exact demo videos again on the intended network; local success does not certify AWS access. Keep a PDF fallback and disclose cloud limitations. A mock transcript does not satisfy real ingestion requirements.
 
-## Conditions de démonstration locale
+## Local demo conditions
 
-- Garder Docker démarré et le Mac disponible.
-- Android : maintenir `adb reverse` pour les ports 3100 et 9002.
-- iOS Simulator : utiliser l’API locale sur le port 3100.
-- Ces builds locaux ne sont pas des distributions fonctionnelles pour téléphones autonomes.
-- Avant exposition publique, traiter l’authentification, les quotas et les points de [SECURITY-REVIEW.md](SECURITY-REVIEW.md).
+- Keep Docker running and the Mac available.
+- Android requires `adb reverse` for ports 3100 and 9002 in this demo environment.
+- The iOS simulator uses the local API on port 3100.
+- Local builds are not autonomous phone distributions.
+- Before commercial public use, address access controls, quotas, and the [security review](SECURITY-REVIEW.md).

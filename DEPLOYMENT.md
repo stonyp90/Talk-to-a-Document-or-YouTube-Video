@@ -1,27 +1,27 @@
-# Déploiement vérifié — 8 septembre 2026
+# Verified deployment — September 8, 2026
 
-L’application web et son backend sont déployés sur **https://ursly.io** dans AWS `us-east-1`, compte `436136277668`.
+The web app and backend are deployed at **https://ursly.io** in AWS `us-east-1`, account `436136277668`.
 
-- Route 53 : délégation NS AWS vérifiée; alias du domaine vers API Gateway.
-- HTTPS : certificat ACM existant, domaine régional et association au stage `$default`.
-- Exécution : deux images Lambda, dépôt ECR avec tags immuables, stockage temporaire S3 privé.
-- GitHub Actions : accès OIDC limité à ce dépôt et à l’environnement `production`, avec identifiants immuables du dépôt dans la relation de confiance. Aucune clé AWS permanente ajoutée à GitHub.
-- États Terraform séparés pour le bootstrap, l’application et le domaine, stockés dans S3 avec chiffrement et versionnement.
+- Route 53: AWS nameserver delegation verified; domain alias targets API Gateway.
+- HTTPS: existing ACM certificate, regional domain, and `$default` stage mapping.
+- Runtime: two Lambda images, immutable ECR tags, and private temporary S3 storage.
+- GitHub Actions: OIDC restricted to this repository and the `production` environment, using immutable repository identifiers in the trust policy. No permanent AWS key was added to GitHub.
+- Separate bootstrap, application, and domain Terraform states, stored in encrypted, versioned S3.
 
-## Preuves observées
+## Observed evidence
 
-La [validation CI](https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/actions/runs/34227614084) et le [premier déploiement réussi](https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/actions/runs/34227995926) concernent la révision `da64665a02fe409dd223f2dc4a3b87d33baf53e9`. Les exécutions suivantes peuvent déployer une révision ultérieure; consulter GitHub Actions pour la version courante.
+The [CI validation](https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/actions/runs/34227614084) and [first successful deployment](https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/actions/runs/34227995926) cover revision `da64665a02fe409dd223f2dc4a3b87d33baf53e9`. Later runs may deploy newer revisions; check GitHub Actions for the current version.
 
-Le contrôle `node infrastructure/scripts/smoke.mjs https://ursly.io` a réussi : santé HTTP, page HTML, formulaire S3 signé, envoi d’un PDF réel, extraction exacte du texte et rejet d’une seconde extraction après consommation du fichier. Les contrôles locaux ont également réussi : 75 tests unitaires et 64 scénarios BDD / 361 étapes.
+`node infrastructure/scripts/smoke.mjs https://ursly.io` passed: HTTP health, HTML, signed S3 form, real PDF upload, exact extraction, and rejection of a second extraction after consuming the file. Local evidence also includes 75 unit tests and 64 BDD scenarios / 361 steps.
 
-## Ce qui reste bloqué
+## Outstanding limitations
 
-**Ce déploiement n’est pas une validation complète de production.**
+**Deployment is not complete production validation.**
 
-- Le secret `ursly/openai` et la clé locale sont configurés. Les appels texte réels et l’émission de jetons Realtime ont été validés le 8 septembre 2026. L’audio réel reste à valider : le navigateur refuse actuellement le microphone. Le champ `mode: live` de `/api/health` indique une configuration, pas l’accès effectif au fournisseur.
-- YouTube refuse la récupération depuis AWS : l’essai réel de `UF8uR6Z6KLc` retourne `CLOUD_BLOCKED` / HTTP 403 côté service. L’inscription Google seule ne corrige pas ce blocage.
-- Les routes de démonstration restent publiques. Ajouter une authentification et des limites par utilisateur avant d’activer un fournisseur payant pour une utilisation publique.
-- L’APK de la release `v0.1.0-demo.1` utilise le backend local. Un nouveau build mobile configuré pour HTTPS et des essais sur téléphones physiques restent nécessaires; un build iOS Simulator n’est pas un IPA pour iPhone.
-- Les dépendances mobiles comportent encore les problèmes décrits dans `SECURITY-REVIEW.md`.
+- The local OpenAI key and `ursly/openai` secret are configured. Real text calls and Realtime credentials were verified on September 8, 2026. Audio still needs validation: the browser previously denied microphone access, and the latest iOS simulator recording encountered CoreAudio failures. Health `mode: live` reports configuration, not effective provider access.
+- AWS YouTube retrieval returned `CLOUD_BLOCKED` / HTTP 403 for `UF8uR6Z6KLc`. Google registration alone does not fix this. Local retrieval subsequently succeeded after a network change; see [recording status](docs/demo/RECORDING-STATUS.md).
+- Demo routes are public. Add appropriate authentication and per-user limits for public paid-provider use.
+- Release `v0.1.0-demo.1` uses the local backend. New HTTPS mobile builds and physical-phone tests remain necessary. A simulator build is not an iPhone IPA.
+- Mobile dependencies still have findings documented in [SECURITY-REVIEW.md](SECURITY-REVIEW.md).
 
-Suivre [SERVICE-SETUP.md](SERVICE-SETUP.md) pour l’inscription, la configuration des clés et les limites de l’intégration YouTube.
+See [SERVICE-SETUP.md](SERVICE-SETUP.md) for account setup, credentials, and YouTube integration limits.

@@ -7,3 +7,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Project language
+
+Use English by default for documentation, README files, release notes, interface
+copy, accessibility labels, and new demonstration scripts. Keep French as an
+explicit optional translation. Use English source keys for localization and an
+English fallback for unsupported locales. Preserve user-provided source content
+in its original language.

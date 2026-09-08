@@ -31,7 +31,7 @@ test.use({
     process.env.E2E_BASE_URL ??
     "http://localhost:3000",
 });
-const status = (page: Page) => page.locator(".status");
+const status = (page: Page) => page.locator(".conversation-card .status");
 const start = (page: Page) =>
   page.getByRole("button", { name: "Start Voice Chat", exact: true });
 const stop = (page: Page) =>

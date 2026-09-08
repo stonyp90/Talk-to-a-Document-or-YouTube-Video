@@ -9,7 +9,9 @@ const pdfText = "The demo observatory studies Saturn and its rings.";
 const conversation = (page: Page) =>
   page.getByRole("region", { name: "2. Have a conversation" });
 const status = (page: Page) =>
-  page.getByRole("region", { name: "1. Choose a source" }).locator(".status");
+  page
+    .getByRole("region", { name: "2. Have a conversation" })
+    .locator(".conversation-card .status");
 
 async function uploadPdf(page: Page, text = pdfText) {
   await page.getByRole("tab", { name: "PDF document" }).click();
@@ -59,9 +61,9 @@ test.describe("source conversation journey", () => {
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
     ).toBeEnabled();
-    await page.locator("summary").click();
+    await page.locator(".preview summary").click();
     await expect(page.locator(".preview-text")).toBeHidden();
-    await page.locator("summary").click();
+    await page.locator(".preview summary").click();
     await expect(page.locator(".preview-text")).toBeVisible();
   });
 
@@ -138,12 +140,12 @@ test.describe("source conversation journey", () => {
     expect(answer.ok()).toBeTruthy();
     const payload = await answer.json();
     expect(payload.answer.length).toBeGreaterThan(20);
-    await expect(conversation(page).locator(".message.user")).toHaveText(
-      question,
-    );
-    await expect(conversation(page).locator(".message.assistant")).toHaveText(
-      payload.answer,
-    );
+    await expect(
+      conversation(page).locator(".message.user .message-text"),
+    ).toHaveText(question);
+    await expect(
+      conversation(page).locator(".message.assistant .message-text"),
+    ).toHaveText(payload.answer);
     await expect(page.getByLabel("Ask a question")).toHaveValue("");
   });
 
@@ -161,11 +163,11 @@ test.describe("source conversation journey", () => {
     ).toBeDisabled();
     await page.getByLabel("Ask a question").fill("Tell me about Saturn");
     await page.getByRole("button", { name: "Send", exact: true }).click();
-    await expect(conversation(page).locator(".message.user")).toHaveText(
-      "Tell me about Saturn",
-    );
     await expect(
-      conversation(page).locator(".message.assistant"),
+      conversation(page).locator(".message.user .message-text"),
+    ).toHaveText("Tell me about Saturn");
+    await expect(
+      conversation(page).locator(".message.assistant .message-text"),
     ).toContainText(pdfText);
     await page
       .getByRole("button", { name: "Mute microphone", exact: true })
@@ -187,7 +189,7 @@ test.describe("source conversation journey", () => {
     await expect(
       page.getByRole("button", { name: "Mute microphone", exact: true }),
     ).toBeDisabled();
-    await expect(conversation(page).locator(".message")).toHaveCount(2);
+    await expect(conversation(page).locator(".message-text")).toHaveCount(2);
     await page.getByRole("button", { name: "Start Voice Chat" }).click();
     await expect(status(page)).toHaveText("Connected");
   });
@@ -201,7 +203,7 @@ test.describe("source conversation journey", () => {
     await page.getByLabel("Ask a question").fill("Discuss the old source");
     await page.getByRole("button", { name: "Send", exact: true }).click();
     await expect(
-      conversation(page).locator(".message.assistant"),
+      conversation(page).locator(".message.assistant .message-text"),
     ).toContainText(pdfText);
     await page
       .getByRole("button", { name: "Mute microphone", exact: true })
@@ -214,7 +216,7 @@ test.describe("source conversation journey", () => {
     await expect(
       page.getByRole("button", { name: "Mute microphone", exact: true }),
     ).toBeDisabled();
-    await expect(conversation(page).locator(".message")).toHaveCount(0);
+    await expect(conversation(page).locator(".message-text")).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
     ).toBeEnabled();
@@ -226,10 +228,10 @@ test.describe("source conversation journey", () => {
     await page.getByRole("button", { name: "Send", exact: true }).click();
     expect((await answer).ok()).toBeTruthy();
     await expect(
-      conversation(page).locator(".message.assistant"),
+      conversation(page).locator(".message.assistant .message-text"),
     ).toContainText("Jupiter");
     await expect(
-      conversation(page).locator(".message.assistant"),
+      conversation(page).locator(".message.assistant .message-text"),
     ).not.toContainText("Saturn");
   });
 
@@ -280,6 +282,10 @@ test("keyboard source selection and a suggested question work with a second vide
     "Explain this simply",
   );
   await page.getByLabel("Ask a question").press("Enter");
-  await expect(page.locator(".message.assistant")).not.toBeEmpty();
-  await expect(page.locator(".message.user")).toHaveText("Explain this simply");
+  await expect(
+    page.locator(".message.assistant .message-text"),
+  ).not.toBeEmpty();
+  await expect(page.locator(".message.user .message-text")).toHaveText(
+    "Explain this simply",
+  );
 });

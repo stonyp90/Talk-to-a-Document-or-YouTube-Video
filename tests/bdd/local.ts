@@ -156,7 +156,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     "ingestion and conversation succeed without a login prompt",
     async function () {
       const p = await h.page(this);
-      await expect(p.locator(".message.assistant")).toBeVisible();
+      await expect(p.locator(".message.assistant .message-text")).toBeVisible();
       await expect(
         p.getByRole("button", { name: /sign in|log in|register/i }),
       ).toHaveCount(0);
@@ -212,18 +212,18 @@ export function registerLocalChecks(step: Step, h: Helpers) {
       .click();
   });
   step("a deterministic session is established", async function () {
-    await expect((await h.page(this)).locator(".status")).toHaveText(
-      "Connected",
-    );
+    await expect(
+      (await h.page(this)).locator(".conversation-card .status"),
+    ).toHaveText("Connected");
   });
   step("mock user and assistant events can be exchanged", async function () {
     const p = await h.page(this);
     await p.getByLabel("Ask a question").fill("Summarize this source");
     await p.getByRole("button", { name: "Send", exact: true }).click();
-    await expect(p.locator(".message.user")).toHaveText(
+    await expect(p.locator(".message.user .message-text")).toHaveText(
       "Summarize this source",
     );
-    await expect(p.locator(".message.assistant")).toContainText(
+    await expect(p.locator(".message.assistant .message-text")).toContainText(
       this.source.text.slice(0, 160),
     );
   });

@@ -34,3 +34,34 @@ test("long source names and unbroken chat text stay inside a mobile viewport", a
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
 });
+
+for (const width of [320, 390, 768, 1440]) {
+  test(`workspace navigation and source controls fit at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await page.getByRole("link", { name: "Explore a source" }).click();
+    await expect(page.locator("#workspace")).toBeFocused();
+    await page.getByRole("tab", { name: "PDF document" }).focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(
+      page.getByRole("tab", { name: "YouTube video" }),
+    ).toBeFocused();
+    await expect(page.getByLabel("YouTube URL")).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+    await page.screenshot({
+      path: `/tmp/ursly-workspace-${width}.png`,
+      fullPage: true,
+    });
+    await page.getByRole("link", { name: "How it works" }).click();
+    await page
+      .getByText("Having trouble with a source or your microphone?")
+      .click();
+    await expect(
+      page.getByText("Scanned PDFs need a text layer", { exact: false }),
+    ).toBeVisible();
+  });
+}

@@ -5,12 +5,15 @@ import {
 } from "../support/realtime-harness";
 import { pdfFixture } from "../pdf-fixture";
 test.use({
-  baseURL: process.env.TRANSPORT_BASE_URL ?? process.env.E2E_BASE_URL ?? "http://localhost:3000",
+  baseURL:
+    process.env.TRANSPORT_BASE_URL ??
+    process.env.E2E_BASE_URL ??
+    "http://localhost:3000",
 });
 
 // Explicit transport fault injection. No microphone/audio/network fidelity claim.
 let harness: RealtimeHarness;
-const status = (page: Page) => page.locator(".status");
+const status = (page: Page) => page.locator(".conversation-card .status");
 
 test.beforeEach(async ({ page }) => {
   harness = await installRealtimeHarness(page);
@@ -51,7 +54,7 @@ async function transcript(page: Page) {
     item_id: "answer-1",
     transcript: "Preserved answer",
   });
-  await expect(page.locator(".message")).toHaveText([
+  await expect(page.locator(".message-text")).toHaveText([
     "What does it say?",
     "Preserved answer",
   ]);
@@ -74,7 +77,7 @@ test("live client recovers transport and preserves transcript and mute state", a
   await harness.setConnection("connected");
   await page.clock.fastForward(15001);
   await expect(status(page)).toHaveText("Connected");
-  await expect(page.locator(".message")).toHaveText([
+  await expect(page.locator(".message-text")).toHaveText([
     "What does it say?",
     "Preserved answer",
   ]);
@@ -102,7 +105,7 @@ test("Stop releases media and ignores late transport events", async ({
     delta: "STALE",
   });
   await expect(status(page)).toHaveText("Ended");
-  await expect(page.locator(".message")).toHaveCount(2);
+  await expect(page.locator(".message-text")).toHaveCount(2);
 });
 
 test("failed transport preserves transcript and permits restart", async ({
@@ -118,7 +121,7 @@ test("failed transport preserves transcript and permits restart", async ({
       }),
     )
     .toBeVisible();
-  await expect(page.locator(".message")).toHaveCount(2);
+  await expect(page.locator(".message-text")).toHaveCount(2);
   expect((await harness.snapshot()).tracks[0].stopped).toBe(true);
   await page
     .getByRole("button", { name: "Start Voice Chat", exact: true })
@@ -128,7 +131,7 @@ test("failed transport preserves transcript and permits restart", async ({
     .toBe(2);
   await harness.setConnection("connected");
   await expect(status(page)).toHaveText("Connected");
-  await expect(page.locator(".message")).toHaveCount(2);
+  await expect(page.locator(".message-text")).toHaveCount(2);
 });
 
 test("unrecovered disconnect reaches a bounded failure", async ({ page }) => {
@@ -148,6 +151,6 @@ test("unrecovered disconnect reaches a bounded failure", async ({ page }) => {
       ),
     )
     .toBeVisible();
-  await expect(page.locator(".message")).toHaveCount(2);
+  await expect(page.locator(".message-text")).toHaveCount(2);
   expect((await harness.snapshot()).tracks[0].stopped).toBe(true);
 });

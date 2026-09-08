@@ -93,6 +93,13 @@ export default function HomePage() {
     conversationReducer,
     initialConversationState,
   );
+  const chatLog = useRef<HTMLDivElement>(null);
+  const followMessages = useRef(true);
+  useEffect(() => {
+    if (followMessages.current && chatLog.current) {
+      chatLog.current.scrollTop = chatLog.current.scrollHeight;
+    }
+  }, [state.messages]);
   const realtime = useRef<RealtimeClient | null>(null);
   const mounted = useRef(true);
   const sourceVersion = useRef(0);
@@ -148,6 +155,7 @@ export default function HomePage() {
     setBusy(true);
     setError("");
     setSource(undefined);
+    followMessages.current = true;
     setProviderMode("");
     setQuestion("");
     dispatch({ type: "RESET" });
@@ -415,18 +423,27 @@ export default function HomePage() {
 
   return (
     <main className="shell">
+      <a className="skip-link" href="#workspace">
+        Skip to workspace
+      </a>
       <div className="container">
         <header className="topbar">
           <a className="brand" href="/" aria-label="Ursly home">
             {/* A vector stays crisp at every screen density. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="brand-mark" src="/brand/ursly-mark.svg" width="36" height="36" alt="" />
+            <img
+              className="brand-mark"
+              src="/brand/ursly-mark.svg"
+              width="36"
+              height="36"
+              alt=""
+            />
             ursly<span className="brand-dot">.</span>
           </a>
           <span className="topbar-note">A little more understanding.</span>
-          <span className="workspace-label">
+          <a className="workspace-label" href="#workspace">
             Your workspace <span aria-hidden="true">↗</span>
-          </span>
+          </a>
         </header>
         <div className="hero">
           <div className="eyebrow">
@@ -441,11 +458,27 @@ export default function HomePage() {
             Upload a document or bring a captioned YouTube video. Then ask
             natural questions with your voice or in text.
           </p>
-          <div className="hero-caption">
-            <Icon name="voice" /> Bring your curiosity. Start a conversation.
+          <div className="hero-caption" aria-hidden="true">
+            <div className="hero-wave">
+              <Icon name="voice" />
+            </div>
+            <span>YOUR SOURCE. YOUR CURIOSITY.</span>
+            <strong>
+              A conversation away
+              <br />
+              from your next “aha”.
+            </strong>
+          </div>
+          <div className="hero-links">
+            <a className="primary" href="#workspace">
+              Explore a source <Icon name="arrow" />
+            </a>
+            <a href="#how-it-works">
+              How it works <span aria-hidden="true">↓</span>
+            </a>
           </div>
         </div>
-        <div className="workspace">
+        <div className="workspace" id="workspace" tabIndex={-1}>
           <section
             className="card source-card"
             aria-labelledby="source-heading"
@@ -454,12 +487,15 @@ export default function HomePage() {
               <h2 id="source-heading">1. Choose a source</h2>
               <span
                 className="status"
-                data-state={state.status}
+                data-state={source ? "connected" : "idle"}
                 aria-live="polite"
               >
-                {busy ? "Extracting" : statusText[state.status]}
+                {busy ? "Extracting" : source ? "Source ready" : "Step 1 of 2"}
               </span>
             </div>
+            <p className="section-intro">
+              Bring something you want to understand.
+            </p>
             <div className="tabs" role="tablist" aria-label="Source type">
               <button
                 className={`tab ${tab === "pdf" ? "active" : ""}`}
@@ -517,9 +553,11 @@ export default function HomePage() {
                   <span className="upload-icon">
                     <Icon name="document" />
                   </span>
-                  <strong>Pick a PDF up to 25 MB</strong>
+                  <strong>{file ? file.name : "Pick a PDF up to 25 MB"}</strong>
                   <div className="hint">
-                    A paper, a report, a whole new perspective.
+                    {file
+                      ? `${(file.size / 1024 / 1024).toFixed(1)} MB · Ready to extract`
+                      : "Choose a text-based paper, report, or document."}
                   </div>
                   <input
                     aria-label="PDF file"
@@ -571,6 +609,18 @@ export default function HomePage() {
               </p>
             )}
             {source && (
+              <div className="source-ready">
+                <Icon name="document" />
+                <div>
+                  <strong>{source.sourceName}</strong>
+                  <span>Ready to explore · Ask in voice or text</span>
+                </div>
+                <a href="#conversation-heading" aria-label="Go to conversation">
+                  ↗
+                </a>
+              </div>
+            )}
+            {source && (
               <details className="preview" open>
                 <summary>
                   Extracted text · {source.characters.toLocaleString()}{" "}
@@ -586,12 +636,23 @@ export default function HomePage() {
             aria-labelledby="conversation-heading"
           >
             <div className="status-row">
-              <h2 id="conversation-heading">2. Have a conversation</h2>
-              <span className="hint">
-                {source ? source.sourceName : "Ingest a source first"}
+              <h2 id="conversation-heading" tabIndex={-1}>
+                2. Have a conversation
+              </h2>
+              <span
+                className="status"
+                data-state={state.status}
+                aria-live="polite"
+              >
+                {statusText[state.status]}
               </span>
             </div>
-            <div className="actions">
+            {source && (
+              <p className="conversation-source">
+                Exploring <strong>{source.sourceName}</strong>
+              </p>
+            )}
+            <div className="actions voice-controls">
               <button
                 className="primary"
                 disabled={
@@ -641,6 +702,13 @@ export default function HomePage() {
             )}
             <div
               className="chat"
+              ref={chatLog}
+              tabIndex={0}
+              onScroll={(event) => {
+                const log = event.currentTarget;
+                followMessages.current =
+                  log.scrollHeight - log.scrollTop - log.clientHeight < 64;
+              }}
               role="log"
               aria-label="Conversation"
               aria-live="polite"
@@ -685,7 +753,14 @@ export default function HomePage() {
               ) : (
                 state.messages.map((message) => (
                   <div key={message.id} className={`message ${message.role}`}>
-                    {message.text || "…"}
+                    <span className="message-author">
+                      {message.role === "user"
+                        ? "You"
+                        : message.role === "assistant"
+                          ? "Ursly"
+                          : "Session update"}
+                    </span>
+                    <span className="message-text">{message.text || "…"}</span>
                   </div>
                 ))
               )}
@@ -715,6 +790,51 @@ export default function HomePage() {
             </form>
           </section>
         </div>
+        <section
+          className="how-it-works"
+          id="how-it-works"
+          aria-labelledby="how-heading"
+        >
+          <div className="guide-heading">
+            <span className="eyebrow">A little guidance</span>
+            <h2 id="how-heading">From information to understanding.</h2>
+          </div>
+          <div className="guide-grid">
+            <article>
+              <span className="guide-number">01</span>
+              <h3>Bring your source</h3>
+              <p>
+                Choose a text-based PDF up to 25 MB or a YouTube video with
+                available captions.
+              </p>
+            </article>
+            <article>
+              <span className="guide-number">02</span>
+              <h3>Make it a conversation</h3>
+              <p>
+                Extract the text, then ask a question. Start with a summary or
+                explore a specific idea.
+              </p>
+            </article>
+            <article>
+              <span className="guide-number">03</span>
+              <h3>Go a little deeper</h3>
+              <p>
+                Ask follow-up questions by voice or text. Keep the extracted
+                source nearby to check important details.
+              </p>
+            </article>
+          </div>
+          <details className="help-detail">
+            <summary>Having trouble with a source or your microphone?</summary>
+            <p>
+              Scanned PDFs need a text layer before upload. YouTube captions
+              must be available, and some videos may be blocked by YouTube. For
+              voice, allow microphone access in your browser. If voice cannot
+              connect, you can still try text chat with an extracted source.
+            </p>
+          </details>
+        </section>
         <footer className="footer">
           <span>Ursly · Made for your next “aha”.</span>
           <span>PDF & YouTube · Voice & text</span>

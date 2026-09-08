@@ -27,7 +27,7 @@ The website is deployed at **[ursly.io](https://ursly.io)**. See [deployment ver
 
 | Component | Technologies | Purpose |
 | --- | --- | --- |
-| Web and API | Next.js 16, React 19, TypeScript | Web interface and server routes |
+| Web and API | Next.js 16, React 19, TypeScript | Web interface and Server routes |
 | Mobile | Expo SDK 54, React Native 0.81 | Android and iOS clients |
 | Voice | OpenAI Realtime, WebRTC, `react-native-webrtc` | Live audio and transcription events |
 | Text chat | OpenAI API | Source-grounded responses |
@@ -202,7 +202,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Cucumber also requires local services. See the [BDD guide](tests/bdd/README.md) for infrastructure/security prerequisites. `@external` scenarios require real providers or external environments; mocks do not validate them. Undefined or pending steps fail the suite.
+Cucumber also requires local services. See the [BDD guide](tests/bdd/README.md) for infrastructure/security prerequisites. `@external` scenarios require real providers or external environments; mocks do not validate them. Undefined or pending steps fail the suite; pending steps are not passing.
 
 ```bash
 npm run test:gherkin -- --tags 'not @external'
@@ -262,4 +262,4 @@ Lambda suits intermittent demo traffic without an always-running ECS task. Costs
 - [Demo walkthrough](WALKTHROUGH.md), [recording plan](docs/demo/WALKTHROUGH.md), and [recording status](docs/demo/RECORDING-STATUS.md)
 - [Brand guidelines](BRAND.md)
 
-AI assistance was used for requirements breakdown, design, implementation, debugging, testing, and review. Verification reports distinguish observed results from features that remain unverified.
+AI-assisted development was used for requirements decomposition, design, implementation, debugging, testing, and review. Verification reports distinguish observed results from features that remain unverified.

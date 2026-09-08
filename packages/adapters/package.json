@@ -1,0 +1,11 @@
+{
+  "name": "@talk/adapters",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@talk/core": "0.1.0"
+  },
+  "exports": {
+    "./*": "./src/*.ts"
+  }
+}

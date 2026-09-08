@@ -1,0 +1,32 @@
+appId: com.talktosource.demo
+---
+# Interface checks only. A passing flow does not validate the production backend.
+- launchApp:
+    clearState: true
+- assertVisible: "Import a PDF"
+- tapOn: "About Ursly and language"
+- assertVisible: "App language"
+- tapOn: "Français"
+- assertVisible: "Langue de l’application"
+- tapOn: "Fermer"
+- assertVisible: "Importer un PDF"
+- tapOn: "À propos d’Ursly"
+- tapOn: "English"
+- tapOn: "Close"
+- tapOn: "Try a sample text"
+- assertVisible: "The power of small breaks"
+- tapOn: "The source"
+- assertVisible: "It all starts here."
+- tapOn: "About Ursly and language"
+- tapOn: "Français"
+- tapOn: "Fermer"
+- assertVisible: "Tout commence ici."
+- assertVisible: "The power of small breaks"
+- tapOn: "Conversation"
+- assertVisible: "Démarrer la conversation vocale"
+- tapOn: "Retour aux sources"
+- assertVisible: "Reprendre la conversation"
+- tapOn: "À propos d’Ursly"
+- tapOn: "English"
+- tapOn: "Close"
+- assertVisible: "Resume conversation"

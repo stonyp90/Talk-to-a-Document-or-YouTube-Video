@@ -22,7 +22,7 @@ test("long source names and unbroken chat text stay inside a mobile viewport", a
       json: { answer: "https://example.com/" + "x".repeat(500) },
     }),
   );
-  await page.goto("http://localhost:3000");
+  await page.goto(process.env.E2E_BASE_URL ?? "http://localhost:3000");
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
   await page.getByRole("button", { name: "Extract source text" }).click();

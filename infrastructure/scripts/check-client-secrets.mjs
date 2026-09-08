@@ -32,6 +32,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   for (const [name, fixture] of Object.entries(canaries)) {
     if (process.env[name] !== fixture) throw new Error(`Build canary fixture is required in ${name}`);
   }
-  const count = await scanClientSecrets(resolve(process.argv[2] ?? '.next/static'));
+  const count = await scanClientSecrets(resolve(process.argv[2] ?? 'apps/web/.next/static'));
   console.log(`Built-client canary check passed across ${count} assets; both fake secret values are absent.`);
 }

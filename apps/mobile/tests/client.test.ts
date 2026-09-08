@@ -86,3 +86,22 @@ test('text fallback sends the shared source contract to the backend', async () =
   });
   assert.equal(await api.ask(source, 'Why?'), 'Because.');
 });
+
+ test('voice SDP uses only the ephemeral credential at the fixed provider endpoint', async () => {
+  const api = new ApiClient('https://ursly.io', async (url, init) => {
+    assert.equal(url, 'https://api.openai.com/v1/realtime/calls');
+    assert.equal(init!.method, 'POST');
+    assert.equal(init!.body, 'offer-sdp');
+    assert.deepEqual(init!.headers, { 'Content-Type': 'application/sdp', Authorization: 'Bearer ephemeral-test' });
+    return new Response('answer-sdp');
+  });
+  assert.equal(await api.negotiate('offer-sdp', 'ephemeral-test'), 'answer-sdp');
+});
+test('voice errors cannot echo a provider credential', async () => {
+  const api = new ApiClient('https://ursly.io', async () => Response.json({ error: 'credential echoed' }, { status: 401 }));
+  await assert.rejects(() => api.negotiate('offer', 'ephemeral-test'), { message: 'Voice connection failed. Retry or use text chat.' });
+});
+test('missing voice credential fails before contacting the network', async () => {
+  const api = new ApiClient('https://ursly.io', async () => assert.fail('Network must not be called'));
+  await assert.rejects(() => api.negotiate('offer', ''), /Missing voice session credential/);
+});

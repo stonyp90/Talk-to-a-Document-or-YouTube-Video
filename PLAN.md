@@ -400,7 +400,8 @@ The test stack will be:
 - Build and tag the backend image using the commit SHA.
 - Authenticate to ECR through AWS OIDC, never an access key.
 - Push the image to ECR.
-- Deploy CDK/CloudFormation infrastructure.
+- Deploy Terraform infrastructure from `infrastructure/terraform/environments/demo`,
+  using separate operator bootstrap state and a saved, reviewed application plan.
 - Update Lambda/API Gateway and frontend hosting.
 - Run health, PDF extraction, and Realtime token smoke checks.
 - Publish the deployment URL and image digest as workflow artifacts.

@@ -1,0 +1,6 @@
+region             = "us-east-1"
+account_id         = "123456789012"
+github_repository  = "OWNER/REPO"
+openai_secret_arn  = "arn:aws:secretsmanager:us-east-1:123456789012:secret:talk-openai-abcdef"
+# Set this if GitHub's account-wide OIDC provider already exists.
+# existing_oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"

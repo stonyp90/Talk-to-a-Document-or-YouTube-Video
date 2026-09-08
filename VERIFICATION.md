@@ -5,9 +5,33 @@ specification, not evidence of completion. Pending and undefined Gherkin steps
 fail the applicable test run. Never count controlled media fixtures as real
 two-way voice verification.
 
-## Evidence categories
+## Terraform / hexagonal migration verification (2026-09-07)
 
-Latest serialized host verification (2026-09-07): lint/typecheck passed, 66 web
+Verified locally after restructuring: lint and strict typechecking; **78**
+application/domain/adapter/architecture tests; **64** local Gherkin scenarios
+and **361** steps; **22** browser regressions; **3** infrastructure wiring and
+client-secret regression tests; and **5** Terraform mock-provider test runs.
+All three Terraform roots validate with Terraform 1.14.7 and locked AWS 6.63.0.
+The native package also passed typechecking and all 18 tests present in the tree.
+
+The production web build and 11-asset fake-secret scan passed. A fresh Docker
+Compose project, `talk-hexagonal-check`, ran the migrated application on port
+3015 with its own transcript service (3025) and MinIO (9012/9013). Real PDF
+upload/extraction, consumed-upload replay rejection, captions and text fallback
+passed against that isolated stack. Existing demo containers were not restarted.
+The temporary test stack was stopped afterward; its named volume and image cache
+were retained, and the main demo stack was left running.
+
+No AWS apply/import, GitHub push, deployment, live audio verification or simulator
+permission changes were performed for this migration. Terraform tests use mocked
+providers only; they do not establish real-account IAM authorization or quotas.
+The existing 33 external release scenarios remain separate, unverified gates.
+See `ARCHITECTURE.md` and `infrastructure/terraform/README.md` for the new structure,
+OIDC/bootstrap setup and operator-reviewed CDK retain/import migration.
+
+## Historical evidence before the migration
+
+Pre-migration serialized host verification (2026-09-07): lint/typecheck passed, 66 web
 unit/component tests passed, 62 local Gherkin scenarios / 348 steps passed,
 22 browser tests passed, 14 infrastructure tests passed after the CDK upgrade,
 and 12 native unit tests plus native typecheck passed. Production build and
@@ -44,7 +68,7 @@ No real provider key is necessary for deterministic checks.
 
 ```sh
 npm ci
-npm ci --prefix infrastructure/cdk
+terraform -chdir=infrastructure/terraform/bootstrap init -backend=false
 npm run lint
 npm run typecheck
 npm test
@@ -55,7 +79,9 @@ OPENAI_API_KEY=ci_canary_OPENAI_clearlyfakefixture_2026 AWS_SECRET_ACCESS_KEY=ci
 npm run test:gherkin -- --tags 'not @external'
 npm run test:e2e -- --workers=1
 node infrastructure/scripts/smoke.mjs http://localhost:3000
-npm test --prefix infrastructure/cdk
+node --test infrastructure/tests/*.test.cjs
+terraform -chdir=infrastructure/terraform/bootstrap test
+terraform -chdir=infrastructure/terraform/modules/demo test
 npm run typecheck --prefix apps/mobile
 npm test --prefix apps/mobile
 ```

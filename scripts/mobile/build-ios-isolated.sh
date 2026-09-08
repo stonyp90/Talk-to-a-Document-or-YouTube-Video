@@ -8,11 +8,11 @@ repo_dir="$(cd "$(dirname "$0")/../.." && pwd)"
 # /private/tmp entry paths. /Users/Shared has a canonical, space-free path.
 build_dir="$(mktemp -d /Users/Shared/talk-mobile.XXXXXX)"
 printf 'Isolated build directory: %s\n' "$build_dir"
-mkdir -p "$build_dir/apps/mobile" "$build_dir/src/domain"
+mkdir -p "$build_dir/apps/mobile" "$build_dir/packages/core/src/domain"
 rsync -a --exclude=node_modules --exclude=ios --exclude=android --exclude=dist \
   --exclude=.expo --exclude=.env.local --exclude='*.tsbuildinfo' \
   "$repo_dir/apps/mobile/" "$build_dir/apps/mobile/"
-cp "$repo_dir/src/domain/ingestion.ts" "$build_dir/src/domain/ingestion.ts"
+cp "$repo_dir/packages/core/src/domain/ingestion.ts" "$build_dir/packages/core/src/domain/ingestion.ts"
 cd "$build_dir/apps/mobile"
 npm ci
 CI=1 npx --no-install expo prebuild --no-install --platform ios

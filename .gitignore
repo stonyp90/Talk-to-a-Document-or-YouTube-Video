@@ -13,3 +13,27 @@ dist
 android/.gradle
 ios/Pods
 *.tsbuildinfo
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+*_override.tf
+crash.log
+
+# Private credentials and local audit/build output
+.aws/
+*.pem
+*.key
+*.p12
+*.pfx
+*.p8
+*.jks
+*.keystore
+*.mobileprovision
+credentials.json
+service-account*.json
+secrets.json
+*.log
+/tmp/

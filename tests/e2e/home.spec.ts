@@ -3,7 +3,7 @@ import { pdfFixture } from "../pdf-fixture";
 
 // Compose's configured origin is localhost; exercise the real browser upload
 // and API paths, including CORS and the object store, without request mocks.
-test.use({ baseURL: "http://localhost:3000" });
+test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000" });
 
 const pdfText = "The demo observatory studies Saturn and its rings.";
 const conversation = (page: Page) =>
@@ -255,4 +255,31 @@ test.describe("source conversation journey", () => {
     await uploadPdf(page);
     await assertWidth();
   });
+});
+
+test("keyboard source selection and a suggested question work with a second video", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const pdfTab = page.getByRole("tab", { name: "PDF document" });
+  const youtubeTab = page.getByRole("tab", { name: "YouTube video" });
+  await pdfTab.focus();
+  await pdfTab.press("ArrowRight");
+  await expect(youtubeTab).toBeFocused();
+  await expect(youtubeTab).toHaveAttribute("aria-selected", "true");
+  await youtubeTab.press("Home");
+  await expect(pdfTab).toBeFocused();
+  await pdfTab.press("End");
+  await page.getByLabel("YouTube URL").fill("https://youtu.be/jNQXAC9IVRw");
+  await page.getByRole("button", { name: "Extract source text" }).click();
+  await expect(page.locator(".preview-text")).not.toBeEmpty();
+  await expect(conversation(page)).toContainText("jNQXAC9IVRw");
+  await page.getByRole("button", { name: "Explain this simply" }).click();
+  await expect(page.getByLabel("Ask a question")).toBeFocused();
+  await expect(page.getByLabel("Ask a question")).toHaveValue(
+    "Explain this simply",
+  );
+  await page.getByLabel("Ask a question").press("Enter");
+  await expect(page.locator(".message.assistant")).not.toBeEmpty();
+  await expect(page.locator(".message.user")).toHaveText("Explain this simply");
 });

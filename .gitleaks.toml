@@ -1,0 +1,9 @@
+title = "Ursly secret detection"
+[extend]
+useDefault = true
+
+[[rules]]
+id = "aws-temporary-access-key"
+description = "AWS temporary access key identifier; session credentials must never be committed"
+regex = '''\bASIA[A-Z0-9]{16}\b'''
+keywords = ["ASIA"]

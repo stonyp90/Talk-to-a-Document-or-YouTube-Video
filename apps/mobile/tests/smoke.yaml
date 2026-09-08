@@ -1,34 +1,37 @@
 appId: com.talktosource.demo
 ---
-- launchApp
-- assertVisible: "Talk to a source"
-- tapOn: "YouTube URL"
-- inputText: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-- hideKeyboard
-- tapOn: "Load YouTube"
-- extendedWaitUntil:
-    visible: "Expand preview"
-    timeout: 45000
-- tapOn: "Expand preview"
-- assertVisible: "Collapse preview"
-- scrollUntilVisible:
-    element: "Your question"
-    direction: DOWN
+- launchApp:
+    clearState: true
+- assertVisible: "Import a PDF"
+- tapOn: "About Ursly and language"
+- assertVisible: "App language"
+- tapOn: "Français"
+- assertVisible: "Langue de l’application"
+- tapOn: "Fermer"
+- assertVisible: "Importer un PDF"
+- tapOn: "À propos d’Ursly"
+- tapOn: "English"
+- tapOn: "Close"
+- tapOn: "Try a sample text"
+- assertVisible: "The power of small breaks"
+- tapOn: "The source"
+- assertVisible: "It all starts here."
+- tapOn: "Conversation"
 - tapOn: "Your question"
 - inputText: "What is this source about?"
 - hideKeyboard
 - tapOn: "Send question"
 - extendedWaitUntil:
-    visible: "Assistant"
+    visible: "YOU"
     timeout: 45000
 - scrollUntilVisible:
-    element: "Start Voice Chat"
+    element: "Start voice conversation"
     direction: UP
-- tapOn: "Start Voice Chat"
+- tapOn: "Start voice conversation"
 - extendedWaitUntil:
-    visible: "Voice: connected"
+    visible: "Session active"
     timeout: 45000
-- tapOn: "Mute"
-- assertVisible: "Unmute"
-- tapOn: "Stop"
-- assertVisible: "Voice: ended"
+- tapOn: "Mute microphone"
+- assertVisible: "Microphone muted"
+- tapOn: "Stop session"
+- assertVisible: "At your own pace"

@@ -10,10 +10,11 @@ const config = [
       "apps/mobile/android/**",
       "apps/mobile/dist/**",
       "apps/mobile/.expo/**",
-      "infrastructure/cdk/cdk.out/**",
+      "**/.next/**",
+      "**/.terraform/**",
       "**/test-results/**",
       "**/playwright-report/**",
-      "public/pdf.worker.mjs",
+      "apps/web/public/pdf.worker.mjs",
     ],
   },
 ];

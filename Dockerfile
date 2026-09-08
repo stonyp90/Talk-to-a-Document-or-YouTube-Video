@@ -5,6 +5,9 @@ FROM node:22-bookworm-slim AS dependencies
 ENV NODE_ENV=production
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/core/package.json ./packages/core/
+COPY packages/adapters/package.json ./packages/adapters/
 RUN npm ci --include=dev
 
 FROM dependencies AS builder
@@ -20,8 +23,6 @@ CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
 FROM dependencies AS test-tools
 ENV NODE_ENV=development
 RUN npx playwright install --with-deps chromium
-COPY infrastructure/cdk/package.json infrastructure/cdk/package-lock.json ./infrastructure/cdk/
-RUN npm ci --prefix infrastructure/cdk
 
 FROM test-tools AS test
 COPY . .
@@ -32,9 +33,10 @@ FROM node:22-bookworm-slim AS runtime
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder /app/apps/web/public ./apps/web/public
+WORKDIR /app/apps/web
 COPY --from=lambda-adapter /lambda-adapter /opt/extensions/lambda-adapter
 ENV PORT=3000
 ENV AWS_LWA_PORT=3000

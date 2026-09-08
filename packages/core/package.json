@@ -1,0 +1,9 @@
+{
+  "name": "@talk/core",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./domain/*": "./src/domain/*.ts",
+    "./application/*": "./src/application/*.ts"
+  }
+}

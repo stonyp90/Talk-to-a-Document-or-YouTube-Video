@@ -5,7 +5,7 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./", import.meta.url)) } },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "tests/**/*.test.ts"],
+    include: ["packages/**/*.test.ts", "apps/web/**/*.test.ts", "apps/web/**/*.test.tsx", "tests/**/*.test.ts"],
     setupFiles: ["./tests/setup.ts"],
   },
 });

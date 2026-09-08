@@ -11,12 +11,13 @@ import {
   MAX_PDF_BYTES,
   validatePdf,
   type IngestedSource,
-} from "../../src/domain/ingestion";
-import { extractPdfText } from "../../src/server/ingestion";
+} from "../../packages/core/src/domain/ingestion";
+import { extractPdfText } from "../../apps/web/src/composition";
 import { pendingSteps } from "./unsupported";
 import { fixturePdf } from "./fixtures";
 import { registerLocalChecks } from "./local";
 import { registerResilienceChecks } from "./resilience";
+import { registerArchitectureChecks } from "./architecture";
 
 setDefaultTimeout(30_000);
 const baseURL = process.env.BDD_BASE_URL ?? "http://localhost:3000";
@@ -520,7 +521,7 @@ step(
 step("I see an explanatory empty state", async function () {
   const p = await page(this);
   await expect(
-    p.getByText("Your conversation will appear here."),
+    p.getByText("Add a source, then explore the ideas inside it."),
   ).toBeVisible();
   await expect(
     p.getByRole("button", { name: "Start Voice Chat" }),
@@ -873,6 +874,7 @@ registerLocalChecks(step, {
   baseURL,
 });
 registerResilienceChecks(step, { page, open, ready, baseURL });
+registerArchitectureChecks(step);
 
 // Static inventory: unsupported steps are PENDING, never successful. Newly added
 // phrases without implementations remain undefined and fail the default gate.

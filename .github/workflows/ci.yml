@@ -9,6 +9,24 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install pinned secret scanner
+        run: |
+          docker pull ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          container=$(docker create ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f)
+          docker cp "$container:/usr/bin/gitleaks" /tmp/gitleaks
+          docker rm "$container"
+          sudo install /tmp/gitleaks /usr/local/bin/gitleaks
+      - run: npm run security:secrets
   application:
     runs-on: ubuntu-latest
     steps:
@@ -18,7 +36,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm ci --prefix infrastructure/cdk
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -38,14 +55,25 @@ jobs:
         run: echo '::notice::Scenarios tagged @external are not verified by local CI. Live provider, simulator, and deployed AWS evidence remains required for full release acceptance.'
       - run: npm run test:e2e
       - run: npm audit --omit=dev --audit-level=critical
-      - run: npm run build --prefix infrastructure/cdk
-      - run: npm audit --prefix infrastructure/cdk --audit-level=high
-      - run: npm test --prefix infrastructure/cdk
-      - name: Synthesize scoped bootstrap with fixture identity
-        run: npm run synth --prefix infrastructure/cdk -- --quiet -c bootstrap=true -c githubRepository=example/talk -c openAiSecretArn=arn:aws:secretsmanager:us-east-1:123456789012:secret:talk-test-abcdef
-      - run: npm run synth --prefix infrastructure/cdk -- -c imageTag=${{ github.sha }}
+      - run: node --test infrastructure/tests/*.test.cjs
       - if: always()
         run: docker compose down -v
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.7
+      - run: terraform fmt -check -recursive infrastructure/terraform
+      - name: Validate and test Terraform without cloud credentials
+        run: |
+          for target in bootstrap modules/demo environments/demo; do
+            terraform -chdir="infrastructure/terraform/$target" init -backend=false -lockfile=readonly
+            terraform -chdir="infrastructure/terraform/$target" validate
+          done
+          terraform -chdir=infrastructure/terraform/bootstrap test
+          terraform -chdir=infrastructure/terraform/modules/demo test
   containers:
     runs-on: ubuntu-latest
     steps:
@@ -87,12 +115,14 @@ jobs:
           if-no-files-found: error
   required:
     if: always()
-    needs: [application, containers, mobile]
+    needs: [application, containers, mobile, infrastructure, secrets]
     runs-on: ubuntu-latest
     steps:
       - name: Require every check to succeed
         env:
+          SECRETS: ${{ needs.secrets.result }}
           APPLICATION: ${{ needs.application.result }}
           CONTAINERS: ${{ needs.containers.result }}
           MOBILE: ${{ needs.mobile.result }}
-        run: test "$APPLICATION" = success && test "$CONTAINERS" = success && test "$MOBILE" = success
+          INFRASTRUCTURE: ${{ needs.infrastructure.result }}
+        run: test "$SECRETS" = success && test "$APPLICATION" = success && test "$CONTAINERS" = success && test "$MOBILE" = success && test "$INFRASTRUCTURE" = success

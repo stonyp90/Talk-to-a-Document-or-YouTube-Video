@@ -2,10 +2,14 @@
   "name": "talk-to-a-document",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "npm run dev --workspace @talk/web --",
+    "build": "npm run build --workspace @talk/web",
+    "start": "npm run start --workspace @talk/web --",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -13,7 +17,9 @@
     "test:gherkin": "cucumber-js --format progress",
     "test:e2e": "playwright test",
     "format:check": "prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "security:secrets": "node scripts/security/scan.mjs",
+    "demo:check": "node scripts/demo/check.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",

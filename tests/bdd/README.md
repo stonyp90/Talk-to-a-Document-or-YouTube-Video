@@ -4,6 +4,12 @@ Start the application at `http://localhost:3000` with mock providers and install
 the Playwright Chromium browser. Override the URL with `BDD_BASE_URL` if needed.
 The runner does not start or rebuild the application.
 
+For an isolated Compose project, pass the same `COMPOSE_PROJECT_NAME` and port
+variables used to start it. Also set `BDD_BASE_URL`, `BDD_S3_ENDPOINT`,
+`BDD_OBJECT_STORE_URL` (the MinIO `/minio/health/live` URL), and
+`BDD_TRANSCRIPT_HEALTH_URL` (the transcript `/health` URL). Use `--name` to select
+individual scenarios; feature paths currently merge with the configured glob.
+
 ```sh
 npx cucumber-js --format summary --format json:tests/bdd/latest-results.json
 npx cucumber-js --tags 'not @external' --format summary --format json:tests/bdd/local-results.json
@@ -12,8 +18,9 @@ npx cucumber-js --tags 'not @external' --format summary --format json:tests/bdd/
 Host CI runs every local scenario, including `@host`. The container runner runs
 the narrower `not @external and not @host` subset without Docker CLI or a mounted
 Docker socket. Host-tagged checks inspect Docker, workflows, or the host canary
-build. Before host BDD, install `infrastructure/cdk` dependencies and run the
-production canary build and scanner as configured in CI. Do not run builds and
+build. Before host BDD, run the production canary build and scanner as configured
+in CI. Fast Terraform wiring checks use Node; actual Terraform validation and
+mock-provider tests run in their separate infrastructure CI job. Do not run builds and
 browser suites concurrently on a resource-constrained machine.
 
 The default configuration is strict. Failed, pending, or undefined steps make

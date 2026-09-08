@@ -23,6 +23,7 @@ export class NativeVoice {
         this.event({ type: 'mock.ready' });
         return;
       }
+      if (!session.clientSecret) throw new Error('Missing voice session credential. Retry voice.');
       const native = await import('react-native-webrtc');
       if (this.stopped) return;
       const stream = await native.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -56,7 +57,7 @@ export class NativeVoice {
       if (this.stopped) return;
       await peer.setLocalDescription(offer);
       if (this.stopped) return;
-      const answer = await this.api.negotiate(this.source, offer.sdp!);
+      const answer = await this.api.negotiate(offer.sdp!, session.clientSecret);
       if (this.stopped) return;
       await peer.setRemoteDescription(new native.RTCSessionDescription({ type: 'answer', sdp: answer }));
     } catch (error) {

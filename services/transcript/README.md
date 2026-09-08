@@ -28,6 +28,6 @@ Errors use `{ "error": { "code": "...", "message": "..." } }`:
 
 `missing0000` produces NO_CAPTIONS in service mock mode. Other valid IDs produce the same deterministic transcript with an ID-specific label.
 
-The Docker build runs Python unit tests. Re-run with `docker run --rm talk-transcript:local python -m unittest -v`. Application boundary tests: `npx vitest run src/server/providers.test.ts`.
+The Docker build runs Python unit tests. Re-run with `docker run --rm talk-transcript:local python -m unittest -v`. Application boundary tests: `npx vitest run packages/adapters/src/providers.test.ts`.
 
 Verification on 2026-09-07: a live retrieval inside the Docker image for public video `dQw4w9WgXcQ` returned HTTP-equivalent status 200 with 2,089 caption characters and no credentials. This verifies this machine/network at that time; cloud providers may still receive CLOUD_BLOCKED. Unit tests and mock HTTP checks are separate from this live evidence.

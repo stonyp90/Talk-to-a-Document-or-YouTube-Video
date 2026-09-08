@@ -2,7 +2,7 @@ import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { scanClientSecrets } from './check-client-secrets.mjs';
 
-await scanClientSecrets('.next/static');
+await scanClientSecrets('apps/web/.next/static');
 
 // Browser POST URLs are signed for localhost:9002. The runner shares web's
 // namespace; forward this port to real MinIO without modifying the signed Host.

@@ -5,7 +5,7 @@ import {
 } from "../support/realtime-harness";
 import { pdfFixture } from "../pdf-fixture";
 test.use({
-  baseURL: process.env.TRANSPORT_BASE_URL ?? "http://localhost:3000",
+  baseURL: process.env.TRANSPORT_BASE_URL ?? process.env.E2E_BASE_URL ?? "http://localhost:3000",
 });
 
 // Explicit transport fault injection. No microphone/audio/network fidelity claim.

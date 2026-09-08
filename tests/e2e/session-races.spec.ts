@@ -25,7 +25,12 @@ declare global {
     race: RaceHarness;
   }
 }
-test.use({ baseURL: process.env.RACE_BASE_URL ?? "http://localhost:3000" });
+test.use({
+  baseURL:
+    process.env.RACE_BASE_URL ??
+    process.env.E2E_BASE_URL ??
+    "http://localhost:3000",
+});
 const status = (page: Page) => page.locator(".status");
 const start = (page: Page) =>
   page.getByRole("button", { name: "Start Voice Chat", exact: true });
@@ -201,8 +206,17 @@ test("blackholed text chat times out and ignores its eventual answer", async ({
   await expect
     .poll(() => page.evaluate(() => window.race.textRequested))
     .toBe(1);
+  await expect(
+    page.getByText("Finding an answer in your source…"),
+  ).toBeVisible();
   await page.clock.runFor(25001);
   await expect(page.locator(".error")).toContainText(/timed out.*retry/i);
+  await expect(page.getByLabel("Ask a question")).toHaveValue(
+    "Will this time out?",
+  );
+  await expect(page.getByText("Finding an answer in your source…")).toHaveCount(
+    0,
+  );
   await page.evaluate(() => window.race.releaseText());
   await expect(page.locator(".message.assistant")).toHaveCount(0);
 });
@@ -347,4 +361,4 @@ test("realtime send failure is surfaced without an unhandled rejection", async (
 });
 
 // Unmount cleanup is exercised with a real React root in
-// src/lib/page-lifecycle.test.tsx; no private Next RSC rewriting is used.
+// apps/web/src/lib/page-lifecycle.test.tsx; no private Next RSC rewriting is used.

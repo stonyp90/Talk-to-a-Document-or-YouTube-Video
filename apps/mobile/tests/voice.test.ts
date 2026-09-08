@@ -30,3 +30,11 @@ test('backend session failure leaves an actionable error and no connected state'
   assert.ok(!statuses.includes('connected'));
   assert.deepEqual(errors, ['Service unavailable']);
 });
+
+test('a live session without an ephemeral credential fails before native microphone loading', async () => {
+  const errors: string[] = [];
+  const api = new ApiClient('http://localhost', async () => Response.json({ mode: 'live' }));
+  const voice = new NativeVoice(api, source, () => {}, () => assert.fail('Unexpected event'), error => errors.push(error));
+  await voice.start();
+  assert.deepEqual(errors, ['Missing voice session credential. Retry voice.']);
+});

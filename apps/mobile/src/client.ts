@@ -1,7 +1,7 @@
-import type { IngestedSource } from '../../../src/domain/ingestion';
+import type { IngestedSource } from '../../../packages/core/src/domain/ingestion';
 export type { IngestedSource };
 export type Turn = { id: string; role: 'user' | 'assistant'; text: string };
-export type Session = { mode: 'mock' | 'live' };
+export type Session = { mode: 'mock' } | { mode: 'live'; clientSecret: string; expiresAt?: number };
 export type Asset = { name: string; size?: number; uri: string; mimeType?: string };
 
 export function apiOrigin(_platform: string, override?: string) {
@@ -72,7 +72,15 @@ export class ApiClient {
   async ask(source: IngestedSource, question: string): Promise<string> {
     return (await this.json('/api/text-chat', { source, question })).answer;
   }
-  async negotiate(source: IngestedSource, sdp: string): Promise<string> {
-    return (await this.request('/api/realtime/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source, sdp }) })).text();
+  async negotiate(sdp: string, clientSecret: string): Promise<string> {
+    if (!clientSecret) throw new Error('Missing voice session credential. Retry voice.');
+    try {
+      return await (await this.requestUrl('https://api.openai.com/v1/realtime/calls', {
+        method: 'POST', headers: { 'Content-Type': 'application/sdp', Authorization: `Bearer ${clientSecret}` }, body: sdp,
+      })).text();
+    } catch {
+      // Provider responses must not echo credentials back into UI/error logs.
+      throw new Error('Voice connection failed. Retry or use text chat.');
+    }
   }
 }

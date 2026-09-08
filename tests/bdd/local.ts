@@ -49,7 +49,7 @@ async function docs(w: World) {
       [
         "README.md",
         "WALKTHROUGH.md",
-        "infrastructure/cdk/README.md",
+        "infrastructure/terraform/README.md",
         "apps/mobile/README.md",
         "services/transcript/README.md",
       ].map((p) => readFile(p, "utf8")),
@@ -101,7 +101,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   step("the web service starts", async function () {
     await h.open.call(this);
     await expect(
-      (await h.page(this)).getByRole("heading", { name: "Ask it out loud." }),
+      (await h.page(this)).getByRole("heading", { name: "Less scrolling. More understanding." }),
     ).toBeVisible();
   });
   step("the API service starts", async function () {
@@ -374,7 +374,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
         /npm run ios/,
         /npm run android/,
         /docker compose/,
-        /aws cloudformation deploy/,
+        /terraform.*apply/,
       );
     },
   );
@@ -489,7 +489,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     );
     await exec(process.execPath, [
       "--test",
-      "infrastructure/cdk/tests/client-secrets.test.cjs",
+      "infrastructure/tests/client-secrets.test.cjs",
     ]);
     await h.ready.call(w);
     const p = await h.page(w);
@@ -518,7 +518,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     // Scan every production chunk against actual configured secrets in-container.
     // Only aggregate counts/booleans leave the process; no secret is logged.
     const script =
-      'const fs=require("fs"),path=require("path");let count=0,leaked=false;const secrets=[process.env.OPENAI_API_KEY,process.env.AWS_SECRET_ACCESS_KEY,process.env.OBJECT_STORE_SECRET_KEY].filter(Boolean);function walk(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const p=path.join(dir,e.name);if(e.isDirectory())walk(p);else if(p.endsWith(".js")){count++;const t=fs.readFileSync(p,"utf8");if(secrets.some(s=>t.includes(s)))leaked=true;}}}walk("/app/.next/static");console.log(JSON.stringify({count,leaked}));';
+      'const fs=require("fs"),path=require("path");let count=0,leaked=false;const secrets=[process.env.OPENAI_API_KEY,process.env.AWS_SECRET_ACCESS_KEY,process.env.OBJECT_STORE_SECRET_KEY].filter(Boolean);function walk(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const p=path.join(dir,e.name);if(e.isDirectory())walk(p);else if(p.endsWith(".js")){count++;const t=fs.readFileSync(p,"utf8");if(secrets.some(s=>t.includes(s)))leaked=true;}}}walk("/app/apps/web/.next/static");console.log(JSON.stringify({count,leaked}));';
     const { stdout } = await exec("docker", [
       "compose",
       "exec",
@@ -587,20 +587,14 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     async function () {
       await exec(
         process.execPath,
-        [
-          "--test",
-          "-r",
-          "ts-node/register",
-          "tests/bootstrap.test.cjs",
-          "tests/pipeline.test.cjs",
-        ],
-        { cwd: "infrastructure/cdk", timeout: 25000 },
+        ["--test", "infrastructure/tests/terraform-contract.test.cjs"],
+        { timeout: 25000 },
       );
     },
   );
   step("the deployment IAM policy is inspected", async function () {
     state(this).iam = await readFile(
-      "infrastructure/cdk/lib/bootstrap-stack.ts",
+      "infrastructure/terraform/bootstrap/deployment-policy.tf",
       "utf8",
     );
   });
@@ -609,14 +603,14 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     async function () {
       await exec(
         process.execPath,
-        ["--test", "-r", "ts-node/register", "tests/bootstrap.test.cjs"],
-        { cwd: "infrastructure/cdk", timeout: 25000 },
+        ["--test", "infrastructure/tests/terraform-contract.test.cjs"],
+        { timeout: 25000 },
       );
     },
   );
   step("unrelated AWS services are not granted", function () {
     const actions = [
-      ...state(this).iam!.matchAll(/(?:actions:\s*|grant\()\[([^\]]+)\]/g),
+      ...state(this).iam!.matchAll(/Action\s*=\s*\[([^\]]+)\]/g),
     ].flatMap((m) =>
       [...m[1].matchAll(/['"]([a-z0-9]+):[^'"]+['"]/g)].map((a) => a[1]),
     );
@@ -632,7 +626,6 @@ export function registerLocalChecks(step: Step, h: Helpers) {
             "apigateway",
             "iam",
             "ecr",
-            "cloudformation",
             "sts",
           ].includes(s),
       ),
@@ -641,18 +634,18 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   });
   step("the repository is reviewed", async function () {
     for (const path of [
-      "app/page.tsx",
-      "src/domain/ingestion.ts",
-      "src/server/providers.ts",
+      "apps/web/app/page.tsx",
+      "packages/core/src/domain/ingestion.ts",
+      "packages/adapters/src/providers.ts",
       "tests/bdd/steps.ts",
-      "infrastructure/cdk/lib/talk-to-a-document-stack.ts",
+      "infrastructure/terraform/modules/demo/main.tf",
     ])
       await access(path);
   });
   step(
     "frontend, domain, provider, test, and infrastructure boundaries are identifiable",
     async function () {
-      const client = await readFile("app/page.tsx", "utf8");
+      const client = await readFile("apps/web/app/page.tsx", "utf8");
       assert.match(client, /use client/);
       assert.doesNotMatch(client, /from ["'][^"']*server\//);
     },
@@ -672,35 +665,61 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   });
   step("the local edge-case review is inspected", async function () {
     state(this).docs = await readFile("LOCAL_REVIEW.md", "utf8");
-    assert.match(state(this).docs!, /\|\s*Case\s*\|\s*Evidence reviewed\s*\|\s*Disposition\s*\|/i);
+    assert.match(
+      state(this).docs!,
+      /\|\s*Case\s*\|\s*Evidence reviewed\s*\|\s*Disposition\s*\|/i,
+    );
     // Validate cited artifacts exist; do not reinterpret pending evidence as pass.
-    for (const reference of state(this).docs!.matchAll(/`([^`]+\.(?:ts|py|mjs|feature|md))`/g)) {
+    for (const reference of state(this).docs!.matchAll(
+      /`([^`]+\.(?:ts|py|mjs|feature|md))`/g,
+    )) {
       await access(reference[1]);
     }
   });
   function recorded(w: World, cases: RegExp[]) {
-    const rows = state(w).docs!.split("\n")
-      .filter(line => line.trim().startsWith("|"))
-      .map(line => line.split("|").slice(1, -1).map(cell => cell.trim()));
+    const rows = state(w)
+      .docs!.split("\n")
+      .filter((line) => line.trim().startsWith("|"))
+      .map((line) =>
+        line
+          .split("|")
+          .slice(1, -1)
+          .map((cell) => cell.trim()),
+      );
     for (const topic of cases) {
-      const row = rows.find(cells => topic.test(cells[0] ?? ""));
+      const row = rows.find((cells) => topic.test(cells[0] ?? ""));
       assert.ok(row, `Missing edge-case review row: ${topic}`);
       assert.ok(row[1]?.length > 8, `Missing evidence for ${row[0]}`);
-      assert.match(row[2] ?? "", /passed|tested|covered|pending|required|rerun|added|fixed|failed/i,
-        `Missing tested or pending disposition for ${row[0]}`);
+      assert.match(
+        row[2] ?? "",
+        /passed|tested|covered|pending|required|rerun|added|fixed|failed/i,
+        `Missing tested or pending disposition for ${row[0]}`,
+      );
     }
   }
   step(
     "PDF size, file type, empty extraction, invalid URL, unavailable captions, and cloud blocking have recorded evidence and dispositions",
     function () {
-      recorded(this, [/PDF size/i, /file type/i, /empty.*PDF|extractable/i,
-        /invalid URL/i, /unavailable captions/i, /cloud.*block/i]);
+      recorded(this, [
+        /PDF size/i,
+        /file type/i,
+        /empty.*PDF|extractable/i,
+        /invalid URL/i,
+        /unavailable captions/i,
+        /cloud.*block/i,
+      ]);
     },
   );
   step(
     "poor-network, permission, reconnect, security, and mobile have recorded evidence and dispositions",
     function () {
-      recorded(this, [/poor.network/i, /permission/i, /reconnect/i, /security/i, /mobile/i]);
+      recorded(this, [
+        /poor.network/i,
+        /permission/i,
+        /reconnect/i,
+        /security/i,
+        /mobile/i,
+      ]);
     },
   );
 }

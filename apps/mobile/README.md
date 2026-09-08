@@ -3,7 +3,7 @@
 Expo SDK 54 / React Native 0.81 companion for the primary web application.
 This directory has its own manifest and lockfile; run its npm commands here.
 No root package changes are required. `src/client.ts` imports the shared
-`IngestedSource` type directly from `src/domain/ingestion.ts` using a type-only
+`IngestedSource` type directly from `packages/core/src/domain/ingestion.ts` using a type-only
 import, so no server code or provider credentials enter the native bundle.
 
 ## Local loop
@@ -65,8 +65,10 @@ for review; they can be removed later using their exact printed directory.
 WebRTC requires a development build with `react-native-webrtc`; Expo Go does
 not contain that native module. The config plugin registers native microphone
 permissions. Live voice obtains its provider mode from the server session route
-and negotiates SDP through `/api/realtime/connect`; the server controls source
-instructions and retains the long-lived provider key. Received audio plays via
+and negotiates SDP directly with OpenAI using the returned ephemeral credential;
+the server controls initial source instructions and retains the long-lived provider
+key. The old `/api/realtime/connect` relay now returns HTTP 410; rebuild older
+native binaries before deploying this backend change. Received audio plays via
 native WebRTC's audio session. Server VAD handles spoken interruption. Microphone
 tracks are disabled on mute and released on stop, errors, and app backgrounding.
 Transient disconnects have a 15-second recovery window, followed by an explicit
@@ -139,9 +141,10 @@ picker, verify full preview, and then deny/grant microphone access in live mode.
 On a physical device, verify heard audio, spoken interruption, mute, stop, and
 network loss; bundle export alone cannot validate these behaviors.
 
-Root CI integration is intentionally left to the repository owner: add
-`npm ci`, `npm test`, `npm run typecheck`, and native bundle export with
-`working-directory: apps/mobile`. This slice does not edit root workflows.
+Root CI runs native unit tests, type checking, and bundle export on pull requests
+and main. After successful main push CI, the Expo workflow compiles and stores
+Android and iOS Simulator binaries on EAS. See [EAS setup and verification](EAS.md)
+for required account configuration, signing, artifact storage, and runtime checks.
 
 ## Sources
 

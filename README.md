@@ -6,6 +6,8 @@ Le dépôt contient une **application web**, une **application mobile Android/iO
 
 Pour créer les comptes fournisseurs et activer les services réels, suivre le [guide OpenAI et YouTube](SERVICE-SETUP.md).
 
+La version web est déployée sur **https://ursly.io**. Les tests effectués et les blocages OpenAI/YouTube sont détaillés dans le [rapport de déploiement](DEPLOYMENT.md); le déploiement ne signifie pas que tous les services réels sont activés.
+
 ## Télécharger la préversion Android
 
 La [release v0.1.0-demo.1](https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/releases/tag/v0.1.0-demo.1) contient l’APK ARM64 testé, ses sommes SHA-256 et les instructions d’installation. Elle nécessite le backend Docker local et les transferts de ports ADB. C’est une **préversion de démonstration locale**, avec les limites détaillées dans les notes de release.

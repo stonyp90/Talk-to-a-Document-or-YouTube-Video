@@ -1,0 +1,36 @@
+import { expect, test } from "@playwright/test";
+
+test("long source names and unbroken chat text stay inside a mobile viewport", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  // Deliberately hostile layout fixture, not a live provider claim.
+  await page.route("**/api/ingest", (route) =>
+    route.fulfill({
+      json: {
+        source: {
+          kind: "youtube",
+          sourceName: "x".repeat(250),
+          text: "x".repeat(500),
+          characters: 500,
+        },
+      },
+    }),
+  );
+  await page.route("**/api/text-chat", (route) =>
+    route.fulfill({
+      json: { answer: "https://example.com/" + "x".repeat(500) },
+    }),
+  );
+  await page.goto("http://localhost:3000");
+  await page.getByRole("tab", { name: "YouTube video" }).click();
+  await page.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
+  await page.getByRole("button", { name: "Extract source text" }).click();
+  await expect(page.getByLabel("Ask a question")).toBeEnabled();
+  await page.getByLabel("Ask a question").fill("x".repeat(500));
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.locator(".message.assistant")).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+});

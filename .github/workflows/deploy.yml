@@ -1,0 +1,70 @@
+name: Deploy AWS
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository }}
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      CFN_ROLE_ARN: ${{ vars.CFN_ROLE_ARN }}
+      OPENAI_SECRET_ARN: ${{ vars.OPENAI_SECRET_ARN }}
+      APP_ORIGIN: ${{ vars.APP_ORIGIN }}
+      ECR_REPOSITORY: talk-to-a-document-api
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Require configuration and tested revision
+        run: |
+          test "$(git rev-parse HEAD)" = "$TESTED_SHA"
+          test -n "$AWS_REGION" && test -n "$AWS_ROLE_ARN" && test -n "$CFN_ROLE_ARN"
+          test -n "$OPENAI_SECRET_ARN"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-duration-seconds: 3600
+      - name: Publish exact tested commit
+        run: |
+          REGISTRY="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_REGION.amazonaws.com"
+          aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
+          if ! aws ecr describe-images --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$TESTED_SHA" >/dev/null 2>&1; then
+            docker build --platform linux/amd64 --provenance=false --sbom=false --target runtime --label org.opencontainers.image.revision="$TESTED_SHA" -t "$REGISTRY/$ECR_REPOSITORY:$TESTED_SHA" .
+            docker push "$REGISTRY/$ECR_REPOSITORY:$TESTED_SHA"
+          fi
+          if ! aws ecr describe-images --repository-name talk-to-a-document-transcript --image-ids imageTag="$TESTED_SHA" >/dev/null 2>&1; then
+            docker build --platform linux/amd64 --provenance=false --sbom=false -f infrastructure/transcript.Dockerfile --label org.opencontainers.image.revision="$TESTED_SHA" -t "$REGISTRY/talk-to-a-document-transcript:$TESTED_SHA" .
+            docker push "$REGISTRY/talk-to-a-document-transcript:$TESTED_SHA"
+          fi
+      - name: Synthesize tested infrastructure
+        run: |
+          npm ci --prefix infrastructure/cdk
+          npm run build --prefix infrastructure/cdk
+          npm test --prefix infrastructure/cdk
+          npm run synth --prefix infrastructure/cdk -- -c imageTag="$TESTED_SHA"
+      - name: Deploy with scoped CloudFormation execution role
+        run: |
+          aws cloudformation deploy --stack-name TalkToADocumentStack --template-file infrastructure/cdk/cdk.out/TalkToADocumentStack.template.json --capabilities CAPABILITY_NAMED_IAM --role-arn "$CFN_ROLE_ARN" --no-fail-on-empty-changeset
+      - name: Mandatory deployment smoke tests
+        run: |
+          PUBLIC_URL="$(aws cloudformation describe-stacks --stack-name TalkToADocumentStack --query 'Stacks[0].Outputs[?OutputKey==`PublicUrl`].OutputValue' --output text)"
+          test -n "$PUBLIC_URL" && test "$PUBLIC_URL" != None
+          node infrastructure/scripts/smoke.mjs "$PUBLIC_URL"

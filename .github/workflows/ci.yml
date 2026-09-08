@@ -1,0 +1,98 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix infrastructure/cdk
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - name: Build with fake secret canaries and inspect emitted client assets
+        env:
+          OPENAI_API_KEY: ci_canary_OPENAI_clearlyfakefixture_2026
+          AWS_SECRET_ACCESS_KEY: ci_canary_AWS_clearlyfakefixture_2026
+        run: |
+          npm run build
+          node infrastructure/scripts/check-client-secrets.mjs
+      - name: Start deterministic local application services
+        run: docker compose up -d --build --wait --wait-timeout 180 web
+      - name: Executable local BDD (pending or undefined steps fail)
+        run: npm run test:gherkin -- --tags 'not @external'
+      - name: Declare outstanding external release requirements
+        run: echo '::notice::Scenarios tagged @external are not verified by local CI. Live provider, simulator, and deployed AWS evidence remains required for full release acceptance.'
+      - run: npm run test:e2e
+      - run: npm audit --omit=dev --audit-level=critical
+      - run: npm run build --prefix infrastructure/cdk
+      - run: npm audit --prefix infrastructure/cdk --audit-level=high
+      - run: npm test --prefix infrastructure/cdk
+      - name: Synthesize scoped bootstrap with fixture identity
+        run: npm run synth --prefix infrastructure/cdk -- --quiet -c bootstrap=true -c githubRepository=example/talk -c openAiSecretArn=arn:aws:secretsmanager:us-east-1:123456789012:secret:talk-test-abcdef
+      - run: npm run synth --prefix infrastructure/cdk -- -c imageTag=${{ github.sha }}
+      - if: always()
+        run: docker compose down -v
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config --quiet
+      - run: docker compose build web
+      - run: docker compose build transcript
+      - run: docker build --platform linux/amd64 --provenance=false --sbom=false -f infrastructure/transcript.Dockerfile -t talk-transcript-lambda:ci .
+      - run: docker compose up -d --wait --wait-timeout 180 web
+      - run: node infrastructure/scripts/smoke.mjs http://localhost:3000
+      - if: always()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down -v
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci --prefix apps/mobile
+      - run: npm run typecheck --prefix apps/mobile
+      - run: npm test --prefix apps/mobile
+      - name: Bundle both native targets (does not certify simulator runtime)
+        working-directory: apps/mobile
+        run: |
+          npx expo export --platform ios --output-dir dist/ios
+          npx expo export --platform android --output-dir dist/android
+      - name: Report mobile audit findings with explicit critical failure threshold
+        run: node infrastructure/scripts/mobile-audit.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-dependency-audit
+          path: infrastructure/mobile-audit.json
+          if-no-files-found: error
+  required:
+    if: always()
+    needs: [application, containers, mobile]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every check to succeed
+        env:
+          APPLICATION: ${{ needs.application.result }}
+          CONTAINERS: ${{ needs.containers.result }}
+          MOBILE: ${{ needs.mobile.result }}
+        run: test "$APPLICATION" = success && test "$CONTAINERS" = success && test "$MOBILE" = success

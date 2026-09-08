@@ -1,0 +1,12 @@
+node_modules
+.next
+**/node_modules
+**/dist
+**/cdk.out
+**/test-results
+**/playwright-report
+apps/mobile/ios
+apps/mobile/android
+apps/mobile/.expo
+public/pdf.worker.mjs
+infrastructure/mobile-audit.json

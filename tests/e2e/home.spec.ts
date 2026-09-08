@@ -1,0 +1,258 @@
+import { expect, test, type Page } from "@playwright/test";
+import { pdfFixture } from "../pdf-fixture";
+
+// Compose's configured origin is localhost; exercise the real browser upload
+// and API paths, including CORS and the object store, without request mocks.
+test.use({ baseURL: "http://localhost:3000" });
+
+const pdfText = "The demo observatory studies Saturn and its rings.";
+const conversation = (page: Page) =>
+  page.getByRole("region", { name: "2. Have a conversation" });
+const status = (page: Page) =>
+  page.getByRole("region", { name: "1. Choose a source" }).locator(".status");
+
+async function uploadPdf(page: Page, text = pdfText) {
+  await page.getByRole("tab", { name: "PDF document" }).click();
+  await page.getByLabel("PDF file").setInputFiles({
+    name: "observatory.pdf",
+    mimeType: "application/pdf",
+    buffer: pdfFixture(text),
+  });
+  const extracted = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/uploads/extract") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Extract source text" }).click();
+  const response = await extracted;
+  expect(response.ok(), await response.text()).toBeTruthy();
+  await expect(page.locator(".preview-text")).toHaveText(text);
+}
+
+test.describe("source conversation journey", () => {
+  test.beforeEach(async ({ page, request }) => {
+    const response = await request.get("/api/health");
+    expect(response.ok()).toBeTruthy();
+    expect(
+      await response.json(),
+      "Run against freshly built Compose with object-store uploads and mock AI",
+    ).toMatchObject({ ok: true, mode: "mock", directUpload: true });
+    await page.goto("/");
+  });
+
+  test("uploads a real PDF through object storage and previews extracted text", async ({
+    page,
+  }) => {
+    await expect(
+      page.getByRole("button", { name: "Start Voice Chat" }),
+    ).toBeDisabled();
+    await expect(page.getByLabel("Ask a question")).toBeDisabled();
+    const prepare = page.waitForResponse(
+      (r) =>
+        r.url().endsWith("/api/uploads") && r.request().method() === "POST",
+    );
+    await uploadPdf(page);
+    expect((await prepare).ok()).toBeTruthy();
+    await expect(
+      conversation(page).getByText("observatory.pdf", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Start Voice Chat" }),
+    ).toBeEnabled();
+    await page.locator("summary").click();
+    await expect(page.locator(".preview-text")).toBeHidden();
+    await page.locator("summary").click();
+    await expect(page.locator(".preview-text")).toBeVisible();
+  });
+
+  test("rejects a corrupt PDF without enabling chat", async ({ page }) => {
+    await page.getByLabel("PDF file").setInputFiles({
+      name: "broken.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4\nThis is not a valid PDF document."),
+    });
+    const extraction = page.waitForResponse((r) =>
+      r.url().endsWith("/api/uploads/extract"),
+    );
+    await page.getByRole("button", { name: "Extract source text" }).click();
+    expect((await extraction).ok()).toBeFalsy();
+    const alert = page
+      .getByRole("region", { name: "1. Choose a source" })
+      .getByRole("alert");
+    await expect(alert).toBeVisible();
+    await expect(alert).not.toBeEmpty();
+    await expect(page.locator(".preview-text")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Start Voice Chat" }),
+    ).toBeDisabled();
+    await expect(page.getByLabel("Ask a question")).toBeDisabled();
+  });
+
+  test("rejects an invalid YouTube URL", async ({ page }) => {
+    await page.getByRole("tab", { name: "YouTube video" }).click();
+    await page
+      .getByLabel("YouTube URL")
+      .fill("https://example.com/watch?v=dQw4w9WgXcQ");
+    const ingestion = page.waitForResponse((r) =>
+      r.url().endsWith("/api/ingest"),
+    );
+    await page.getByRole("button", { name: "Extract source text" }).click();
+    expect((await ingestion).status()).toBe(400);
+    await expect(
+      page
+        .getByRole("region", { name: "1. Choose a source" })
+        .getByRole("alert"),
+    ).toContainText(/valid YouTube URL/i);
+    await expect(
+      page.getByRole("button", { name: "Start Voice Chat" }),
+    ).toBeDisabled();
+    await expect(page.getByLabel("Ask a question")).toBeDisabled();
+  });
+
+  test("ingests YouTube and displays the actual text fallback API answer", async ({
+    page,
+  }) => {
+    await page.getByRole("tab", { name: "YouTube video" }).click();
+    await page
+      .getByLabel("YouTube URL")
+      .fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    const ingestion = page.waitForResponse((r) =>
+      r.url().endsWith("/api/ingest"),
+    );
+    await page.getByRole("button", { name: "Extract source text" }).click();
+    const response = await ingestion;
+    expect(response.ok()).toBeTruthy();
+    const { source } = await response.json();
+    expect(source.text.length).toBeGreaterThan(20);
+    await expect(page.locator(".preview-text")).toHaveText(source.text);
+    await expect(
+      page.getByRole("button", { name: "Send", exact: true }),
+    ).toBeDisabled();
+    const question = "What is this about?";
+    await page.getByLabel("Ask a question").fill(question);
+    const answerResponse = page.waitForResponse((r) =>
+      r.url().endsWith("/api/text-chat"),
+    );
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    const answer = await answerResponse;
+    expect(answer.ok()).toBeTruthy();
+    const payload = await answer.json();
+    expect(payload.answer.length).toBeGreaterThan(20);
+    await expect(conversation(page).locator(".message.user")).toHaveText(
+      question,
+    );
+    await expect(conversation(page).locator(".message.assistant")).toHaveText(
+      payload.answer,
+    );
+    await expect(page.getByLabel("Ask a question")).toHaveValue("");
+  });
+
+  test("mock voice supports typed turns, mute, unmute, stop and restart", async ({
+    page,
+  }) => {
+    await uploadPdf(page);
+    await page.getByRole("button", { name: "Start Voice Chat" }).click();
+    await expect(status(page)).toHaveText("Connected");
+    await expect(conversation(page).getByRole("status")).toContainText(
+      "Demo simulation",
+    );
+    await expect(
+      page.getByRole("button", { name: "Start Voice Chat" }),
+    ).toBeDisabled();
+    await page.getByLabel("Ask a question").fill("Tell me about Saturn");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(conversation(page).locator(".message.user")).toHaveText(
+      "Tell me about Saturn",
+    );
+    await expect(
+      conversation(page).locator(".message.assistant"),
+    ).toContainText(pdfText);
+    await page
+      .getByRole("button", { name: "Mute microphone", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Unmute microphone", exact: true }),
+    ).toBeEnabled();
+    await page
+      .getByRole("button", { name: "Unmute microphone", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Mute microphone", exact: true }),
+    ).toBeEnabled();
+    await page.getByRole("button", { name: "Stop", exact: true }).click();
+    await expect(status(page)).toHaveText("Ended");
+    await expect(
+      page.getByRole("button", { name: "Stop", exact: true }),
+    ).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Mute microphone", exact: true }),
+    ).toBeDisabled();
+    await expect(conversation(page).locator(".message")).toHaveCount(2);
+    await page.getByRole("button", { name: "Start Voice Chat" }).click();
+    await expect(status(page)).toHaveText("Connected");
+  });
+
+  test("replacing the source stops voice and clears the previous conversation", async ({
+    page,
+  }) => {
+    await uploadPdf(page);
+    await page.getByRole("button", { name: "Start Voice Chat" }).click();
+    await expect(status(page)).toHaveText("Connected");
+    await page.getByLabel("Ask a question").fill("Discuss the old source");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(
+      conversation(page).locator(".message.assistant"),
+    ).toContainText(pdfText);
+    await page
+      .getByRole("button", { name: "Mute microphone", exact: true })
+      .click();
+    await uploadPdf(page, "The new source describes Jupiter.");
+    await expect(status(page)).toHaveText("Ready");
+    await expect(
+      page.getByRole("button", { name: "Stop", exact: true }),
+    ).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Mute microphone", exact: true }),
+    ).toBeDisabled();
+    await expect(conversation(page).locator(".message")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Start Voice Chat" }),
+    ).toBeEnabled();
+    // Subsequent text must use fallback HTTP, not the previous voice client.
+    await page.getByLabel("Ask a question").fill("What planet?");
+    const answer = page.waitForResponse((r) =>
+      r.url().endsWith("/api/text-chat"),
+    );
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    expect((await answer).ok()).toBeTruthy();
+    await expect(
+      conversation(page).locator(".message.assistant"),
+    ).toContainText("Jupiter");
+    await expect(
+      conversation(page).locator(".message.assistant"),
+    ).not.toContainText("Saturn");
+  });
+
+  test("fits a 390 pixel mobile viewport before and after ingestion", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const assertWidth = async () => {
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(390);
+      for (const element of await page
+        .locator("button, input, .preview")
+        .all()) {
+        if (!(await element.isVisible())) continue;
+        const box = await element.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(391);
+      }
+    };
+    await assertWidth();
+    await uploadPdf(page);
+    await assertWidth();
+  });
+});

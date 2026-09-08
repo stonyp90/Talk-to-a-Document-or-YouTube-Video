@@ -1,0 +1,34 @@
+appId: com.talktosource.demo
+---
+- launchApp
+- assertVisible: "Talk to a source"
+- tapOn: "YouTube URL"
+- inputText: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+- hideKeyboard
+- tapOn: "Load YouTube"
+- extendedWaitUntil:
+    visible: "Expand preview"
+    timeout: 45000
+- tapOn: "Expand preview"
+- assertVisible: "Collapse preview"
+- scrollUntilVisible:
+    element: "Your question"
+    direction: DOWN
+- tapOn: "Your question"
+- inputText: "What is this source about?"
+- hideKeyboard
+- tapOn: "Send question"
+- extendedWaitUntil:
+    visible: "Assistant"
+    timeout: 45000
+- scrollUntilVisible:
+    element: "Start Voice Chat"
+    direction: UP
+- tapOn: "Start Voice Chat"
+- extendedWaitUntil:
+    visible: "Voice: connected"
+    timeout: 45000
+- tapOn: "Mute"
+- assertVisible: "Unmute"
+- tapOn: "Stop"
+- assertVisible: "Voice: ended"

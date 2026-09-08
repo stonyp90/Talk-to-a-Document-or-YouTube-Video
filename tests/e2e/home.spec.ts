@@ -11,7 +11,7 @@ const conversation = (page: Page) =>
 const status = (page: Page) =>
   page
     .getByRole("region", { name: "2. Have a conversation" })
-    .locator(".conversation-card .status");
+    .locator(".status");
 
 async function uploadPdf(page: Page, text = pdfText) {
   await page.getByRole("tab", { name: "PDF document" }).click();

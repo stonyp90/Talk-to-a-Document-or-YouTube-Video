@@ -30,7 +30,9 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
       .poll(async () => (await controls.get(w)!.snapshot()).remoteDescriptions)
       .toBe(1);
     await controls.get(w)!.setConnection("connected");
-    await expect(p.locator(".status")).toHaveText("Connected");
+    await expect(p.locator(".conversation-card .status")).toHaveText(
+      "Connected",
+    );
   }
   step(
     ["a voice session was connected", "a voice session is connected"],
@@ -54,9 +56,9 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
       "the UI shows a degraded or reconnecting status",
     ],
     async function () {
-      await expect((await h.page(this)).locator(".status")).toHaveText(
-        "Reconnecting",
-      );
+      await expect(
+        (await h.page(this)).locator(".conversation-card .status"),
+      ).toHaveText("Reconnecting");
     },
   );
   step("the client attempts recovery", async function () {
@@ -70,35 +72,33 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
   });
   step("the UI returns to connected when recovery succeeds", async function () {
     await controls.get(this)!.setConnection("connected");
-    await expect((await h.page(this)).locator(".status")).toHaveText(
-      "Connected",
-    );
+    await expect(
+      (await h.page(this)).locator(".conversation-card .status"),
+    ).toHaveText("Connected");
   });
   step("the conversation contains transcript turns", async function () {
     await connected(this);
-    await controls
-      .get(this)!
-      .emit({
-        type: "response.output_audio_transcript.done",
-        item_id: "preserved-answer",
-        transcript,
-      });
-    await expect((await h.page(this)).locator(".message.assistant")).toHaveText(
+    await controls.get(this)!.emit({
+      type: "response.output_audio_transcript.done",
+      item_id: "preserved-answer",
       transcript,
-    );
+    });
+    await expect(
+      (await h.page(this)).locator(".message.assistant .message-text"),
+    ).toHaveText(transcript);
   });
   step("all visible transcript turns remain available", async function () {
-    await expect((await h.page(this)).locator(".status")).toHaveText(
-      "Reconnecting",
-    );
-    await expect((await h.page(this)).locator(".message.assistant")).toHaveText(
-      transcript,
-    );
+    await expect(
+      (await h.page(this)).locator(".conversation-card .status"),
+    ).toHaveText("Reconnecting");
+    await expect(
+      (await h.page(this)).locator(".message.assistant .message-text"),
+    ).toHaveText(transcript);
   });
   step("the user receives a clear recovery message", async function () {
-    await expect((await h.page(this)).locator(".status")).toContainText(
-      "Reconnecting",
-    );
+    await expect(
+      (await h.page(this)).locator(".conversation-card .status"),
+    ).toContainText("Reconnecting");
   });
   step("an ingestion or session request times out", async function () {
     await h.ready.call(this);
@@ -122,9 +122,9 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
   step(
     "the application does not show a false success state",
     async function () {
-      await expect((await h.page(this)).locator(".status")).toHaveText(
-        "Needs attention",
-      );
+      await expect(
+        (await h.page(this)).locator(".conversation-card .status"),
+      ).toHaveText("Needs attention");
     },
   );
   step("extraction fails after a source is submitted", async function () {
@@ -159,7 +159,7 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     "the session changes between idle, preparing, connecting, connected, reconnecting, ended, and error",
     async function () {
       const p = await setup(this);
-      const status = p.locator(".status"),
+      const status = p.locator(".conversation-card .status"),
         start = p.getByRole("button", { name: "Start Voice Chat" }),
         stop = p.getByRole("button", { name: "Stop", exact: true });
       await expect(status).toHaveText("Ready");
@@ -203,9 +203,9 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     },
   );
   step("the UI displays the corresponding status", async function () {
-    await expect((await h.page(this)).locator(".status")).toHaveText(
-      "Needs attention",
-    );
+    await expect(
+      (await h.page(this)).locator(".conversation-card .status"),
+    ).toHaveText("Needs attention");
   });
   step("controls match the current session state", async function () {
     const p = await h.page(this);

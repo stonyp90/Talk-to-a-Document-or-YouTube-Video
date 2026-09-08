@@ -415,9 +415,9 @@ step("the assistant returns a text response", async function () {
   await expect((await page(this)).locator(".message.assistant")).toBeVisible();
 });
 step("the question appears in the conversation transcript", async function () {
-  await expect((await page(this)).locator(".message.user")).toHaveText(
-    this.question,
-  );
+  await expect(
+    (await page(this)).locator(".message.user .message-text"),
+  ).toHaveText(this.question);
 });
 step(
   "the ingested source context is used to produce the response",
@@ -569,15 +569,15 @@ step("the conversation is rendered", async function () {
   await expect((await page(this)).locator(".chat .message")).toHaveCount(2);
 });
 step("turns are displayed in their arrival order", async function () {
-  await expect((await page(this)).locator(".chat .message").first()).toHaveText(
-    this.question,
-  );
+  await expect(
+    (await page(this)).locator(".chat .message-text").first(),
+  ).toHaveText(this.question);
 });
 step(
   "user and assistant turns are visually distinguishable",
   async function () {
     const p = await page(this);
-    await expect(p.locator(".chat .message").first()).toHaveClass(/user/);
+    await expect(p.locator(".chat .message-text").first()).toHaveClass(/user/);
     await expect(p.locator(".chat .message").last()).toHaveClass(/assistant/);
   },
 );

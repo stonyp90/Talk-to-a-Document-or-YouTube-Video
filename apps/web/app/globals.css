@@ -1066,3 +1066,197 @@ button:disabled {
   color: var(--ink);
   font-weight: 500;
 }
+
+/* Motion follows the task: orient, acknowledge, then get out of the way. */
+:root {
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hero {
+  animation: none;
+}
+.hero > .eyebrow,
+.hero > h1,
+.hero > .lede,
+.hero-links,
+.hero-caption {
+  animation: arrive 600ms var(--motion-ease) both;
+}
+.hero > h1 {
+  animation-delay: 60ms;
+}
+.hero > .lede {
+  animation-delay: 120ms;
+}
+.hero-links {
+  animation-delay: 180ms;
+}
+.hero-caption {
+  animation-delay: 220ms;
+}
+.hero-wave .icon path {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: voice-wave 1100ms ease-in-out 3;
+}
+.hero-wave .icon path:nth-child(2) {
+  animation-delay: 100ms;
+}
+.hero-wave .icon path:nth-child(3) {
+  animation-delay: 200ms;
+}
+.hero-wave .icon path:nth-child(4) {
+  animation-delay: 300ms;
+}
+.hero-wave .icon path:nth-child(5) {
+  animation-delay: 400ms;
+}
+.voice-orbit::after {
+  animation-iteration-count: 1;
+  animation-duration: 3s;
+}
+.status[data-state="connected"]::before {
+  animation-iteration-count: 2;
+}
+.status[data-state="ready"] {
+  color: #38614b;
+}
+.tabs {
+  position: relative;
+  isolation: isolate;
+}
+.tabs::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc((100% - 14px) / 2);
+  border: 1px solid #e5dfd6;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 2px 5px #29273508;
+  transition: transform 280ms var(--motion-ease);
+}
+.tabs[data-tab="youtube"]::before {
+  transform: translateX(calc(100% + 4px));
+}
+.tab.active {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.tab:not(:disabled):hover {
+  transform: none;
+  box-shadow: none;
+}
+.dropzone,
+.field input,
+.composer input,
+.workspace-label,
+.hero-links a,
+.source-ready a,
+.suggestion span,
+.primary .icon-arrow,
+.composer .icon-arrow {
+  transition:
+    transform 220ms var(--motion-ease),
+    background-color 180ms,
+    border-color 180ms,
+    box-shadow 180ms;
+}
+.dropzone:focus-within {
+  border-color: var(--accent);
+  background: #eee6f7;
+}
+.field input:focus,
+.composer input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px #a8433210;
+}
+.source-grid > .dropzone,
+.source-ready,
+.preview[open] .preview-text,
+.help-detail[open] p {
+  animation: arrive 300ms var(--motion-ease) both;
+}
+.source-grid[aria-busy="true"] .upload-icon .icon {
+  animation: breathe 1400ms ease-in-out infinite;
+}
+.guide-grid article {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+.guide-number {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fbe2d6;
+}
+@media (hover: hover) and (pointer: fine) {
+  .hero-links a.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px #a8433218;
+  }
+  .workspace-label:hover {
+    background: #eeebf7;
+    border-color: #d5c9e5;
+  }
+  .primary:hover:not(:disabled) .icon-arrow,
+  .composer button:hover:not(:disabled) .icon-arrow {
+    transform: translateX(3px);
+  }
+  .suggestion:hover:not(:disabled) span,
+  .source-ready a:hover {
+    transform: translate(2px, -2px);
+  }
+}
+@keyframes voice-wave {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.45);
+  }
+}
+/* Progressive enhancement: content remains visible in older browsers. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .guide-grid article {
+      animation: guide-arrive linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 85%;
+    }
+  }
+}
+@keyframes guide-arrive {
+  from {
+    opacity: 0.65;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  button:not(:disabled):hover,
+  button:not(:disabled):active,
+  .hero-links a.primary:hover,
+  .primary:hover:not(:disabled) .icon-arrow,
+  .composer button:hover:not(:disabled) .icon-arrow,
+  .suggestion:hover:not(:disabled) span,
+  .source-ready a:hover {
+    transform: none;
+  }
+}

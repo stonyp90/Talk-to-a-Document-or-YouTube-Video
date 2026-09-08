@@ -27,7 +27,7 @@ function Icon({ name }: { name: "document" | "video" | "arrow" | "voice" }) {
   };
   return (
     <svg
-      className="icon"
+      className={`icon icon-${name}`}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -36,7 +36,13 @@ function Icon({ name }: { name: "document" | "video" | "arrow" | "voice" }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d={paths[name]} />
+      {name === "voice" ? (
+        ["M4 10v4", "M8 6v12", "M12 3v18", "M16 6v12", "M20 10v4"].map(
+          (path) => <path key={path} d={path} />,
+        )
+      ) : (
+        <path d={paths[name]} />
+      )}
     </svg>
   );
 }
@@ -487,7 +493,7 @@ export default function HomePage() {
               <h2 id="source-heading">1. Choose a source</h2>
               <span
                 className="status"
-                data-state={source ? "connected" : "idle"}
+                data-state={busy ? "preparing" : source ? "ready" : "idle"}
                 aria-live="polite"
               >
                 {busy ? "Extracting" : source ? "Source ready" : "Step 1 of 2"}
@@ -496,7 +502,12 @@ export default function HomePage() {
             <p className="section-intro">
               Bring something you want to understand.
             </p>
-            <div className="tabs" role="tablist" aria-label="Source type">
+            <div
+              className="tabs"
+              data-tab={tab}
+              role="tablist"
+              aria-label="Source type"
+            >
               <button
                 className={`tab ${tab === "pdf" ? "active" : ""}`}
                 id="tab-pdf"

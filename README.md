@@ -10,7 +10,7 @@ The website is deployed at **[ursly.io](https://ursly.io)**. See [deployment ver
 
 ## Android preview
 
-[Release v0.1.0-demo.1](https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/releases/tag/v0.1.0-demo.1) includes the tested ARM64 APK, SHA-256 checksums, and installation instructions. This is a **local demo preview** requiring the Docker backend and ADB port forwarding. Read the release notes before installation.
+[Release v0.1.0-demo.2](https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/releases/tag/v0.1.0-demo.2) includes a signed Android APK and an ARM64 iOS Simulator app, both targeting **https://ursly.io**, plus SHA-256 checksums, source fingerprints, and installation instructions. The iOS archive is **not a physical-iPhone IPA**. These are evaluation builds; read the release notes for signing compatibility, remaining live-audio/YouTube limitations, and device-testing scope.
 
 ## Features and current limits
 

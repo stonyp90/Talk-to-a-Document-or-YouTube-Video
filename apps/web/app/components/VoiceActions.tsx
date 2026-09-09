@@ -109,6 +109,14 @@ function readSavedTriggers(): VoiceTrigger[] {
   }
 }
 
+function browserSupportsSpeechRecognition(): boolean {
+  if (typeof window === "undefined") return false;
+  const speechWindow = window as SpeechWindow;
+  return Boolean(
+    speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition,
+  );
+}
+
 export function VoiceActions({
   onAction,
   canStartVoice,
@@ -117,8 +125,8 @@ export function VoiceActions({
   const [open, setOpen] = useState(false);
   const [phrase, setPhrase] = useState("");
   const [action, setAction] = useState<VoiceActionId>("upload");
-  const [triggers, setTriggers] = useState<VoiceTrigger[]>([]);
-  const [supported, setSupported] = useState(false);
+  const [triggers, setTriggers] = useState<VoiceTrigger[]>(readSavedTriggers);
+  const [supported] = useState(browserSupportsSpeechRecognition);
   const [armed, setArmed] = useState(false);
   const [heard, setHeard] = useState("");
   const [notice, setNotice] = useState(
@@ -132,16 +140,6 @@ export function VoiceActions({
   useEffect(() => {
     onActionRef.current = onAction;
   }, [onAction]);
-
-  useEffect(() => {
-    setSupported(
-      Boolean(
-        (window as SpeechWindow).SpeechRecognition ||
-          (window as SpeechWindow).webkitSpeechRecognition,
-      ),
-    );
-    setTriggers(readSavedTriggers());
-  }, []);
 
   useEffect(() => {
     try {

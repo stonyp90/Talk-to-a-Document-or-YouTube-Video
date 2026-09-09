@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Animated,
   Easing,
@@ -62,8 +62,8 @@ export function MobileOnboarding({ motion, t }: Props) {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
   const [paused, setPaused] = useState(false);
-  const copyOpacity = useRef(new Animated.Value(1)).current;
-  const copyOffset = useRef(new Animated.Value(0)).current;
+  const [copyOpacity] = useState(() => new Animated.Value(1));
+  const [copyOffset] = useState(() => new Animated.Value(0));
 
   const finish = useCallback(() => {
     setVisible(false);

@@ -3,7 +3,14 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
 
-export type VoiceActionId = "youtube" | "upload" | "voice" | "summarize";
+export type VoiceActionId =
+  | "youtube"
+  | "upload"
+  | "voice"
+  | "summarize"
+  | "back"
+  | "next"
+  | "cancel";
 
 type VoiceTrigger = {
   id: string;
@@ -59,7 +66,26 @@ const actionLabels: Record<VoiceActionId, string> = {
   upload: "Open the PDF upload picker",
   voice: "Start voice chat",
   summarize: "Ask for a key-ideas summary",
+  back: "Go back or undo the last step",
+  next: "Go forward to the next step",
+  cancel: "Cancel the current action",
 };
+
+const actionReplies: Record<VoiceActionId, string> = {
+  youtube: "Opening the YouTube source tab.",
+  upload: "Opening the PDF upload picker.",
+  voice: "Starting voice chat.",
+  summarize: "Preparing a key-ideas summary.",
+  back: "Going back and undoing the last step.",
+  next: "Moving forward to the next step.",
+  cancel: "Cancelling the current action.",
+};
+
+const defaultTriggers: VoiceTrigger[] = [
+  { id: "default-back", phrase: "back", action: "back" },
+  { id: "default-next", phrase: "next", action: "next" },
+  { id: "default-cancel", phrase: "cancel", action: "cancel" },
+];
 
 const examples: Array<{
   phrase: string;
@@ -74,6 +100,9 @@ const examples: Array<{
     action: "summarize",
     label: "ask for a summary",
   },
+  { phrase: "Back", action: "back", label: "undo the last step" },
+  { phrase: "Next", action: "next", label: "continue forward" },
+  { phrase: "Cancel", action: "cancel", label: "stop the current action" },
 ];
 
 function normalize(text: string): string {
@@ -86,9 +115,9 @@ function normalize(text: string): string {
 
 function readSavedTriggers(): VoiceTrigger[] {
   try {
-    const saved = JSON.parse(
-      localStorage.getItem("ursly-voice-triggers-v1") ?? "[]",
-    ) as unknown;
+    const stored = localStorage.getItem("ursly-voice-triggers-v1");
+    if (stored === null) return defaultTriggers;
+    const saved = JSON.parse(stored) as unknown;
     if (!Array.isArray(saved)) return [];
     return saved.filter((item): item is VoiceTrigger =>
       Boolean(
@@ -126,6 +155,7 @@ export function VoiceActions({
   const [open, setOpen] = useState(false);
   const [phrase, setPhrase] = useState("");
   const [action, setAction] = useState<VoiceActionId>("upload");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [triggers, setTriggers] = useState<VoiceTrigger[]>(readSavedTriggers);
   const [supported] = useState(browserSupportsSpeechRecognition);
   const [armed, setArmed] = useState(false);
@@ -135,9 +165,26 @@ export function VoiceActions({
   );
   const recognition = useRef<SpeechRecognitionInstance | null>(null);
   const armedRef = useRef(false);
+  const triggersRef = useRef(triggers);
   const lastTrigger = useRef("");
   const onActionRef = useRef(onAction);
-  onActionRef.current = onAction;
+
+  useEffect(() => {
+    onActionRef.current = onAction;
+  }, [onAction]);
+
+  useEffect(() => {
+    triggersRef.current = triggers;
+  }, [triggers]);
+
+  function speak(reply: string) {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    if (typeof SpeechSynthesisUtterance === "undefined") return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(reply);
+    utterance.lang = navigator.language || "en-US";
+    window.speechSynthesis.speak(utterance);
+  }
 
   useEffect(() => {
     try {
@@ -178,6 +225,7 @@ export function VoiceActions({
     setNotice(
       `Triggered “${trigger.phrase}” · ${actionLabels[trigger.action]}.`,
     );
+    speak(actionReplies[trigger.action]);
     onActionRef.current(trigger.action);
   }
 
@@ -185,7 +233,7 @@ export function VoiceActions({
     lastTrigger.current = "";
     runAction(
       {
-        id: `example-${example.action}-${Date.now()}`,
+        id: `example-${example.action}`,
         phrase: example.phrase,
         action: example.action,
       },
@@ -202,20 +250,29 @@ export function VoiceActions({
       return;
     }
     if (
-      triggers.some((trigger) => normalize(trigger.phrase) === normalizedPhrase)
+      triggers.some(
+        (trigger) =>
+          trigger.id !== editingId &&
+          normalize(trigger.phrase) === normalizedPhrase,
+      )
     ) {
       setNotice(`“${nextPhrase}” is already saved. Choose a different phrase.`);
       return;
     }
     const next: VoiceTrigger = {
-      id: crypto.randomUUID(),
+      id: editingId ?? crypto.randomUUID(),
       phrase: nextPhrase,
       action,
     };
-    setTriggers((current) => [...current, next]);
+    setTriggers((current) =>
+      editingId
+        ? current.map((item) => (item.id === editingId ? next : item))
+        : [...current, next],
+    );
     setPhrase("");
+    setEditingId(null);
     setNotice(
-      `Saved trigger: ${nextPhrase}. Arm voice actions and say it to run the action.`,
+      `${editingId ? "Updated" : "Saved"} trigger: ${nextPhrase}. Arm voice actions and say it to run the action.`,
     );
   }
 
@@ -261,7 +318,7 @@ export function VoiceActions({
     instance.onstart = () => {
       setArmed(true);
       setNotice(
-        `Listening for ${triggers.map((item) => `“${item.phrase}”`).join(", ")}.`,
+        `Listening for ${triggersRef.current.map((item) => `“${item.phrase}”`).join(", ")}.`,
       );
     };
     instance.onresult = (event) => {
@@ -275,7 +332,7 @@ export function VoiceActions({
       if (!transcript) return;
       setHeard(transcript);
       const spoken = normalize(transcript);
-      const match = triggers.find((item) =>
+      const match = triggersRef.current.find((item) =>
         spoken.includes(normalize(item.phrase)),
       );
       if (match) runAction(match, transcript);
@@ -390,8 +447,8 @@ export function VoiceActions({
           <div className="voice-trigger-builder-copy">
             <h3>Build a trigger</h3>
             <p>
-              The trigger phrase stays on this device. When it is heard, Ursly
-              runs the selected action in this page.
+              The phrases stay on this device. Every action is configurable,
+              including the built-in Back, Next, and Cancel commands.
             </p>
           </div>
           <form className="voice-trigger-form" onSubmit={saveTrigger}>
@@ -428,7 +485,7 @@ export function VoiceActions({
               type="submit"
               disabled={!normalize(phrase)}
             >
-              Save trigger
+              {editingId ? "Update trigger" : "Save trigger"}
             </button>
           </form>
 
@@ -446,6 +503,19 @@ export function VoiceActions({
                   <span className="saved-trigger-action">
                     {actionLabels[trigger.action]}
                   </span>
+                  <button
+                    type="button"
+                    className="saved-trigger-remove"
+                    aria-label={`Edit trigger ${trigger.phrase}`}
+                    onClick={() => {
+                      setPhrase(trigger.phrase);
+                      setAction(trigger.action);
+                      setEditingId(trigger.id);
+                      setOpen(true);
+                    }}
+                  >
+                    Edit
+                  </button>
                   <button
                     type="button"
                     className="saved-trigger-remove"

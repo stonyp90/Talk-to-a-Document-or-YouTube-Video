@@ -21,7 +21,7 @@ The website is deployed at **[ursly.io](https://ursly.io)**. See [deployment ver
 - Continue by typing when voice is unavailable.
 - Use the native app in English by default, with optional French.
 
-`mock` mode works without an OpenAI key and produces deterministic responses, not real audio. `live` mode uses real providers. PDF ingestion, real text responses, and ephemeral voice credentials have been tested. Real YouTube ingestion succeeded locally after a network change. The latest iOS recording encountered a CoreAudio failure; complete voice and physical-device validation remain outstanding. See [recording status](docs/demo/RECORDING-STATUS.md).
+`mock` mode works without an OpenAI key and produces deterministic responses, not real audio. `live` mode uses real providers. PDF ingestion, real text responses, and ephemeral voice credentials have been tested. Real YouTube ingestion succeeded in an earlier local session, but the September 9 retry is blocked again by YouTube. The latest iOS recording encountered a CoreAudio failure; complete voice and physical-device validation remain outstanding. See [recording status](docs/demo/RECORDING-STATUS.md).
 
 ## Technologies
 

@@ -1,8 +1,17 @@
-# Recording status — September 8, 2026
+# Recording status — September 9, 2026
 
 The final 10–15 minute acceptance walkthrough is not complete: live voice recording remains blocked. Interrupted takes are not presented as successful demonstrations.
 
-## Verified progress
+## Latest checks
+
+- The motion update (`7df25ed`) passed CI and AWS deployment.
+- September 9 production checks passed: live health, real PDF upload/extraction, grounded text answer, and ephemeral voice credential.
+- Fresh local and production YouTube attempts remain blocked. Earlier successful retrieval below is historical evidence, not current acceptance.
+- The September 8 10:49 iOS attempt terminated during native audio initialization. No clean spoken exchange was captured.
+- GitHub release `v0.1.0-demo.2` provides a signed Android APK and an ARM64 iOS Simulator archive targeting `https://ursly.io`. It does not provide a physical-iPhone IPA.
+- Expo cloud build project variables are configured. `EXPO_TOKEN` is still missing from the `mobile-builds` GitHub environment.
+
+## Earlier verified progress
 
 - New network: real caption retrieval returned HTTP 200 for `UF8uR6Z6KLc` (12,131 characters) and `jNQXAC9IVRw` (217 characters).
 - Local caption service and backend run in live mode, without mock transcript substitution.

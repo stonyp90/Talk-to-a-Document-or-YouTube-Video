@@ -1,5 +1,7 @@
 "use client";
 
+import { Applications } from "./components/Applications";
+
 import {
   ChangeEvent,
   FormEvent,
@@ -846,9 +848,10 @@ export default function HomePage() {
             </p>
           </details>
         </section>
+        <Applications />
         <footer className="footer">
           <span>Ursly · Made for your next “aha”.</span>
-          <span>PDF & YouTube · Voice & text</span>
+          <a href="#applications">Applications & GitHub ↗</a>
         </footer>
       </div>
     </main>

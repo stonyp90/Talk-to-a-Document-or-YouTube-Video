@@ -1,0 +1,140 @@
+.section {
+  padding: 48px 0 24px;
+  scroll-margin-top: 24px;
+}
+.heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 26px;
+}
+.heading h2 {
+  font-family: Georgia, serif;
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 400;
+  margin: 14px 0 12px;
+  line-height: 1.2;
+}
+.heading p {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
+  max-width: 570px;
+}
+.releaseLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 13px;
+  flex-shrink: 0;
+  text-underline-offset: 4px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 1px solid #e7d7cb;
+  background: #fcf0e6;
+  border-radius: 24px;
+  padding: 26px;
+  min-width: 0;
+}
+.ios {
+  background: #eeebf7;
+  border-color: #ddd5eb;
+}
+.code {
+  background: #fffdf9;
+  border-color: var(--line);
+}
+.badge {
+  font-size: 11px;
+  font-weight: 650;
+  border: 1px solid #29273524;
+  border-radius: 100px;
+  padding: 6px 10px;
+}
+.card h3 {
+  font-size: 23px;
+  line-height: 1.25;
+  margin: 22px 0 12px;
+}
+.card p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0 0 24px;
+}
+.action {
+  margin-top: auto;
+  width: 100%;
+  text-decoration: none;
+  text-align: center;
+  min-height: 48px;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+.action span {
+  margin-left: auto;
+}
+.note {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 12px;
+  line-height: 1.6;
+}
+.disclosure {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin: 20px 0 0;
+}
+.disclosure a {
+  text-underline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px #29273512;
+  }
+}
+@media (max-width: 900px) {
+  .heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    padding: 24px;
+  }
+  .action {
+    width: auto;
+    gap: 16px;
+  }
+}
+@media (max-width: 400px) {
+  .action {
+    width: 100%;
+    font-size: 12px;
+    padding-inline: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .action {
+    transition: none;
+  }
+  .action:hover {
+    transform: none;
+  }
+}

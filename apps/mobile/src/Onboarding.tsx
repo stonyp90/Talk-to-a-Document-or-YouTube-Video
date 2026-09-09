@@ -96,7 +96,7 @@ export function MobileOnboarding({ motion, t }: Props) {
     if (!visible || paused || step === steps.length - 1) return;
     const timer = setTimeout(advance, slideDuration);
     return () => clearTimeout(timer);
-  }, [advance, paused, visible]);
+  }, [advance, paused, step, visible]);
 
   useEffect(() => {
     if (!motion || !visible) {

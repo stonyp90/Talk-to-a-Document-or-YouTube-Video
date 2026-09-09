@@ -74,6 +74,11 @@ tracks are disabled on mute and released on stop, errors, and app backgrounding.
 Transient disconnects have a 15-second recovery window, followed by an explicit
 retry. Starting a new voice session preserves the displayed transcript.
 
+Voice actions also use the native `expo-speech-recognition` module, so rebuild
+the development client after adding or changing the speech-recognition plugin.
+The home-screen voice-action card can listen for saved phrases such as
+“YouTube”, “Upload”, “Let’s talk”, and “Summarize this”.
+
 Mock sessions simulate connection controls and use the backend text answer
 route. They do not produce or verify microphone/remote audio. The app labels
 this mode explicitly. Text fallback is always available. The current backend

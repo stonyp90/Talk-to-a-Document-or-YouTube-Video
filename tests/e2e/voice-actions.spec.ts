@@ -174,9 +174,7 @@ test("all example actions route to their intended controls and guard voice witho
     page.getByLabel("Ask a question", { exact: true }),
   ).toBeFocused();
 
-  await page
-    .getByRole("button", { name: /“Let's talk” start voice chat/ })
-    .click();
+  await page.getByRole("button", { name: /“Let's talk”/ }).click();
   await expect(
     page.getByRole("region", { name: "2. Ask a question" }).locator(".status"),
   ).toHaveText("Connected");

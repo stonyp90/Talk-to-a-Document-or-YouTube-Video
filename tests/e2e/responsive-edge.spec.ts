@@ -25,9 +25,13 @@ test("long source names and unbroken chat text stay inside a mobile viewport", a
   await page.goto(process.env.E2E_BASE_URL ?? "http://localhost:3000");
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
-  await page.getByRole("button", { name: "Extract source text" }).click();
-  await expect(page.getByLabel("Ask a question")).toBeEnabled();
-  await page.getByLabel("Ask a question").fill("x".repeat(500));
+  await page.getByRole("button", { name: "Continue to questions" }).click();
+  await expect(
+    page.getByLabel("Ask a question", { exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByLabel("Ask a question", { exact: true })
+    .fill("x".repeat(500));
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.locator(".message.assistant")).toBeVisible();
   expect(

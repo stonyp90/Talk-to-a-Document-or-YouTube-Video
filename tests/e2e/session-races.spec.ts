@@ -38,10 +38,14 @@ const stop = (page: Page) =>
   page.getByRole("button", { name: "Stop", exact: true });
 
 async function ingest(page: Page, id = "dQw4w9WgXcQ") {
+  if (await page.locator(".source-picker:not([open])").count())
+    await page.getByText("Change source", { exact: true }).click();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill(`https://youtu.be/${id}`);
-  await page.getByRole("button", { name: "Extract source text" }).click();
+  await page.getByRole("button", { name: "Continue to questions" }).click();
   await expect(page.locator(".preview-text")).toHaveText(`Source ${id}`);
+  if (await page.locator(".voice-option:not([open])").count())
+    await page.locator(".voice-option summary").click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -201,7 +205,9 @@ test("blackholed text chat times out and ignores its eventual answer", async ({
   page,
 }) => {
   await page.clock.install();
-  await page.getByLabel("Ask a question").fill("Will this time out?");
+  await page
+    .getByLabel("Ask a question", { exact: true })
+    .fill("Will this time out?");
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => window.race.textRequested))
@@ -211,7 +217,7 @@ test("blackholed text chat times out and ignores its eventual answer", async ({
   ).toBeVisible();
   await page.clock.runFor(25001);
   await expect(page.locator(".error")).toContainText(/timed out.*retry/i);
-  await expect(page.getByLabel("Ask a question")).toHaveValue(
+  await expect(page.getByLabel("Ask a question", { exact: true })).toHaveValue(
     "Will this time out?",
   );
   await expect(page.getByText("Finding an answer in your source…")).toHaveCount(
@@ -228,20 +234,21 @@ test("blackholed PDF upload times out after sixty seconds and unlocks retry", as
   await page.evaluate(() => {
     window.race.hangUpload = true;
   });
+  await page.getByText("Change source", { exact: true }).click();
   await page.getByRole("tab", { name: "PDF document" }).click();
   await page.getByLabel("PDF file").setInputFiles({
     name: "timeout.pdf",
     mimeType: "application/pdf",
     buffer: pdfFixture(),
   });
-  await page.getByRole("button", { name: "Extract source text" }).click();
+  await page.getByRole("button", { name: "Continue to questions" }).click();
   await expect
     .poll(() => page.evaluate(() => window.race.uploadRequested))
     .toBe(1);
   await page.clock.runFor(60001);
   await expect(page.locator(".error")).toContainText(/timed out.*retry/i);
   await expect(
-    page.getByRole("button", { name: "Extract source text" }),
+    page.getByRole("button", { name: "Continue to questions" }),
   ).toBeEnabled();
 });
 
@@ -327,7 +334,7 @@ test("reconnecting disables Start and allows Stop", async ({ page }) => {
 test("late text from an old source cannot enter the new conversation", async ({
   page,
 }) => {
-  await page.getByLabel("Ask a question").fill("Old question");
+  await page.getByLabel("Ask a question", { exact: true }).fill("Old question");
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => window.race.textRequested))
@@ -352,10 +359,12 @@ test("realtime send failure is surfaced without an unhandled rejection", async (
   await page.evaluate(() => window.race.connectPeer());
   await expect(status(page)).toHaveText("Connected");
   await page.evaluate(() => window.race.breakSend());
-  await page.getByLabel("Ask a question").fill("Can you hear me?");
+  await page
+    .getByLabel("Ask a question", { exact: true })
+    .fill("Can you hear me?");
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(
-    page.getByRole("region", { name: "1. Choose a source" }).getByRole("alert"),
+    page.getByRole("region", { name: "2. Ask a question" }).getByRole("alert"),
   ).toContainText("Injected data channel send failure");
   expect(errors).toEqual([]);
 });

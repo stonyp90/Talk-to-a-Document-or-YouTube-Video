@@ -1,5 +1,6 @@
 "use client";
 
+import { Onboarding } from "./components/Onboarding";
 import { Applications } from "./components/Applications";
 
 import {
@@ -236,7 +237,11 @@ export default function HomePage() {
     } catch (caught) {
       if (current())
         setError(
-          caught instanceof Error ? caught.message : "Ingestion failed.",
+          caught instanceof Error
+            ? caught.message.includes("YouTube blocked")
+              ? "YouTube is not sharing captions for this video right now. Try another captioned video, or use a PDF instead."
+              : caught.message
+            : "We couldn’t read this source. Please try again.",
         );
     } finally {
       if (uploadRequest.current === controller) uploadRequest.current = null;
@@ -429,6 +434,10 @@ export default function HomePage() {
     setError("");
   }
 
+  useEffect(() => {
+    if (source) questionInput.current?.focus();
+  }, [source]);
+
   return (
     <main className="shell">
       <a className="skip-link" href="#workspace">
@@ -453,7 +462,7 @@ export default function HomePage() {
             Your workspace <span aria-hidden="true">↗</span>
           </a>
         </header>
-        <div className="hero">
+        <div className="hero guided-hero">
           <div className="eyebrow">
             <span className="tiny-line" /> Talk to a source
           </div>
@@ -463,20 +472,9 @@ export default function HomePage() {
             <span>More understanding.</span>
           </h1>
           <p className="lede">
-            Upload a document or bring a captioned YouTube video. Then ask
-            natural questions with your voice or in text.
+            Add a PDF or YouTube video. Ask a question. Get an answer based on
+            your source.
           </p>
-          <div className="hero-caption" aria-hidden="true">
-            <div className="hero-wave">
-              <Icon name="voice" />
-            </div>
-            <span>YOUR SOURCE. YOUR CURIOSITY.</span>
-            <strong>
-              A conversation away
-              <br />
-              from your next “aha”.
-            </strong>
-          </div>
           <div className="hero-links">
             <a className="primary" href="#workspace">
               Explore a source <Icon name="arrow" />
@@ -486,13 +484,31 @@ export default function HomePage() {
             </a>
           </div>
         </div>
-        <div className="workspace" id="workspace" tabIndex={-1}>
+        <Onboarding />
+        <div
+          className="workspace guided-workspace"
+          id="workspace"
+          tabIndex={-1}
+        >
+          <ol className="progress-steps" aria-label="Your progress">
+            <li
+              aria-current={!source ? "step" : undefined}
+              data-complete={Boolean(source)}
+            >
+              <span>{source ? "✓" : "1"}</span> Add your source
+            </li>
+            <li aria-current={source ? "step" : undefined}>
+              <span>2</span> Ask a question
+            </li>
+          </ol>
           <section
             className="card source-card"
             aria-labelledby="source-heading"
           >
             <div className="status-row">
-              <h2 id="source-heading">1. Choose a source</h2>
+              <h2 id="source-heading">
+                {source ? "Your source" : "1. Choose a source"}
+              </h2>
               <span
                 className="status"
                 data-state={busy ? "preparing" : source ? "ready" : "idle"}
@@ -501,142 +517,175 @@ export default function HomePage() {
                 {busy ? "Extracting" : source ? "Source ready" : "Step 1 of 2"}
               </span>
             </div>
-            <p className="section-intro">
-              Bring something you want to understand.
-            </p>
-            <div
-              className="tabs"
-              data-tab={tab}
-              role="tablist"
-              aria-label="Source type"
-            >
-              <button
-                className={`tab ${tab === "pdf" ? "active" : ""}`}
-                id="tab-pdf"
-                aria-controls="source-panel"
-                tabIndex={tab === "pdf" ? 0 : -1}
-                onKeyDown={(event) => {
-                  if (["ArrowRight", "ArrowLeft", "End"].includes(event.key)) {
-                    event.preventDefault();
+            {source && (
+              <div className="source-ready">
+                <Icon name={source.kind === "youtube" ? "video" : "document"} />
+                <div>
+                  <strong>{source.sourceName}</strong>
+                  <span>Ready · Your answers will use this source</span>
+                </div>
+              </div>
+            )}
+            <details className="source-picker" open={!source}>
+              <summary>
+                {source
+                  ? "Change source"
+                  : "Choose a PDF or a video to get started"}
+              </summary>
+              <p className="section-intro">
+                {source
+                  ? "Adding a new source starts a new conversation."
+                  : "We’ll read it for you. Then you can ask about it."}
+              </p>
+              <div
+                className="tabs"
+                data-tab={tab}
+                role="tablist"
+                aria-label="Source type"
+              >
+                <button
+                  className={`tab ${tab === "pdf" ? "active" : ""}`}
+                  id="tab-pdf"
+                  disabled={busy}
+                  aria-controls="source-panel"
+                  tabIndex={tab === "pdf" ? 0 : -1}
+                  onKeyDown={(event) => {
+                    if (
+                      ["ArrowRight", "ArrowLeft", "End"].includes(event.key)
+                    ) {
+                      event.preventDefault();
+                      setTab("youtube");
+                      document.getElementById("tab-youtube")?.focus();
+                    }
+                  }}
+                  onClick={() => {
+                    setTab("pdf");
+                    setError("");
+                  }}
+                  role="tab"
+                  aria-selected={tab === "pdf"}
+                >
+                  <Icon name="document" /> PDF document
+                </button>
+                <button
+                  className={`tab ${tab === "youtube" ? "active" : ""}`}
+                  id="tab-youtube"
+                  disabled={busy}
+                  aria-controls="source-panel"
+                  tabIndex={tab === "youtube" ? 0 : -1}
+                  onKeyDown={(event) => {
+                    if (
+                      ["ArrowRight", "ArrowLeft", "Home"].includes(event.key)
+                    ) {
+                      event.preventDefault();
+                      setTab("pdf");
+                      document.getElementById("tab-pdf")?.focus();
+                    }
+                  }}
+                  onClick={() => {
                     setTab("youtube");
-                    document.getElementById("tab-youtube")?.focus();
-                  }
-                }}
+                    setError("");
+                  }}
+                  role="tab"
+                  aria-selected={tab === "youtube"}
+                >
+                  <Icon name="video" /> YouTube video
+                </button>
+              </div>
+              <form
+                onSubmit={ingest}
+                className="source-grid"
+                id="source-panel"
+                role="tabpanel"
+                aria-labelledby={`tab-${tab}`}
+                aria-busy={busy}
+              >
+                {tab === "pdf" ? (
+                  <div className="dropzone full">
+                    <span className="upload-icon">
+                      <Icon name="document" />
+                    </span>
+                    <strong>
+                      {file ? file.name : "Pick a PDF up to 25 MB"}
+                    </strong>
+                    <div className="hint">
+                      {file
+                        ? `${(file.size / 1024 / 1024).toFixed(1)} MB · Ready to continue`
+                        : "Choose a text-based paper, report, or document."}
+                    </div>
+                    <input
+                      aria-label="PDF file"
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      onChange={onFile}
+                      disabled={busy}
+                    />
+                  </div>
+                ) : (
+                  <div className="field full" key="youtube">
+                    <span className="upload-icon">
+                      <Icon name="video" />
+                    </span>
+                    <label htmlFor="youtube-url">YouTube URL</label>
+                    <input
+                      id="youtube-url"
+                      value={url}
+                      onChange={(event) => setUrl(event.target.value)}
+                      placeholder="https://youtube.com/watch?v=..."
+                      inputMode="url"
+                      disabled={busy}
+                      aria-describedby="youtube-hint"
+                    />
+                    <p id="youtube-hint" className="hint">
+                      Paste a link to a captioned video. We’ll turn its words
+                      into a conversation.
+                    </p>
+                  </div>
+                )}
+                <div className="actions full">
+                  <button
+                    className="primary"
+                    disabled={!canIngest || busy}
+                    type="submit"
+                  >
+                    {busy ? (
+                      <span className="spinner" aria-hidden="true" />
+                    ) : (
+                      <Icon name="arrow" />
+                    )}
+                    {busy ? "Reading your source…" : "Continue to questions"}
+                  </button>
+                </div>
+              </form>
+            </details>
+            {!source && error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            )}
+            {!source && error && tab === "youtube" && (
+              <button
+                type="button"
+                className="secondary"
                 onClick={() => {
                   setTab("pdf");
                   setError("");
+                  document.getElementById("tab-pdf")?.focus();
                 }}
-                role="tab"
-                aria-selected={tab === "pdf"}
               >
-                <Icon name="document" /> PDF document
+                Use a PDF instead
               </button>
-              <button
-                className={`tab ${tab === "youtube" ? "active" : ""}`}
-                id="tab-youtube"
-                aria-controls="source-panel"
-                tabIndex={tab === "youtube" ? 0 : -1}
-                onKeyDown={(event) => {
-                  if (["ArrowRight", "ArrowLeft", "Home"].includes(event.key)) {
-                    event.preventDefault();
-                    setTab("pdf");
-                    document.getElementById("tab-pdf")?.focus();
-                  }
-                }}
-                onClick={() => {
-                  setTab("youtube");
-                  setError("");
-                }}
-                role="tab"
-                aria-selected={tab === "youtube"}
-              >
-                <Icon name="video" /> YouTube video
-              </button>
-            </div>
-            <form
-              onSubmit={ingest}
-              className="source-grid"
-              id="source-panel"
-              role="tabpanel"
-              aria-labelledby={`tab-${tab}`}
-              aria-busy={busy}
-            >
-              {tab === "pdf" ? (
-                <div className="dropzone full">
-                  <span className="upload-icon">
-                    <Icon name="document" />
-                  </span>
-                  <strong>{file ? file.name : "Pick a PDF up to 25 MB"}</strong>
-                  <div className="hint">
-                    {file
-                      ? `${(file.size / 1024 / 1024).toFixed(1)} MB · Ready to extract`
-                      : "Choose a text-based paper, report, or document."}
-                  </div>
-                  <input
-                    aria-label="PDF file"
-                    type="file"
-                    accept="application/pdf,.pdf"
-                    onChange={onFile}
-                    disabled={busy}
-                  />
-                </div>
-              ) : (
-                <div className="field full" key="youtube">
-                  <span className="upload-icon">
-                    <Icon name="video" />
-                  </span>
-                  <label htmlFor="youtube-url">YouTube URL</label>
-                  <input
-                    id="youtube-url"
-                    value={url}
-                    onChange={(event) => setUrl(event.target.value)}
-                    placeholder="https://youtube.com/watch?v=..."
-                    inputMode="url"
-                    disabled={busy}
-                    aria-describedby="youtube-hint"
-                  />
-                  <p id="youtube-hint" className="hint">
-                    Paste a link to a captioned video. We’ll turn its words into
-                    a conversation.
-                  </p>
-                </div>
-              )}
-              <div className="actions full">
-                <button
-                  className="primary"
-                  disabled={!canIngest || busy}
-                  type="submit"
-                >
-                  {busy ? (
-                    <span className="spinner" aria-hidden="true" />
-                  ) : (
-                    <Icon name="arrow" />
-                  )}
-                  {busy ? "Extracting…" : "Extract source text"}
-                </button>
-              </div>
-            </form>
-            {(error || state.error) && (
-              <p className="error" role="alert">
-                {error || state.error}
+            )}
+            {busy && (
+              <p className="hint" role="status">
+                Reading your source. This may take up to a minute. Your
+                questions are next.
               </p>
             )}
             {source && (
-              <div className="source-ready">
-                <Icon name="document" />
-                <div>
-                  <strong>{source.sourceName}</strong>
-                  <span>Ready to explore · Ask in voice or text</span>
-                </div>
-                <a href="#conversation-heading" aria-label="Go to conversation">
-                  ↗
-                </a>
-              </div>
-            )}
-            {source && (
-              <details className="preview" open>
+              <details className="preview">
                 <summary>
-                  Extracted text · {source.characters.toLocaleString()}{" "}
+                  View source text · {source.characters.toLocaleString()}{" "}
                   characters
                 </summary>
                 <div className="preview-text">{source.text}</div>
@@ -646,11 +695,12 @@ export default function HomePage() {
 
           <section
             className="card conversation-card"
+            hidden={!source}
             aria-labelledby="conversation-heading"
           >
             <div className="status-row">
               <h2 id="conversation-heading" tabIndex={-1}>
-                2. Have a conversation
+                2. Ask a question
               </h2>
               <span
                 className="status"
@@ -665,48 +715,6 @@ export default function HomePage() {
                 Exploring <strong>{source.sourceName}</strong>
               </p>
             )}
-            <div className="actions voice-controls">
-              <button
-                className="primary"
-                disabled={
-                  !source ||
-                  [
-                    "connected",
-                    "connecting",
-                    "preparing",
-                    "reconnecting",
-                  ].includes(state.status)
-                }
-                onClick={startVoice}
-              >
-                <Icon name="voice" /> Start Voice Chat
-              </button>
-              <button
-                className="secondary"
-                disabled={state.status !== "connected"}
-                onClick={toggleMute}
-                aria-pressed={state.muted}
-              >
-                {state.muted ? "Unmute microphone" : "Mute microphone"}
-              </button>
-              <button
-                className="danger"
-                disabled={
-                  ![
-                    "connected",
-                    "connecting",
-                    "preparing",
-                    "reconnecting",
-                  ].includes(state.status)
-                }
-                onClick={stopVoice}
-              >
-                Stop
-              </button>
-            </div>
-            <p className="hint">
-              If microphone access is unavailable, use the text chat below.
-            </p>
             {providerMode === "mock" && (
               <p className="hint" role="status">
                 Demo simulation: AI replies are simulated; microphone audio is
@@ -738,7 +746,7 @@ export default function HomePage() {
                   </h3>
                   <p className="hint">
                     {source
-                      ? "Your source is ready. Ask out loud or type below."
+                      ? "Type your question below, or choose an idea to get started."
                       : "Add a source, then explore the ideas inside it."}
                   </p>
                   <div className="suggestions">
@@ -784,8 +792,17 @@ export default function HomePage() {
                 answer in your source…
               </p>
             )}
+            {source && (error || state.error) && (
+              <p className="error" role="alert">
+                {error || state.error}
+              </p>
+            )}
+            <label className="question-label" htmlFor="question">
+              Your question
+            </label>
             <form className="composer" onSubmit={sendText}>
               <input
+                id="question"
                 aria-label="Ask a question"
                 ref={questionInput}
                 value={question}
@@ -796,11 +813,70 @@ export default function HomePage() {
               <button
                 className="secondary"
                 type="submit"
-                disabled={!source || !question.trim()}
+                disabled={!source || !question.trim() || pendingAnswers > 0}
               >
                 Send <Icon name="arrow" />
               </button>
             </form>
+            <details className="voice-option">
+              <summary>Prefer to talk? Try voice chat</summary>
+              <div className="actions voice-controls">
+                <button
+                  className="secondary"
+                  disabled={
+                    !source ||
+                    [
+                      "connected",
+                      "connecting",
+                      "preparing",
+                      "reconnecting",
+                    ].includes(state.status)
+                  }
+                  onClick={startVoice}
+                >
+                  <Icon name="voice" /> Start Voice Chat
+                </button>
+                <button
+                  className="secondary"
+                  hidden={state.status !== "connected"}
+                  disabled={state.status !== "connected"}
+                  onClick={toggleMute}
+                  aria-pressed={state.muted}
+                >
+                  {state.muted ? "Unmute microphone" : "Mute microphone"}
+                </button>
+                <button
+                  className="danger"
+                  hidden={
+                    ![
+                      "connected",
+                      "connecting",
+                      "preparing",
+                      "reconnecting",
+                    ].includes(state.status)
+                  }
+                  disabled={
+                    ![
+                      "connected",
+                      "connecting",
+                      "preparing",
+                      "reconnecting",
+                    ].includes(state.status)
+                  }
+                  onClick={stopVoice}
+                >
+                  Stop
+                </button>
+              </div>
+              <p className="hint">
+                Allow microphone access when prompted, then speak. You can mute
+                or stop at any time. Typing is always available.
+              </p>
+            </details>
+            <p className="hint answer-note">
+              Answers come from your source. Check important details in “View
+              source text”.
+            </p>
           </section>
         </div>
         <section
@@ -825,16 +901,16 @@ export default function HomePage() {
               <span className="guide-number">02</span>
               <h3>Make it a conversation</h3>
               <p>
-                Extract the text, then ask a question. Start with a summary or
-                explore a specific idea.
+                Select Continue to questions, then type your question. Start
+                with a summary or explore a specific idea.
               </p>
             </article>
             <article>
               <span className="guide-number">03</span>
               <h3>Go a little deeper</h3>
               <p>
-                Ask follow-up questions by voice or text. Keep the extracted
-                source nearby to check important details.
+                Ask more questions by voice or text. Keep the source nearby to
+                check important details.
               </p>
             </article>
           </div>

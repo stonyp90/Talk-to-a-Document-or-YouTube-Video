@@ -7,13 +7,13 @@ test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000" });
 
 const pdfText = "The demo observatory studies Saturn and its rings.";
 const conversation = (page: Page) =>
-  page.getByRole("region", { name: "2. Have a conversation" });
+  page.getByRole("region", { name: "2. Ask a question" });
 const status = (page: Page) =>
-  page
-    .getByRole("region", { name: "2. Have a conversation" })
-    .locator(".status");
+  page.getByRole("region", { name: "2. Ask a question" }).locator(".status");
 
 async function uploadPdf(page: Page, text = pdfText) {
+  if (await page.locator(".source-picker:not([open])").count())
+    await page.getByText("Change source", { exact: true }).click();
   await page.getByRole("tab", { name: "PDF document" }).click();
   await page.getByLabel("PDF file").setInputFiles({
     name: "observatory.pdf",
@@ -25,10 +25,14 @@ async function uploadPdf(page: Page, text = pdfText) {
       response.url().endsWith("/api/uploads/extract") &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Extract source text" }).click();
+  await page.getByRole("button", { name: "Continue to questions" }).click();
   const response = await extracted;
   expect(response.ok(), await response.text()).toBeTruthy();
   await expect(page.locator(".preview-text")).toHaveText(text);
+  if (await page.locator(".preview:not([open])").count())
+    await page.locator(".preview summary").click();
+  if (await page.locator(".voice-option:not([open])").count())
+    await page.locator(".voice-option summary").click();
 }
 
 test.describe("source conversation journey", () => {
@@ -47,8 +51,10 @@ test.describe("source conversation journey", () => {
   }) => {
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
-    ).toBeDisabled();
-    await expect(page.getByLabel("Ask a question")).toBeDisabled();
+    ).toBeHidden();
+    await expect(
+      page.getByLabel("Ask a question", { exact: true }),
+    ).toBeHidden();
     const prepare = page.waitForResponse(
       (r) =>
         r.url().endsWith("/api/uploads") && r.request().method() === "POST",
@@ -76,7 +82,7 @@ test.describe("source conversation journey", () => {
     const extraction = page.waitForResponse((r) =>
       r.url().endsWith("/api/uploads/extract"),
     );
-    await page.getByRole("button", { name: "Extract source text" }).click();
+    await page.getByRole("button", { name: "Continue to questions" }).click();
     expect((await extraction).ok()).toBeFalsy();
     const alert = page
       .getByRole("region", { name: "1. Choose a source" })
@@ -86,8 +92,10 @@ test.describe("source conversation journey", () => {
     await expect(page.locator(".preview-text")).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
-    ).toBeDisabled();
-    await expect(page.getByLabel("Ask a question")).toBeDisabled();
+    ).toBeHidden();
+    await expect(
+      page.getByLabel("Ask a question", { exact: true }),
+    ).toBeHidden();
   });
 
   test("rejects an invalid YouTube URL", async ({ page }) => {
@@ -98,7 +106,7 @@ test.describe("source conversation journey", () => {
     const ingestion = page.waitForResponse((r) =>
       r.url().endsWith("/api/ingest"),
     );
-    await page.getByRole("button", { name: "Extract source text" }).click();
+    await page.getByRole("button", { name: "Continue to questions" }).click();
     expect((await ingestion).status()).toBe(400);
     await expect(
       page
@@ -107,8 +115,10 @@ test.describe("source conversation journey", () => {
     ).toContainText(/valid YouTube URL/i);
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
-    ).toBeDisabled();
-    await expect(page.getByLabel("Ask a question")).toBeDisabled();
+    ).toBeHidden();
+    await expect(
+      page.getByLabel("Ask a question", { exact: true }),
+    ).toBeHidden();
   });
 
   test("ingests YouTube and displays the actual text fallback API answer", async ({
@@ -121,7 +131,7 @@ test.describe("source conversation journey", () => {
     const ingestion = page.waitForResponse((r) =>
       r.url().endsWith("/api/ingest"),
     );
-    await page.getByRole("button", { name: "Extract source text" }).click();
+    await page.getByRole("button", { name: "Continue to questions" }).click();
     const response = await ingestion;
     expect(response.ok()).toBeTruthy();
     const { source } = await response.json();
@@ -131,7 +141,7 @@ test.describe("source conversation journey", () => {
       page.getByRole("button", { name: "Send", exact: true }),
     ).toBeDisabled();
     const question = "What is this about?";
-    await page.getByLabel("Ask a question").fill(question);
+    await page.getByLabel("Ask a question", { exact: true }).fill(question);
     const answerResponse = page.waitForResponse((r) =>
       r.url().endsWith("/api/text-chat"),
     );
@@ -146,7 +156,9 @@ test.describe("source conversation journey", () => {
     await expect(
       conversation(page).locator(".message.assistant .message-text"),
     ).toHaveText(payload.answer);
-    await expect(page.getByLabel("Ask a question")).toHaveValue("");
+    await expect(
+      page.getByLabel("Ask a question", { exact: true }),
+    ).toHaveValue("");
   });
 
   test("mock voice supports typed turns, mute, unmute, stop and restart", async ({
@@ -161,7 +173,9 @@ test.describe("source conversation journey", () => {
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
     ).toBeDisabled();
-    await page.getByLabel("Ask a question").fill("Tell me about Saturn");
+    await page
+      .getByLabel("Ask a question", { exact: true })
+      .fill("Tell me about Saturn");
     await page.getByRole("button", { name: "Send", exact: true }).click();
     await expect(
       conversation(page).locator(".message.user .message-text"),
@@ -185,10 +199,10 @@ test.describe("source conversation journey", () => {
     await expect(status(page)).toHaveText("Ended");
     await expect(
       page.getByRole("button", { name: "Stop", exact: true }),
-    ).toBeDisabled();
+    ).toBeHidden();
     await expect(
       page.getByRole("button", { name: "Mute microphone", exact: true }),
-    ).toBeDisabled();
+    ).toBeHidden();
     await expect(conversation(page).locator(".message-text")).toHaveCount(2);
     await page.getByRole("button", { name: "Start Voice Chat" }).click();
     await expect(status(page)).toHaveText("Connected");
@@ -200,7 +214,9 @@ test.describe("source conversation journey", () => {
     await uploadPdf(page);
     await page.getByRole("button", { name: "Start Voice Chat" }).click();
     await expect(status(page)).toHaveText("Connected");
-    await page.getByLabel("Ask a question").fill("Discuss the old source");
+    await page
+      .getByLabel("Ask a question", { exact: true })
+      .fill("Discuss the old source");
     await page.getByRole("button", { name: "Send", exact: true }).click();
     await expect(
       conversation(page).locator(".message.assistant .message-text"),
@@ -212,16 +228,18 @@ test.describe("source conversation journey", () => {
     await expect(status(page)).toHaveText("Ready");
     await expect(
       page.getByRole("button", { name: "Stop", exact: true }),
-    ).toBeDisabled();
+    ).toBeHidden();
     await expect(
       page.getByRole("button", { name: "Mute microphone", exact: true }),
-    ).toBeDisabled();
+    ).toBeHidden();
     await expect(conversation(page).locator(".message-text")).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
     ).toBeEnabled();
     // Subsequent text must use fallback HTTP, not the previous voice client.
-    await page.getByLabel("Ask a question").fill("What planet?");
+    await page
+      .getByLabel("Ask a question", { exact: true })
+      .fill("What planet?");
     const answer = page.waitForResponse((r) =>
       r.url().endsWith("/api/text-chat"),
     );
@@ -273,15 +291,17 @@ test("keyboard source selection and a suggested question work with a second vide
   await expect(pdfTab).toBeFocused();
   await pdfTab.press("End");
   await page.getByLabel("YouTube URL").fill("https://youtu.be/jNQXAC9IVRw");
-  await page.getByRole("button", { name: "Extract source text" }).click();
+  await page.getByRole("button", { name: "Continue to questions" }).click();
   await expect(page.locator(".preview-text")).not.toBeEmpty();
   await expect(conversation(page)).toContainText("jNQXAC9IVRw");
   await page.getByRole("button", { name: "Explain this simply" }).click();
-  await expect(page.getByLabel("Ask a question")).toBeFocused();
-  await expect(page.getByLabel("Ask a question")).toHaveValue(
+  await expect(
+    page.getByLabel("Ask a question", { exact: true }),
+  ).toBeFocused();
+  await expect(page.getByLabel("Ask a question", { exact: true })).toHaveValue(
     "Explain this simply",
   );
-  await page.getByLabel("Ask a question").press("Enter");
+  await page.getByLabel("Ask a question", { exact: true }).press("Enter");
   await expect(
     page.locator(".message.assistant .message-text"),
   ).not.toBeEmpty();

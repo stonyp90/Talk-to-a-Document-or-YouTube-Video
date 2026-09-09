@@ -51,7 +51,13 @@ it("unmount aborts session setup and ignores its eventual response", async () =>
   fireEvent.change(screen.getByLabelText("YouTube URL"), {
     target: { value: "https://youtu.be/dQw4w9WgXcQ" },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Extract source text" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Continue to questions" }),
+  );
+  await waitFor(() =>
+    expect(screen.getByText("Prefer to talk? Try voice chat")).toBeVisible(),
+  );
+  fireEvent.click(screen.getByText("Prefer to talk? Try voice chat"));
   const start = screen.getByRole("button", { name: "Start Voice Chat" });
   await waitFor(() => expect(start).toBeEnabled());
   fireEvent.click(start);

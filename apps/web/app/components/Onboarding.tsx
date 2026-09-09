@@ -92,7 +92,6 @@ export function Onboarding() {
           onClick={() => {
             if (open) close();
             else {
-              userOpened.current = true;
               setStep(0);
               setOpen(true);
             }

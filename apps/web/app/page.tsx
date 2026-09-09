@@ -14,6 +14,7 @@ import {
 import { Onboarding } from "./components/Onboarding";
 import { Applications } from "./components/Applications";
 import { Icon } from "./components/Icon";
+import { VoiceActions, type VoiceActionId } from "./components/VoiceActions";
 import {
   conversationReducer,
   initialConversationState,
@@ -132,6 +133,7 @@ export default function HomePage() {
   const [pendingAnswers, setPendingAnswers] = useState(0);
   const [providerMode, setProviderMode] = useState<string>("");
   const [activity, setActivity] = useState<VoiceActivity>("idle");
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(true);
   const micSupported = useSyncExternalStore(
     NO_CHANGE,
     readMicrophoneSupport,
@@ -159,6 +161,7 @@ export default function HomePage() {
   const uploadRequest = useRef<AbortController | null>(null);
   const voiceActive = useRef(false);
   const sourceIdRef = useRef<string | undefined>(undefined);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (followMessages.current && chatLog.current)
@@ -239,6 +242,7 @@ export default function HomePage() {
     setUploadProgress(undefined);
     setError("");
     setSource(undefined);
+    setSourcePickerOpen(true);
     setContext(undefined);
     sourceIdRef.current = undefined;
     followMessages.current = true;
@@ -301,6 +305,7 @@ export default function HomePage() {
       );
       if (!current()) return;
       setSource(envelope.source);
+      setSourcePickerOpen(false);
       sourceIdRef.current = envelope.sourceId;
       setContext(envelope.context);
       dispatch({ type: "CLEAR_ERROR" });
@@ -504,6 +509,53 @@ export default function HomePage() {
     setError("");
   }
 
+  function focusSourceControl(control: "youtube" | "upload") {
+    setError("");
+    setTab(control === "youtube" ? "youtube" : "pdf");
+    setSourcePickerOpen(true);
+    window.requestAnimationFrame(() => {
+      if (control === "youtube")
+        document.getElementById("youtube-url")?.focus();
+      else fileInput.current?.focus();
+    });
+  }
+
+  function openUploadPicker() {
+    focusSourceControl("upload");
+    setVoiceActionNotice(
+      "Upload is ready — choose a PDF in the file picker to finish.",
+    );
+    window.requestAnimationFrame(() => fileInput.current?.click());
+  }
+
+  const [voiceActionNotice, setVoiceActionNotice] = useState("");
+
+  function handleVoiceAction(action: VoiceActionId) {
+    if (action === "youtube") {
+      focusSourceControl("youtube");
+      setVoiceActionNotice(
+        "YouTube is ready — dictate or paste a video link next.",
+      );
+    } else if (action === "upload") {
+      openUploadPicker();
+    } else if (action === "voice") {
+      if (!source) {
+        setVoiceActionNotice(
+          "Add a PDF or YouTube source first, then say “let’s talk” again.",
+        );
+        return;
+      }
+      void startVoice();
+    } else {
+      const prompt = "Summarize the key ideas";
+      setQuestion(prompt);
+      setVoiceActionNotice(
+        "Your summary request is ready in the question box.",
+      );
+      window.requestAnimationFrame(() => questionInput.current?.focus());
+    }
+  }
+
   return (
     <>
       <a className="skip-link" href="#workspace">
@@ -548,6 +600,18 @@ export default function HomePage() {
 
           <Onboarding />
 
+          <VoiceActions
+            onAction={handleVoiceAction}
+            canStartVoice={Boolean(source)}
+            voiceBusy={sessionLive || busy}
+          />
+
+          {voiceActionNotice && (
+            <p className="voice-action-notice" role="status">
+              {voiceActionNotice}
+            </p>
+          )}
+
           <div className="workspace" id="workspace" tabIndex={-1}>
             <section
               className="card source-card"
@@ -582,7 +646,13 @@ export default function HomePage() {
                 </div>
               )}
 
-              <details className="source-picker" open={!source}>
+              <details
+                className="source-picker"
+                open={source ? sourcePickerOpen : true}
+                onToggle={(event) => {
+                  if (source) setSourcePickerOpen(event.currentTarget.open);
+                }}
+              >
                 <summary>
                   {source
                     ? "Change source"
@@ -593,114 +663,127 @@ export default function HomePage() {
                     ? "Adding a new source starts a new conversation."
                     : "We’ll read it for you. Then you can ask about it."}
                 </p>
-                <div
-                  className="tabs"
-                  data-tab={tab}
-                  role="tablist"
-                  aria-label="Source type"
-                >
-                  {(
-                    [
-                      { id: "pdf", label: "PDF document", icon: "document" },
-                      { id: "youtube", label: "YouTube video", icon: "video" },
-                    ] as const
-                  ).map(({ id, label, icon }) => (
-                    <button
-                      key={id}
-                      className={`tab ${tab === id ? "active" : ""}`}
-                      id={`tab-${id}`}
-                      disabled={busy}
-                      aria-controls="source-panel"
-                      tabIndex={tab === id ? 0 : -1}
-                      role="tab"
-                      aria-selected={tab === id}
-                      onKeyDown={(event) => {
-                        if (
-                          ["ArrowRight", "ArrowLeft", "Home", "End"].includes(
-                            event.key,
-                          )
-                        ) {
-                          event.preventDefault();
-                          const next = id === "pdf" ? "youtube" : "pdf";
-                          setTab(next);
-                          document.getElementById(`tab-${next}`)?.focus();
-                        }
-                      }}
-                      onClick={() => {
-                        setTab(id);
-                        setError("");
-                      }}
-                    >
-                      <Icon name={icon} /> {label}
-                    </button>
-                  ))}
-                </div>
-
-                <form
-                  onSubmit={ingest}
-                  className="source-grid"
-                  id="source-panel"
-                  role="tabpanel"
-                  aria-labelledby={`tab-${tab}`}
-                  aria-busy={busy}
-                >
-                  {tab === "pdf" ? (
-                    <div className="dropzone full">
-                      <span className="upload-icon">
-                        <Icon name="document" />
-                      </span>
-                      <strong>
-                        {file ? file.name : "Pick a PDF up to 25 MB"}
-                      </strong>
-                      <div className="hint">
-                        {file
-                          ? `${(file.size / 1024 / 1024).toFixed(1)} MB · Ready to continue`
-                          : "Choose a text-based paper, report, or document."}
-                      </div>
-                      <input
-                        aria-label="PDF file"
-                        type="file"
-                        accept="application/pdf,.pdf"
-                        onChange={onFile}
+                <div className="source-controls">
+                  <div
+                    className="tabs"
+                    data-tab={tab}
+                    role="tablist"
+                    aria-label="Source type"
+                  >
+                    {(
+                      [
+                        {
+                          id: "pdf",
+                          label: "PDF document",
+                          icon: "document",
+                        },
+                        {
+                          id: "youtube",
+                          label: "YouTube video",
+                          icon: "video",
+                        },
+                      ] as const
+                    ).map(({ id, label, icon }) => (
+                      <button
+                        key={id}
+                        className={`tab ${tab === id ? "active" : ""}`}
+                        id={`tab-${id}`}
                         disabled={busy}
-                      />
-                    </div>
-                  ) : (
-                    <div className="field full" key="youtube">
-                      <span className="upload-icon">
-                        <Icon name="video" />
-                      </span>
-                      <label htmlFor="youtube-url">YouTube URL</label>
-                      <input
-                        id="youtube-url"
-                        value={url}
-                        onChange={(event) => setUrl(event.target.value)}
-                        placeholder="https://youtube.com/watch?v=..."
-                        inputMode="url"
-                        disabled={busy}
-                        aria-describedby="youtube-hint"
-                      />
-                      <p id="youtube-hint" className="hint">
-                        Paste a link to a captioned video. Watch pages, Shorts,
-                        share links and embeds all work.
-                      </p>
-                    </div>
-                  )}
-                  <div className="actions full">
-                    <button
-                      className="primary"
-                      disabled={!canIngest || busy}
-                      type="submit"
-                    >
-                      {busy ? (
-                        <span className="spinner" aria-hidden="true" />
-                      ) : (
-                        <Icon name="arrow" />
-                      )}
-                      {busy ? "Reading your source…" : "Continue to questions"}
-                    </button>
+                        aria-controls="source-panel"
+                        tabIndex={tab === id ? 0 : -1}
+                        role="tab"
+                        aria-selected={tab === id}
+                        onKeyDown={(event) => {
+                          if (
+                            ["ArrowRight", "ArrowLeft", "Home", "End"].includes(
+                              event.key,
+                            )
+                          ) {
+                            event.preventDefault();
+                            const next = id === "pdf" ? "youtube" : "pdf";
+                            setTab(next);
+                            document.getElementById(`tab-${next}`)?.focus();
+                          }
+                        }}
+                        onClick={() => {
+                          setTab(id);
+                          setError("");
+                        }}
+                      >
+                        <Icon name={icon} /> {label}
+                      </button>
+                    ))}
                   </div>
-                </form>
+
+                  <form
+                    onSubmit={ingest}
+                    className="source-grid"
+                    id="source-panel"
+                    role="tabpanel"
+                    aria-labelledby={`tab-${tab}`}
+                    aria-busy={busy}
+                  >
+                    {tab === "pdf" ? (
+                      <div className="dropzone full">
+                        <span className="upload-icon">
+                          <Icon name="document" />
+                        </span>
+                        <strong>
+                          {file ? file.name : "Pick a PDF up to 25 MB"}
+                        </strong>
+                        <div className="hint">
+                          {file
+                            ? `${(file.size / 1024 / 1024).toFixed(1)} MB · Ready to continue`
+                            : "Choose a text-based paper, report, or document."}
+                        </div>
+                        <input
+                          aria-label="PDF file"
+                          ref={fileInput}
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          onChange={onFile}
+                          disabled={busy}
+                        />
+                      </div>
+                    ) : (
+                      <div className="field full" key="youtube">
+                        <span className="upload-icon">
+                          <Icon name="video" />
+                        </span>
+                        <label htmlFor="youtube-url">YouTube URL</label>
+                        <input
+                          id="youtube-url"
+                          value={url}
+                          onChange={(event) => setUrl(event.target.value)}
+                          placeholder="https://youtube.com/watch?v=..."
+                          inputMode="url"
+                          disabled={busy}
+                          aria-describedby="youtube-hint"
+                        />
+                        <p id="youtube-hint" className="hint">
+                          Paste a link to a captioned video. Watch pages,
+                          Shorts, share links and embeds all work.
+                        </p>
+                      </div>
+                    )}
+                    <div className="actions full">
+                      <button
+                        className="primary"
+                        disabled={!canIngest || busy}
+                        type="submit"
+                      >
+                        {busy ? (
+                          <span className="spinner" aria-hidden="true" />
+                        ) : (
+                          <Icon name="arrow" />
+                        )}
+                        {busy
+                          ? "Reading your source…"
+                          : "Continue to questions"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </details>
 
               {uploadProgress !== undefined && (

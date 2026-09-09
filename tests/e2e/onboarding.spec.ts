@@ -8,28 +8,30 @@ for (const width of [320, 390, 1440]) {
     await page.goto("/");
     await expect(
       page.getByRole("heading", {
-        name: "Bring something you’re curious about",
+        name: "Start with something worth understanding.",
       }),
     ).toBeVisible();
     await expect(
-      page.locator('.progress-steps [aria-current="step"]'),
-    ).toHaveText("1 Add your source");
+      page.locator('.guide-step-rail [aria-current="step"] b'),
+    ).toHaveText("Bring a source");
     await expect(
       page.getByLabel("Ask a question", { exact: true }),
-    ).toBeHidden();
-    await page.getByRole("button", { name: "Next", exact: true }).click();
+    ).toBeDisabled();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect(
-      page.getByRole("heading", { name: "Ask in your own words" }),
+      page.getByRole("heading", {
+        name: "Use your voice when the thought arrives.",
+      }),
     ).toBeFocused();
     await page.getByRole("button", { name: "Back", exact: true }).click();
     await expect(
       page.getByRole("heading", {
-        name: "Bring something you’re curious about",
+        name: "Start with something worth understanding.",
       }),
     ).toBeFocused();
-    await page.getByRole("button", { name: "Next", exact: true }).click();
-    await page.getByRole("button", { name: "Next", exact: true }).click();
-    await page.getByRole("button", { name: "Let’s get started" }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.getByRole("button", { name: "Open Ursly" }).click();
     await expect(page.locator("#workspace")).toBeFocused();
     await page.reload();
     await expect(page.locator("#welcome-guide")).toHaveCount(0);
@@ -45,6 +47,30 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+test("guide slides advance gently and pause on demand", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", {
+      name: "Start with something worth understanding.",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Pause slides" }).click();
+  await page.clock.runFor(7000);
+  await expect(
+    page.getByRole("heading", {
+      name: "Start with something worth understanding.",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Resume slides" }).click();
+  await page.clock.runFor(6201);
+  await expect(
+    page.getByRole("heading", {
+      name: "Use your voice when the thought arrives.",
+    }),
+  ).toBeVisible();
+});
+
 test("welcome guide remains usable when browser storage is blocked", async ({
   page,
 }) => {
@@ -57,6 +83,6 @@ test("welcome guide remains usable when browser storage is blocked", async ({
     };
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Skip tour" }).click();
+  await page.getByRole("button", { name: "Skip guide" }).click();
   await expect(page.getByRole("button", { name: "Quick tour" })).toBeFocused();
 });

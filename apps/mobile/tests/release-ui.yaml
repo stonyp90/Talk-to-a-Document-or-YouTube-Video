@@ -3,6 +3,7 @@ appId: com.talktosource.demo
 # Interface checks only. A passing flow does not validate the production backend.
 - launchApp:
     clearState: true
+- tapOn: "Skip onboarding"
 - assertVisible: "Import a PDF"
 - tapOn: "About Ursly and language"
 - assertVisible: "App language"

@@ -6,6 +6,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { ApiClient, apiOrigin, IngestedSource, Turn, updateTranscript } from './src/client';
 import { NativeVoice, VoiceStatus } from './src/voice';
 import { Brand, Orbit, palette as c, Reveal, serif, SourceIcon, Touch, useMotion, Wave } from './src/design';
+import { MobileOnboarding } from './src/Onboarding';
 
 const api = new ApiClient(apiOrigin(Platform.OS, process.env.EXPO_PUBLIC_API_URL));
 function messageOf(error: string, t: (key: TranslationKey) => string) {
@@ -166,6 +167,7 @@ export default function App() {
         </ScrollView></SafeAreaView>
       </KeyboardAvoidingView>
     </Modal>
+    <MobileOnboarding motion={motion} t={t} />
   </SafeAreaView></SafeAreaProvider>;
 }
 

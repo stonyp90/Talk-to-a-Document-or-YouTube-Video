@@ -30,9 +30,9 @@ test("real PDF upload, grounded answer, source preview and replacement", async (
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-  await page.getByRole("button", { name: "Let’s get started" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Open Ursly" }).click();
   await upload(page);
   await expect(
     page.locator('.progress-steps [aria-current="step"]'),
@@ -64,7 +64,7 @@ test("real PDF upload, grounded answer, source preview and replacement", async (
 
 test("invalid source has an understandable recovery path", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Skip tour" }).click();
+  await page.getByRole("button", { name: "Skip guide" }).click();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://example.com/not-a-video");
   await page.getByRole("button", { name: "Continue to questions" }).click();
@@ -88,7 +88,7 @@ test("real voice transport connects, answers typed input, mutes and stops", asyn
     "Real WebRTC checked in desktop Chromium; physical mobile audio requires a device.",
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "Skip tour" }).click();
+  await page.getByRole("button", { name: "Skip guide" }).click();
   await upload(page);
   await page.getByRole("button", { name: "Start Voice Chat" }).click();
   await expect(page.locator(".conversation-card .status")).toHaveText(
@@ -125,8 +125,8 @@ test("a fresh browser loads every app asset and hydrates the controls", async ({
       failedAssets.push(request.url());
   });
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Skip tour" })).toBeVisible();
-  await page.getByRole("button", { name: "Skip tour" }).click();
+  await expect(page.getByRole("button", { name: "Skip guide" })).toBeVisible();
+  await page.getByRole("button", { name: "Skip guide" }).click();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await expect(page.getByLabel("YouTube URL")).toBeVisible();
   expect(failedAssets).toEqual([]);

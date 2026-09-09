@@ -18,6 +18,8 @@ const status = (page: Page) => page.locator(".conversation-card .status");
 test.beforeEach(async ({ page }) => {
   harness = await installRealtimeHarness(page);
   await page.goto("/");
+  const skipGuide = page.getByRole("button", { name: "Skip guide" });
+  await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
   await page.getByLabel("PDF file").setInputFiles({
     name: "transport.pdf",
     mimeType: "application/pdf",

@@ -49,9 +49,11 @@ export function Onboarding() {
   const [openOverride, setOpen] = useState<boolean | null>(null);
   const open = openOverride ?? firstVisit;
   const [step, setStep] = useState(0);
+  const [paused, setPaused] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
+  const focusWorkspace = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -64,9 +66,24 @@ export function Onboarding() {
   }, [open, step]);
 
   useEffect(() => {
-    if (wasOpen.current && !open) launcher.current?.focus();
+    if (wasOpen.current && !open) {
+      if (focusWorkspace.current) {
+        document.getElementById("workspace")?.focus();
+        focusWorkspace.current = false;
+      } else {
+        launcher.current?.focus();
+      }
+    }
     wasOpen.current = open;
   }, [open]);
+
+  useEffect(() => {
+    if (!open || paused || step === steps.length - 1) return;
+    const timer = window.setTimeout(() => {
+      setStep((current) => Math.min(current + 1, steps.length - 1));
+    }, 6200);
+    return () => window.clearTimeout(timer);
+  }, [open, paused, step]);
 
   function close(start = false) {
     try {
@@ -74,9 +91,8 @@ export function Onboarding() {
     } catch {
       /* The guide also works without browser storage. */
     }
+    focusWorkspace.current = start;
     setOpen(false);
-    if (start) document.getElementById("workspace")?.focus();
-    else launcher.current?.focus();
   }
 
   return (
@@ -92,7 +108,6 @@ export function Onboarding() {
           onClick={() => {
             if (open) close();
             else {
-              userOpened.current = true;
               setStep(0);
               setOpen(true);
             }
@@ -145,9 +160,22 @@ export function Onboarding() {
                   ursly<span className="brand-dot">.</span>
                 </span>
               </div>
-              <span className="welcome-guide-count">
-                Quick tour · 0{step + 1} / 03
-              </span>
+              <div className="welcome-guide-controls">
+                <span className="welcome-guide-count">
+                  Quick tour · 0{step + 1} / 03
+                </span>
+                {step < steps.length - 1 && (
+                  <button
+                    type="button"
+                    className="guide-auto-toggle"
+                    aria-pressed={paused}
+                    onClick={() => setPaused((current) => !current)}
+                  >
+                    <span aria-hidden="true">{paused ? "▶" : "Ⅱ"}</span>
+                    {paused ? "Resume slides" : "Pause slides"}
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 className="welcome-close"
@@ -281,7 +309,10 @@ export function Onboarding() {
                   className="primary guide-next"
                   onClick={() => {
                     if (step === steps.length - 1) close(true);
-                    else setStep(step + 1);
+                    else {
+                      setPaused(false);
+                      setStep(step + 1);
+                    }
                   }}
                 >
                   {step === steps.length - 1 ? "Open Ursly" : "Continue"}

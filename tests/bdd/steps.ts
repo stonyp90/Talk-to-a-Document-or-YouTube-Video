@@ -70,7 +70,10 @@ AfterAll(async () => {
   await browser?.close();
 });
 async function open(this: World) {
-  await (await page(this)).goto(baseURL);
+  const p = await page(this);
+  await p.goto(baseURL);
+  const skipGuide = p.getByRole("button", { name: "Skip guide" });
+  await skipGuide.click({ timeout: 10_000 }).catch(() => undefined);
 }
 async function result(
   world: World,
@@ -124,7 +127,7 @@ async function session(this: World) {
   const response = await fetch(`${baseURL}/api/realtime/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(this.source),
+    body: JSON.stringify({ source: this.source }),
   });
   this.status = response.status;
   this.body = await response.json();

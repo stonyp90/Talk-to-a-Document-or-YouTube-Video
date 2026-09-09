@@ -5,6 +5,8 @@ test("reduced motion keeps source tabs usable without animation", async ({
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
+  const skipGuide = page.getByRole("button", { name: "Skip guide" });
+  await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await expect(page.getByLabel("YouTube URL")).toBeVisible();
@@ -25,6 +27,8 @@ test("decorative motion settles instead of continuously distracting", async ({
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
+  const skipGuide = page.getByRole("button", { name: "Skip guide" });
+  await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
   await expect
     .poll(
       () =>

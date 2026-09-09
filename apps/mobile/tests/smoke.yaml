@@ -2,6 +2,7 @@ appId: com.talktosource.demo
 ---
 - launchApp:
     clearState: true
+- tapOn: "Skip onboarding"
 - assertVisible: "Import a PDF"
 - tapOn: "About Ursly and language"
 - assertVisible: "App language"

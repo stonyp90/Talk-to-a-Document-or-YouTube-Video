@@ -98,7 +98,29 @@ export const french = {
   "This space uses demo answers, captions and audio.": "Cet espace utilise des réponses, des sous-titres et de l’audio de démonstration.",
   "Voice requires microphone access and a connected service.": "La voix nécessite un accès au microphone et un service connecté.",
   "Animations follow your device’s accessibility preferences.": "Les animations respectent les préférences d’accessibilité de votre appareil.",
-  "App language": "Langue de l’application"
+  "App language": "Langue de l’application",
+  "QUICK TOUR": "VISITE GUIDÉE",
+  "Pause slides": "Mettre en pause",
+  "Resume slides": "Reprendre",
+  "STEP": "ÉTAPE",
+  "Go to step": "Aller à l’étape",
+  "Guide progress": "Progression de la visite",
+  "Bring a source": "Apportez une source",
+  "Start with something worth understanding.": "Commencez par quelque chose qui mérite d’être compris.",
+  "Choose a PDF or a captioned YouTube video. Ursly reads it so you can focus on the ideas.": "Choisissez un PDF ou une vidéo YouTube sous-titrée. Ursly la lit pour vous laisser vous concentrer sur les idées.",
+  "PDF up to 25 MB · captioned videos": "PDF jusqu’à 25 Mo · vidéos sous-titrées",
+  "Ask naturally": "Questionnez naturellement",
+  "Use your voice when the thought arrives.": "Utilisez votre voix quand l’idée arrive.",
+  "Start a voice conversation, interrupt freely, or type whenever it feels easier.": "Commencez une conversation vocale, interrompez librement ou écrivez quand c’est plus simple.",
+  "Voice or text · always in control": "Voix ou texte · toujours aux commandes",
+  "Go deeper": "Allez plus loin",
+  "Turn information into your next aha.": "Transformez l’information en prochain déclic.",
+  "Ask a follow-up, challenge an idea, or make it simpler. Every answer stays grounded in your source.": "Posez une question, challengez une idée ou demandez une explication plus simple. Chaque réponse reste ancrée dans votre source.",
+  "Ask · follow up · understand": "Questionnez · approfondissez · comprenez",
+  "Skip onboarding": "Passer la présentation",
+  "Continue": "Continuer",
+  "Back": "Retour",
+  "Open Ursly": "Ouvrir Ursly"
 } as const;
 export type TranslationKey = keyof typeof french;
 export function translate(language: Language, key: TranslationKey): string { return language === 'fr' ? french[key] : key; }

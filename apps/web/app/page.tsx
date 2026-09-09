@@ -9,6 +9,7 @@ import {
   useReducer,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { Applications } from "./components/Applications";
@@ -94,6 +95,30 @@ function readable(caught: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Whether this browser will ever hand over a microphone here. Voice needs a
+ * secure context, so a reader on plain HTTP should be told before they press a
+ * button rather than after. The server render assumes support and hydration
+ * corrects it.
+ */
+const NO_CHANGE = () => () => {};
+
+function readMicrophoneSupport(): boolean {
+  return (
+    Boolean(navigator.mediaDevices?.getUserMedia) &&
+    (window.isSecureContext || location.hostname === "localhost")
+  );
+}
+
+function subscribeToConnectivity(notify: () => void): () => void {
+  window.addEventListener("online", notify);
+  window.addEventListener("offline", notify);
+  return () => {
+    window.removeEventListener("online", notify);
+    window.removeEventListener("offline", notify);
+  };
+}
+
 export default function HomePage() {
   const [tab, setTab] = useState<SourceTab>("pdf");
   const [file, setFile] = useState<File | undefined>();
@@ -107,8 +132,16 @@ export default function HomePage() {
   const [pendingAnswers, setPendingAnswers] = useState(0);
   const [providerMode, setProviderMode] = useState<string>("");
   const [activity, setActivity] = useState<VoiceActivity>("idle");
-  const [micSupported, setMicSupported] = useState(true);
-  const [online, setOnline] = useState(true);
+  const micSupported = useSyncExternalStore(
+    NO_CHANGE,
+    readMicrophoneSupport,
+    () => true,
+  );
+  const online = useSyncExternalStore(
+    subscribeToConnectivity,
+    () => navigator.onLine,
+    () => true,
+  );
   const [state, dispatch] = useReducer(
     conversationReducer,
     initialConversationState,
@@ -148,29 +181,6 @@ export default function HomePage() {
       realtime.current?.stop();
       realtime.current = null;
       voiceActive.current = false;
-    };
-  }, []);
-
-  // A microphone the browser will not grant makes voice impossible; the reader
-  // should learn that before pressing a button, not after.
-  useEffect(() => {
-    setMicSupported(
-      typeof navigator !== "undefined" &&
-        Boolean(navigator.mediaDevices?.getUserMedia) &&
-        (typeof window === "undefined" ||
-          window.isSecureContext ||
-          location.hostname === "localhost"),
-    );
-  }, []);
-
-  useEffect(() => {
-    const sync = () => setOnline(navigator.onLine);
-    sync();
-    window.addEventListener("online", sync);
-    window.addEventListener("offline", sync);
-    return () => {
-      window.removeEventListener("online", sync);
-      window.removeEventListener("offline", sync);
     };
   }, []);
 

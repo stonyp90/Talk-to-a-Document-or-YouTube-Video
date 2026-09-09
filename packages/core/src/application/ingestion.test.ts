@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { createIngestion } from "./ingestion";
+import { InputValidationError } from "../domain/ingestion";
 
 const bytes = new TextEncoder().encode("%PDF-fixture");
 const key = "uploads/12345678-1234-1234-1234-123456789abc.pdf";
@@ -75,4 +76,16 @@ it("rejects arbitrary object references without reading or deleting storage", as
   );
   expect(uploads.read).not.toHaveBeenCalled();
   expect(uploads.delete).not.toHaveBeenCalled();
+});
+it("reports a consumed or expired upload as the caller's to fix, without leaking storage detail", async () => {
+  const { app, uploads } = fixture();
+  uploads.read.mockRejectedValue(
+    new Error("NoSuchKey: the specified key does not exist"),
+  );
+  const failure = await app.upload(key, "file.pdf").catch((error) => error);
+  expect(failure).toBeInstanceOf(InputValidationError);
+  expect(failure.code).toBe("UPLOAD_UNAVAILABLE");
+  expect(failure.message).toMatch(/upload the PDF again/i);
+  expect(failure.message).not.toMatch(/NoSuchKey/);
+  expect(uploads.delete).toHaveBeenCalledWith(key);
 });

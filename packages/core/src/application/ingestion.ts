@@ -70,9 +70,23 @@ export function createIngestion(ports: {
     },
     async upload(key: string, name: string) {
       if (!/^uploads\/[a-f0-9-]{36}\.pdf$/.test(key))
-        throw new Error("Invalid upload reference.");
+        throw new InputValidationError(
+          "Invalid upload reference.",
+          "INVALID_UPLOAD_REFERENCE",
+        );
       try {
-        const bytes = await ports.uploads.read(key);
+        let bytes: Uint8Array;
+        try {
+          bytes = await ports.uploads.read(key);
+        } catch {
+          // The object is gone: expired, or this key was already consumed.
+          // That is the caller's situation to fix, not a server fault, and the
+          // storage error must not reach them.
+          throw new InputValidationError(
+            "This upload is no longer available. Please upload the PDF again.",
+            "UPLOAD_UNAVAILABLE",
+          );
+        }
         return await pdf(
           { name, type: "application/pdf", size: bytes.length },
           bytes,

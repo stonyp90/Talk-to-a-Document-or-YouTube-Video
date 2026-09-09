@@ -4,12 +4,14 @@ import {
 } from "@/packages/core/src/domain/ingestion";
 import type {
   ConversationPort,
+  ConversationTurn,
   CredentialPort,
   RealtimeSession,
 } from "../../core/src/application/ports";
 
 export function createConversationAdapter(
   credentials: CredentialPort,
+  contextBudget?: number,
 ): ConversationPort {
   function realtimeSessionConfig(source: IngestedSource) {
     return {
@@ -18,11 +20,13 @@ export function createConversationAdapter(
       output_modalities: ["audio"],
       audio: {
         input: {
+          // Server-side voice activity detection is what lets the caller cut in
+          // mid-answer; the client stops its own captions on the same event.
           turn_detection: { type: "server_vad" },
           transcription: { model: "gpt-4o-mini-transcribe" },
         },
       },
-      instructions: buildContextInstructions(source),
+      instructions: buildContextInstructions(source, contextBudget),
     };
   }
 
@@ -109,6 +113,7 @@ export function createConversationAdapter(
   async function answerTextQuestion(
     source: IngestedSource,
     question: string,
+    history?: ConversationTurn[],
   ): Promise<string> {
     if ((process.env.PROVIDER_MODE ?? "mock") === "mock") {
       return `Local demo response: I found this source context relevant to your question: ${source.text.slice(0, 180)}${source.text.length > 180 ? "…" : ""}`;
@@ -126,8 +131,14 @@ export function createConversationAdapter(
         },
         body: JSON.stringify({
           model: process.env.OPENAI_TEXT_MODEL ?? "gpt-4.1-mini",
-          instructions: buildContextInstructions(source),
-          input: question,
+          instructions: buildContextInstructions(source, contextBudget),
+          input: [
+            ...(history ?? []).map((turn) => ({
+              role: turn.role,
+              content: turn.text,
+            })),
+            { role: "user", content: question },
+          ],
         }),
       },
     );

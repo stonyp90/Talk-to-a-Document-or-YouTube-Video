@@ -45,8 +45,7 @@ for (const width of [320, 390, 768, 1440]) {
   }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    await page.getByRole("link", { name: "Explore a source" }).click();
-    await expect(page.locator("#workspace")).toBeFocused();
+    await expect(page.locator("#workspace")).toBeVisible();
     await page.getByRole("tab", { name: "PDF document" }).focus();
     await page.keyboard.press("ArrowRight");
     await expect(
@@ -60,7 +59,7 @@ for (const width of [320, 390, 768, 1440]) {
       path: `/tmp/ursly-workspace-${width}.png`,
       fullPage: true,
     });
-    await page.getByRole("link", { name: "How it works" }).click();
+    await page.getByRole("link", { name: /How it works/ }).click();
     await page
       .getByText("Having trouble with a source or your microphone?")
       .click();

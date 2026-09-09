@@ -1,11 +1,72 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+/**
+ * Origins the browser legitimately talks to: this app, OpenAI for the direct
+ * WebRTC negotiation, and whichever object store holds presigned uploads.
+ */
+function connectSources(): string {
+  const objectStore = process.env.OBJECT_STORE_PUBLIC_ENDPOINT;
+  return [
+    "'self'",
+    "https://api.openai.com",
+    "https://*.s3.amazonaws.com",
+    "https://*.amazonaws.com",
+    ...(objectStore ? [objectStore] : []),
+  ].join(" ");
+}
+
+/**
+ * Next.js inlines its own bootstrap scripts and styles, so those keywords stay.
+ * The directives that matter against injection and clickjacking are still
+ * enforced: nothing may be framed, no plugins, no base-tag rewriting, and the
+ * browser may only reach the origins above.
+ */
+const contentSecurityPolicy = () =>
+  [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "img-src 'self' data: blob:",
+    "media-src 'self' blob:",
+    "font-src 'self' data:",
+    "style-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline'" +
+      (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),
+    `connect-src ${connectSources()}`,
+    "upgrade-insecure-requests",
+  ].join("; ");
+
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
   turbopack: { root: path.join(import.meta.dirname, "../..") },
   serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: contentSecurityPolicy() },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            // The app needs the microphone; it needs nothing else.
+            value: "microphone=(self), camera=(), geolocation=(), payment=()",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains",
+          },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     const apiBaseUrl = process.env.API_BASE_URL;
     return apiBaseUrl

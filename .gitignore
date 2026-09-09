@@ -37,3 +37,7 @@ service-account*.json
 secrets.json
 *.log
 /tmp/
+
+# Local Python bytecode from running the caption service tests
+__pycache__/
+*.pyc

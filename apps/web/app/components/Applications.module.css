@@ -40,24 +40,24 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  border: 1px solid #e7d7cb;
-  background: #fcf0e6;
+  border: 1px solid var(--accent-border-wash);
+  background: var(--accent-wash-soft);
   border-radius: 24px;
   padding: 26px;
   min-width: 0;
 }
 .ios {
-  background: #eeebf7;
-  border-color: #ddd5eb;
+  background: var(--violet-tint);
+  border-color: var(--violet-line);
 }
 .code {
-  background: #fffdf9;
+  background: var(--surface);
   border-color: var(--line);
 }
 .badge {
   font-size: 11px;
   font-weight: 650;
-  border: 1px solid #29273524;
+  border: 1px solid var(--line-strong);
   border-radius: 100px;
   padding: 6px 10px;
 }
@@ -103,7 +103,7 @@
 @media (hover: hover) and (pointer: fine) {
   .action:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 18px #29273512;
+    box-shadow: 0 6px 18px var(--shadow-lg);
   }
 }
 @media (max-width: 900px) {

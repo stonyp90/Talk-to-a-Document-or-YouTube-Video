@@ -44,8 +44,6 @@ async function ingest(page: Page, id = "dQw4w9WgXcQ") {
   await page.getByLabel("YouTube URL").fill(`https://youtu.be/${id}`);
   await page.getByRole("button", { name: "Continue to questions" }).click();
   await expect(page.locator(".preview-text")).toHaveText(`Source ${id}`);
-  if (await page.locator(".voice-option:not([open])").count())
-    await page.locator(".voice-option summary").click();
 }
 
 test.beforeEach(async ({ page }) => {

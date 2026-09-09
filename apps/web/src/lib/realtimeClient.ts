@@ -1,12 +1,16 @@
 import type { ConversationMessage } from "@/packages/core/src/domain/conversation";
 import type { IngestedSource } from "@/packages/core/src/domain/ingestion";
 
-type EventHandler = (event: {
+/** Who currently holds the floor, so the interface can show the turn changing. */
+export type VoiceActivity = "idle" | "listening" | "speaking";
+
+export type RealtimeEvent = {
   type:
     | "connected"
     | "reconnecting"
     | "ended"
     | "error"
+    | "activity"
     | "message-started"
     | "message-delta"
     | "message-completed";
@@ -14,7 +18,23 @@ type EventHandler = (event: {
   id?: string;
   text?: string;
   error?: string;
-}) => void;
+  /** True when starting a fresh session is likely to succeed. */
+  retryable?: boolean;
+  activity?: VoiceActivity;
+};
+
+type EventHandler = (event: RealtimeEvent) => void;
+
+/**
+ * A public STUN server lets the browser discover its own reflexive address,
+ * which mobile carrier networks behind symmetric NAT need before media flows.
+ */
+const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
+  { urls: "stun:stun.l.google.com:19302" },
+];
+
+const CONNECT_TIMEOUT_MS = 30000;
+const RECOVERY_TIMEOUT_MS = 15000;
 
 export class RealtimeClient {
   private peer?: RTCPeerConnection;
@@ -26,6 +46,7 @@ export class RealtimeClient {
   private generation = 0;
   private abort?: AbortController;
   private status?: string;
+  private activity: VoiceActivity = "idle";
   private timers = new Set<ReturnType<typeof setTimeout>>();
   private recoveryTimer?: ReturnType<typeof setTimeout>;
   private messages = new Map<
@@ -38,6 +59,7 @@ export class RealtimeClient {
     private readonly onEvent: EventHandler,
     mode: "mock" | "live",
     private readonly secret?: string,
+    private readonly iceServers: RTCIceServer[] = DEFAULT_ICE_SERVERS,
   ) {
     this.mock = mode === "mock";
   }
@@ -56,20 +78,27 @@ export class RealtimeClient {
       if (this.status !== "connected" && this.status !== "reconnecting")
         this.fail(
           "Voice connection timed out. Start a new session or use text chat.",
+          true,
         );
-    }, 30000);
+    }, CONNECT_TIMEOUT_MS);
     try {
       if (!this.secret)
         throw new Error("A short-lived session secret is required.");
       if (!navigator.mediaDevices?.getUserMedia)
         throw new Error("Microphone access is unavailable in this browser.");
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       if (!current()) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
       this.microphone = stream;
-      this.peer = new RTCPeerConnection();
+      this.peer = new RTCPeerConnection({ iceServers: this.iceServers });
       this.output = document.createElement("audio");
       this.output.autoplay = true;
       this.peer.ontrack = (event) => {
@@ -78,7 +107,7 @@ export class RealtimeClient {
             event.streams[0] ?? new MediaStream([event.track]);
           void this.output.play().catch(() => {
             if (current())
-              this.fail("Audio playback was blocked. Restart voice chat.");
+              this.fail("Audio playback was blocked. Restart voice chat.", true);
           });
         }
       };
@@ -93,7 +122,7 @@ export class RealtimeClient {
       const update = () => {
         if (!current()) return;
         if (peer.connectionState === "failed")
-          this.fail("Voice connection failed. Start a new session.");
+          this.fail("Voice connection failed. Start a new session.", true);
         else if (peer.connectionState === "closed") this.stop();
         else if (peer.connectionState === "disconnected") {
           this.connectionStatus("reconnecting");
@@ -101,8 +130,9 @@ export class RealtimeClient {
             if (current())
               this.fail(
                 "Voice connection could not recover. Start a new session.",
+                true,
               );
-          }, 15000);
+          }, RECOVERY_TIMEOUT_MS);
         } else if (
           peer.connectionState === "connected" &&
           channel.readyState === "open"
@@ -116,7 +146,7 @@ export class RealtimeClient {
       channel.onopen = update;
       channel.onclose = channel.onerror = () => {
         if (current())
-          this.fail("Voice data connection failed. Start a new session.");
+          this.fail("Voice data connection failed. Start a new session.", true);
       };
       channel.onmessage = (event) => {
         if (!current()) return;
@@ -181,6 +211,7 @@ export class RealtimeClient {
           status: "partial",
         },
       });
+      this.setActivity("speaking");
       this.schedule(
         () =>
           this.onEvent({
@@ -190,10 +221,10 @@ export class RealtimeClient {
           }),
         220,
       );
-      this.schedule(
-        () => this.onEvent({ type: "message-completed", id: assistantId }),
-        280,
-      );
+      this.schedule(() => {
+        this.onEvent({ type: "message-completed", id: assistantId });
+        this.setActivity("idle");
+      }, 280);
       return;
     }
     if (!this.dataChannel || this.dataChannel.readyState !== "open")
@@ -236,6 +267,7 @@ export class RealtimeClient {
     this.active = false;
     ++this.generation;
     this.status = undefined;
+    this.activity = "idle";
     this.abort?.abort();
     this.abort = undefined;
     this.timers.forEach(clearTimeout);
@@ -263,9 +295,16 @@ export class RealtimeClient {
     }
   }
 
-  private fail(error: string): void {
+  private fail(error: string, retryable = false): void {
     this.cleanup();
-    this.onEvent({ type: "error", error });
+    this.onEvent({ type: "error", error, retryable });
+  }
+
+  /** Announces who holds the floor, once per change. */
+  private setActivity(activity: VoiceActivity): void {
+    if (this.activity === activity) return;
+    this.activity = activity;
+    this.onEvent({ type: "activity", activity });
   }
 
   private schedule(callback: () => void, delay: number): void {
@@ -355,15 +394,19 @@ export class RealtimeClient {
       for (const [itemId, message] of this.messages)
         if (message.role === "assistant" && !message.complete)
           this.completeMessage(itemId);
+      this.setActivity("listening");
     }
+    if (type === "input_audio_buffer.speech_stopped") this.setActivity("idle");
+    if (type === "response.created") this.setActivity("speaking");
     if (type === "response.done") {
       const response = event.response as
         | { output?: { id?: string }[]; status?: string }
         | undefined;
       for (const item of response?.output ?? [])
         if (item.id) this.completeMessage(item.id);
+      this.setActivity("idle");
       if (response?.status === "failed")
-        this.fail("Voice response failed. Start a new session.");
+        this.fail("Voice response failed. Start a new session.", true);
     }
     if (
       type === "error" ||
@@ -371,6 +414,7 @@ export class RealtimeClient {
     )
       this.fail(
         "Realtime processing failed. Start a new session or use text chat.",
+        true,
       );
   }
 }

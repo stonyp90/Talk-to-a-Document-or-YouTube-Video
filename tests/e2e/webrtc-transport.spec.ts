@@ -27,8 +27,6 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator(".preview-text")).toContainText(
     "Transport test source",
   );
-  if (await page.locator(".voice-option:not([open])").count())
-    await page.locator(".voice-option summary").click();
   await page
     .getByRole("button", { name: "Start Voice Chat", exact: true })
     .click();
@@ -125,8 +123,6 @@ test("failed transport preserves transcript and permits restart", async ({
     .toBeVisible();
   await expect(page.locator(".message-text")).toHaveCount(2);
   expect((await harness.snapshot()).tracks[0].stopped).toBe(true);
-  if (await page.locator(".voice-option:not([open])").count())
-    await page.locator(".voice-option summary").click();
   await page
     .getByRole("button", { name: "Start Voice Chat", exact: true })
     .click();

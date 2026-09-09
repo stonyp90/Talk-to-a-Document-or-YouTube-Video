@@ -1,265 +1,180 @@
-# Ursly — Talk to a Source
+# Ursly — Talk to a Document or a YouTube Video
 
-Ursly lets you ask questions about a **PDF document or a captioned YouTube video**, by typing or speaking. It extracts the source text, displays it, and uses it as context for AI responses.
+Add a **PDF** or a **captioned YouTube video**, then hold a **live voice conversation** about it: speak a question, hear the answer, interrupt and follow up. Typing works the whole time, and takes over automatically when no microphone is available.
 
-This repository contains a **web application**, an **Android/iOS application**, and their **shared backend**. The Expo project slug is `talk-to-a-source`.
+- **Live application:** [ursly.io](https://ursly.io)
+- **Repository:** [stonyp90/Talk-to-a-Document-or-YouTube-Video](https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video)
+- **API contract:** [ursly.io/api/openapi](https://ursly.io/api/openapi) — generated from the same schemas the routes validate with
 
-**English is the default language for the application and repository documentation.** The native app also offers French in its language settings. French translations are optional; setup instructions, contributor documentation, and release documentation use English.
+Voice runs on the **OpenAI Realtime API over WebRTC**. The browser negotiates directly with OpenAI using a **short-lived credential minted by the backend**; the permanent API key never leaves the server.
 
-The website is deployed at **[ursly.io](https://ursly.io)**. See [deployment verification](DEPLOYMENT.md), [service setup](SERVICE-SETUP.md), and the [requirements audit](REQUIREMENTS-AUDIT.md) for tested behavior and outstanding limitations. Deployment alone does not certify every live feature.
+---
 
-## Android preview
+## Run it in two commands
 
-[Release v0.1.0-demo.2](https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/releases/tag/v0.1.0-demo.2) includes a signed Android APK and an ARM64 iOS Simulator app, both targeting **https://ursly.io**, plus SHA-256 checksums, source fingerprints, and installation instructions. The iOS archive is **not a physical-iPhone IPA**. These are evaluation builds; read the release notes for signing compatibility, remaining live-audio/YouTube limitations, and device-testing scope.
-
-## Features and current limits
-
-- Upload a PDF up to **25 MB** and inspect its extracted text.
-- Enter a YouTube URL to retrieve available captions.
-- Ask written questions grounded in the selected source.
-- Start a voice session with transcription, microphone controls, and a stop action.
-- Continue by typing when voice is unavailable.
-- Use the native app in English by default, with optional French.
-
-`mock` mode works without an OpenAI key and produces deterministic responses, not real audio. `live` mode uses real providers. PDF ingestion, real text responses, and ephemeral voice credentials have been tested. Real YouTube ingestion succeeded in an earlier local session, but the September 9 retry is blocked again by YouTube. The latest iOS recording encountered a CoreAudio failure; complete voice and physical-device validation remain outstanding. See [recording status](docs/demo/RECORDING-STATUS.md).
-
-## Technologies
-
-| Component | Technologies | Purpose |
-| --- | --- | --- |
-| Web and API | Next.js 16, React 19, TypeScript | Web interface and Server routes |
-| Mobile | Expo SDK 54, React Native 0.81 | Android and iOS clients |
-| Voice | OpenAI Realtime, WebRTC, `react-native-webrtc` | Live audio and transcription events |
-| Text chat | OpenAI API | Source-grounded responses |
-| Documents | `pdf-parse`, PDF.js, `@napi-rs/canvas` | Server-side PDF extraction |
-| YouTube | Python, `youtube-transcript-api` | Separate caption retrieval service |
-| Storage | Local MinIO, AWS S3 | Direct uploads using signed forms |
-| Development | Docker Compose, Node.js 22 | Reproducible services and tooling |
-| Infrastructure | Terraform, Lambda, API Gateway, ECR, S3, Secrets Manager | AWS deployment |
-| Verification | Vitest, Playwright, Cucumber, Maestro, Gitleaks, GitHub Actions, EAS | Tests, secret scanning, builds |
-
-```text
-apps/web/                 Next.js interface and API routes
-apps/mobile/              Expo client with its own package-lock.json
-packages/core/            Domain models, rules, and use cases
-packages/adapters/        External services and storage adapters
-services/transcript/      Python YouTube caption service
-infrastructure/terraform/ AWS infrastructure
-scripts/                  Development, simulator, and security tools
-features/                 Gherkin acceptance scenarios
-tests/                    Architecture, BDD, and browser tests
-```
-
-Domain logic is separate from interfaces and providers. Clients call the Next.js backend; permanent credentials stay on the server. For voice, the backend issues an ephemeral credential for the client's direct OpenAI connection. See [architecture](ARCHITECTURE.md).
-
-## Web development setup
-
-### Prerequisites
-
-Install Git, **Node.js 22** with npm, and **Docker Desktop** with Compose. Start Docker Desktop. Mock development requires no AWS account, Expo account, or OpenAI key. Python and MinIO run in containers.
-
-### Configure and start
-
-From the repository root:
+Install **Node.js 22** and **Docker Desktop**, then from the repository root:
 
 ```bash
-# First setup only: preserve any existing local configuration.
-cp .env.example .env.local
-npm ci
+cp .env.example .env.local && npm ci
 ```
-
-Start with these values in `.env.local`:
-
-```dotenv
-PROVIDER_MODE=mock
-TRANSCRIPT_MODE=mock
-OPENAI_API_KEY=
-```
-
-Start services with automatic web reload:
 
 ```bash
 docker compose --env-file .env.local --profile dev up --build dev
 ```
 
-Open **[localhost:3000](http://localhost:3000)**. The terminal displays logs; `Ctrl+C` stops the foreground development service.
+Open **[localhost:3000](http://localhost:3000)**. The defaults run in `mock` mode, which needs no OpenAI key, no AWS account and no network: PDF extraction is real, and provider replies are deterministic stand-ins.
 
-| Service | Local address |
+| Service | Address |
 | --- | --- |
 | Web and API | [localhost:3000](http://localhost:3000) |
 | API health | [localhost:3000/api/health](http://localhost:3000/api/health) |
+| OpenAPI document | [localhost:3000/api/openapi](http://localhost:3000/api/openapi) |
 | Caption service health | [localhost:3010/health](http://localhost:3010/health) |
-| MinIO storage API | `http://localhost:9002` |
-| MinIO console | [localhost:9003](http://localhost:9003) |
+| Object storage (MinIO) | `http://localhost:9002`, console on [9003](http://localhost:9003) |
 
-The local-only MinIO demo credentials are `local-minio` / `local-minio-password`. Compose binds ports to `127.0.0.1`.
+### Turn on real voice and real captions
 
-Try uploading a text-based PDF or entering a YouTube URL in mock mode. Inspect the extracted text, ask a written question, and start/stop a simulated voice session. Mock responses are deterministic.
-
-### Run a local production build
-
-The `dev` and `web` services share a port. Stop one before starting the other:
-
-```bash
-docker compose --env-file .env.local stop dev
-docker compose --env-file .env.local up --build -d --wait web
-```
-
-This serves a compiled build; changes require rebuilding. To return to development:
-
-```bash
-docker compose --env-file .env.local stop web
-docker compose --env-file .env.local --profile dev up --build dev
-```
-
-Stop all services without deleting MinIO data:
-
-```bash
-docker compose --env-file .env.local --profile dev down
-```
-
-## Enable real services
-
-Edit the local `.env.local` file:
+Edit `.env.local`, then rerun the Compose command:
 
 ```dotenv
 PROVIDER_MODE=live
-OPENAI_API_KEY=<your-local-key>
 TRANSCRIPT_MODE=live
+OPENAI_API_KEY=<your-project-key>
 ```
 
-Rerun the appropriate Compose command to apply the environment. `PROVIDER_MODE` controls OpenAI; `TRANSCRIPT_MODE` independently controls YouTube. OpenAI calls require model access and may incur charges. Follow [service setup](SERVICE-SETUP.md).
+`PROVIDER_MODE` controls OpenAI; `TRANSCRIPT_MODE` independently controls YouTube. Live calls cost money. Never put a secret in a `NEXT_PUBLIC_*` or `EXPO_PUBLIC_*` variable — those are shipped to clients — and never commit `.env.local`.
 
-Never put secrets in `NEXT_PUBLIC_*` or `EXPO_PUBLIC_*` variables: these values are shipped to clients. Never commit `.env.local`.
+Full environment reference: [`.env.example`](.env.example) and [service setup](SERVICE-SETUP.md).
 
-Scanned PDFs without a text layer require OCR, which is not implemented. Conversation context currently has a **60,000-character limit**. YouTube depends on available captions and may block some networks or cloud addresses. Text chat sends the current question and source, without multi-turn history, to the backend.
+---
 
-## Android and iOS development
+## How each requirement is met
 
-Keep the shared Compose backend running. The mobile npm installation is **separate** from the repository root installation.
+| Requirement | Where it lives |
+| --- | --- |
+| PDF up to 25 MB, extracted server-side | [`packages/adapters/src/ingestion.ts`](packages/adapters/src/ingestion.ts) using `pdf-parse`; size and signature checks in [`packages/core/src/domain/ingestion.ts`](packages/core/src/domain/ingestion.ts) |
+| YouTube captions, fetched server-side | [`services/transcript/app.py`](services/transcript/app.py), reached through [`packages/adapters/src/providers.ts`](packages/adapters/src/providers.ts) |
+| Extracted text shown in a preview | “View source text” disclosure in [`apps/web/app/page.tsx`](apps/web/app/page.tsx) |
+| Text primes the Realtime session | [`buildContextInstructions`](packages/core/src/domain/ingestion.ts) with windowing in [`packages/core/src/domain/context.ts`](packages/core/src/domain/context.ts) |
+| “Start Voice Chat” over WebRTC | [`apps/web/src/lib/realtimeClient.ts`](apps/web/src/lib/realtimeClient.ts) |
+| Ephemeral tokens from the backend | [`apps/web/app/api/realtime/session/route.ts`](apps/web/app/api/realtime/session/route.ts) → [`packages/adapters/src/openai.ts`](packages/adapters/src/openai.ts) |
+| Live transcript of the conversation | Realtime transcription events reduced in [`packages/core/src/domain/conversation.ts`](packages/core/src/domain/conversation.ts) |
+| Text fallback without a microphone | [`apps/web/app/api/text-chat/route.ts`](apps/web/app/api/text-chat/route.ts); the composer is never disabled |
+| Mobile-first at ~390 px, start/stop/mute, visible status | [`apps/web/app/globals.css`](apps/web/app/globals.css); controls sit in the open above the transcript |
+| API key never in the client | Key read only in [`packages/adapters/src/secrets.ts`](packages/adapters/src/secrets.ts); CI builds with canary secrets and greps the emitted client bundle ([`infrastructure/scripts/check-client-secrets.mjs`](infrastructure/scripts/check-client-secrets.mjs)) |
 
-Install Xcode and an iOS simulator on macOS, or Android Studio with an Android SDK and emulator.
+---
 
-```bash
-cd apps/mobile
-npm ci
-npm run typecheck
-npm test
+## Technical overview
 
-# Choose a platform:
-npm run ios
-# or:
-npm run android
+```text
+apps/web/                 Next.js interface, API routes, composition root
+apps/mobile/              Expo client (extra scope, not part of the web deliverable)
+packages/core/domain/     Source rules, context windowing, conversation state
+packages/core/application/Ports and technology-free use cases
+packages/adapters/        pdf-parse, caption HTTP client, S3/MinIO, OpenAI, Secrets Manager
+services/transcript/      Python caption service
+infrastructure/terraform/ AWS Lambda, API Gateway, S3, Secrets Manager
+features/, tests/         Gherkin acceptance, unit, browser and architecture tests
 ```
 
-These commands build and install a native development client. **Expo Go is not supported** because it does not include this app's WebRTC module. After installing the development client, start subsequent sessions with:
+**Hexagonal, and enforced.** Dependencies point inward: inbound adapters → application → domain. The core imports no framework, no SDK, no environment variable and no network client. [`apps/web/src/composition.ts`](apps/web/src/composition.ts) is the only place concrete adapters are assembled, and [`tests/architecture.test.ts`](tests/architecture.test.ts) fails the build if a route reaches past it. Replacing S3, the caption source or the model vendor means writing one adapter and editing one file. Details in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-```bash
-npm start
+**Voice path.** The browser asks the backend for a Realtime session. The backend primes it with the source text and returns only a short-lived client secret, then steps aside: the browser negotiates SDP straight with OpenAI and media never transits our servers. Server-side voice activity detection is what lets a caller cut in mid-answer; the client closes its own caption on the same event so the transcript matches what was actually heard.
+
+**Sources live on the server.** Ingestion returns an opaque `sourceId`, and later requests carry that id instead of the whole extraction. If the server has forgotten the session — a cold start, or another instance — the client resends the source once and the conversation continues. Storage is in-memory with a TTL and a cap, which the assessment names as sufficient; a shared store is a one-adapter swap.
+
+**Large sources are windowed, not refused.** A 25 MB PDF can hold more text than any context window. The reader always sees the complete extraction; the model receives the largest faithful excerpt that fits, taken from the opening and the ending, with the elision marked so it never invents the middle. The budget is `CONTEXT_CHARACTER_BUDGET`.
+
+**Uploads bypass the API.** Large PDFs go straight to object storage through a short-lived presigned form post, with progress shown. The server then reads the object, extracts, and deletes it in a `finally` block. This keeps multi-megabyte bodies away from a 6 MB Lambda payload limit.
+
+**Hosting.** Terraform builds the Next.js image into ECR and runs it on Lambda behind API Gateway, alongside a caption Lambda, S3 and Secrets Manager. GitHub Actions deploys through OIDC with no long-lived AWS keys. Lambda suits intermittent demo traffic: no always-on ECS task, and it scales to zero between reviews. ECS Fargate would win on steady traffic and long-lived connections; it costs more to leave running for a demo.
+
+---
+
+## Trade-offs
+
+- **Lambda over ECS.** Scale-to-zero and per-request billing fit a demo. The costs are cold starts, a 29-second API Gateway ceiling, and no shared process memory — which is exactly why sessions carry a rehydration fallback.
+- **In-memory sessions over SQLite.** The assessment allows either. Memory has no schema, no migration and no file to ship; it forgets on restart, which the client already handles.
+- **Window the context rather than chunk it.** The brief asks for no chunking, summarization or citations. Head-and-tail windowing keeps that promise and is honest with the reader about what the model can see. A long middle section is genuinely out of reach; retrieval would be the next step.
+- **Two turns of context, not a full memory.** Recent exchanges are kept per session so follow-ups read naturally, capped so a long conversation cannot grow the prompt without limit.
+- **A separate Python caption service.** `youtube-transcript-api` is the mature client for an endpoint with no official API. It costs a second runtime and a second Dockerfile, and buys a clean port boundary and a component that can be proxied or replaced on its own.
+- **Fixed-window rate limiting, per process.** Enough to stop a public, unauthenticated, billable endpoint being trivially abused. Not a substitute for authentication or a shared limiter.
+- **Content Security Policy keeps `unsafe-inline`.** Next.js inlines its own bootstrap. The directives that matter against injection and clickjacking are still enforced; nonce-based scripts would be the stricter next step.
+- **No OCR.** A scanned PDF with no text layer is rejected with an explanation rather than silently producing nothing.
+- **An Expo client is in the repository.** It is extra scope beyond the brief. The web application is the deliverable; the native client shares the same core and backend.
+
+---
+
+## YouTube on the deployed application
+
+YouTube has no official way to read captions from a video you do not own, so every practical approach uses an unofficial endpoint — and YouTube blocks that endpoint from cloud provider address ranges. From a laptop it works; from AWS it returns a block.
+
+The application handles this honestly: the caption service reports `CLOUD_BLOCKED`, and the interface explains the situation and offers a PDF instead of failing silently.
+
+**To make it work on the deployed application**, route the caption service's outbound traffic through an address YouTube will answer. The service reads a proxy from the environment and applies it to every caption request:
+
+```dotenv
+TRANSCRIPT_PROXY_URL=http://user:password@proxy.example:8080
+# or per scheme
+TRANSCRIPT_PROXY_HTTP_URL=...
+TRANSCRIPT_PROXY_HTTPS_URL=...
 ```
 
-The default API is `http://localhost:3000`, accessible directly from the iOS simulator. For Android, forward the API and storage ports in another terminal:
+On AWS, set the Terraform variable `transcript_proxy_url` at apply time; it is marked `sensitive`, never committed, and Lambda encrypts function environment variables at rest. A residential or ISP-grade proxy pool is what YouTube actually answers; a datacentre proxy is usually blocked in the same way the Lambda is. `GET /health` on the caption service reports `"proxied": true` so you can confirm the wiring without exposing the address. With no proxy configured the behaviour is unchanged.
 
-```bash
-adb devices
-adb -s <emulator-id> reverse tcp:3000 tcp:3000
-adb -s <emulator-id> reverse tcp:9002 tcp:9002
-```
+Locally, `TRANSCRIPT_MODE=live` fetches real captions directly and `TRANSCRIPT_MODE=mock` returns a deterministic transcript for tests.
 
-Port 9002 is required for PDF uploads because the client must reach the MinIO URL in the signed form.
+---
 
-Set another API address **before** starting Metro or building the app:
-
-```bash
-EXPO_PUBLIC_API_URL=https://your-api.example npm start
-```
-
-On a physical phone, `localhost` means the phone itself. Both the HTTPS backend and upload storage address must be reachable. Changing only the API URL is insufficient for uploads. Default Docker networking is local to the Mac.
-
-If spaces in the repository path cause Xcode problems, the repository provides an isolated simulator release builder:
-
-```bash
-bash scripts/mobile/build-ios-isolated.sh
-```
-
-It prints the `.app` location and does not require Metro. See the [mobile guide](apps/mobile/README.md) for installation and audio checks, and the [EAS guide](apps/mobile/EAS.md) for cloud builds and signing. An iOS simulator build cannot be installed on an iPhone.
-
-## Validate changes
-
-From the repository root:
+## Testing
 
 ```bash
 npm run lint
 npm run typecheck
-npm test
+npm test           # Vitest: domain, use cases, adapters, routes, client
 npm run build
 ```
 
-For browser tests, start the `web` service with mock providers:
+Browser and acceptance suites need the local services running:
 
 ```bash
 npx playwright install chromium
-npm run test:e2e
+npm run test:e2e                              # Playwright, including a 390 px viewport
+npm run test:gherkin -- --tags 'not @external'  # Cucumber acceptance scenarios
 ```
 
-Cucumber also requires local services. See the [BDD guide](tests/bdd/README.md) for infrastructure/security prerequisites. `@external` scenarios require real providers or external environments; mocks do not validate them. Undefined or pending steps fail the suite; pending steps are not passing.
+Scenarios tagged `@external` need real providers or a deployed environment; mocks do not satisfy them. Undefined or pending steps fail the suite. Before publishing, `npm run security:secrets` scans history and publication candidates with Gitleaks; CI runs it too, alongside a build with canary secrets that greps the emitted client bundle.
 
-```bash
-npm run test:gherkin -- --tags 'not @external'
-npm run typecheck --prefix apps/mobile
-npm test --prefix apps/mobile
-```
+Mobile: `npm run typecheck --prefix apps/mobile && npm test --prefix apps/mobile`.
 
-Before publication, install Gitleaks 8.30.1 and run:
-
-```bash
-npm run security:secrets
-```
-
-This scans Git history and publication candidates. GitHub Actions also runs secret scanning. See [security review](SECURITY-REVIEW.md) for audit limits and dependency findings.
+---
 
 ## Troubleshooting
 
 | Problem | Check |
 | --- | --- |
-| Port 3000 already in use | Stop the previous `web` or `dev` service; do not run both together. |
-| No local audio | Mock mode has no real sound. For live voice, configure the key and microphone permission. |
-| Mobile cannot reach the API | Check `/api/health`, `EXPO_PUBLIC_API_URL`, and Android port forwarding. |
-| Android PDF upload fails | Also forward port 9002. Do not rewrite an already signed URL. |
-| Environment changes not applied | Restart Compose; restart Metro or rebuild for mobile public variables. |
-| YouTube captions unavailable | Try a captioned video, check `TRANSCRIPT_MODE`, and inspect service logs. |
-| iOS simulator exits when voice starts | See the outstanding CoreAudio issue in the recording status report. |
+| Port 3000 already in use | Stop the previous `web` or `dev` service; they share the port. |
+| No sound in mock mode | Mock mode has no real audio. Set `PROVIDER_MODE=live` and a key. |
+| Microphone unavailable | Voice needs HTTPS or `localhost`, plus browser permission. The interface says so and keeps typing available. |
+| YouTube captions unavailable | Try a captioned video, check `TRANSCRIPT_MODE`, and read the section above. |
+| Scanned PDF rejected | It has no text layer. OCR is not implemented. |
+| Environment change ignored | Restart Compose; rebuild for mobile public variables. |
 
 ```bash
 docker compose --env-file .env.local ps
 docker compose --env-file .env.local logs --tail=100 dev transcript
-# For the local production build, replace dev with web.
 ```
 
-For a second instance, configure `COMPOSE_PROJECT_NAME`, `WEB_PORT`, `TRANSCRIPT_PORT`, `OBJECT_STORE_PORT`, and `OBJECT_STORE_CONSOLE_PORT`. Also update `APP_ORIGIN`, `OBJECT_STORE_PUBLIC_ENDPOINT`, and client URLs. See the BDD guide for test variables.
+---
 
-## Live demo checks
+## Further reading
 
-Follow [demo readiness](DEMO-READINESS.md). With a live backend, run:
+- [Architecture](ARCHITECTURE.md) · [Terraform setup](infrastructure/terraform/README.md) · [Deployment](DEPLOYMENT.md) · [Service setup](SERVICE-SETUP.md)
+- [Requirements audit](REQUIREMENTS-AUDIT.md) · [Security review](SECURITY-REVIEW.md) · [Demo readiness](DEMO-READINESS.md)
+- [Walkthrough script](WALKTHROUGH.md) · [Recording status](docs/demo/RECORDING-STATUS.md)
+- [Native client](apps/mobile/README.md) · [Expo EAS builds](apps/mobile/EAS.md) · [Brand](BRAND.md)
 
-```bash
-# Use your configured port; the demo environment uses 3100.
-npm run demo:check -- http://localhost:3100
-```
+## AI-assisted development
 
-This rejects mock mode and checks PDF extraction, a real text response, and a real voice credential. Audio, YouTube, and physical devices need separate testing.
-
-## Deployment and further documentation
-
-Terraform deploys the Next.js image to **ECR**, runs it on **Lambda** behind **API Gateway**, and provisions a caption Lambda, **S3**, and **Secrets Manager**. GitHub Actions uses **OIDC**, without permanent AWS keys in the repository.
-
-The default runtime is Lambda. It suits intermittent demo traffic without an always-running ECS task. Costs also depend on traffic, storage, and AI providers. Public paid endpoints need appropriate access controls and usage limits; review the security findings before commercial use.
-
-- [Architecture](ARCHITECTURE.md) and [Terraform setup](infrastructure/terraform/README.md)
-- [Native development](apps/mobile/README.md) and [Expo EAS builds](apps/mobile/EAS.md)
-- [Mobile production verification](apps/mobile/PRODUCTION-VERIFICATION.md)
-- [Requirements coverage](REQUIREMENTS-AUDIT.md) and [security review](SECURITY-REVIEW.md)
-- [Demo walkthrough](WALKTHROUGH.md), [recording plan](docs/demo/WALKTHROUGH.md), and [recording status](docs/demo/RECORDING-STATUS.md)
-- [Brand guidelines](BRAND.md)
-
-AI-assisted development was used for requirements decomposition, design, implementation, debugging, testing, and review. Verification reports distinguish observed results from features that remain unverified.
+AI tooling (Claude Code and ChatGPT) was used throughout: decomposing the brief into executable Gherkin, designing the hexagonal boundaries, writing implementation and tests, debugging the Realtime event stream, and reviewing for security and requirement drift. Every claim of verified behaviour in this repository comes from a command that was actually run; the verification reports state plainly what remains unverified.

@@ -9,11 +9,11 @@ const steps = [
   },
   {
     title: "Ask in your own words",
-    text: "Type a question and select Send. Not sure where to start? Choose a suggested question, like “Summarize the key ideas”, then send it.",
+    text: "Select Start Voice Chat, allow the microphone, and ask out loud. Prefer to stay quiet? Type your question and select Send instead.",
   },
   {
     title: "Make it your conversation",
-    text: "Keep asking about your source. Voice chat is optional. Open View source text to check details, or Change source to start a new conversation.",
+    text: "Keep the conversation going: interrupt an answer, follow up, mute or stop at any time. Open View source text to check details, or Change source to start over.",
   },
 ];
 const storageKey = "ursly-welcome-v1";

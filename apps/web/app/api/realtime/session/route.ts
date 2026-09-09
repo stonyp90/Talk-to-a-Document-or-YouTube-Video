@@ -1,32 +1,36 @@
-import { createRealtimeSession } from "@/apps/web/src/composition";
-import { IngestedSource } from "@/packages/core/src/domain/ingestion";
-import { sourceSchema } from "@/apps/web/src/validation";
+import {
+  createRealtimeSession,
+  resolveSession,
+} from "@/apps/web/src/composition";
+import { errorResponse, json, jsonError, rateLimit } from "@/apps/web/src/http";
+import { sourceReferenceSchema } from "@/apps/web/src/validation";
 
 export async function POST(request: Request) {
+  const limited = rateLimit(request, {
+    name: "realtime",
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
   try {
-    const parsed = sourceSchema.safeParse(await request.json());
+    const parsed = sourceReferenceSchema.safeParse(await request.json());
     if (!parsed.success)
-      return Response.json(
-        { error: "A valid source of at most 60,000 characters is required." },
-        { status: 400 },
+      return jsonError(
+        "SOURCE_REQUIRED",
+        "A source is required to start a voice session.",
+        400,
       );
-    const source: IngestedSource = parsed.data;
-    if (!source?.text || !source?.sourceName)
-      return Response.json(
-        { error: "A source context is required." },
-        { status: 400 },
-      );
-    const session = await createRealtimeSession(source);
-    return Response.json(session, { headers: { "Cache-Control": "no-store" } });
+
+    const session = await resolveSession(parsed.data);
+    const realtime = await createRealtimeSession(session.source);
+    // The instructions are already inside the ephemeral credential; echoing the
+    // whole source back to the browser would only waste bandwidth.
+    const { instructions: _instructions, ...credential } = realtime;
+    return json({ ...credential, sourceId: session.id });
   } catch (error) {
-    return Response.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Realtime session setup failed.",
-      },
-      { status: 500 },
+    return errorResponse(
+      error,
+      "Voice session setup failed. Please try again.",
     );
   }
 }

@@ -218,7 +218,9 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   });
   step("mock user and assistant events can be exchanged", async function () {
     const p = await h.page(this);
-    await p.getByLabel("Ask a question").fill("Summarize this source");
+    await p
+      .getByLabel("Ask a question", { exact: true })
+      .fill("Summarize this source");
     await p.getByRole("button", { name: "Send", exact: true }).click();
     await expect(p.locator(".message.user .message-text")).toHaveText(
       "Summarize this source",

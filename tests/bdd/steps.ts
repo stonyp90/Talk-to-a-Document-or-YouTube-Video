@@ -103,16 +103,18 @@ async function upload(
         r.url().endsWith("/api/uploads/extract") ||
         (r.url().endsWith("/api/uploads") && !r.ok())),
   );
-  await p.getByRole("button", { name: "Extract source text" }).click();
+  await p.getByRole("button", { name: "Continue to questions" }).click();
   await response;
+  if (this.status === 200) await p.locator(".voice-option summary").click();
 }
 async function youtube(this: World, url = "https://youtu.be/dQw4w9WgXcQ") {
   const p = await page(this);
   await p.getByRole("tab", { name: "YouTube video" }).click();
   await p.getByLabel("YouTube URL").fill(url);
   const response = p.waitForResponse((r) => r.url().endsWith("/api/ingest"));
-  await p.getByRole("button", { name: "Extract source text" }).click();
+  await p.getByRole("button", { name: "Continue to questions" }).click();
   await result(this, await response);
+  if (this.status === 200) await p.locator(".voice-option summary").click();
 }
 async function ready(this: World) {
   await open.call(this);
@@ -133,7 +135,7 @@ async function send(this: World) {
   const p = await page(this);
   this.question = "What is this source about?";
   const request = p.waitForRequest((r) => r.url().endsWith("/api/text-chat"));
-  await p.getByLabel("Ask a question").fill(this.question);
+  await p.getByLabel("Ask a question", { exact: true }).fill(this.question);
   await p.getByRole("button", { name: "Send", exact: true }).click();
   this.requestBody = (await request).postDataJSON();
   await expect(p.locator(".message.assistant").last()).toBeVisible();
@@ -241,7 +243,9 @@ step(
 );
 step("I cannot start a voice session for that source", async function () {
   await expect(
-    (await page(this)).getByRole("button", { name: "Start Voice Chat" }),
+    (await page(this))
+      .locator(".voice-controls button")
+      .filter({ hasText: "Start Voice Chat" }),
   ).toBeDisabled();
 });
 step(
@@ -371,7 +375,7 @@ step(
 step("the preview indicates that more text is available", async function () {
   await expect(
     (await page(this)).locator("details.preview summary"),
-  ).toContainText(/Extracted text/);
+  ).toContainText(/View source text/);
 });
 step("I expand the extracted-text preview", async function () {
   const p = await page(this);
@@ -396,12 +400,16 @@ step(
   async function () {
     await expect((await page(this)).locator(".preview-text")).toBeHidden();
     await expect(
-      (await page(this)).getByRole("button", { name: "Start Voice Chat" }),
+      (await page(this))
+        .locator(".voice-controls button")
+        .filter({ hasText: "Start Voice Chat" }),
     ).toBeEnabled();
   },
 );
 step("text mode is active", async function () {
-  await expect((await page(this)).getByLabel("Ask a question")).toBeEnabled();
+  await expect(
+    (await page(this)).getByLabel("Ask a question", { exact: true }),
+  ).toBeEnabled();
 });
 step(
   [
@@ -468,7 +476,8 @@ step("microphone permission is denied", async function () {
 });
 step("I try to start voice chat", async function () {
   await (await page(this))
-    .getByRole("button", { name: "Start Voice Chat" })
+    .locator(".voice-controls button")
+    .filter({ hasText: "Start Voice Chat" })
     .click();
 });
 step("I see instructions for enabling microphone access", async function () {
@@ -484,7 +493,9 @@ step(
     "text mode remains available",
   ],
   async function () {
-    await expect((await page(this)).getByLabel("Ask a question")).toBeEnabled();
+    await expect(
+      (await page(this)).getByLabel("Ask a question", { exact: true }),
+    ).toBeEnabled();
   },
 );
 step("the browser viewport is 390 pixels wide", async function () {
@@ -521,10 +532,10 @@ step(
 step("I see an explanatory empty state", async function () {
   const p = await page(this);
   await expect(
-    p.getByText("Add a source, then explore the ideas inside it."),
+    p.getByText("We’ll read it for you. Then you can ask about it."),
   ).toBeVisible();
   await expect(
-    p.getByRole("button", { name: "Start Voice Chat" }),
+    p.locator(".voice-controls button").filter({ hasText: "Start Voice Chat" }),
   ).toBeDisabled();
 });
 step("I see how to upload a PDF or enter a YouTube URL", async function () {
@@ -539,16 +550,20 @@ step("I use the source and conversation screens", async function () {
 });
 step("all essential content remains reachable", async function () {
   const p = await page(this);
+  await p.getByText("Change source", { exact: true }).click();
   for (const label of ["Ask a question", "YouTube URL"]) {
-    await p.getByLabel(label).scrollIntoViewIfNeeded();
-    await expect(p.getByLabel(label)).toBeVisible();
+    await p.getByLabel(label, { exact: true }).scrollIntoViewIfNeeded();
+    await expect(p.getByLabel(label, { exact: true })).toBeVisible();
   }
 });
 step(
   "start, mute, unmute, stop, and text fallback actions are discoverable",
   async function () {
     const p = await page(this);
-    await p.getByRole("button", { name: "Start Voice Chat" }).click();
+    await p
+      .locator(".voice-controls button")
+      .filter({ hasText: "Start Voice Chat" })
+      .click();
     await p
       .getByRole("button", { name: "Mute microphone", exact: true })
       .click();
@@ -556,9 +571,9 @@ step(
       p.getByRole("button", { name: "Unmute microphone", exact: true }),
     ).toBeVisible();
     await expect(
-      p.getByRole("button", { name: "Stop", exact: true }),
+      p.locator(".voice-controls button").filter({ hasText: /^Stop$/ }),
     ).toBeEnabled();
-    await expect(p.getByLabel("Ask a question")).toBeEnabled();
+    await expect(p.getByLabel("Ask a question", { exact: true })).toBeEnabled();
   },
 );
 step("user and assistant transcript events have arrived", async function () {
@@ -660,7 +675,7 @@ step(
 step("I select the retry action", async function () {
   const p = await page(this);
   await expect(
-    p.getByRole("button", { name: "Start Voice Chat" }),
+    p.locator(".voice-controls button").filter({ hasText: "Start Voice Chat" }),
   ).toBeDisabled();
   this.gate = new Promise<void>((resolve) => {
     this.release = resolve;
@@ -668,13 +683,15 @@ step("I select the retry action", async function () {
   const request = p.waitForRequest((r) => r.url().endsWith("/api/ingest"));
   const response = p.waitForResponse((r) => r.url().endsWith("/api/ingest"));
   // Resubmitting the retained input is the application's current retry action.
-  await p.getByRole("button", { name: /Retry|Extract source text/ }).click();
+  await p.getByRole("button", { name: /Retry|Continue to questions/ }).click();
   await request;
   await expect(
-    p.getByRole("button", { name: "Start Voice Chat" }),
+    p.locator(".voice-controls button").filter({ hasText: "Start Voice Chat" }),
   ).toBeDisabled();
   await expect(p.locator("details.preview")).toHaveCount(0);
-  await expect(p.getByRole("button", { name: "Extracting…" })).toBeDisabled();
+  await expect(
+    p.getByRole("button", { name: "Reading your source…" }),
+  ).toBeDisabled();
   this.release?.();
   await response;
 });
@@ -687,7 +704,9 @@ step(
   async function () {
     assert.ok(this.source.text);
     await expect(
-      (await page(this)).getByRole("button", { name: "Start Voice Chat" }),
+      (await page(this))
+        .locator(".voice-controls button")
+        .filter({ hasText: "Start Voice Chat" }),
     ).toBeEnabled();
   },
 );
@@ -702,7 +721,7 @@ step("the error explains what happened in plain language", async function () {
 step("a retry action is available when retrying is safe", async function () {
   await expect(
     (await page(this)).getByRole("button", {
-      name: /Retry|Extract source text/,
+      name: /Retry|Continue to questions/,
     }),
   ).toBeEnabled();
 });
@@ -718,19 +737,19 @@ step("I have submitted a source", async function () {
   });
   await p.getByRole("tab", { name: "YouTube video" }).click();
   await p.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
-  await p.getByRole("button", { name: "Extract source text" }).click();
+  await p.getByRole("button", { name: "Continue to questions" }).click();
 });
 step(
   ["ingestion is in progress", "a loading state is visible"],
   async function () {
     await expect(
-      (await page(this)).getByRole("button", { name: "Extracting…" }),
+      (await page(this)).getByRole("button", { name: "Reading your source…" }),
     ).toBeVisible();
   },
 );
 step("duplicate submission controls are disabled", async function () {
   await expect(
-    (await page(this)).getByRole("button", { name: "Extracting…" }),
+    (await page(this)).getByRole("button", { name: "Reading your source…" }),
   ).toBeDisabled();
 });
 

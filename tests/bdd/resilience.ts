@@ -25,7 +25,10 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
   }
   async function connected(w: World) {
     const p = await setup(w);
-    await p.getByRole("button", { name: "Start Voice Chat" }).click();
+    await p
+      .locator(".voice-controls button")
+      .filter({ hasText: "Start Voice Chat" })
+      .click();
     await expect
       .poll(async () => (await controls.get(w)!.snapshot()).remoteDescriptions)
       .toBe(1);
@@ -67,7 +70,9 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     assert.equal(snapshot.closedPeers, 0);
     assert.equal(snapshot.tracks[0].stopped, false);
     await expect(
-      (await h.page(this)).getByRole("button", { name: "Stop", exact: true }),
+      (await h.page(this))
+        .locator(".voice-controls button")
+        .filter({ hasText: /^Stop$/ }),
     ).toBeEnabled();
   });
   step("the UI returns to connected when recovery succeeds", async function () {
@@ -107,7 +112,10 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     await p.route("**/api/realtime/session", (route) =>
       route.abort("timedout"),
     );
-    await p.getByRole("button", { name: "Start Voice Chat" }).click();
+    await p
+      .locator(".voice-controls button")
+      .filter({ hasText: "Start Voice Chat" })
+      .click();
   });
   step("the timeout error is displayed", async function () {
     await expect(
@@ -116,7 +124,9 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
   });
   step("a retry action is offered", async function () {
     await expect(
-      (await h.page(this)).getByRole("button", { name: "Start Voice Chat" }),
+      (await h.page(this))
+        .locator(".voice-controls button")
+        .filter({ hasText: "Start Voice Chat" }),
     ).toBeEnabled();
   });
   step(
@@ -138,7 +148,7 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     );
     await p.getByRole("tab", { name: "YouTube video" }).click();
     await p.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
-    await p.getByRole("button", { name: "Extract source text" }).click();
+    await p.getByRole("button", { name: "Continue to questions" }).click();
   });
   step("the result is rendered", async function () {
     await expect(
@@ -152,7 +162,9 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
   });
   step("starting a voice session is disabled", async function () {
     await expect(
-      (await h.page(this)).getByRole("button", { name: "Start Voice Chat" }),
+      (await h.page(this))
+        .locator(".voice-controls button")
+        .filter({ hasText: "Start Voice Chat" }),
     ).toBeDisabled();
   });
   step(
@@ -160,8 +172,12 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     async function () {
       const p = await setup(this);
       const status = p.locator(".conversation-card .status"),
-        start = p.getByRole("button", { name: "Start Voice Chat" }),
-        stop = p.getByRole("button", { name: "Stop", exact: true });
+        start = p
+          .locator(".voice-controls button")
+          .filter({ hasText: "Start Voice Chat" }),
+        stop = p
+          .locator(".voice-controls button")
+          .filter({ hasText: /^Stop$/ });
       await expect(status).toHaveText("Ready");
       const gate = new Promise<void>((resolve) => {
         this.release = resolve;
@@ -210,10 +226,12 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
   step("controls match the current session state", async function () {
     const p = await h.page(this);
     await expect(
-      p.getByRole("button", { name: "Start Voice Chat" }),
+      p
+        .locator(".voice-controls button")
+        .filter({ hasText: "Start Voice Chat" }),
     ).toBeEnabled();
     await expect(
-      p.getByRole("button", { name: "Stop", exact: true }),
+      p.locator(".voice-controls button").filter({ hasText: /^Stop$/ }),
     ).toBeDisabled();
     const snapshot = await controls.get(this)!.snapshot();
     assert.equal(snapshot.closedPeers, 2);

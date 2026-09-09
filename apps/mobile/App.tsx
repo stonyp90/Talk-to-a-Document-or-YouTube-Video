@@ -7,6 +7,8 @@ import { ApiClient, apiOrigin, IngestedSource, Turn, updateTranscript } from './
 import { NativeVoice, VoiceStatus } from './src/voice';
 import { Brand, Orbit, palette as c, Reveal, serif, SourceIcon, Touch, useMotion, Wave } from './src/design';
 import { MobileOnboarding } from './src/Onboarding';
+import { MobileVoiceActions } from './src/VoiceActions';
+import type { MobileVoiceActionId } from './src/VoiceActions';
 
 const api = new ApiClient(apiOrigin(Platform.OS, process.env.EXPO_PUBLIC_API_URL));
 function messageOf(error: string, t: (key: TranslationKey) => string) {
@@ -48,12 +50,14 @@ export default function App() {
   const active = ['connecting', 'connected', 'reconnecting'].includes(status);
 
   useEffect(() => {
+    const operationRef = operation;
+    const voiceRef = voice;
     let mounted = true;
     void api.request('/api/health', { method: 'GET' }).then(response => response.json()).then(health => {
       if (mounted && (health.mode === 'mock' || health.mode === 'live')) setMode(health.mode);
     }).catch(() => {});
     const listener = AppState.addEventListener('change', state => { if (state !== 'active') { voice.current?.stop(); setMuted(false); } });
-    return () => { mounted = false; operation.current++; listener.remove(); voice.current?.stop(); };
+    return () => { mounted = false; operationRef.current++; listener.remove(); voiceRef.current?.stop(); };
   }, []);
 
   function stop() { voice.current?.stop(); voice.current = null; setMuted(false); }
@@ -98,6 +102,24 @@ export default function App() {
     }, caught => setError(caught));
     void voice.current.start();
   }
+  function handleVoiceAction(action: MobileVoiceActionId) {
+    if (action === 'upload') {
+      void ingest('pdf');
+      return;
+    }
+    if (action === 'youtube') {
+      setError(''); setSheet('youtube');
+      return;
+    }
+    if (action === 'voice') {
+      if (!source) { setError(t('Add a source first, then say let’s talk again.')); return; }
+      setScreen('conversation'); setTab('chat'); startVoice();
+      return;
+    }
+    if (!source) { setError(t('Add a source first, then say let’s talk again.')); return; }
+    setScreen('conversation'); setTab('chat'); setQuestion(t('Summarize the essentials'));
+    setTimeout(() => composer.current?.focus(), 0);
+  }
   function trySample() {
     operation.current++;
     installSource({ kind: 'pdf', sourceName: t("The power of small breaks"), text: sampleText, characters: sampleText.length });
@@ -125,6 +147,7 @@ export default function App() {
             </Touch>
           </View>
         </Reveal>
+        <MobileVoiceActions language={language} motion={motion} voiceBusy={!!busy || active} canStartVoice={!!source} t={t} onAction={handleVoiceAction} />
         {busy && <View style={s.loading} accessibilityLiveRegion="polite"><ActivityIndicator color={c.ink} /><Text style={s.body}>{t("Getting your source ready…")}</Text></View>}
         {notice}
         {source ? <Reveal motion={motion} delay={100}><Touch label={t("Resume conversation")} onPress={() => setScreen('conversation')} motion={motion} disabled={!!busy} style={s.resume}><View style={s.resumeInner}><View style={s.resumeIcon}><SourceIcon kind={source.kind} /></View><View style={s.flex}><Text style={s.eyebrow}>{t("PICK UP WHERE YOU LEFT OFF")}</Text><Text numberOfLines={2} style={s.resumeTitle}>{source.sourceName}</Text></View><Text style={s.diagonalArrow}>→</Text></View></Touch></Reveal> :

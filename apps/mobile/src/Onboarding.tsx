@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -65,6 +65,16 @@ export function MobileOnboarding({ motion, t }: Props) {
   const copyOpacity = useRef(new Animated.Value(1)).current;
   const copyOffset = useRef(new Animated.Value(0)).current;
 
+  const finish = useCallback(() => {
+    setVisible(false);
+    void AsyncStorage.setItem(storageKey, "done").catch(() => undefined);
+  }, []);
+
+  const advance = useCallback(() => {
+    if (step === steps.length - 1) finish();
+    else setStep((current) => current + 1);
+  }, [finish, step]);
+
   useEffect(() => {
     let mounted = true;
     AsyncStorage.getItem(storageKey)
@@ -84,9 +94,9 @@ export function MobileOnboarding({ motion, t }: Props) {
 
   useEffect(() => {
     if (!visible || paused || step === steps.length - 1) return;
-    const timer = setTimeout(() => advance(), slideDuration);
+    const timer = setTimeout(advance, slideDuration);
     return () => clearTimeout(timer);
-  }, [paused, step, visible]);
+  }, [advance, paused, visible]);
 
   useEffect(() => {
     if (!motion || !visible) {
@@ -113,16 +123,6 @@ export function MobileOnboarding({ motion, t }: Props) {
     animation.start();
     return () => animation.stop();
   }, [copyOffset, copyOpacity, motion, step, visible]);
-
-  function finish() {
-    setVisible(false);
-    void AsyncStorage.setItem(storageKey, "done").catch(() => undefined);
-  }
-
-  function advance() {
-    if (step === steps.length - 1) finish();
-    else setStep((current) => current + 1);
-  }
 
   if (!ready) return null;
 

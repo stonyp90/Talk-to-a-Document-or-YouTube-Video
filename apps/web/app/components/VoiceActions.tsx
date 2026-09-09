@@ -182,9 +182,10 @@ export function VoiceActions({
   }
 
   function runExample(example: (typeof examples)[number]) {
+    lastTrigger.current = "";
     runAction(
       {
-        id: `example-${example.action}`,
+        id: `example-${example.action}-${Date.now()}`,
         phrase: example.phrase,
         action: example.action,
       },

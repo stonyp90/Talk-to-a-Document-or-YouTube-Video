@@ -23,7 +23,7 @@ const config = {
     android: { package: 'com.talktosource.demo', permissions: ['RECORD_AUDIO', 'MODIFY_AUDIO_SETTINGS'], usesCleartextTraffic: true,
       adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#F27561', monochromeImage: './assets/monochrome-icon.png' },
     },
-    plugins: ['expo-document-picker', 'expo-dev-client', '@config-plugins/react-native-webrtc',
+    plugins: ['expo-document-picker', 'expo-dev-client', 'expo-speech-recognition', '@config-plugins/react-native-webrtc',
       ['expo-splash-screen', { image: './assets/splash-icon.png', imageWidth: 112, backgroundColor: '#F8F5EF', dark: { image: './assets/splash-icon.png', backgroundColor: '#292735' } }],
     ],
   },

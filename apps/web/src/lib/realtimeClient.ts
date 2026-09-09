@@ -198,7 +198,8 @@ export class RealtimeClient {
     }
     if (!this.dataChannel || this.dataChannel.readyState !== "open")
       throw new Error("Voice chat is not connected.");
-    const id = crypto.randomUUID();
+    // Realtime item IDs accept at most 32 characters; UUID hyphens exceed that limit.
+    const id = crypto.randomUUID().replaceAll("-", "");
     this.dataChannel.send(
       JSON.stringify({
         type: "conversation.item.create",

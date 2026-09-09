@@ -204,6 +204,7 @@ describe("Realtime WebRTC client", () => {
     await connected();
     client.sendText("Explain");
     const sent = JSON.parse(peer().channel.send.mock.calls[0][0]);
+    expect(sent.item.id).toMatch(/^[a-f0-9]{32}$/);
     expect(sent.item).toMatchObject({
       id: expect.any(String),
       role: "user",

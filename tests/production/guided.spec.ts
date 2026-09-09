@@ -68,10 +68,12 @@ test("invalid source has an understandable recovery path", async ({ page }) => {
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://example.com/not-a-video");
   await page.getByRole("button", { name: "Continue to questions" }).click();
-  await expect(page.getByRole("alert")).toContainText(/valid YouTube URL/i);
+  await expect(page.locator("main").getByRole("alert")).toContainText(
+    /valid YouTube URL/i,
+  );
   await page.getByRole("button", { name: "Use a PDF instead" }).click();
   await expect(page.getByLabel("PDF file")).toBeVisible();
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole("button", { name: "Quick tour" })).toBeVisible();
   await page.getByRole("button", { name: "Quick tour" }).click();

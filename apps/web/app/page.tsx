@@ -306,7 +306,9 @@ export default function HomePage() {
       dispatch({ type: "CLEAR_ERROR" });
     } catch (caught) {
       if (current())
-        setError(readable(caught, "We couldn’t read this source. Please try again."));
+        setError(
+          readable(caught, "We couldn’t read this source. Please try again."),
+        );
     } finally {
       if (uploadRequest.current === controller) uploadRequest.current = null;
       if (current()) {
@@ -463,12 +465,15 @@ export default function HomePage() {
         () =>
           withSession(
             (body) =>
-              requestJson<{ answer: string; sourceId: string }>("/api/text-chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body),
-                signal: controller.signal,
-              }),
+              requestJson<{ answer: string; sourceId: string }>(
+                "/api/text-chat",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(body),
+                  signal: controller.signal,
+                },
+              ),
             { question: trimmed },
           ),
       );
@@ -536,15 +541,18 @@ export default function HomePage() {
               Less scrolling. <span>More understanding.</span>
             </h1>
             <p className="lede">
-              Add a PDF or a captioned YouTube video, then talk to it. Speak your
-              question and hear the answer, or type instead.
+              Add a PDF or a captioned YouTube video, then talk to it. Speak
+              your question and hear the answer, or type instead.
             </p>
           </div>
 
           <Onboarding />
 
           <div className="workspace" id="workspace" tabIndex={-1}>
-            <section className="card source-card" aria-labelledby="source-heading">
+            <section
+              className="card source-card"
+              aria-labelledby="source-heading"
+            >
               <div className="status-row">
                 <h2 id="source-heading">
                   {source ? "Your source" : "1. Choose a source"}
@@ -554,13 +562,19 @@ export default function HomePage() {
                   data-state={busy ? "preparing" : source ? "ready" : "idle"}
                   aria-live="polite"
                 >
-                  {busy ? "Extracting" : source ? "Source ready" : "Step 1 of 2"}
+                  {busy
+                    ? "Extracting"
+                    : source
+                      ? "Source ready"
+                      : "Step 1 of 2"}
                 </span>
               </div>
 
               {source && (
                 <div className="source-ready">
-                  <Icon name={source.kind === "youtube" ? "video" : "document"} />
+                  <Icon
+                    name={source.kind === "youtube" ? "video" : "document"}
+                  />
                   <div>
                     <strong>{source.sourceName}</strong>
                     <span>Ready · Your answers will use this source</span>
@@ -635,7 +649,9 @@ export default function HomePage() {
                       <span className="upload-icon">
                         <Icon name="document" />
                       </span>
-                      <strong>{file ? file.name : "Pick a PDF up to 25 MB"}</strong>
+                      <strong>
+                        {file ? file.name : "Pick a PDF up to 25 MB"}
+                      </strong>
                       <div className="hint">
                         {file
                           ? `${(file.size / 1024 / 1024).toFixed(1)} MB · Ready to continue`
@@ -697,7 +713,9 @@ export default function HomePage() {
                     aria-valuemax={100}
                     aria-valuenow={Math.round(uploadProgress * 100)}
                   >
-                    <span style={{ width: `${Math.round(uploadProgress * 100)}%` }} />
+                    <span
+                      style={{ width: `${Math.round(uploadProgress * 100)}%` }}
+                    />
                   </div>
                   <span className="hint">
                     Uploading · {Math.round(uploadProgress * 100)}%
@@ -725,8 +743,8 @@ export default function HomePage() {
               )}
               {busy && uploadProgress === undefined && (
                 <p className="hint" role="status">
-                  Reading your source. This may take up to a minute. Your questions
-                  are next.
+                  Reading your source. This may take up to a minute. Your
+                  questions are next.
                 </p>
               )}
 
@@ -742,17 +760,17 @@ export default function HomePage() {
               {context?.truncated && (
                 <p className="hint context-note" role="status">
                   This source is longer than one conversation can hold. The
-                  assistant reads{" "}
-                  {context.usedCharacters.toLocaleString()} of{" "}
-                  {context.totalCharacters.toLocaleString()} characters, taken from
-                  the opening and the ending. The full text stays available above.
+                  assistant reads {context.usedCharacters.toLocaleString()} of{" "}
+                  {context.totalCharacters.toLocaleString()} characters, taken
+                  from the opening and the ending. The full text stays available
+                  above.
                 </p>
               )}
             </section>
 
             <section
               className="card conversation-card"
-              hidden={!source}
+              data-ready={source ? "true" : "false"}
               aria-labelledby="conversation-heading"
             >
               <div className="status-row">
@@ -775,8 +793,8 @@ export default function HomePage() {
               )}
               {providerMode === "mock" && (
                 <p className="hint" role="status">
-                  Demo simulation: AI replies are simulated; microphone audio is not
-                  sent to AI. Use live mode for real answers and voice.
+                  Demo simulation: AI replies are simulated; microphone audio is
+                  not sent to AI. Use live mode for real answers and voice.
                 </p>
               )}
 
@@ -887,7 +905,9 @@ export default function HomePage() {
                             ? "Ursly"
                             : "Session update"}
                       </span>
-                      <span className="message-text">{message.text || "…"}</span>
+                      <span className="message-text">
+                        {message.text || "…"}
+                      </span>
                     </div>
                   ))
                 )}
@@ -895,8 +915,8 @@ export default function HomePage() {
 
               {pendingAnswers > 0 && (
                 <p className="answer-pending" role="status">
-                  <span className="spinner" aria-hidden="true" /> Finding an answer
-                  in your source…
+                  <span className="spinner" aria-hidden="true" /> Finding an
+                  answer in your source…
                 </p>
               )}
               {source && (error || state.error) && (
@@ -959,8 +979,8 @@ export default function HomePage() {
                 <span className="guide-number">02</span>
                 <h3>Start talking</h3>
                 <p>
-                  Select Start Voice Chat, allow the microphone, and ask out loud.
-                  Interrupt whenever you want; typing always works too.
+                  Select Start Voice Chat, allow the microphone, and ask out
+                  loud. Interrupt whenever you want; typing always works too.
                 </p>
               </article>
               <article>
@@ -973,12 +993,15 @@ export default function HomePage() {
               </article>
             </div>
             <details className="help-detail">
-              <summary>Having trouble with a source or your microphone?</summary>
+              <summary>
+                Having trouble with a source or your microphone?
+              </summary>
               <p>
-                Scanned PDFs need a text layer before upload. YouTube captions must
-                be available, and some videos may be blocked by YouTube. For voice,
-                allow microphone access in your browser. If voice cannot connect, you
-                can still type your questions about an extracted source.
+                Scanned PDFs need a text layer before upload. YouTube captions
+                must be available, and some videos may be blocked by YouTube.
+                For voice, allow microphone access in your browser. If voice
+                cannot connect, you can still type your questions about an
+                extracted source.
               </p>
             </details>
           </section>

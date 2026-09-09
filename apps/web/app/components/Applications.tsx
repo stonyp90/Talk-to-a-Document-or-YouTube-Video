@@ -1,4 +1,5 @@
 import styles from "./Applications.module.css";
+import { Icon } from "./Icon";
 
 const repository =
   "https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video";
@@ -22,12 +23,21 @@ export function Applications() {
           </p>
         </div>
         <a className={styles.releaseLink} href={release}>
-          Release notes & installation <span aria-hidden="true">↗</span>
+          <Icon name="external" />
+          Release notes & installation
         </a>
       </div>
       <div className={styles.grid}>
         <article className={styles.card}>
-          <span className={styles.badge}>Android preview</span>
+          <div className={styles.cardIdentity}>
+            <span
+              className={`${styles.platformIcon} ${styles.androidIcon}`}
+              aria-hidden="true"
+            >
+              <Icon name="android" />
+            </span>
+            <span className={styles.badge}>Android preview</span>
+          </div>
           <h3>Take Ursly with you.</h3>
           <p>
             Download the signed APK for Android 7.0 or later. Installation
@@ -37,12 +47,20 @@ export function Applications() {
             className={`primary ${styles.action}`}
             href={`${download}/ursly-v0.1.0-demo.2-android.apk`}
           >
-            Download Android APK <span aria-hidden="true">↓</span>
+            <Icon name="download" /> Download Android APK
           </a>
           <span className={styles.note}>Preview v0.1.0-demo.2 · APK</span>
         </article>
         <article className={`${styles.card} ${styles.ios}`}>
-          <span className={styles.badge}>iOS Simulator preview</span>
+          <div className={styles.cardIdentity}>
+            <span
+              className={`${styles.platformIcon} ${styles.appleIcon}`}
+              aria-hidden="true"
+            >
+              <Icon name="apple" />
+            </span>
+            <span className={styles.badge}>iOS Simulator preview</span>
+          </div>
           <h3>Explore the iOS experience.</h3>
           <p>
             For the iOS Simulator in Xcode on an Apple silicon Mac. This archive
@@ -52,21 +70,29 @@ export function Applications() {
             className={`secondary ${styles.action}`}
             href={`${download}/ursly-v0.1.0-demo.2-ios-simulator-arm64.tar.gz`}
           >
-            Download iOS Simulator build <span aria-hidden="true">↓</span>
+            <Icon name="download" /> Download iOS Simulator build
           </a>
           <span className={styles.note}>
             Preview v0.1.0-demo.2 · ARM64 archive
           </span>
         </article>
         <article className={`${styles.card} ${styles.code}`}>
-          <span className={styles.badge}>Public repository</span>
+          <div className={styles.cardIdentity}>
+            <span
+              className={`${styles.platformIcon} ${styles.githubIcon}`}
+              aria-hidden="true"
+            >
+              <Icon name="github" />
+            </span>
+            <span className={styles.badge}>Public repository</span>
+          </div>
           <h3>See how it’s made.</h3>
           <p>
             Explore the source, architecture, development setup, and tests.
             Contributions and thoughtful feedback are welcome.
           </p>
           <a className={`secondary ${styles.action}`} href={repository}>
-            View on GitHub <span aria-hidden="true">↗</span>
+            <Icon name="github" /> View on GitHub
           </a>
           <span className={styles.note}>Next.js · Expo · TypeScript</span>
         </article>

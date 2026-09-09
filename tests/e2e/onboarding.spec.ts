@@ -71,6 +71,21 @@ test("guide slides advance gently and pause on demand", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("guide hands off to the workspace after the final slide", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", {
+      name: "Start with something worth understanding.",
+    }),
+  ).toBeVisible();
+  await page.clock.runFor(12_401);
+  await expect(page.locator("#welcome-guide")).toHaveCount(0);
+  await expect(page.locator("#workspace")).toBeFocused();
+});
+
 test("welcome guide remains usable when browser storage is blocked", async ({
   page,
 }) => {

@@ -1101,6 +1101,37 @@ body.guide-is-open {
   text-transform: uppercase;
 }
 
+.welcome-guide-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-left: auto;
+}
+
+.guide-auto-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 100px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.guide-auto-toggle:hover {
+  border-color: var(--line-strong);
+  box-shadow: none;
+  transform: none;
+  color: var(--ink);
+}
+
+.guide-auto-toggle > span {
+  color: var(--accent);
+  font-size: 10px;
+}
+
 .welcome-close {
   display: grid;
   place-items: center;
@@ -1756,6 +1787,15 @@ body.guide-is-open {
   }
 
   .welcome-guide-count {
+    font-size: 10px;
+  }
+
+  .welcome-guide-controls {
+    gap: 4px;
+  }
+
+  .guide-auto-toggle {
+    padding-inline: 7px;
     font-size: 10px;
   }
 

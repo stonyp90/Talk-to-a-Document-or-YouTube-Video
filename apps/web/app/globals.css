@@ -2494,6 +2494,25 @@ button:disabled {
   padding: 24px;
   margin-top: 8px;
 }
+
+/* Shared workspace rules appear later in this stylesheet; keep the first-run
+ * guide's dialog treatment authoritative when it is open. */
+.welcome-guide.welcome-guide-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 4vw, 56px);
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 18% 18%, #f6c1b455, transparent 25%),
+    radial-gradient(circle at 84% 82%, var(--violet-wash) 0, transparent 33%),
+    var(--paper);
+  overflow-y: auto;
+}
 .welcome-copy h2 {
   font-family: Georgia, serif;
   font-size: 26px;

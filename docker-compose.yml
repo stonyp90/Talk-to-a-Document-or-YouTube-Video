@@ -18,6 +18,9 @@ x-app-environment: &app-environment
   OPENAI_REALTIME_MODEL: ${OPENAI_REALTIME_MODEL:-gpt-realtime}
   OPENAI_TEXT_MODEL: ${OPENAI_TEXT_MODEL:-gpt-4.1-mini}
   APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
+  CONTEXT_CHARACTER_BUDGET: ${CONTEXT_CHARACTER_BUDGET:-120000}
+  SESSION_TTL_MS: ${SESSION_TTL_MS:-3600000}
+  RATE_LIMIT_DISABLED: ${RATE_LIMIT_DISABLED:-}
 
 services:
   # Next.js owns both the frontend and API routes; there is no unused second API.
@@ -98,6 +101,8 @@ services:
       PORT: 3010
       TRANSCRIPT_MODE: ${TRANSCRIPT_MODE:-mock}
       UPSTREAM_TIMEOUT_SECONDS: 10
+      # Set only when YouTube blocks this network; see the README.
+      TRANSCRIPT_PROXY_URL: ${TRANSCRIPT_PROXY_URL:-}
     ports: ["127.0.0.1:${TRANSCRIPT_PORT:-3010}:3010"]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3010/health', timeout=2)"]

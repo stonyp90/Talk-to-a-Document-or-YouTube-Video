@@ -1,6 +1,7 @@
 import { expect, it, vi } from "vitest";
 import { InputValidationError } from "../../core/src/domain/ingestion";
 vi.mock("../../../apps/web/src/composition", () => ({
+  openSource: vi.fn(),
   prepareUpload: vi
     .fn()
     .mockRejectedValue(
@@ -22,7 +23,14 @@ import { POST as prepare } from "../../../apps/web/app/api/uploads/route";
 import { POST as extract } from "../../../apps/web/app/api/uploads/extract/route";
 it("preserves actionable size errors from upload validation", async () => {
   const response = await prepare(
-    new Request("http://localhost/api/uploads", { method: "POST", body: "{}" }),
+    new Request("http://localhost/api/uploads", {
+      method: "POST",
+      body: JSON.stringify({
+        name: "huge.pdf",
+        type: "application/pdf",
+        size: 26_214_401,
+      }),
+    }),
   );
   expect(response.status).toBe(400);
   expect(await response.json()).toMatchObject({

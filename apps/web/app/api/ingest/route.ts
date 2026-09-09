@@ -1,26 +1,16 @@
-import { InputValidationError } from "@/packages/core/src/domain/ingestion";
-import { ingestFormData } from "@/apps/web/src/composition";
+import { ingestFormData, openSource } from "@/apps/web/src/composition";
+import { errorResponse, json, rateLimit } from "@/apps/web/src/http";
 
 export async function POST(request: Request) {
+  const limited = rateLimit(request, {
+    name: "ingest",
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
   try {
-    const result = await ingestFormData(await request.formData());
-    return Response.json({ source: result });
+    return json(await openSource(await ingestFormData(await request.formData())));
   } catch (error) {
-    if (error instanceof InputValidationError || error instanceof Error) {
-      return Response.json(
-        {
-          error: error.message,
-          code:
-            error instanceof InputValidationError
-              ? error.code
-              : "INGESTION_FAILED",
-        },
-        { status: 400 },
-      );
-    }
-    return Response.json(
-      { error: "Source ingestion failed.", code: "INGESTION_FAILED" },
-      { status: 500 },
-    );
+    return errorResponse(error, "Source ingestion failed. Please try again.");
   }
 }

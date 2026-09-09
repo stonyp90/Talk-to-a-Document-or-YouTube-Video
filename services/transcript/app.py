@@ -1,4 +1,12 @@
-"""Internal captions adapter. No credentials, scraping proxies, or mock fallback."""
+"""Internal captions adapter.
+
+YouTube serves captions through an unofficial endpoint that it blocks from cloud
+provider address ranges, so a deployment on AWS is refused where a laptop is not.
+An outbound proxy is therefore configurable: set TRANSCRIPT_PROXY_URL (or the
+scheme-specific pair) to route caption requests through an address YouTube will
+answer. Without it the service behaves exactly as before and reports CLOUD_BLOCKED.
+The proxy address is a credential and is never logged or returned.
+"""
 import json
 import os
 import re
@@ -10,7 +18,19 @@ from requests.exceptions import Timeout
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound, RequestBlocked, IpBlocked
 
 
+def proxy_settings():
+    """Reads outbound proxy configuration. Returns an empty mapping when unset."""
+    shared = os.environ.get("TRANSCRIPT_PROXY_URL", "").strip()
+    http_url = os.environ.get("TRANSCRIPT_PROXY_HTTP_URL", "").strip() or shared
+    https_url = os.environ.get("TRANSCRIPT_PROXY_HTTPS_URL", "").strip() or shared
+    return {k: v for k, v in (("http", http_url), ("https", https_url)) if v}
+
+
 class BoundedSession(Session):
+    def __init__(self):
+        super().__init__()
+        self.proxies.update(proxy_settings())
+
     def request(self, method, url, **kwargs):
         kwargs["timeout"] = float(os.environ.get("UPSTREAM_TIMEOUT_SECONDS", "10"))
         return super().request(method, url, **kwargs)
@@ -46,7 +66,12 @@ def retrieve(video_id, mode="live", api=None):
             return failure(404, "NO_CAPTIONS", "No captions are available for this video.")
         return 200, {"title": f"YouTube video {video_id}", "text": text}
     except (RequestBlocked, IpBlocked):
-        return failure(403, "CLOUD_BLOCKED", "YouTube blocked requests from this network or cloud provider.")
+        detail = (
+            "YouTube blocked requests from this network or cloud provider."
+            if not proxy_settings()
+            else "YouTube blocked requests even through the configured proxy."
+        )
+        return failure(403, "CLOUD_BLOCKED", detail)
     except (TranscriptsDisabled, NoTranscriptFound):
         return failure(404, "NO_CAPTIONS", "No captions are available for this video.")
     except Timeout:
@@ -62,7 +87,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlsplit(self.path).path
         if path == "/health":
-            status, body = 200, {"status": "ok", "mode": os.environ.get("TRANSCRIPT_MODE", "live")}
+            status, body = 200, {
+                "status": "ok",
+                "mode": os.environ.get("TRANSCRIPT_MODE", "live"),
+                # Whether a proxy is configured, never which one.
+                "proxied": bool(proxy_settings()),
+            }
         elif path.startswith("/transcript/"):
             status, body = retrieve(path.removeprefix("/transcript/"), os.environ.get("TRANSCRIPT_MODE", "live"))
         else:

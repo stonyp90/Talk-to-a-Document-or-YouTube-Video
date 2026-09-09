@@ -105,7 +105,6 @@ async function upload(
   );
   await p.getByRole("button", { name: "Continue to questions" }).click();
   await response;
-  if (this.status === 200) await p.locator(".voice-option summary").click();
 }
 async function youtube(this: World, url = "https://youtu.be/dQw4w9WgXcQ") {
   const p = await page(this);
@@ -114,7 +113,6 @@ async function youtube(this: World, url = "https://youtu.be/dQw4w9WgXcQ") {
   const response = p.waitForResponse((r) => r.url().endsWith("/api/ingest"));
   await p.getByRole("button", { name: "Continue to questions" }).click();
   await result(this, await response);
-  if (this.status === 200) await p.locator(".voice-option summary").click();
 }
 async function ready(this: World) {
   await open.call(this);

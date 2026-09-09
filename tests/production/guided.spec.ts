@@ -90,7 +90,6 @@ test("real voice transport connects, answers typed input, mutes and stops", asyn
   await page.goto("/");
   await page.getByRole("button", { name: "Skip tour" }).click();
   await upload(page);
-  await page.locator(".voice-option summary").click();
   await page.getByRole("button", { name: "Start Voice Chat" }).click();
   await expect(page.locator(".conversation-card .status")).toHaveText(
     "Connected",

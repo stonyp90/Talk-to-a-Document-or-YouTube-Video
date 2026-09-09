@@ -1,19 +1,27 @@
 import { prepareUpload } from "@/apps/web/src/composition";
-import { InputValidationError } from "@/packages/core/src/domain/ingestion";
+import { errorResponse, json, jsonError, rateLimit } from "@/apps/web/src/http";
+import { uploadRequestSchema } from "@/apps/web/src/validation";
+
 export async function POST(request: Request) {
+  const limited = rateLimit(request, {
+    name: "uploads",
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
   try {
-    return Response.json(await prepareUpload(await request.json()), {
-      headers: { "Cache-Control": "no-store" },
-    });
+    const parsed = uploadRequestSchema.safeParse(await request.json());
+    if (!parsed.success)
+      return jsonError(
+        "INVALID_FILE",
+        "Describe the PDF with a name, a type and a size.",
+        400,
+      );
+    return json(await prepareUpload(parsed.data));
   } catch (error) {
-    return Response.json(
-      error instanceof InputValidationError
-        ? { error: error.message, code: error.code }
-        : {
-            error:
-              "Could not prepare upload. Check the PDF type and 25 MB limit.",
-          },
-      { status: 400 },
+    return errorResponse(
+      error,
+      "Could not prepare the upload. Check the PDF type and the 25 MB limit.",
     );
   }
 }

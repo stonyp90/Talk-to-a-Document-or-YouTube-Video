@@ -31,8 +31,6 @@ async function uploadPdf(page: Page, text = pdfText) {
   await expect(page.locator(".preview-text")).toHaveText(text);
   if (await page.locator(".preview:not([open])").count())
     await page.locator(".preview summary").click();
-  if (await page.locator(".voice-option:not([open])").count())
-    await page.locator(".voice-option summary").click();
 }
 
 test.describe("source conversation journey", () => {

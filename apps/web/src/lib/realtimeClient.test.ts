@@ -295,10 +295,19 @@ describe("Realtime WebRTC client", () => {
       item_id: "a1",
       delta: " stale",
     });
-    expect(events).toHaveBeenLastCalledWith({
+    expect(events).toHaveBeenCalledWith({
       type: "message-completed",
       id: "a1",
     });
+    // The caller taking the floor is announced so the interface can show it.
+    expect(events).toHaveBeenLastCalledWith({
+      type: "activity",
+      activity: "listening",
+    });
+    // No delta may arrive after the caption is closed.
+    expect(
+      events.mock.calls.filter(([e]) => e.type === "message-delta"),
+    ).toHaveLength(1);
     expect(peer().channel.send).not.toHaveBeenCalled();
   });
   it("handles malformed events and channel errors without leaking resources", async () => {

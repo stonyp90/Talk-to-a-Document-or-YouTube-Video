@@ -117,15 +117,19 @@ resource "aws_lambda_function" "runtime" {
   reserved_concurrent_executions = each.value.concurrency
   environment {
     variables = each.key == "api" ? {
-      PORT                    = "3000", HOSTNAME = "0.0.0.0", PROVIDER_MODE = "live"
-      OPENAI_SECRET_ARN       = var.openai_secret_arn
-      UPLOAD_BUCKET           = aws_s3_bucket.uploads.id
-      APP_ORIGIN              = aws_apigatewayv2_api.http.api_endpoint
-      YOUTUBE_TRANSCRIPT_MODE = "live"
-      TRANSCRIPT_SERVICE_URL  = aws_apigatewayv2_api.http.api_endpoint
-      OPENAI_BASE_URL         = "https://api.openai.com"
-      OPENAI_REALTIME_MODEL   = "gpt-realtime", OPENAI_TEXT_MODEL = "gpt-4.1-mini"
-    } : { PORT = "3010", TRANSCRIPT_MODE = "live", UPSTREAM_TIMEOUT_SECONDS = "10" }
+      PORT                     = "3000", HOSTNAME = "0.0.0.0", PROVIDER_MODE = "live"
+      OPENAI_SECRET_ARN        = var.openai_secret_arn
+      UPLOAD_BUCKET            = aws_s3_bucket.uploads.id
+      APP_ORIGIN               = aws_apigatewayv2_api.http.api_endpoint
+      YOUTUBE_TRANSCRIPT_MODE  = "live"
+      TRANSCRIPT_SERVICE_URL   = aws_apigatewayv2_api.http.api_endpoint
+      OPENAI_BASE_URL          = "https://api.openai.com"
+      OPENAI_REALTIME_MODEL    = "gpt-realtime", OPENAI_TEXT_MODEL = "gpt-4.1-mini"
+      CONTEXT_CHARACTER_BUDGET = tostring(var.context_character_budget)
+      } : merge(
+      { PORT = "3010", TRANSCRIPT_MODE = "live", UPSTREAM_TIMEOUT_SECONDS = "10" },
+      var.transcript_proxy_url == "" ? {} : { TRANSCRIPT_PROXY_URL = var.transcript_proxy_url }
+    )
   }
   depends_on = [aws_iam_role_policy.runtime, aws_cloudwatch_log_group.runtime]
 }

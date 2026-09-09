@@ -63,7 +63,7 @@ describe("ingestion domain", () => {
   it("rejects unrelated URLs", () => {
     expect(() =>
       parseYouTubeVideoId("https://example.com/watch?v=dQw4w9WgXcQ"),
-    ).toThrowError("Enter a valid YouTube URL.");
+    ).toThrowError("Enter a valid YouTube link");
   });
 
   it("normalizes extracted text without changing content meaning", () => {
@@ -81,5 +81,53 @@ describe("ingestion domain", () => {
         characters: 17,
       }),
     ).toContain("The answer is 42.");
+  });
+
+  it.each([
+    ["https://www.youtube.com/shorts/dQw4w9WgXcQ", "dQw4w9WgXcQ"],
+    ["https://www.youtube.com/embed/dQw4w9WgXcQ", "dQw4w9WgXcQ"],
+    ["https://www.youtube.com/live/dQw4w9WgXcQ", "dQw4w9WgXcQ"],
+    ["https://www.youtube.com/v/dQw4w9WgXcQ", "dQw4w9WgXcQ"],
+    ["https://music.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"],
+    ["https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ", "dQw4w9WgXcQ"],
+    ["https://youtu.be/dQw4w9WgXcQ?t=42", "dQw4w9WgXcQ"],
+    [
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PL1234567890&index=3",
+      "dQw4w9WgXcQ",
+    ],
+    ["youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"],
+    ["  https://www.youtube.com/watch?v=dQw4w9WgXcQ  ", "dQw4w9WgXcQ"],
+  ])("accepts the YouTube link shape %s", (url, id) => {
+    expect(parseYouTubeVideoId(url)).toBe(id);
+  });
+
+  it.each([
+    "https://www.youtube.com/playlist?list=PL1234567890",
+    "https://www.youtube.com/@channel",
+    "https://vimeo.com/watch?v=dQw4w9WgXcQ",
+  ])("still rejects the non-video link %s", (url) => {
+    expect(() => parseYouTubeVideoId(url)).toThrowError(InputValidationError);
+  });
+
+  it("windows an oversized source instead of refusing it", () => {
+    const text = `START${"filler ".repeat(40000)}FINISH`;
+    const instructions = buildContextInstructions(
+      { kind: "pdf", sourceName: "long.pdf", text, characters: text.length },
+      5000,
+    );
+    expect(instructions).toContain("START");
+    expect(instructions).toContain("FINISH");
+    expect(instructions).toContain("omitted middle");
+  });
+
+  it("still refuses an empty source", () => {
+    expect(() =>
+      buildContextInstructions({
+        kind: "pdf",
+        sourceName: "blank.pdf",
+        text: "   ",
+        characters: 3,
+      }),
+    ).toThrowError(InputValidationError);
   });
 });

@@ -1,37 +1,40 @@
-import { IngestedSource } from "@/packages/core/src/domain/ingestion";
-import { answerTextQuestion } from "@/apps/web/src/composition";
-import { sourceSchema } from "@/apps/web/src/validation";
+import {
+  answerTextQuestion,
+  recordTurns,
+  resolveSession,
+} from "@/apps/web/src/composition";
+import { errorResponse, json, jsonError, rateLimit } from "@/apps/web/src/http";
+import { textChatSchema } from "@/apps/web/src/validation";
 
 export async function POST(request: Request) {
+  const limited = rateLimit(request, {
+    name: "text-chat",
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
   try {
-    const payload = (await request.json()) as {
-      source?: IngestedSource;
-      question?: string;
-    };
-    if (
-      !sourceSchema.safeParse(payload.source).success ||
-      typeof payload.question !== "string" ||
-      payload.question.length > 4000
-    )
-      return Response.json(
-        {
-          error:
-            "Provide a valid source and question of at most 4,000 characters.",
-        },
-        { status: 400 },
+    const parsed = textChatSchema.safeParse(await request.json());
+    if (!parsed.success)
+      return jsonError(
+        "INVALID_QUESTION",
+        "Provide a source and a question of at most 4,000 characters.",
+        400,
       );
-    if (!payload.source?.text || !payload.question?.trim())
-      return Response.json(
-        { error: "Source context and a question are required." },
-        { status: 400 },
-      );
-    return Response.json({
-      answer: await answerTextQuestion(payload.source, payload.question.trim()),
-    });
-  } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Text chat failed." },
-      { status: 500 },
+
+    const { question, ...reference } = parsed.data;
+    const session = await resolveSession(reference);
+    const answer = await answerTextQuestion(
+      session.source,
+      question,
+      session.turns,
     );
+    await recordTurns(session.id, [
+      { role: "user", text: question },
+      { role: "assistant", text: answer },
+    ]);
+    return json({ answer, sourceId: session.id });
+  } catch (error) {
+    return errorResponse(error, "The answer could not be produced. Please retry.");
   }
 }

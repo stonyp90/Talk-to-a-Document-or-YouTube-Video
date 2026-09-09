@@ -14,6 +14,27 @@ export interface TemporaryUploadPort {
   read(key: string): Promise<Uint8Array>;
   delete(key: string): Promise<void>;
 }
+
+/** One exchange kept so follow-up questions read naturally. */
+export type ConversationTurn = { role: "user" | "assistant"; text: string };
+
+/**
+ * A source held on the server for the life of a conversation. Clients carry an
+ * opaque id instead of re-uploading the whole extraction with every request.
+ */
+export type SourceSession = {
+  id: string;
+  source: IngestedSource;
+  turns: ConversationTurn[];
+  expiresAt: number;
+};
+
+export interface SessionStorePort {
+  open(source: IngestedSource): Promise<SourceSession>;
+  read(id: string): Promise<SourceSession | undefined>;
+  appendTurns(id: string, turns: ConversationTurn[]): Promise<void>;
+}
+
 export type RealtimeSession = {
   mode: "mock" | "live";
   clientSecret: string;
@@ -27,7 +48,11 @@ export interface ConversationPort {
     sdp: string,
     source: IngestedSource,
   ): Promise<string>;
-  answerTextQuestion(source: IngestedSource, question: string): Promise<string>;
+  answerTextQuestion(
+    source: IngestedSource,
+    question: string,
+    history?: ConversationTurn[],
+  ): Promise<string>;
 }
 export interface CredentialPort {
   getKey(): Promise<string>;

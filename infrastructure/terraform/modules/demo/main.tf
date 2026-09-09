@@ -3,7 +3,9 @@ locals {
   bucket   = "${local.name}-uploads-${var.account_id}-${var.region}"
   boundary = "arn:aws:iam::${var.account_id}:policy/${local.name}-runtime-boundary"
   functions = {
-    api        = { memory = 1024, timeout = 28, concurrency = 5, role = "${local.name}-runtime" }
+    # A fresh page loads several JS/CSS assets in parallel through this function.
+    # Match the gateway burst capacity so five occupied slots cannot break hydration.
+    api        = { memory = 1024, timeout = 28, concurrency = 20, role = "${local.name}-runtime" }
     transcript = { memory = 256, timeout = 20, concurrency = 2, role = "${local.name}-transcript-runtime" }
   }
   paid_routes = toset(["POST /api/realtime/session", "POST /api/realtime/connect", "POST /api/text-chat", "POST /api/uploads", "POST /api/uploads/extract"])

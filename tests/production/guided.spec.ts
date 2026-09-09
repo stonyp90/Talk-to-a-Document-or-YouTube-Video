@@ -5,13 +5,11 @@ async function upload(
   page: Page,
   text = "The observatory studies Saturn. Its telescope is named Willow.",
 ) {
-  await page
-    .getByLabel("PDF file")
-    .setInputFiles({
-      name: "ursly-production-check.pdf",
-      mimeType: "application/pdf",
-      buffer: pdfFixture(text),
-    });
+  await page.getByLabel("PDF file").setInputFiles({
+    name: "ursly-production-check.pdf",
+    mimeType: "application/pdf",
+    buffer: pdfFixture(text),
+  });
   await page.getByRole("button", { name: "Continue to questions" }).click();
   await expect(
     page.getByLabel("Ask a question", { exact: true }),
@@ -111,4 +109,24 @@ test("real voice transport connects, answers typed input, mutes and stops", asyn
   await expect(
     page.getByRole("button", { name: "Start Voice Chat" }),
   ).toBeEnabled();
+});
+
+test("a fresh browser loads every app asset and hydrates the controls", async ({
+  page,
+}) => {
+  const failedAssets: string[] = [];
+  page.on("response", (response) => {
+    if (response.url().includes("/_next/static/") && response.status() >= 400)
+      failedAssets.push(`${response.status()} ${response.url()}`);
+  });
+  page.on("requestfailed", (request) => {
+    if (request.url().includes("/_next/static/"))
+      failedAssets.push(request.url());
+  });
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Skip tour" })).toBeVisible();
+  await page.getByRole("button", { name: "Skip tour" }).click();
+  await page.getByRole("tab", { name: "YouTube video" }).click();
+  await expect(page.getByLabel("YouTube URL")).toBeVisible();
+  expect(failedAssets).toEqual([]);
 });

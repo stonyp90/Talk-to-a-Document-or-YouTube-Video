@@ -26,8 +26,8 @@ run "demo_security_and_cost_contract" {
     error_message = "Both functions must deploy Docker images from the CI-tested SHA."
   }
   assert {
-    condition     = aws_lambda_function.runtime["api"].reserved_concurrent_executions == 5 && aws_lambda_function.runtime["transcript"].memory_size == 256
-    error_message = "Keep the bounded, scale-to-zero demo capacity."
+    condition     = aws_lambda_function.runtime["api"].reserved_concurrent_executions == 20 && aws_lambda_function.runtime["transcript"].memory_size == 256
+    error_message = "Keep bounded, scale-to-zero capacity sufficient for the gateway’s 20-request page-load burst."
   }
   assert {
     condition     = alltrue([for role in aws_iam_role.runtime : role.permissions_boundary == local.boundary])

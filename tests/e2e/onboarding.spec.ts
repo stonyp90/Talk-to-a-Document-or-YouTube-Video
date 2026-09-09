@@ -16,7 +16,7 @@ for (const width of [320, 390, 1440]) {
     ).toHaveText("Bring a source");
     await expect(
       page.getByLabel("Ask a question", { exact: true }),
-    ).toBeHidden();
+    ).toBeDisabled();
     await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect(
       page.getByRole("heading", {

@@ -53,6 +53,7 @@ export function Onboarding() {
   const heading = useRef<HTMLHeadingElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
+  const focusWorkspace = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -65,7 +66,14 @@ export function Onboarding() {
   }, [open, step]);
 
   useEffect(() => {
-    if (wasOpen.current && !open) launcher.current?.focus();
+    if (wasOpen.current && !open) {
+      if (focusWorkspace.current) {
+        document.getElementById("workspace")?.focus();
+        focusWorkspace.current = false;
+      } else {
+        launcher.current?.focus();
+      }
+    }
     wasOpen.current = open;
   }, [open]);
 
@@ -83,9 +91,8 @@ export function Onboarding() {
     } catch {
       /* The guide also works without browser storage. */
     }
+    focusWorkspace.current = start;
     setOpen(false);
-    if (start) document.getElementById("workspace")?.focus();
-    else launcher.current?.focus();
   }
 
   return (

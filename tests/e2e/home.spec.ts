@@ -42,6 +42,8 @@ test.describe("source conversation journey", () => {
       "Run against freshly built Compose with object-store uploads and mock AI",
     ).toMatchObject({ ok: true, mode: "mock", directUpload: true });
     await page.goto("/");
+    const skipGuide = page.getByRole("button", { name: "Skip guide" });
+    if (await skipGuide.isVisible().catch(() => false)) await skipGuide.click();
   });
 
   test("uploads a real PDF through object storage and previews extracted text", async ({
@@ -279,6 +281,8 @@ test("keyboard source selection and a suggested question work with a second vide
   page,
 }) => {
   await page.goto("/");
+  const skipGuide = page.getByRole("button", { name: "Skip guide" });
+  if (await skipGuide.isVisible().catch(() => false)) await skipGuide.click();
   const pdfTab = page.getByRole("tab", { name: "PDF document" });
   const youtubeTab = page.getByRole("tab", { name: "YouTube video" });
   await pdfTab.focus();

@@ -180,6 +180,8 @@ test.beforeEach(async ({ page }) => {
     });
   });
   await page.goto("/");
+  const skipGuide = page.getByRole("button", { name: "Skip guide" });
+  if (await skipGuide.isVisible().catch(() => false)) await skipGuide.click();
   await ingest(page);
 });
 

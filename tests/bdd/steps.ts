@@ -70,7 +70,10 @@ AfterAll(async () => {
   await browser?.close();
 });
 async function open(this: World) {
-  await (await page(this)).goto(baseURL);
+  const p = await page(this);
+  await p.goto(baseURL);
+  const skipGuide = p.getByRole("button", { name: "Skip guide" });
+  if (await skipGuide.isVisible().catch(() => false)) await skipGuide.click();
 }
 async function result(
   world: World,

@@ -547,6 +547,12 @@ export default function HomePage() {
       }
       void startVoice();
     } else {
+      if (!source) {
+        setVoiceActionNotice(
+          "Add a PDF or YouTube source first, then say “summarize this” again.",
+        );
+        return;
+      }
       const prompt = "Summarize the key ideas";
       setQuestion(prompt);
       setVoiceActionNotice(
@@ -724,7 +730,7 @@ export default function HomePage() {
                     aria-busy={busy}
                   >
                     {tab === "pdf" ? (
-                      <div className="dropzone full">
+                      <label className="dropzone full" htmlFor="pdf-file">
                         <span className="upload-icon">
                           <Icon name="document" />
                         </span>
@@ -737,6 +743,7 @@ export default function HomePage() {
                             : "Choose a text-based paper, report, or document."}
                         </div>
                         <input
+                          id="pdf-file"
                           aria-label="PDF file"
                           ref={fileInput}
                           type="file"
@@ -744,7 +751,7 @@ export default function HomePage() {
                           onChange={onFile}
                           disabled={busy}
                         />
-                      </div>
+                      </label>
                     ) : (
                       <div className="field full" key="youtube">
                         <span className="upload-icon">

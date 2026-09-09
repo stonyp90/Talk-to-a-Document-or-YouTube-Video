@@ -68,7 +68,7 @@ const examples: Array<{
 }> = [
   { phrase: "YouTube", action: "youtube", label: "switch to YouTube" },
   { phrase: "Upload", action: "upload", label: "open the PDF picker" },
-  { phrase: "Let's talk", action: "voice", label: "start voice chat" },
+  { phrase: "Let's talk", action: "voice", label: "try a voice action" },
   {
     phrase: "Summarize this",
     action: "summarize",
@@ -101,7 +101,8 @@ function readSavedTriggers(): VoiceTrigger[] {
           typeof item.phrase === "string" &&
           item.phrase.trim() &&
           typeof item.action === "string" &&
-          item.action in actionLabels,
+          normalize(item.phrase) &&
+          Object.hasOwn(actionLabels, item.action),
       ),
     );
   } catch {
@@ -136,10 +137,7 @@ export function VoiceActions({
   const armedRef = useRef(false);
   const lastTrigger = useRef("");
   const onActionRef = useRef(onAction);
-
-  useEffect(() => {
-    onActionRef.current = onAction;
-  }, [onAction]);
+  onActionRef.current = onAction;
 
   useEffect(() => {
     try {
@@ -157,6 +155,18 @@ export function VoiceActions({
     },
     [],
   );
+
+  useEffect(() => {
+    if (voiceBusy && armedRef.current) {
+      armedRef.current = false;
+      recognition.current?.stop();
+      recognition.current = null;
+      setArmed(false);
+      setNotice(
+        "Voice actions paused while Ursly is busy with another action.",
+      );
+    }
+  }, [voiceBusy]);
 
   function runAction(trigger: VoiceTrigger, transcript = trigger.phrase) {
     const key = `${trigger.id}:${normalize(transcript)}`;
@@ -185,7 +195,17 @@ export function VoiceActions({
   function saveTrigger(event: FormEvent) {
     event.preventDefault();
     const nextPhrase = phrase.trim();
-    if (!nextPhrase) return;
+    const normalizedPhrase = normalize(nextPhrase);
+    if (!normalizedPhrase) {
+      setNotice("Use at least one letter or number in the trigger phrase.");
+      return;
+    }
+    if (
+      triggers.some((trigger) => normalize(trigger.phrase) === normalizedPhrase)
+    ) {
+      setNotice(`“${nextPhrase}” is already saved. Choose a different phrase.`);
+      return;
+    }
     const next: VoiceTrigger = {
       id: crypto.randomUUID(),
       phrase: nextPhrase,
@@ -194,7 +214,7 @@ export function VoiceActions({
     setTriggers((current) => [...current, next]);
     setPhrase("");
     setNotice(
-      `Saved “${nextPhrase}”. Arm voice actions and say it to run the action.`,
+      `Saved trigger: ${nextPhrase}. Arm voice actions and say it to run the action.`,
     );
   }
 
@@ -225,7 +245,15 @@ export function VoiceActions({
       speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
-    const instance = new SpeechRecognition();
+    let instance: SpeechRecognitionInstance;
+    try {
+      instance = new SpeechRecognition();
+    } catch {
+      setNotice(
+        "Voice actions could not start. Check microphone permissions and try again.",
+      );
+      return;
+    }
     instance.continuous = true;
     instance.interimResults = true;
     instance.lang = navigator.language || "en-US";
@@ -341,6 +369,7 @@ export function VoiceActions({
             key={example.phrase}
             type="button"
             className="voice-example"
+            disabled={voiceBusy}
             onClick={() => runExample(example)}
           >
             <span>“{example.phrase}”</span>
@@ -393,7 +422,11 @@ export function VoiceActions({
                 ))}
               </select>
             </div>
-            <button className="primary" type="submit" disabled={!phrase.trim()}>
+            <button
+              className="primary"
+              type="submit"
+              disabled={!normalize(phrase)}
+            >
               Save trigger
             </button>
           </form>
@@ -440,6 +473,10 @@ export function VoiceActions({
               source.
             </p>
           )}
+          <p className="hint voice-support-note">
+            For uploads, your browser still asks you to confirm the local file;
+            websites cannot read arbitrary files without that confirmation.
+          </p>
         </div>
       )}
     </section>

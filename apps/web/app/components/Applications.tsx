@@ -29,15 +29,7 @@ export function Applications() {
       </div>
       <div className={styles.grid}>
         <article className={styles.card}>
-          <div className={styles.cardIdentity}>
-            <span
-              className={`${styles.platformIcon} ${styles.androidIcon}`}
-              aria-hidden="true"
-            >
-              <Icon name="android" />
-            </span>
-            <span className={styles.badge}>Android preview</span>
-          </div>
+          <span className={styles.badge}>Android preview</span>
           <h3>Take Ursly with you.</h3>
           <p>
             Download the signed APK for Android 7.0 or later. Installation
@@ -47,20 +39,12 @@ export function Applications() {
             className={`primary ${styles.action}`}
             href={`${download}/ursly-v0.1.0-demo.2-android.apk`}
           >
-            <Icon name="download" /> Download Android APK
+            <Icon name="android" /> Download Android APK
           </a>
           <span className={styles.note}>Preview v0.1.0-demo.2 · APK</span>
         </article>
         <article className={`${styles.card} ${styles.ios}`}>
-          <div className={styles.cardIdentity}>
-            <span
-              className={`${styles.platformIcon} ${styles.appleIcon}`}
-              aria-hidden="true"
-            >
-              <Icon name="apple" />
-            </span>
-            <span className={styles.badge}>iOS Simulator preview</span>
-          </div>
+          <span className={styles.badge}>iOS Simulator preview</span>
           <h3>Explore the iOS experience.</h3>
           <p>
             For the iOS Simulator in Xcode on an Apple silicon Mac. This archive
@@ -70,22 +54,14 @@ export function Applications() {
             className={`secondary ${styles.action}`}
             href={`${download}/ursly-v0.1.0-demo.2-ios-simulator-arm64.tar.gz`}
           >
-            <Icon name="download" /> Download iOS Simulator build
+            <Icon name="apple" /> Download iOS Simulator build
           </a>
           <span className={styles.note}>
             Preview v0.1.0-demo.2 · ARM64 archive
           </span>
         </article>
         <article className={`${styles.card} ${styles.code}`}>
-          <div className={styles.cardIdentity}>
-            <span
-              className={`${styles.platformIcon} ${styles.githubIcon}`}
-              aria-hidden="true"
-            >
-              <Icon name="github" />
-            </span>
-            <span className={styles.badge}>Public repository</span>
-          </div>
+          <span className={styles.badge}>Public repository</span>
           <h3>See how it’s made.</h3>
           <p>
             Explore the source, architecture, development setup, and tests.

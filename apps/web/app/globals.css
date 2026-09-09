@@ -745,13 +745,19 @@ h3 {
 }
 .dropzone {
   display: flex;
+  position: relative;
   flex-direction: column;
   align-items: center;
   padding: 21px 14px 15px;
   border: 1px dashed var(--violet-line);
   border-radius: 13px;
   background: var(--violet-tint-alt);
+  cursor: pointer;
   text-align: center;
+}
+.dropzone:hover {
+  border-color: var(--accent);
+  background: var(--violet-tint);
 }
 .dropzone:focus-within {
   border-color: var(--accent);
@@ -774,22 +780,13 @@ h3 {
   font-size: 14px;
 }
 .dropzone input {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  min-width: 0;
-  margin-top: 12px;
-  color: var(--muted);
-  font-size: 11px;
-}
-input::file-selector-button {
-  min-height: 36px;
-  margin-right: 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--accent-border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--ink);
+  height: 100%;
+  margin: 0;
   cursor: pointer;
-  font: inherit;
+  opacity: 0;
 }
 .field {
   display: grid;

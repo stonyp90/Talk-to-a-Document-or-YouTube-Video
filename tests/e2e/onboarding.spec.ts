@@ -47,6 +47,30 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+test("guide slides advance gently and pause on demand", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", {
+      name: "Start with something worth understanding.",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Pause slides" }).click();
+  await page.clock.runFor(7000);
+  await expect(
+    page.getByRole("heading", {
+      name: "Start with something worth understanding.",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Resume slides" }).click();
+  await page.clock.runFor(6201);
+  await expect(
+    page.getByRole("heading", {
+      name: "Use your voice when the thought arrives.",
+    }),
+  ).toBeVisible();
+});
+
 test("welcome guide remains usable when browser storage is blocked", async ({
   page,
 }) => {

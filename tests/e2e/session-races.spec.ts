@@ -181,7 +181,7 @@ test.beforeEach(async ({ page }) => {
   });
   await page.goto("/");
   const skipGuide = page.getByRole("button", { name: "Skip guide" });
-  if (await skipGuide.isVisible().catch(() => false)) await skipGuide.click();
+  await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
   await ingest(page);
 });
 

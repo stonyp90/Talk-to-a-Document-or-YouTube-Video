@@ -73,7 +73,7 @@ async function open(this: World) {
   const p = await page(this);
   await p.goto(baseURL);
   const skipGuide = p.getByRole("button", { name: "Skip guide" });
-  if (await skipGuide.isVisible().catch(() => false)) await skipGuide.click();
+  await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
 }
 async function result(
   world: World,

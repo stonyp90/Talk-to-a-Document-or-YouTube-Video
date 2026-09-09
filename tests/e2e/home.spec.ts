@@ -43,7 +43,7 @@ test.describe("source conversation journey", () => {
     ).toMatchObject({ ok: true, mode: "mock", directUpload: true });
     await page.goto("/");
     const skipGuide = page.getByRole("button", { name: "Skip guide" });
-    if (await skipGuide.isVisible().catch(() => false)) await skipGuide.click();
+    await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
   });
 
   test("uploads a real PDF through object storage and previews extracted text", async ({
@@ -282,7 +282,7 @@ test("keyboard source selection and a suggested question work with a second vide
 }) => {
   await page.goto("/");
   const skipGuide = page.getByRole("button", { name: "Skip guide" });
-  if (await skipGuide.isVisible().catch(() => false)) await skipGuide.click();
+  await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
   const pdfTab = page.getByRole("tab", { name: "PDF document" });
   const youtubeTab = page.getByRole("tab", { name: "YouTube video" });
   await pdfTab.focus();

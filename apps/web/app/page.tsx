@@ -35,6 +35,7 @@ import {
 } from "@/apps/web/src/lib/api";
 
 type SourceTab = "pdf" | "youtube";
+type EntryMode = "voice" | "text" | "motion";
 
 const INGEST_DEADLINE_MS = 120000;
 const SESSION_DEADLINE_MS = 25000;
@@ -121,6 +122,9 @@ function subscribeToConnectivity(notify: () => void): () => void {
 }
 
 export default function HomePage() {
+  const [entryMode, setEntryMode] = useState<EntryMode>("voice");
+  const [motionEnabled, setMotionEnabled] = useState(false);
+  const [motionNotice, setMotionNotice] = useState("");
   const [tab, setTab] = useState<SourceTab>("pdf");
   const [file, setFile] = useState<File | undefined>();
   const [url, setUrl] = useState("");
@@ -133,7 +137,7 @@ export default function HomePage() {
   const [pendingAnswers, setPendingAnswers] = useState(0);
   const [providerMode, setProviderMode] = useState<string>("");
   const [activity, setActivity] = useState<VoiceActivity>("idle");
-  const [sourcePickerOpen, setSourcePickerOpen] = useState(true);
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
   const micSupported = useSyncExternalStore(
     NO_CHANGE,
     readMicrophoneSupport,
@@ -160,8 +164,10 @@ export default function HomePage() {
   const textRequests = useRef(new Set<AbortController>());
   const uploadRequest = useRef<AbortController | null>(null);
   const voiceActive = useRef(false);
+  const lastMotionTrigger = useRef(0);
   const sourceIdRef = useRef<string | undefined>(undefined);
   const fileInput = useRef<HTMLInputElement>(null);
+  const voicePickerInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (followMessages.current && chatLog.current)
@@ -191,6 +197,34 @@ export default function HomePage() {
     if (source) questionInput.current?.focus();
   }, [source]);
 
+  useEffect(() => {
+    if (entryMode !== "motion" || !motionEnabled) return;
+
+    function onMotion(event: DeviceMotionEvent) {
+      const acceleration = event.accelerationIncludingGravity;
+      if (!acceleration) return;
+      const magnitude = Math.sqrt(
+        (acceleration.x ?? 0) ** 2 +
+          (acceleration.y ?? 0) ** 2 +
+          (acceleration.z ?? 0) ** 2,
+      );
+      const now = Date.now();
+      if (magnitude < 18 || now - lastMotionTrigger.current < 1400) return;
+      lastMotionTrigger.current = now;
+
+      if (source) {
+        setMotionNotice("Movement detected — your question box is ready.");
+        window.requestAnimationFrame(() => questionInput.current?.focus());
+      } else {
+        setMotionNotice("Movement detected — the PDF upload control is ready.");
+        focusSourceControl("upload");
+      }
+    }
+
+    window.addEventListener("devicemotion", onMotion);
+    return () => window.removeEventListener("devicemotion", onMotion);
+  }, [entryMode, motionEnabled, source]);
+
   const invalidateVoice = useCallback(() => {
     voiceVersion.current++;
     sessionRequest.current?.abort();
@@ -206,6 +240,9 @@ export default function HomePage() {
     [file, tab, url],
   );
   const sessionLive = LIVE_STATUSES.includes(state.status);
+  const actionFirstStart = !source && !sourcePickerOpen && !busy;
+  const voiceFirstStart = entryMode === "voice" && actionFirstStart;
+  const motionFirstStart = entryMode === "motion" && actionFirstStart;
 
   /**
    * Calls an endpoint with the opaque session id, and resends the whole source
@@ -520,15 +557,66 @@ export default function HomePage() {
     });
   }
 
+  function switchEntryMode(mode: EntryMode) {
+    setEntryMode(mode);
+    setMotionEnabled(false);
+    if (mode !== "motion") setMotionNotice("");
+    setError("");
+    setSourcePickerOpen(mode === "text" || Boolean(source));
+  }
+
+  async function toggleMotion() {
+    if (motionEnabled) {
+      setMotionEnabled(false);
+      setMotionNotice("Motion beta paused.");
+      return;
+    }
+
+    if (!("DeviceMotionEvent" in window)) {
+      setMotionNotice(
+        "Motion sensing is not available in this browser. Use voice or text action.",
+      );
+      return;
+    }
+
+    try {
+      const motionEvent =
+        window.DeviceMotionEvent as typeof DeviceMotionEvent & {
+          requestPermission?: () => Promise<PermissionState>;
+        };
+      const permission = await motionEvent.requestPermission?.();
+      if (permission === "denied") {
+        setMotionNotice(
+          "Motion permission was declined. You can still use voice or text action.",
+        );
+        return;
+      }
+      setMotionEnabled(true);
+      setMotionNotice(
+        "Motion beta is ready — move your phone or motion-enabled device to trigger the next step.",
+      );
+    } catch {
+      setMotionNotice(
+        "Motion permission could not be enabled. Use voice or text action instead.",
+      );
+    }
+  }
+
   function openUploadPicker() {
     focusSourceControl("upload");
     setVoiceActionNotice(
       "Upload is ready — choose a PDF in the file picker to finish.",
     );
-    window.requestAnimationFrame(() => fileInput.current?.click());
+    voicePickerInput.current?.click();
   }
 
   const [voiceActionNotice, setVoiceActionNotice] = useState("");
+
+  useEffect(() => {
+    if (!voiceActionNotice) return;
+    const timeout = window.setTimeout(() => setVoiceActionNotice(""), 4200);
+    return () => window.clearTimeout(timeout);
+  }, [voiceActionNotice]);
 
   function handleVoiceAction(action: VoiceActionId) {
     if (action === "youtube") {
@@ -536,9 +624,13 @@ export default function HomePage() {
       setVoiceActionNotice(
         "YouTube is ready — dictate or paste a video link next.",
       );
-    } else if (action === "upload") {
+      return;
+    }
+    if (action === "upload") {
       openUploadPicker();
-    } else if (action === "voice") {
+      return;
+    }
+    if (action === "voice") {
       if (!source) {
         setVoiceActionNotice(
           "Add a PDF or YouTube source first, then say “let’s talk” again.",
@@ -546,7 +638,9 @@ export default function HomePage() {
         return;
       }
       void startVoice();
-    } else {
+      return;
+    }
+    if (action === "summarize") {
       if (!source) {
         setVoiceActionNotice(
           "Add a PDF or YouTube source first, then say “summarize this” again.",
@@ -559,11 +653,51 @@ export default function HomePage() {
         "Your summary request is ready in the question box.",
       );
       window.requestAnimationFrame(() => questionInput.current?.focus());
+      return;
     }
+    if (action === "back") {
+      if (sessionLive) stopVoice();
+      setSourcePickerOpen(true);
+      focusSourceControl(tab === "youtube" ? "youtube" : "upload");
+      setVoiceActionNotice("Going back — the source controls are ready.");
+      return;
+    }
+    if (action === "next") {
+      if (!source) {
+        focusSourceControl(tab === "youtube" ? "youtube" : "upload");
+        setVoiceActionNotice(
+          "Next step: choose a PDF or paste a YouTube link.",
+        );
+        return;
+      }
+      setVoiceActionNotice("Next step: ask your question.");
+      window.requestAnimationFrame(() => questionInput.current?.focus());
+      return;
+    }
+
+    invalidateVoice();
+    uploadRequest.current?.abort();
+    textRequests.current.forEach((request) => request.abort());
+    textRequests.current.clear();
+    setPendingAnswers(0);
+    setBusy(false);
+    setUploadProgress(undefined);
+    setError("");
+    dispatch({ type: "ENDED" });
+    setVoiceActionNotice("Cancelled — the current action has been stopped.");
   }
 
   return (
     <>
+      <input
+        ref={voicePickerInput}
+        className="voice-picker-input"
+        type="file"
+        accept="application/pdf,.pdf"
+        aria-hidden="true"
+        tabIndex={-1}
+        onChange={onFile}
+      />
       <a className="skip-link" href="#workspace">
         Skip to workspace
       </a>
@@ -583,9 +717,20 @@ export default function HomePage() {
               ursly<span className="brand-dot">.</span>
             </a>
             <span className="topbar-note">Talk to a document or a video.</span>
-            <a className="workspace-label" href="#how-it-works">
-              How it works <span aria-hidden="true">↓</span>
-            </a>
+            <div className="topbar-actions">
+              <button
+                type="button"
+                className="outline-button notification-button"
+                aria-label="Notifications"
+                title="Notifications"
+                onClick={() => setVoiceActionNotice("You’re all caught up.")}
+              >
+                <Icon name="bell" />
+              </button>
+              <a className="workspace-label" href="#how-it-works">
+                How it works <span aria-hidden="true">↓</span>
+              </a>
+            </div>
           </header>
 
           {!online && (
@@ -606,16 +751,108 @@ export default function HomePage() {
 
           <Onboarding />
 
-          <VoiceActions
-            onAction={handleVoiceAction}
-            canStartVoice={Boolean(source)}
-            voiceBusy={sessionLive || busy}
-          />
+          <div
+            className="entry-mode-switch"
+            role="tablist"
+            aria-label="Choose how to begin"
+          >
+            <span className="entry-mode-label">Begin with</span>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={entryMode === "voice"}
+              className={`entry-mode-trigger${
+                entryMode === "voice" ? " active" : ""
+              }`}
+              onClick={() => switchEntryMode("voice")}
+            >
+              <Icon name="voice" /> Voice action
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={entryMode === "text"}
+              className={`entry-mode-trigger${
+                entryMode === "text" ? " active" : ""
+              }`}
+              onClick={() => switchEntryMode("text")}
+            >
+              <Icon name="document" /> Text action
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={entryMode === "motion"}
+              className={`entry-mode-trigger${
+                entryMode === "motion" ? " active" : ""
+              }`}
+              onClick={() => switchEntryMode("motion")}
+            >
+              <Icon name="motion" /> Motion beta
+            </button>
+          </div>
+
+          {entryMode === "voice" && (
+            <VoiceActions
+              onAction={handleVoiceAction}
+              canStartVoice={Boolean(source)}
+              voiceBusy={sessionLive || busy}
+            />
+          )}
+
+          {entryMode === "motion" && (
+            <section
+              className="motion-actions-card"
+              aria-labelledby="motion-actions-heading"
+            >
+              <div className="motion-actions-copy">
+                <span className="eyebrow">Beta preview · motion actions</span>
+                <h2 id="motion-actions-heading" tabIndex={-1}>
+                  Move once. Take the next step.
+                </h2>
+                <p>
+                  Enable motion sensing, then make one deliberate movement to
+                  open the next control. This beta uses device motion only — no
+                  camera or video.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="primary motion-actions-toggle"
+                onClick={() => void toggleMotion()}
+              >
+                <Icon name="motion" />
+                {motionEnabled ? "Stop motion beta" : "Enable motion beta"}
+              </button>
+              <div
+                className="motion-actions-status"
+                data-enabled={motionEnabled}
+                role="status"
+                aria-live="polite"
+              >
+                <span className="motion-actions-pulse" aria-hidden="true" />
+                {motionNotice || "Motion beta is off until you enable it."}
+              </div>
+              <p className="hint">
+                Beta trigger: a deliberate movement reveals the PDF upload
+                control when no source is loaded, or focuses your question when
+                one is ready.
+              </p>
+            </section>
+          )}
 
           {voiceActionNotice && (
-            <p className="voice-action-notice" role="status">
+            <div className="toast" role="status" aria-live="polite">
               {voiceActionNotice}
-            </p>
+              <button
+                type="button"
+                className="toast-dismiss"
+                aria-label="Dismiss notification"
+                onClick={() => setVoiceActionNotice("")}
+              >
+                ×
+              </button>
+            </div>
           )}
 
           <div className="workspace" id="workspace" tabIndex={-1}>
@@ -625,7 +862,13 @@ export default function HomePage() {
             >
               <div className="status-row">
                 <h2 id="source-heading">
-                  {source ? "Your source" : "1. Choose a source"}
+                  {source
+                    ? "Your source"
+                    : voiceFirstStart
+                      ? "1. Start with your voice"
+                      : motionFirstStart
+                        ? "1. Move to begin"
+                        : "1. Choose a source"}
                 </h2>
                 <span
                   className="status"
@@ -636,7 +879,11 @@ export default function HomePage() {
                     ? "Extracting"
                     : source
                       ? "Source ready"
-                      : "Step 1 of 2"}
+                      : voiceFirstStart
+                        ? "Voice-first mode"
+                        : motionFirstStart
+                          ? "Motion beta"
+                          : "Step 1 of 2"}
                 </span>
               </div>
 
@@ -652,146 +899,200 @@ export default function HomePage() {
                 </div>
               )}
 
-              <details
-                className="source-picker"
-                open={source ? sourcePickerOpen : true}
-                onToggle={(event) => {
-                  if (source) setSourcePickerOpen(event.currentTarget.open);
-                }}
-              >
-                <summary>
-                  {source
-                    ? "Change source"
-                    : "Choose a PDF or a video to get started"}
-                </summary>
-                <p className="section-intro">
-                  {source
-                    ? "Adding a new source starts a new conversation."
-                    : "We’ll read it for you. Then you can ask about it."}
-                </p>
-                <div className="source-controls">
-                  <div
-                    className="tabs"
-                    data-tab={tab}
-                    role="tablist"
-                    aria-label="Source type"
-                  >
-                    {(
-                      [
-                        {
-                          id: "pdf",
-                          label: "PDF document",
-                          icon: "document",
-                        },
-                        {
-                          id: "youtube",
-                          label: "YouTube video",
-                          icon: "video",
-                        },
-                      ] as const
-                    ).map(({ id, label, icon }) => (
-                      <button
-                        key={id}
-                        className={`tab ${tab === id ? "active" : ""}`}
-                        id={`tab-${id}`}
-                        disabled={busy}
-                        aria-controls="source-panel"
-                        tabIndex={tab === id ? 0 : -1}
-                        role="tab"
-                        aria-selected={tab === id}
-                        onKeyDown={(event) => {
-                          if (
-                            ["ArrowRight", "ArrowLeft", "Home", "End"].includes(
-                              event.key,
-                            )
-                          ) {
-                            event.preventDefault();
-                            const next = id === "pdf" ? "youtube" : "pdf";
-                            setTab(next);
-                            document.getElementById(`tab-${next}`)?.focus();
-                          }
-                        }}
-                        onClick={() => {
-                          setTab(id);
-                          setError("");
-                        }}
-                      >
-                        <Icon name={icon} /> {label}
-                      </button>
-                    ))}
+              {!source && voiceFirstStart && (
+                <div className="voice-first-source">
+                  <div className="voice-first-source-copy">
+                    <span className="eyebrow">Voice-first start</span>
+                    <h3>Say “upload” or “YouTube” to bring something in.</h3>
+                    <p>
+                      Arm voice actions above, then speak a trigger. Ursly will
+                      open the right source control for you.
+                    </p>
                   </div>
-
-                  <form
-                    onSubmit={ingest}
-                    className="source-grid"
-                    id="source-panel"
-                    role="tabpanel"
-                    aria-labelledby={`tab-${tab}`}
-                    aria-busy={busy}
+                  <div className="voice-first-source-example">
+                    <span>“Upload”</span>
+                    <small>opens the PDF picker</small>
+                  </div>
+                  <button
+                    type="button"
+                    className="secondary voice-first-manual"
+                    onClick={() => {
+                      setError("");
+                      setSourcePickerOpen(true);
+                    }}
                   >
-                    {tab === "pdf" ? (
-                      <label className="dropzone full" htmlFor="pdf-file">
-                        <span className="upload-icon">
-                          <Icon name="document" />
-                        </span>
-                        <strong>
-                          {file ? file.name : "Pick a PDF up to 25 MB"}
-                        </strong>
-                        <div className="hint">
-                          {file
-                            ? `${(file.size / 1024 / 1024).toFixed(1)} MB · Ready to continue`
-                            : "Choose a text-based paper, report, or document."}
-                        </div>
-                        <input
-                          id="pdf-file"
-                          aria-label="PDF file"
-                          ref={fileInput}
-                          type="file"
-                          accept="application/pdf,.pdf"
-                          onChange={onFile}
-                          disabled={busy}
-                        />
-                      </label>
-                    ) : (
-                      <div className="field full" key="youtube">
-                        <span className="upload-icon">
-                          <Icon name="video" />
-                        </span>
-                        <label htmlFor="youtube-url">YouTube URL</label>
-                        <input
-                          id="youtube-url"
-                          value={url}
-                          onChange={(event) => setUrl(event.target.value)}
-                          placeholder="https://youtube.com/watch?v=..."
-                          inputMode="url"
-                          disabled={busy}
-                          aria-describedby="youtube-hint"
-                        />
-                        <p id="youtube-hint" className="hint">
-                          Paste a link to a captioned video. Watch pages,
-                          Shorts, share links and embeds all work.
-                        </p>
-                      </div>
-                    )}
-                    <div className="actions full">
-                      <button
-                        className="primary"
-                        disabled={!canIngest || busy}
-                        type="submit"
-                      >
-                        {busy ? (
-                          <span className="spinner" aria-hidden="true" />
-                        ) : (
-                          <Icon name="arrow" />
-                        )}
-                        {busy
-                          ? "Reading your source…"
-                          : "Continue to questions"}
-                      </button>
-                    </div>
-                  </form>
+                    Use upload instead <Icon name="arrow" />
+                  </button>
                 </div>
-              </details>
+              )}
+
+              {(source || sourcePickerOpen) && (
+                <details
+                  className="source-picker"
+                  open={source ? sourcePickerOpen : true}
+                  onToggle={(event) => {
+                    if (source) setSourcePickerOpen(event.currentTarget.open);
+                  }}
+                >
+                  <summary>
+                    {source
+                      ? "Change source"
+                      : "Choose a PDF or a video to get started"}
+                  </summary>
+                  {!source && (
+                    <button
+                      type="button"
+                      className="source-back-actions"
+                      onClick={() => {
+                        setError("");
+                        setSourcePickerOpen(false);
+                        window.requestAnimationFrame(() =>
+                          document
+                            .getElementById(
+                              entryMode === "motion"
+                                ? "motion-actions-heading"
+                                : "voice-actions-heading",
+                            )
+                            ?.focus(),
+                        );
+                      }}
+                    >
+                      <span aria-hidden="true">←</span> Back to {entryMode}{" "}
+                      actions
+                    </button>
+                  )}
+                  <p className="section-intro">
+                    {source
+                      ? "Adding a new source starts a new conversation."
+                      : "We’ll read it for you. Then you can ask about it."}
+                  </p>
+                  <div className="source-controls">
+                    <div
+                      className="tabs"
+                      data-tab={tab}
+                      role="tablist"
+                      aria-label="Source type"
+                    >
+                      {(
+                        [
+                          {
+                            id: "pdf",
+                            label: "PDF document",
+                            icon: "document",
+                          },
+                          {
+                            id: "youtube",
+                            label: "YouTube video",
+                            icon: "video",
+                          },
+                        ] as const
+                      ).map(({ id, label, icon }) => (
+                        <button
+                          key={id}
+                          className={`tab ${tab === id ? "active" : ""}`}
+                          id={`tab-${id}`}
+                          disabled={busy}
+                          aria-controls="source-panel"
+                          tabIndex={tab === id ? 0 : -1}
+                          role="tab"
+                          aria-selected={tab === id}
+                          onKeyDown={(event) => {
+                            if (
+                              [
+                                "ArrowRight",
+                                "ArrowLeft",
+                                "Home",
+                                "End",
+                              ].includes(event.key)
+                            ) {
+                              event.preventDefault();
+                              const next = id === "pdf" ? "youtube" : "pdf";
+                              setTab(next);
+                              document.getElementById(`tab-${next}`)?.focus();
+                            }
+                          }}
+                          onClick={() => {
+                            setTab(id);
+                            setError("");
+                          }}
+                        >
+                          <Icon name={icon} /> {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <form
+                      onSubmit={ingest}
+                      className="source-grid"
+                      id="source-panel"
+                      role="tabpanel"
+                      aria-labelledby={`tab-${tab}`}
+                      aria-busy={busy}
+                    >
+                      {tab === "pdf" ? (
+                        <label className="dropzone full" htmlFor="pdf-file">
+                          <span className="upload-icon">
+                            <Icon name="document" />
+                          </span>
+                          <strong>
+                            {file ? file.name : "Pick a PDF up to 25 MB"}
+                          </strong>
+                          <div className="hint">
+                            {file
+                              ? `${(file.size / 1024 / 1024).toFixed(1)} MB · Ready to continue`
+                              : "Choose a text-based paper, report, or document."}
+                          </div>
+                          <input
+                            id="pdf-file"
+                            aria-label="PDF file"
+                            ref={fileInput}
+                            type="file"
+                            accept="application/pdf,.pdf"
+                            onChange={onFile}
+                            disabled={busy}
+                          />
+                        </label>
+                      ) : (
+                        <div className="field full" key="youtube">
+                          <span className="upload-icon">
+                            <Icon name="video" />
+                          </span>
+                          <label htmlFor="youtube-url">YouTube URL</label>
+                          <input
+                            id="youtube-url"
+                            value={url}
+                            onChange={(event) => setUrl(event.target.value)}
+                            placeholder="https://youtube.com/watch?v=..."
+                            inputMode="url"
+                            disabled={busy}
+                            aria-describedby="youtube-hint"
+                          />
+                          <p id="youtube-hint" className="hint">
+                            Paste a link to a captioned video. Watch pages,
+                            Shorts, share links and embeds all work.
+                          </p>
+                        </div>
+                      )}
+                      <div className="actions full">
+                        <button
+                          className="primary"
+                          disabled={!canIngest || busy}
+                          type="submit"
+                        >
+                          {busy ? (
+                            <span className="spinner" aria-hidden="true" />
+                          ) : (
+                            <Icon name="arrow" />
+                          )}
+                          {busy
+                            ? "Reading your source…"
+                            : "Continue to questions"}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </details>
+              )}
 
               {uploadProgress !== undefined && (
                 <div className="progress" role="status">
@@ -892,6 +1193,7 @@ export default function HomePage() {
                 <div className="voice-controls actions">
                   <button
                     className="primary voice-start"
+                    hidden={!source}
                     disabled={!source || sessionLive || !online}
                     onClick={startVoice}
                     type="button"
@@ -918,7 +1220,7 @@ export default function HomePage() {
                     Stop
                   </button>
                 </div>
-                <p className="hint voice-hint" role="status">
+                <p className="hint voice-hint" aria-live="polite">
                   {!micSupported
                     ? "This browser will not share a microphone here, so voice is unavailable. Type your question below instead."
                     : sessionLive
@@ -1024,6 +1326,7 @@ export default function HomePage() {
                 <input
                   id="question"
                   aria-label="Ask a question"
+                  hidden={!source}
                   ref={questionInput}
                   value={question}
                   onChange={(event) => setQuestion(event.target.value)}

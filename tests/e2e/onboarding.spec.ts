@@ -17,6 +17,8 @@ for (const width of [320, 390, 1440]) {
     await expect(
       page.getByLabel("Ask a question", { exact: true }),
     ).toBeDisabled();
+    await page.waitForTimeout(400);
+    await page.getByRole("button", { name: "Pause slides" }).click();
     await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect(
       page.getByRole("heading", {
@@ -31,6 +33,11 @@ for (const width of [320, 390, 1440]) {
     ).toBeFocused();
     await page.getByRole("button", { name: "Continue", exact: true }).click();
     await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Say it once. Take the next step." }),
+    ).toBeFocused();
+    await expect(page.getByLabel("Voice to action preview")).toBeVisible();
     await page.getByRole("button", { name: "Open Ursly" }).click();
     await expect(page.locator("#workspace")).toBeFocused();
     await page.reload();
@@ -69,6 +76,14 @@ test("guide slides advance gently and pause on demand", async ({ page }) => {
       name: "Use your voice when the thought arrives.",
     }),
   ).toBeVisible();
+  await page.clock.runFor(6200);
+  await expect(
+    page.getByRole("heading", { name: "Turn information into your next aha." }),
+  ).toBeVisible();
+  await page.clock.runFor(6200);
+  await expect(
+    page.getByRole("heading", { name: "Say it once. Take the next step." }),
+  ).toBeVisible();
 });
 
 test("guide hands off to the workspace after the final slide", async ({
@@ -81,7 +96,10 @@ test("guide hands off to the workspace after the final slide", async ({
       name: "Start with something worth understanding.",
     }),
   ).toBeVisible();
-  await page.clock.runFor(12_401);
+  await page.clock.runFor(6_201);
+  await page.clock.runFor(6_201);
+  await page.clock.runFor(6_201);
+  await page.clock.runFor(6_201);
   await expect(page.locator("#welcome-guide")).toHaveCount(0);
   await expect(page.locator("#workspace")).toBeFocused();
 });

@@ -108,9 +108,43 @@ const examples: Array<{
 function normalize(text: string): string {
   return text
     .toLocaleLowerCase()
+    .replace(/[-–—]/g, "")
     .replace(/[^\p{L}\p{N}\s']/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function escaped(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function findMatches(
+  transcript: string,
+  available: VoiceTrigger[],
+): VoiceTrigger[] {
+  const spoken = normalize(transcript);
+  return available
+    .map((trigger, index) => {
+      const phrase = normalize(trigger.phrase);
+      if (!phrase) return null;
+      const match = spoken.match(
+        new RegExp(`(?:^|\\s)${escaped(phrase)}(?=$|\\s)`),
+      );
+      return match
+        ? { trigger, index, position: match.index ?? Number.MAX_SAFE_INTEGER }
+        : null;
+    })
+    .filter(
+      (
+        item,
+      ): item is { trigger: VoiceTrigger; index: number; position: number } =>
+        item !== null,
+    )
+    .sort(
+      (left, right) =>
+        left.position - right.position || left.index - right.index,
+    )
+    .map(({ trigger }) => trigger);
 }
 
 function readSavedTriggers(): VoiceTrigger[] {
@@ -166,7 +200,7 @@ export function VoiceActions({
   const recognition = useRef<SpeechRecognitionInstance | null>(null);
   const armedRef = useRef(false);
   const triggersRef = useRef(triggers);
-  const lastTrigger = useRef("");
+  const handledTriggers = useRef(new Set<string>());
   const onActionRef = useRef(onAction);
 
   useEffect(() => {
@@ -177,12 +211,13 @@ export function VoiceActions({
     triggersRef.current = triggers;
   }, [triggers]);
 
-  function speak(reply: string) {
+  function speak(reply: string, onDone?: () => void) {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     if (typeof SpeechSynthesisUtterance === "undefined") return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(reply);
     utterance.lang = navigator.language || "en-US";
+    utterance.onend = onDone ?? null;
     window.speechSynthesis.speak(utterance);
   }
 
@@ -216,21 +251,31 @@ export function VoiceActions({
   }, [voiceBusy]);
 
   function runAction(trigger: VoiceTrigger, transcript = trigger.phrase) {
-    const key = `${trigger.id}:${normalize(transcript)}`;
-    if (lastTrigger.current === key) return;
-    lastTrigger.current = key;
-    window.setTimeout(() => {
-      if (lastTrigger.current === key) lastTrigger.current = "";
-    }, 1400);
+    const continueListening =
+      armedRef.current &&
+      !["upload", "voice", "cancel"].includes(trigger.action);
+    if (continueListening) {
+      armedRef.current = false;
+      recognition.current?.stop();
+      recognition.current = null;
+      setArmed(false);
+    } else if (
+      armedRef.current &&
+      ["upload", "voice", "cancel"].includes(trigger.action)
+    ) {
+      stopListening();
+    }
     setNotice(
       `Triggered “${trigger.phrase}” · ${actionLabels[trigger.action]}.`,
     );
-    speak(actionReplies[trigger.action]);
+    speak(
+      actionReplies[trigger.action],
+      continueListening ? startListening : undefined,
+    );
     onActionRef.current(trigger.action);
   }
 
   function runExample(example: (typeof examples)[number]) {
-    lastTrigger.current = "";
     runAction(
       {
         id: `example-${example.action}`,
@@ -316,6 +361,7 @@ export function VoiceActions({
     instance.interimResults = true;
     instance.lang = navigator.language || "en-US";
     instance.onstart = () => {
+      handledTriggers.current.clear();
       setArmed(true);
       setNotice(
         `Listening for ${triggersRef.current.map((item) => `“${item.phrase}”`).join(", ")}.`,
@@ -331,11 +377,12 @@ export function VoiceActions({
         .trim();
       if (!transcript) return;
       setHeard(transcript);
-      const spoken = normalize(transcript);
-      const match = triggersRef.current.find((item) =>
-        spoken.includes(normalize(item.phrase)),
-      );
-      if (match) runAction(match, transcript);
+      for (const match of findMatches(transcript, triggersRef.current)) {
+        if (handledTriggers.current.has(match.id)) continue;
+        handledTriggers.current.add(match.id);
+        runAction(match, transcript);
+        if (!armedRef.current) break;
+      }
     };
     instance.onerror = () => {
       if (armedRef.current) {
@@ -382,10 +429,12 @@ export function VoiceActions({
       <div className="voice-actions-heading">
         <div>
           <span className="eyebrow">Demo preview · voice actions</span>
-          <h2 id="voice-actions-heading">Say a word. Take the next step.</h2>
+          <h2 id="voice-actions-heading" tabIndex={-1}>
+            Say a word. Take the next step.
+          </h2>
           <p>
-            Create a spoken trigger for an app action. Try an example below, or
-            arm the listener and say your own phrase.
+            Create a spoken trigger for an app action. Say that word anywhere in
+            a sentence and Ursly acts as soon as it hears it.
           </p>
         </div>
         <button
@@ -503,31 +552,33 @@ export function VoiceActions({
                   <span className="saved-trigger-action">
                     {actionLabels[trigger.action]}
                   </span>
-                  <button
-                    type="button"
-                    className="saved-trigger-remove"
-                    aria-label={`Edit trigger ${trigger.phrase}`}
-                    onClick={() => {
-                      setPhrase(trigger.phrase);
-                      setAction(trigger.action);
-                      setEditingId(trigger.id);
-                      setOpen(true);
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="saved-trigger-remove"
-                    aria-label={`Remove trigger ${trigger.phrase}`}
-                    onClick={() =>
-                      setTriggers((current) =>
-                        current.filter((item) => item.id !== trigger.id),
-                      )
-                    }
-                  >
-                    Remove
-                  </button>
+                  <div className="saved-trigger-actions">
+                    <button
+                      type="button"
+                      className="saved-trigger-remove"
+                      aria-label={`Edit trigger ${trigger.phrase}`}
+                      onClick={() => {
+                        setPhrase(trigger.phrase);
+                        setAction(trigger.action);
+                        setEditingId(trigger.id);
+                        setOpen(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="saved-trigger-remove"
+                      aria-label={`Remove trigger ${trigger.phrase}`}
+                      onClick={() =>
+                        setTriggers((current) =>
+                          current.filter((item) => item.id !== trigger.id),
+                        )
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               ))
             )}

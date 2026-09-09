@@ -162,11 +162,11 @@ export function MobileOnboarding({ motion, t }: Props) {
         >
           <View style={s.artFrame}>
             {step === 0 ? (
-              <SourceArt />
+              <SourceArt t={t} />
             ) : step === 1 ? (
-              <VoiceArt motion={motion} />
+              <VoiceArt motion={motion} t={t} />
             ) : (
-              <ChatArt />
+              <ChatArt t={t} />
             )}
           </View>
           <View style={s.copy}>
@@ -250,7 +250,7 @@ export function MobileOnboarding({ motion, t }: Props) {
   );
 }
 
-function SourceArt() {
+function SourceArt({ t }: Pick<Props, "t">) {
   return (
     <View accessible={false} style={art.sourceArt}>
       <View style={[art.card, art.pdfCard]}>
@@ -258,7 +258,7 @@ function SourceArt() {
           <View style={art.iconTile}>
             <SourceIcon kind="pdf" />
           </View>
-          <Text style={art.cardLabel}>PDF</Text>
+          <Text style={art.cardLabel}>{t("PDF")}</Text>
         </View>
         <View style={art.lines}>
           <View style={art.line} />
@@ -270,17 +270,17 @@ function SourceArt() {
         <View style={art.iconTile}>
           <SourceIcon kind="youtube" />
         </View>
-        <Text style={art.videoLabel}>VIDEO</Text>
+        <Text style={art.videoLabel}>{t("VIDEO")}</Text>
       </View>
       <View style={art.sourcePill}>
         <View style={art.pillDot} />
-        <Text style={art.pillText}>SOURCE READY</Text>
+        <Text style={art.pillText}>{t("SOURCE READY")}</Text>
       </View>
     </View>
   );
 }
 
-function VoiceArt({ motion }: { motion: boolean }) {
+function VoiceArt({ motion, t }: { motion: boolean } & Pick<Props, "t">) {
   return (
     <View accessible={false} style={art.voiceArt}>
       <View style={art.voiceRings}>
@@ -290,19 +290,19 @@ function VoiceArt({ motion }: { motion: boolean }) {
           <Wave motion={motion} color={c.ink} large />
         </View>
       </View>
-      <Text style={art.voiceCaption}>LISTENING</Text>
+      <Text style={art.voiceCaption}>{t("LISTENING")}</Text>
       <View style={art.captionPill}>
-        <Text style={art.captionText}>“Ask it in your own words.”</Text>
+        <Text style={art.captionText}>{t("Ask it in your own words.")}</Text>
       </View>
     </View>
   );
 }
 
-function ChatArt() {
+function ChatArt({ t }: Pick<Props, "t">) {
   return (
     <View accessible={false} style={art.chatArt}>
       <View style={[art.bubble, art.questionBubble]}>
-        <Text style={art.bubbleText}>What should I remember?</Text>
+        <Text style={art.bubbleText}>{t("What should I remember?")}</Text>
       </View>
       <View style={[art.bubble, art.answerBubble]}>
         <View style={art.answerMark}>

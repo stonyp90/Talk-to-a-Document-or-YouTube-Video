@@ -36,6 +36,12 @@
   height: 16px;
   color: var(--accent);
 }
+.releaseLink :global(.brand-icon) {
+  width: 17px;
+  height: 17px;
+  color: var(--accent);
+  fill: currentColor;
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -45,6 +51,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  width: 100%;
   border: 1px solid var(--accent-border-wash);
   background: var(--accent-wash-soft);
   border-radius: 24px;
@@ -93,6 +100,13 @@
   margin-right: 8px;
   flex: 0 0 auto;
 }
+.action :global(.brand-icon) {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  flex: 0 0 auto;
+  fill: currentColor;
+}
 .action :global(.icon-github) {
   margin-right: 7px;
 }
@@ -133,7 +147,7 @@
     padding: 24px;
   }
   .action {
-    width: auto;
+    width: 100%;
     gap: 16px;
   }
 }

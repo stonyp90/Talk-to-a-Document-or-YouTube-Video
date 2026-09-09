@@ -3,11 +3,13 @@ export type IconName =
   | "video"
   | "arrow"
   | "voice"
+  | "motion"
   | "android"
   | "apple"
   | "github"
   | "download"
-  | "external";
+  | "external"
+  | "bell";
 
 const PATHS: Record<IconName, string[]> = {
   document: [
@@ -19,6 +21,12 @@ const PATHS: Record<IconName, string[]> = {
   ],
   arrow: ["M5 12h14M13 6l6 6-6 6"],
   voice: ["M4 10v4", "M8 6v12", "M12 3v18", "M16 6v12", "M20 10v4"],
+  motion: [
+    "M8 21V10.5a1.5 1.5 0 0 1 3 0V14",
+    "M11 12V6a1.5 1.5 0 0 1 3 0v7",
+    "M14 11V8a1.5 1.5 0 0 1 3 0v5",
+    "M17 12v-1a1.5 1.5 0 0 1 3 0v4c0 4-2.5 6-6 6h-2.5a4 4 0 0 1-3.5-2l-2.5-4",
+  ],
   android: [
     "M7 9h10v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9Z",
     "M5 11v5M19 11v5M9 6 7.5 3.5M15 6l1.5-2.5",
@@ -37,6 +45,7 @@ const PATHS: Record<IconName, string[]> = {
     "M20 4 11 13",
     "M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5",
   ],
+  bell: ["M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9", "M10 21h4"],
 };
 
 export function Icon({ name }: { name: IconName }) {

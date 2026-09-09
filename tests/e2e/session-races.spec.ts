@@ -38,7 +38,9 @@ const stop = (page: Page) =>
   page.getByRole("button", { name: "Stop", exact: true });
 
 async function ingest(page: Page, id = "dQw4w9WgXcQ") {
-  if (await page.locator(".source-picker:not([open])").count())
+  if (await page.getByRole("button", { name: "Use upload instead" }).count())
+    await page.getByRole("button", { name: "Use upload instead" }).click();
+  else if (await page.locator(".source-picker:not([open])").count())
     await page.getByText("Change source", { exact: true }).click();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill(`https://youtu.be/${id}`);

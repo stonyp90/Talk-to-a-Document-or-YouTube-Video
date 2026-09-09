@@ -20,6 +20,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
   const skipGuide = page.getByRole("button", { name: "Skip guide" });
   await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
+  await page.getByRole("button", { name: "Use upload instead" }).click();
   await page.getByLabel("PDF file").setInputFiles({
     name: "transport.pdf",
     mimeType: "application/pdf",

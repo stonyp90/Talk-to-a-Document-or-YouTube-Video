@@ -19,7 +19,7 @@ CI=1 npx --no-install expo prebuild --no-install --platform ios
 cd ios
 pod install --silent
 printf 'Compiling; detailed output: %s/build.log\n' "$build_dir"
-if ! xcodebuild -jobs 2 -workspace TalktoaSource.xcworkspace -scheme TalktoaSource \
+if ! xcodebuild -jobs 2 -workspace Ursly.xcworkspace -scheme Ursly \
   -configuration Release -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
   -derivedDataPath "$build_dir/DerivedData" CODE_SIGNING_ALLOWED=NO build \
@@ -27,5 +27,5 @@ if ! xcodebuild -jobs 2 -workspace TalktoaSource.xcworkspace -scheme TalktoaSour
   tail -80 "$build_dir/build.log"
   exit 1
 fi
-printf 'Built app: %s/DerivedData/Build/Products/Release-iphonesimulator/TalktoaSource.app\n' "$build_dir"
+printf 'Built app: %s/DerivedData/Build/Products/Release-iphonesimulator/Ursly.app\n' "$build_dir"
 printf '%s\n' 'Temporary build retained for inspection and simulator installation; no repository files were moved.'

@@ -63,7 +63,7 @@ describe("ingestion domain", () => {
   it("rejects unrelated URLs", () => {
     expect(() =>
       parseYouTubeVideoId("https://example.com/watch?v=dQw4w9WgXcQ"),
-    ).toThrowError("Enter a valid YouTube link");
+    ).toThrowError("Enter a valid YouTube URL");
   });
 
   it("normalizes extracted text without changing content meaning", () => {

@@ -24,12 +24,12 @@ docker compose --env-file .env.local --profile dev up --build dev
 
 Open **[localhost:3000](http://localhost:3000)**. The defaults run in `mock` mode, which needs no OpenAI key, no AWS account and no network: PDF extraction is real, and provider replies are deterministic stand-ins.
 
-| Service | Address |
-| --- | --- |
-| Web and API | [localhost:3000](http://localhost:3000) |
-| API health | [localhost:3000/api/health](http://localhost:3000/api/health) |
-| OpenAPI document | [localhost:3000/api/openapi](http://localhost:3000/api/openapi) |
-| Caption service health | [localhost:3010/health](http://localhost:3010/health) |
+| Service                | Address                                                           |
+| ---------------------- | ----------------------------------------------------------------- |
+| Web and API            | [localhost:3000](http://localhost:3000)                           |
+| API health             | [localhost:3000/api/health](http://localhost:3000/api/health)     |
+| OpenAPI document       | [localhost:3000/api/openapi](http://localhost:3000/api/openapi)   |
+| Caption service health | [localhost:3010/health](http://localhost:3010/health)             |
 | Object storage (MinIO) | `http://localhost:9002`, console on [9003](http://localhost:9003) |
 
 ### Turn on real voice and real captions
@@ -50,18 +50,18 @@ Full environment reference: [`.env.example`](.env.example) and [service setup](S
 
 ## How each requirement is met
 
-| Requirement | Where it lives |
-| --- | --- |
-| PDF up to 25 MB, extracted server-side | [`packages/adapters/src/ingestion.ts`](packages/adapters/src/ingestion.ts) using `pdf-parse`; size and signature checks in [`packages/core/src/domain/ingestion.ts`](packages/core/src/domain/ingestion.ts) |
-| YouTube captions, fetched server-side | [`services/transcript/app.py`](services/transcript/app.py), reached through [`packages/adapters/src/providers.ts`](packages/adapters/src/providers.ts) |
-| Extracted text shown in a preview | “View source text” disclosure in [`apps/web/app/page.tsx`](apps/web/app/page.tsx) |
-| Text primes the Realtime session | [`buildContextInstructions`](packages/core/src/domain/ingestion.ts) with windowing in [`packages/core/src/domain/context.ts`](packages/core/src/domain/context.ts) |
-| “Start Voice Chat” over WebRTC | [`apps/web/src/lib/realtimeClient.ts`](apps/web/src/lib/realtimeClient.ts) |
-| Ephemeral tokens from the backend | [`apps/web/app/api/realtime/session/route.ts`](apps/web/app/api/realtime/session/route.ts) → [`packages/adapters/src/openai.ts`](packages/adapters/src/openai.ts) |
-| Live transcript of the conversation | Realtime transcription events reduced in [`packages/core/src/domain/conversation.ts`](packages/core/src/domain/conversation.ts) |
-| Text fallback without a microphone | [`apps/web/app/api/text-chat/route.ts`](apps/web/app/api/text-chat/route.ts); the composer is never disabled |
-| Mobile-first at ~390 px, start/stop/mute, visible status | [`apps/web/app/globals.css`](apps/web/app/globals.css); controls sit in the open above the transcript |
-| API key never in the client | Key read only in [`packages/adapters/src/secrets.ts`](packages/adapters/src/secrets.ts); CI builds with canary secrets and greps the emitted client bundle ([`infrastructure/scripts/check-client-secrets.mjs`](infrastructure/scripts/check-client-secrets.mjs)) |
+| Requirement                                              | Where it lives                                                                                                                                                                                                                                                    |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PDF up to 25 MB, extracted server-side                   | [`packages/adapters/src/ingestion.ts`](packages/adapters/src/ingestion.ts) using `pdf-parse`; size and signature checks in [`packages/core/src/domain/ingestion.ts`](packages/core/src/domain/ingestion.ts)                                                       |
+| YouTube captions, fetched server-side                    | [`services/transcript/app.py`](services/transcript/app.py), reached through [`packages/adapters/src/providers.ts`](packages/adapters/src/providers.ts)                                                                                                            |
+| Extracted text shown in a preview                        | “View source text” disclosure in [`apps/web/app/page.tsx`](apps/web/app/page.tsx)                                                                                                                                                                                 |
+| Text primes the Realtime session                         | [`buildContextInstructions`](packages/core/src/domain/ingestion.ts) with windowing in [`packages/core/src/domain/context.ts`](packages/core/src/domain/context.ts)                                                                                                |
+| “Start Voice Chat” over WebRTC                           | [`apps/web/src/lib/realtimeClient.ts`](apps/web/src/lib/realtimeClient.ts)                                                                                                                                                                                        |
+| Ephemeral tokens from the backend                        | [`apps/web/app/api/realtime/session/route.ts`](apps/web/app/api/realtime/session/route.ts) → [`packages/adapters/src/openai.ts`](packages/adapters/src/openai.ts)                                                                                                 |
+| Live transcript of the conversation                      | Realtime transcription events reduced in [`packages/core/src/domain/conversation.ts`](packages/core/src/domain/conversation.ts)                                                                                                                                   |
+| Text fallback without a microphone                       | [`apps/web/app/api/text-chat/route.ts`](apps/web/app/api/text-chat/route.ts); the composer is never disabled                                                                                                                                                      |
+| Mobile-first at ~390 px, start/stop/mute, visible status | [`apps/web/app/globals.css`](apps/web/app/globals.css); controls sit in the open above the transcript                                                                                                                                                             |
+| API key never in the client                              | Key read only in [`packages/adapters/src/secrets.ts`](packages/adapters/src/secrets.ts); CI builds with canary secrets and greps the emitted client bundle ([`infrastructure/scripts/check-client-secrets.mjs`](infrastructure/scripts/check-client-secrets.mjs)) |
 
 ---
 
@@ -152,14 +152,14 @@ Mobile: `npm run typecheck --prefix apps/mobile && npm test --prefix apps/mobile
 
 ## Troubleshooting
 
-| Problem | Check |
-| --- | --- |
-| Port 3000 already in use | Stop the previous `web` or `dev` service; they share the port. |
-| No sound in mock mode | Mock mode has no real audio. Set `PROVIDER_MODE=live` and a key. |
-| Microphone unavailable | Voice needs HTTPS or `localhost`, plus browser permission. The interface says so and keeps typing available. |
-| YouTube captions unavailable | Try a captioned video, check `TRANSCRIPT_MODE`, and read the section above. |
-| Scanned PDF rejected | It has no text layer. OCR is not implemented. |
-| Environment change ignored | Restart Compose; rebuild for mobile public variables. |
+| Problem                      | Check                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Port 3000 already in use     | Stop the previous `web` or `dev` service; they share the port.                                               |
+| No sound in mock mode        | Mock mode has no real audio. Set `PROVIDER_MODE=live` and a key.                                             |
+| Microphone unavailable       | Voice needs HTTPS or `localhost`, plus browser permission. The interface says so and keeps typing available. |
+| YouTube captions unavailable | Try a captioned video, check `TRANSCRIPT_MODE`, and read the section above.                                  |
+| Scanned PDF rejected         | It has no text layer. OCR is not implemented.                                                                |
+| Environment change ignored   | Restart Compose; rebuild for mobile public variables.                                                        |
 
 ```bash
 docker compose --env-file .env.local ps
@@ -170,11 +170,9 @@ docker compose --env-file .env.local logs --tail=100 dev transcript
 
 ## Further reading
 
-- [Architecture](ARCHITECTURE.md) · [Terraform setup](infrastructure/terraform/README.md) · [Deployment](DEPLOYMENT.md) · [Service setup](SERVICE-SETUP.md)
-- [Requirements audit](REQUIREMENTS-AUDIT.md) · [Security review](SECURITY-REVIEW.md) · [Demo readiness](DEMO-READINESS.md)
-- [Walkthrough script](WALKTHROUGH.md) · [Recording status](docs/demo/RECORDING-STATUS.md)
-- [Native client](apps/mobile/README.md) · [Expo EAS builds](apps/mobile/EAS.md) · [Brand](BRAND.md)
+- [Architecture](ARCHITECTURE.md) · [Terraform setup](infrastructure/terraform/README.md) · [Service setup](SERVICE-SETUP.md)
+- [Walkthrough script](WALKTHROUGH.md) · [Native client](apps/mobile/README.md) · [Expo EAS builds](apps/mobile/EAS.md)
 
 ## AI-assisted development
 
-AI tooling (Claude Code and ChatGPT) was used throughout: decomposing the brief into executable Gherkin, designing the hexagonal boundaries, writing implementation and tests, debugging the Realtime event stream, and reviewing for security and requirement drift. Every claim of verified behaviour in this repository comes from a command that was actually run; the verification reports state plainly what remains unverified.
+AI tooling (Claude Code and ChatGPT) was used throughout: decomposing the brief into executable Gherkin, designing the hexagonal boundaries, writing implementation and tests, debugging the Realtime event stream, and reviewing for security and requirement drift. Claims about behaviour are backed by executable tests or clearly labelled operational notes.

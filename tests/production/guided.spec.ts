@@ -32,7 +32,9 @@ test("real PDF upload, grounded answer, source preview and replacement", async (
   await page.goto("/");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Open Ursly" }).click();
+  await page.getByRole("button", { name: "Use upload instead" }).click();
   await upload(page);
   await expect(
     page.locator('.progress-steps [aria-current="step"]'),
@@ -65,6 +67,7 @@ test("real PDF upload, grounded answer, source preview and replacement", async (
 test("invalid source has an understandable recovery path", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Skip guide" }).click();
+  await page.getByRole("button", { name: "Use upload instead" }).click();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://example.com/not-a-video");
   await page.getByRole("button", { name: "Continue to questions" }).click();
@@ -89,6 +92,7 @@ test("real voice transport connects, answers typed input, mutes and stops", asyn
   );
   await page.goto("/");
   await page.getByRole("button", { name: "Skip guide" }).click();
+  await page.getByRole("button", { name: "Use upload instead" }).click();
   await upload(page);
   await page.getByRole("button", { name: "Start Voice Chat" }).click();
   await expect(page.locator(".conversation-card .status")).toHaveText(

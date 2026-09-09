@@ -21,6 +21,12 @@ const steps = [
     text: "Ask a follow-up, challenge an idea, or ask for a simpler explanation. Every answer stays grounded in the source you brought.",
     note: "Ask · follow up · understand",
   },
+  {
+    label: "Voice to action",
+    title: "Say it once. Take the next step.",
+    text: "Voice to action turns a simple phrase into the next useful move: open a PDF picker, switch to YouTube, prepare a summary, or start voice chat.",
+    note: "Hands-free shortcuts · always in your control",
+  },
 ];
 const storageKey = "ursly-welcome-v2";
 
@@ -90,7 +96,7 @@ export function Onboarding() {
         <span>
           <strong>Get oriented</strong>
           <span className="onboarding-bar-detail">
-            3 short steps · about 30 seconds
+            4 short steps · about 25 seconds
           </span>
         </span>
         <button
@@ -121,7 +127,13 @@ export function Onboarding() {
             if (event.key === "Escape") close();
           }}
         >
-          <div className="welcome-copy" aria-live="polite">
+          <div
+            className={`welcome-copy${
+              step === steps.length - 1 ? " welcome-copy-feature" : ""
+            }`}
+            aria-live="polite"
+            key={steps[step].label}
+          >
             <span className="eyebrow">
               <span className="tiny-line" /> Step {step + 1} ·{" "}
               {steps[step].label}
@@ -134,6 +146,27 @@ export function Onboarding() {
               <span aria-hidden="true">✦</span>
               {steps[step].note}
             </div>
+            {step === steps.length - 1 && (
+              <div
+                className="welcome-feature-preview"
+                aria-label="Voice to action preview"
+              >
+                <div className="welcome-feature-command">
+                  <span className="welcome-feature-wave" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span>“Add a PDF”</span>
+                </div>
+                <span className="welcome-feature-arrow" aria-hidden="true">
+                  →
+                </span>
+                <div className="welcome-feature-result">
+                  <span aria-hidden="true" /> PDF picker ready
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="welcome-guide-footer">

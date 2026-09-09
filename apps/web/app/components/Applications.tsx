@@ -1,5 +1,5 @@
 import styles from "./Applications.module.css";
-import { Icon } from "./Icon";
+import { BrandIcon } from "./BrandIcon";
 
 const repository =
   "https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video";
@@ -16,14 +16,14 @@ export function Applications() {
       <div className={styles.heading}>
         <div>
           <span className="eyebrow">Applications</span>
-          <h2 id="applications-heading">Your next “aha”, wherever you are.</h2>
+          <h2 id="applications-heading">Your next insight, wherever you go.</h2>
           <p>
             Try Ursly on Android, explore the iOS Simulator build, or look
             inside the code.
           </p>
         </div>
         <a className={styles.releaseLink} href={release}>
-          <Icon name="external" />
+          <BrandIcon name="github" />
           Release notes & installation
         </a>
       </div>
@@ -39,7 +39,7 @@ export function Applications() {
             className={`primary ${styles.action}`}
             href={`${download}/ursly-v0.1.0-demo.2-android.apk`}
           >
-            <Icon name="android" /> Download Android APK
+            <BrandIcon name="android" /> Download Android APK
           </a>
           <span className={styles.note}>Preview v0.1.0-demo.2 · APK</span>
         </article>
@@ -54,7 +54,7 @@ export function Applications() {
             className={`secondary ${styles.action}`}
             href={`${download}/ursly-v0.1.0-demo.2-ios-simulator-arm64.tar.gz`}
           >
-            <Icon name="apple" /> Download iOS Simulator build
+            <BrandIcon name="apple" /> Download iOS Simulator build
           </a>
           <span className={styles.note}>
             Preview v0.1.0-demo.2 · ARM64 archive
@@ -68,7 +68,7 @@ export function Applications() {
             Contributions and thoughtful feedback are welcome.
           </p>
           <a className={`secondary ${styles.action}`} href={repository}>
-            <Icon name="github" /> View on GitHub
+            <BrandIcon name="github" /> View on GitHub
           </a>
           <span className={styles.note}>Next.js · Expo · TypeScript</span>
         </article>

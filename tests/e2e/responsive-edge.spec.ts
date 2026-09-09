@@ -25,6 +25,7 @@ test("long source names and unbroken chat text stay inside a mobile viewport", a
   await page.goto(process.env.E2E_BASE_URL ?? "http://localhost:3000");
   const skipGuide = page.getByRole("button", { name: "Skip guide" });
   await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
+  await page.getByRole("button", { name: "Use upload instead" }).click();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
   await page.getByRole("button", { name: "Continue to questions" }).click();
@@ -49,6 +50,7 @@ for (const width of [320, 390, 768, 1440]) {
     await page.goto("/");
     const skipGuide = page.getByRole("button", { name: "Skip guide" });
     await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
+    await page.getByRole("button", { name: "Use upload instead" }).click();
     await expect(page.locator("#workspace")).toBeVisible();
     await page.getByRole("tab", { name: "PDF document" }).focus();
     await page.keyboard.press("ArrowRight");

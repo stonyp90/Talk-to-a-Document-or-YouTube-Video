@@ -7,6 +7,7 @@ test("reduced motion keeps source tabs usable without animation", async ({
   await page.goto("/");
   const skipGuide = page.getByRole("button", { name: "Skip guide" });
   await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
+  await page.getByRole("button", { name: "Use upload instead" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await expect(page.getByLabel("YouTube URL")).toBeVisible();

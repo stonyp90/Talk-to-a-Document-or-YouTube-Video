@@ -77,14 +77,16 @@ const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 export function parseYouTubeVideoId(rawUrl: string): string {
   const invalid = () =>
     new InputValidationError(
-      "Enter a valid YouTube link, for example https://www.youtube.com/watch?v=VIDEOID",
+      "Enter a valid YouTube URL, for example https://www.youtube.com/watch?v=VIDEOID",
       "INVALID_YOUTUBE_URL",
     );
 
   const trimmed = rawUrl.trim();
   let url: URL;
   try {
-    url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    url = new URL(
+      /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`,
+    );
   } catch {
     throw invalid();
   }

@@ -78,6 +78,8 @@ Voice actions also use the native `expo-speech-recognition` module, so rebuild
 the development client after adding or changing the speech-recognition plugin.
 The home-screen voice-action card can listen for saved phrases such as
 “YouTube”, “Upload”, “Let’s talk”, and “Summarize this”.
+Back, Next, and Cancel are enabled by default, can be renamed or remapped in
+the trigger editor, and provide spoken confirmations through `expo-speech`.
 
 Mock sessions simulate connection controls and use the backend text answer
 route. They do not produce or verify microphone/remote audio. The app labels
@@ -156,4 +158,5 @@ for required account configuration, signing, artifact storage, and runtime check
 - [Expo document picker](https://docs.expo.dev/versions/v54.0.0/sdk/document-picker/)
 - [React Native WebRTC installation](https://github.com/react-native-webrtc/react-native-webrtc)
 
-See `VERIFICATION.md` for actual checks and outstanding runtime verification.
+Run the commands above for the repeatable checks. Simulator and physical-device
+audio behavior still requires the manual acceptance flow described here.

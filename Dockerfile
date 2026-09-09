@@ -2,7 +2,9 @@ FROM public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 AS lambda-adapter
 
 # One image family is used locally and as the Lambda container base.
 FROM node:22-bookworm-slim AS dependencies
+ARG OBJECT_STORE_PUBLIC_ENDPOINT
 ENV NODE_ENV=production
+ENV OBJECT_STORE_PUBLIC_ENDPOINT=${OBJECT_STORE_PUBLIC_ENDPOINT}
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/

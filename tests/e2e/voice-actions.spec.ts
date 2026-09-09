@@ -81,6 +81,96 @@ async function emitSpeech(page: Page, transcript: string) {
   }, transcript);
 }
 
+test("voice actions are the default source entry and mouse upload stays available", async ({
+  page,
+}) => {
+  await openClean(page);
+
+  await expect(
+    page.getByRole("heading", { name: "1. Start with your voice" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("PDF file")).toHaveCount(0);
+  await expect(page.getByLabel("YouTube URL")).toHaveCount(0);
+  await expect(
+    page.getByText("Say “upload” or “YouTube” to bring something in."),
+  ).toBeVisible();
+
+  await page.getByRole("tab", { name: "Text action" }).click();
+  await expect(page.getByRole("tab", { name: "Text action" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByLabel("PDF file")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Say a word. Take the next step." }),
+  ).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "Voice action" }).click();
+  await expect(page.getByRole("tab", { name: "Voice action" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(
+    page.getByText("Say “upload” or “YouTube” to bring something in."),
+  ).toBeVisible();
+  await expect(page.getByLabel("PDF file")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Use upload instead" }).click();
+  await expect(page.getByLabel("PDF file")).toBeVisible();
+  await page.getByRole("tab", { name: "YouTube video" }).click();
+  await expect(page.getByLabel("YouTube URL")).toBeVisible();
+  await page.getByRole("button", { name: "Back to voice actions" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Say a word. Take the next step." }),
+  ).toBeFocused();
+  await expect(page.getByLabel("PDF file")).toHaveCount(0);
+  await expect(page.getByLabel("YouTube URL")).toHaveCount(0);
+});
+
+test("motion beta is a distinct entry mode with a safe device-motion trigger", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "DeviceMotionEvent", {
+      configurable: true,
+      value: class FakeDeviceMotionEvent extends Event {},
+    });
+  });
+  await openClean(page);
+
+  await page.getByRole("tab", { name: "Motion beta" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Move once. Take the next step." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Say a word. Take the next step." }),
+  ).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Enable motion beta" }).click();
+  await expect(
+    page.getByText(/Motion beta is ready — move your phone/),
+  ).toBeVisible();
+
+  await page.evaluate(() => {
+    const event = new Event("devicemotion");
+    Object.defineProperty(event, "accelerationIncludingGravity", {
+      configurable: true,
+      value: { x: 20, y: 0, z: 0 },
+    });
+    window.dispatchEvent(event);
+  });
+  await expect(page.getByLabel("PDF file")).toBeVisible();
+
+  await page.getByRole("button", { name: "Back to motion actions" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Move once. Take the next step." }),
+  ).toBeFocused();
+  await page.getByRole("tab", { name: "Voice action" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Say a word. Take the next step." }),
+  ).toBeVisible();
+});
+
 test("default upload action runs from a spoken trigger through the PDF picker", async ({
   page,
 }) => {
@@ -272,7 +362,9 @@ test("invalid and duplicate trigger phrases cannot become catch-all actions", as
   await phrase.fill("Upload");
   await save.click();
   await expect(
-    page.locator("#voice-trigger-builder .saved-trigger-phrase"),
+    page
+      .locator("#voice-trigger-builder .saved-trigger-phrase")
+      .filter({ hasText: "“Upload”" }),
   ).toHaveText("“Upload”");
   await phrase.fill(" upload ");
   await save.click();
@@ -296,4 +388,39 @@ test("invalid and duplicate trigger phrases cannot become catch-all actions", as
     .catch(() => undefined);
   await page.getByRole("button", { name: "Create voice trigger" }).click();
   await expect(page.getByText(/No saved triggers yet/)).toBeVisible();
+});
+
+test("back, next and cancel are active defaults and can be edited", async ({
+  page,
+}) => {
+  await installSpeechHarness(page);
+  await openClean(page);
+
+  await page.getByRole("button", { name: "Create voice trigger" }).click();
+  await expect(page.getByText("“back”", { exact: true })).toBeVisible();
+  await expect(page.getByText("“next”", { exact: true })).toBeVisible();
+  await expect(page.getByText("“cancel”", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Edit trigger back" }).click();
+  await page.getByLabel("Trigger word or phrase").fill("previous");
+  await page.getByRole("button", { name: "Update trigger" }).click();
+  await expect(page.getByText("“previous”", { exact: true })).toBeVisible();
+  await expect(page.getByText("“back”", { exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Arm voice actions" }).click();
+  await emitSpeech(page, "previous");
+  await expect(
+    page.getByText("Going back — the source controls are ready."),
+  ).toBeVisible();
+
+  await emitSpeech(page, "next");
+  await expect(
+    page.getByText("Next step: choose a PDF or paste a YouTube link."),
+  ).toBeVisible();
+
+  await emitSpeech(page, "cancel");
+  await expect(page.getByText("Voice actions are off")).toBeVisible();
+  await expect(
+    page.getByText("Cancelled — the current action has been stopped."),
+  ).toBeVisible();
 });

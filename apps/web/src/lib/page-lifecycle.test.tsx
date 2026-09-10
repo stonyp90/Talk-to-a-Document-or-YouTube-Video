@@ -38,7 +38,6 @@ const envelope = {
 async function ingestFixture(request: ReturnType<typeof vi.fn>): Promise<void> {
   vi.stubGlobal("fetch", request);
   render(<HomePage />);
-  fireEvent.click(screen.getByRole("button", { name: "Use upload instead" }));
   fireEvent.click(screen.getByRole("tab", { name: "YouTube video" }));
   fireEvent.change(screen.getByLabelText("YouTube URL"), {
     target: { value: "https://youtu.be/dQw4w9WgXcQ" },
@@ -79,7 +78,6 @@ it("unmount aborts session setup and ignores its eventual response", async () =>
   });
   vi.stubGlobal("fetch", request);
   const view = render(<HomePage />);
-  fireEvent.click(screen.getByRole("button", { name: "Use upload instead" }));
   fireEvent.click(screen.getByRole("tab", { name: "YouTube video" }));
   fireEvent.change(screen.getByLabelText("YouTube URL"), {
     target: { value: "https://youtu.be/dQw4w9WgXcQ" },

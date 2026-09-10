@@ -29,7 +29,11 @@ export type World = {
   body: Record<string, unknown>;
   instructions: string;
   question: string;
-  requestBody: { source: IngestedSource; question: string };
+  requestBody: {
+    source?: IngestedSource;
+    sourceId?: string;
+    question: string;
+  };
   release?: () => void;
   gate?: Promise<void>;
   attempts: number;
@@ -435,7 +439,11 @@ step("the question appears in the conversation transcript", async function () {
 step(
   "the ingested source context is used to produce the response",
   async function () {
-    assert.deepEqual(this.requestBody.source, this.source);
+    if (this.requestBody.sourceId) {
+      assert.match(this.requestBody.sourceId, /^source-/);
+    } else {
+      assert.deepEqual(this.requestBody.source, this.source);
+    }
     assert.equal(this.requestBody.question, this.question);
     await expect(
       (await page(this)).locator(".message.assistant"),

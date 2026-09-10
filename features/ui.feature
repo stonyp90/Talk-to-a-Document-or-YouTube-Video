@@ -1,5 +1,11 @@
 Feature: Provide a polished mobile-first conversation UI
 
+  Scenario: Keep control modes available from the fixed bottom dock
+    When I open the application
+    Then the fixed control dock is visible
+    And voice action is the default control mode
+    And text and motion beta controls remain available
+
   Scenario: Render the source selector at a 390 px viewport
     Given the browser viewport is 390 pixels wide
     When I open the application

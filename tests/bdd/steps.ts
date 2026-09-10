@@ -68,6 +68,7 @@ async function page(world: World) {
 }
 After(async function (this: World) {
   this.release?.();
+  await this.page?.unrouteAll({ behavior: "ignoreErrors" });
   await this.page?.context().close();
 });
 AfterAll(async () => {
@@ -529,6 +530,24 @@ step(
   ],
   open,
 );
+step("the fixed control dock is visible", async function () {
+  const dock = (await page(this)).locator(".control-dock");
+  await expect(dock).toBeVisible();
+  assert.equal(
+    await dock.evaluate((element) => getComputedStyle(element).position),
+    "fixed",
+  );
+});
+step("voice action is the default control mode", async function () {
+  await expect(
+    (await page(this)).getByRole("tab", { name: "Voice action" }),
+  ).toHaveAttribute("aria-selected", "true");
+});
+step("text and motion beta controls remain available", async function () {
+  const p = await page(this);
+  await expect(p.getByRole("tab", { name: "Text action" })).toBeVisible();
+  await expect(p.getByRole("tab", { name: "Motion beta" })).toBeVisible();
+});
 step("the PDF and YouTube source options are visible", async function () {
   const p = await page(this);
   await revealSourcePicker(p);

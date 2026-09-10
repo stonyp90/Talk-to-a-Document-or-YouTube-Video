@@ -681,60 +681,6 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div
-            className="entry-mode-switch"
-            role="tablist"
-            aria-label="Choose how to begin"
-          >
-            <span className="entry-mode-label">Begin with</span>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={entryMode === "voice"}
-              className={`entry-mode-trigger${
-                entryMode === "voice" ? " active" : ""
-              }`}
-              onClick={() => switchEntryMode("voice")}
-            >
-              <Icon name="voice" /> Voice action
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={entryMode === "text"}
-              className={`entry-mode-trigger${
-                entryMode === "text" ? " active" : ""
-              }`}
-              onClick={() => switchEntryMode("text")}
-            >
-              <Icon name="document" /> Text action
-            </button>
-            <span className="entry-mode-tooltip-wrap" role="presentation">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={entryMode === "motion"}
-                aria-describedby="motion-beta-tip"
-                title="Motion beta uses a deliberate device movement to reveal the next control."
-                className={`entry-mode-trigger${
-                  entryMode === "motion" ? " active" : ""
-                }`}
-                onClick={() => switchEntryMode("motion")}
-              >
-                <Icon name="motion" /> Motion beta
-              </button>
-              <span
-                id="motion-beta-tip"
-                className="entry-mode-tooltip"
-                role="tooltip"
-              >
-                Preview the movement-first interaction. Motion beta is
-                hover-only for now: no pointer clicks trigger actions, and it
-                never uses your camera.
-              </span>
-            </span>
-          </div>
-
           {entryMode === "voice" && (
             <VoiceActions
               onAction={handleVoiceAction}
@@ -1379,6 +1325,65 @@ export default function HomePage() {
             </section>
           </div>
         </div>
+
+        <nav className="control-dock" aria-label="Choose a control mode">
+          <div className="control-dock-inner" role="tablist">
+            <span className="control-dock-label">Control with</span>
+            <button
+              type="button"
+              role="tab"
+              aria-label="Voice action"
+              aria-selected={entryMode === "voice"}
+              className={`control-dock-item${
+                entryMode === "voice" ? " active" : ""
+              }`}
+              onClick={() => switchEntryMode("voice")}
+            >
+              <Icon name="voice" />
+              <span>Voice</span>
+              <small>Default</small>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-label="Text action"
+              aria-selected={entryMode === "text"}
+              className={`control-dock-item${
+                entryMode === "text" ? " active" : ""
+              }`}
+              onClick={() => switchEntryMode("text")}
+            >
+              <Icon name="document" />
+              <span>Text</span>
+              <small>Classic</small>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-label="Motion beta"
+              aria-selected={entryMode === "motion"}
+              aria-describedby="motion-beta-tip"
+              className={`control-dock-item control-dock-motion${
+                entryMode === "motion" ? " active" : ""
+              }`}
+              title="Preview the movement-first AR/VR interaction."
+              onClick={() => switchEntryMode("motion")}
+            >
+              <Icon name="motion" />
+              <span>Motion</span>
+              <small>Beta</small>
+              <span
+                id="motion-beta-tip"
+                className="control-dock-tooltip"
+                role="tooltip"
+              >
+                Hover to preview the deliberate movement-first AR/VR concept. No
+                pointer click triggers an action, no camera is used, and this
+                beta requests no motion permission.
+              </span>
+            </button>
+          </div>
+        </nav>
 
         <div className="container">
           <Onboarding />

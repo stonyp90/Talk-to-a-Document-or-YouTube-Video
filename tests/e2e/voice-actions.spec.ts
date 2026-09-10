@@ -91,6 +91,13 @@ test("voice action is the default entry and keeps source controls opt-in", async
 }) => {
   await openClean(page);
 
+  await expect(page.locator(".control-dock")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Voice action" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByRole("tab", { name: "Text action" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Motion beta" })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "1. Start with your voice" }),
   ).toBeVisible();

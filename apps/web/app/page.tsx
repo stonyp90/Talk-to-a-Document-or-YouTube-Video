@@ -1262,7 +1262,7 @@ export default function HomePage() {
                           <Icon name="video" /> “YouTube”
                         </span>
                         <span>
-                          <Icon name="voice" /> “Let's talk”
+                          <Icon name="voice" /> “Let&apos;s talk”
                         </span>
                       </div>
                     ) : entryMode === "motion" && !source ? (

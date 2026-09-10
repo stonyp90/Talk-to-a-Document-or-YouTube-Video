@@ -20,6 +20,7 @@ import {
   palette as c,
   serif,
 } from "./design";
+import { IntroVideo } from "./IntroVideo";
 
 const storageKey = "ursly-mobile-onboarding-v1";
 const slideDuration = 5600;
@@ -49,6 +50,12 @@ const steps: Step[] = [
     title: "Turn information into your next aha.",
     body: "Ask a follow-up, challenge an idea, or make it simpler. Every answer stays grounded in your source.",
     note: "Ask · follow up · understand",
+  },
+  {
+    label: "Choose your flow",
+    title: "Voice, text, or a glimpse of what’s next.",
+    body: "Voice is the default way to move through Ursly. Text is always ready, and Motion beta previews a future hands-free AR/VR layer without activating sensors.",
+    note: "Voice to action · text fallback · motion beta",
   },
 ];
 
@@ -138,8 +145,10 @@ export function MobileOnboarding({ motion, t }: Props) {
           <Brand />
           <View style={s.headerRight}>
             <Text style={s.counter}>
-              {t("QUICK TOUR")} · {String(step + 1).padStart(2, "0")} / 03
+              {t("QUICK TOUR")} · {String(step + 1).padStart(2, "0")} /{" "}
+              {String(steps.length).padStart(2, "0")}
             </Text>
+            <IntroVideo motion={motion} t={t} />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t(paused ? "Resume slides" : "Pause slides")}
@@ -165,8 +174,10 @@ export function MobileOnboarding({ motion, t }: Props) {
               <SourceArt t={t} />
             ) : step === 1 ? (
               <VoiceArt motion={motion} t={t} />
-            ) : (
+            ) : step === 2 ? (
               <ChatArt t={t} />
+            ) : (
+              <ModeArt motion={motion} t={t} />
             )}
           </View>
           <View style={s.copy}>
@@ -188,7 +199,7 @@ export function MobileOnboarding({ motion, t }: Props) {
           <View
             accessibilityRole="progressbar"
             accessibilityLabel={t("Guide progress")}
-            accessibilityValue={{ min: 1, max: 3, now: step + 1 }}
+            accessibilityValue={{ min: 1, max: steps.length, now: step + 1 }}
             style={s.rail}
           >
             {steps.map((item, index) => (
@@ -316,6 +327,32 @@ function ChatArt({ t }: Pick<Props, "t">) {
       </View>
       <Text style={art.chatSpark}>✦</Text>
       <Orbit motion={false} />
+    </View>
+  );
+}
+
+function ModeArt({ motion, t }: { motion: boolean } & Pick<Props, "t">) {
+  return (
+    <View accessible={false} style={art.modeArt}>
+      <View style={[art.modeCard, art.modeVoice]}>
+        <Wave motion={motion} color={c.ink} />
+        <Text style={art.modeLabel}>{t("VOICE")}</Text>
+        <Text style={art.modeDetail}>{t("Default")}</Text>
+      </View>
+      <View style={[art.modeCard, art.modeText]}>
+        <SourceIcon kind="pdf" />
+        <Text style={art.modeLabel}>{t("TEXT")}</Text>
+        <Text style={art.modeDetail}>{t("Classic")}</Text>
+      </View>
+      <View style={[art.modeCard, art.modeMotion]}>
+        <Text style={art.motionGlyph}>✦</Text>
+        <Text style={art.modeLabel}>{t("MOTION BETA")}</Text>
+        <Text style={art.modeDetail}>{t("Preview only")}</Text>
+      </View>
+      <View style={art.modeCaption}>
+        <View style={art.pillDot} />
+        <Text style={art.modeCaptionText}>{t("Always in your control")}</Text>
+      </View>
     </View>
   );
 }
@@ -564,4 +601,50 @@ const art = StyleSheet.create({
     color: c.coral,
     fontSize: 25,
   },
+  modeArt: {
+    width: 305,
+    height: 250,
+    position: "relative",
+    justifyContent: "center",
+    gap: 8,
+  },
+  modeCard: {
+    width: 205,
+    minHeight: 62,
+    borderRadius: 16,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    shadowColor: c.ink,
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
+  },
+  modeVoice: { alignSelf: "flex-start", backgroundColor: c.peach },
+  modeText: { alignSelf: "center", backgroundColor: c.lavender },
+  modeMotion: { alignSelf: "flex-end", backgroundColor: c.lime },
+  modeLabel: {
+    color: c.ink,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
+  modeDetail: { color: c.muted, fontSize: 10, marginLeft: "auto" },
+  motionGlyph: { color: "#677C4A", fontSize: 18 },
+  modeCaption: {
+    position: "absolute",
+    bottom: 5,
+    left: 42,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: c.white,
+    borderRadius: 18,
+    paddingVertical: 9,
+    paddingHorizontal: 13,
+  },
+  modeCaptionText: { color: c.ink, fontSize: 10, fontWeight: "700" },
 });

@@ -548,6 +548,20 @@ step("text and motion beta controls remain available", async function () {
   await expect(p.getByRole("tab", { name: "Text action" })).toBeVisible();
   await expect(p.getByRole("tab", { name: "Motion beta" })).toBeVisible();
 });
+step("the short Ursly intro is available", async function () {
+  const p = await page(this);
+  await p.getByRole("button", { name: "Watch Ursly in 24 seconds" }).click();
+  await expect(p.getByRole("dialog")).toBeVisible();
+  await expect(p.getByRole("dialog").locator("video")).toHaveAttribute(
+    "preload",
+    "metadata",
+  );
+});
+step("the intro has a text alternative", async function () {
+  await expect(
+    (await page(this)).getByText("Read the intro instead", { exact: true }),
+  ).toBeVisible();
+});
 step("the PDF and YouTube source options are visible", async function () {
   const p = await page(this);
   await revealSourcePicker(p);

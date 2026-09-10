@@ -6,6 +6,11 @@ Feature: Provide a polished mobile-first conversation UI
     And voice action is the default control mode
     And text and motion beta controls remain available
 
+  Scenario: Offer a short accessible product introduction
+    When I open the application
+    Then the short Ursly intro is available
+    And the intro has a text alternative
+
   Scenario: Render the source selector at a 390 px viewport
     Given the browser viewport is 390 pixels wide
     When I open the application

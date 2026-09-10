@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { IntroVideo } from "./IntroVideo";
 
 const steps = [
   {
@@ -118,23 +119,26 @@ export function Onboarding() {
             4 features · about 25 seconds
           </span>
         </span>
-        <button
-          ref={launcher}
-          type="button"
-          className="guide-toggle"
-          aria-expanded={open}
-          aria-controls="welcome-guide"
-          onClick={() => {
-            if (open) close();
-            else {
-              setStep(0);
-              setPaused(false);
-              setOpen(true);
-            }
-          }}
-        >
-          {open ? "Hide guide" : "Quick tour"}
-        </button>
+        <span className="onboarding-actions">
+          <IntroVideo />
+          <button
+            ref={launcher}
+            type="button"
+            className="guide-toggle"
+            aria-expanded={open}
+            aria-controls="welcome-guide"
+            onClick={() => {
+              if (open) close();
+              else {
+                setStep(0);
+                setPaused(false);
+                setOpen(true);
+              }
+            }}
+          >
+            {open ? "Hide guide" : "Quick tour"}
+          </button>
+        </span>
       </div>
 
       {open && (

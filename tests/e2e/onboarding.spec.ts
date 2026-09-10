@@ -11,6 +11,21 @@ for (const width of [320, 390, 1440]) {
         name: "Start with something worth understanding.",
       }),
     ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Watch Ursly in 24 seconds" })
+      .click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("dialog").locator("video")).toHaveAttribute(
+      "preload",
+      "metadata",
+    );
+    await expect(
+      page.getByRole("dialog").getByText("Read the intro instead", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(
       page.locator('.guide-step-rail [aria-current="step"] b'),
     ).toHaveText("Bring a source");

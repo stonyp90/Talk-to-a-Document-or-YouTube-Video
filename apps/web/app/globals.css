@@ -309,6 +309,103 @@ h3 {
   margin-left: 10px;
   color: var(--muted);
 }
+.onboarding-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.intro-video-trigger {
+  min-height: 36px;
+  padding: 7px 0;
+  border: 0;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.intro-video-trigger span {
+  display: inline-block;
+  margin-left: 3px;
+  text-decoration: none;
+}
+.intro-video-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(41 39 53 / 68%);
+}
+.intro-video-dialog {
+  width: min(780px, 100%);
+  max-height: min(90svh, 720px);
+  overflow: auto;
+  padding: clamp(18px, 4vw, 30px);
+  border: 1px solid var(--line-strong);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgb(41 39 53 / 28%);
+}
+.intro-video-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.intro-video-heading h2 {
+  margin-top: 5px;
+  font-size: clamp(20px, 4vw, 29px);
+}
+.intro-video-lede {
+  margin: 9px 0 16px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.intro-video-close {
+  min-height: 36px;
+  padding: 7px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.intro-video-player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  background: var(--paper);
+  object-fit: cover;
+}
+.intro-video-fallback {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--muted);
+  line-height: 1.55;
+}
+.intro-video-fallback strong {
+  color: var(--ink);
+}
+.intro-video-transcript {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.intro-video-transcript summary {
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 650;
+}
+.intro-video-transcript p {
+  margin: 8px 0 0;
+}
 .control-dock {
   position: fixed;
   z-index: 30;
@@ -2336,6 +2433,16 @@ h3 {
   }
   .onboarding-bar-detail {
     display: none;
+  }
+  .onboarding-actions {
+    gap: 8px;
+  }
+  .intro-video-trigger {
+    max-width: 96px;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: right;
+    white-space: normal;
   }
   .motion-actions-card {
     grid-template-columns: 1fr;

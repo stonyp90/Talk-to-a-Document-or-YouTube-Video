@@ -194,6 +194,9 @@ export function VoiceActions({
   const [supported] = useState(browserSupportsSpeechRecognition);
   const [armed, setArmed] = useState(false);
   const [heard, setHeard] = useState("");
+  const [revealedExample, setRevealedExample] = useState<VoiceActionId | null>(
+    null,
+  );
   const [notice, setNotice] = useState(
     "Create a trigger, then arm voice actions to try it hands-free.",
   );
@@ -470,18 +473,55 @@ export function VoiceActions({
       </div>
 
       <div className="voice-example-row" aria-label="Voice action examples">
-        <span className="voice-example-label">Try an example</span>
+        <div className="voice-example-heading">
+          <span className="voice-example-label">Try an example</span>
+          <span className="voice-example-hint">
+            Tap to try · <Icon name="eye" /> to see what to say
+          </span>
+        </div>
         {examples.map((example) => (
-          <button
-            key={example.phrase}
-            type="button"
-            className="voice-example"
-            disabled={voiceBusy}
-            onClick={() => runExample(example)}
-          >
-            <span>“{example.phrase}”</span>
-            <small>{example.label}</small>
-          </button>
+          <div className="voice-example-card" key={example.phrase}>
+            <button
+              type="button"
+              className="voice-example"
+              disabled={voiceBusy}
+              aria-label={`“${example.phrase}” ${example.label}`}
+              onClick={() => runExample(example)}
+            >
+              <span className="voice-example-copy">
+                <strong>{example.label}</strong>
+                <small>Try this action</small>
+              </span>
+              <span className="voice-example-arrow" aria-hidden="true">
+                ↗
+              </span>
+            </button>
+            <button
+              type="button"
+              className="voice-example-reveal"
+              aria-expanded={revealedExample === example.action}
+              aria-controls={`voice-example-trigger-${example.action}`}
+              onClick={() =>
+                setRevealedExample((current) =>
+                  current === example.action ? null : example.action,
+                )
+              }
+            >
+              <Icon name="eye" />
+              {revealedExample === example.action
+                ? "Hide trigger"
+                : "Show trigger"}
+            </button>
+            {revealedExample === example.action && (
+              <div
+                id={`voice-example-trigger-${example.action}`}
+                className="voice-example-trigger"
+              >
+                <span>Say this</span>
+                <strong>“{example.phrase}”</strong>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 

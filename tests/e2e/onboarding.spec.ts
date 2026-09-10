@@ -16,7 +16,7 @@ for (const width of [320, 390, 1440]) {
     ).toHaveText("Bring a source");
     await expect(
       page.getByLabel("Ask a question", { exact: true }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     await page.waitForTimeout(400);
     await page.getByRole("button", { name: "Pause slides" }).click();
     await page.getByRole("button", { name: "Continue", exact: true }).click();

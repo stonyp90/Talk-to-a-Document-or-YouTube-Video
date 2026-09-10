@@ -43,9 +43,9 @@ import {
   useMotion,
   Wave,
 } from "./src/design";
-import { MobileOnboarding } from "./src/Onboarding";
 import { MobileVoiceActions } from "./src/VoiceActions";
 import type { MobileVoiceActionId } from "./src/VoiceActions";
+import { MobileBottomNav, type MobileDestination } from "./src/BottomNav";
 
 const api = new ApiClient(
   apiOrigin(Platform.OS, process.env.EXPO_PUBLIC_API_URL),
@@ -298,6 +298,24 @@ export default function App() {
     setError("");
     setQuestion("");
   }
+  function navigate(destination: MobileDestination) {
+    if (destination === "home") {
+      operation.current++;
+      stop();
+      setBusy(null);
+      setScreen("home");
+      setTab("chat");
+      Keyboard.dismiss();
+      return;
+    }
+    if (!source) {
+      showToast(t("Add a source first to open this section."));
+      return;
+    }
+    setScreen("conversation");
+    setTab(destination === "source" ? "source" : "chat");
+    Keyboard.dismiss();
+  }
   function trySample() {
     operation.current++;
     installSource({
@@ -333,6 +351,7 @@ export default function App() {
           {screen === "home" ? (
             <ScrollView
               key="home"
+              style={s.homeScroll}
               contentContainerStyle={s.homeContent}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -387,15 +406,6 @@ export default function App() {
                   </Text>
                 </View>
               </Reveal>
-              <MobileVoiceActions
-                language={language}
-                motion={motion}
-                voiceBusy={!!busy || active}
-                canStartVoice={!!source}
-                t={t}
-                onAction={handleVoiceAction}
-                onNotice={showToast}
-              />
               <Reveal motion={motion} delay={70}>
                 <View style={s.sectionHeading}>
                   <Text style={s.heading}>{t("Let’s explore")}</Text>
@@ -509,6 +519,15 @@ export default function App() {
                   </Touch>
                 </Reveal>
               )}
+              <MobileVoiceActions
+                language={language}
+                motion={motion}
+                voiceBusy={!!busy || active}
+                canStartVoice={!!source}
+                t={t}
+                onAction={handleVoiceAction}
+                onNotice={showToast}
+              />
               <Reveal motion={motion} delay={180} style={s.how}>
                 <Text style={s.eyebrow}>{t("A NEW WAY TO LEARN")}</Text>
                 <View style={s.steps}>
@@ -821,7 +840,7 @@ export default function App() {
                                   style={[
                                     s.suggestionSymbol,
                                     {
-                                      color: ["#A9513A", "#71608D", "#536C39"][
+                                      color: ["#A9513A", "#6E5D4C", "#536C39"][
                                         index
                                       ],
                                     },
@@ -909,6 +928,13 @@ export default function App() {
               )}
             </>
           )}
+          <MobileBottomNav
+            destination={screen === "home" ? "home" : tab}
+            language={language}
+            motion={motion}
+            t={t}
+            onNavigate={navigate}
+          />
         </KeyboardAvoidingView>
         {toast && (
           <View pointerEvents="box-none" style={s.toastWrap}>
@@ -1077,7 +1103,6 @@ export default function App() {
             </SafeAreaView>
           </KeyboardAvoidingView>
         </Modal>
-        <MobileOnboarding motion={motion} t={t} />
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -1085,6 +1110,7 @@ export default function App() {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.paper },
+  homeScroll: { flex: 1 },
   flex: { flex: 1 },
   homeContent: {
     paddingHorizontal: 22,
@@ -1127,7 +1153,7 @@ const s = StyleSheet.create({
     overflow: "hidden",
   },
   heroEyebrow: {
-    color: "#D4CBDC",
+    color: "#D4C9BF",
     fontSize: 10,
     letterSpacing: 1.6,
     fontWeight: "700",
@@ -1157,7 +1183,7 @@ const s = StyleSheet.create({
     marginRight: -7,
   },
   heroDescription: {
-    color: "#E3DDE6",
+    color: "#E3DDD5",
     fontSize: 15,
     lineHeight: 22,
     marginTop: -3,
@@ -1169,7 +1195,7 @@ const s = StyleSheet.create({
     marginTop: 18,
   },
   heroLine: { width: 22, height: 1, backgroundColor: c.coral },
-  heroFooterText: { color: "#CDC3D4", fontSize: 11 },
+  heroFooterText: { color: "#CDC1B5", fontSize: 11 },
   sectionHeading: {
     flexDirection: "row",
     alignItems: "baseline",
@@ -1249,10 +1275,10 @@ const s = StyleSheet.create({
     paddingTop: 16,
   },
   step: { flexDirection: "row", alignItems: "center", gap: 6 },
-  stepNumber: { fontFamily: serif, color: "#948391", fontSize: 17 },
+  stepNumber: { fontFamily: serif, color: "#88776A", fontSize: 17 },
   stepText: { fontSize: 11, color: c.ink },
   signature: {
-    color: "#7A707A",
+    color: "#746B63",
     fontFamily: serif,
     fontStyle: "italic",
     fontSize: 16,
@@ -1285,7 +1311,7 @@ const s = StyleSheet.create({
     position: "absolute",
     left: 18,
     right: 18,
-    bottom: 16,
+    bottom: 96,
     zIndex: 20,
     elevation: 20,
   },
@@ -1349,7 +1375,7 @@ const s = StyleSheet.create({
     backgroundColor: c.lavender,
   },
   sourceBadge: {
-    backgroundColor: "#F8F4FD",
+    backgroundColor: "#F5F1EA",
     width: 44,
     height: 48,
     borderRadius: 13,
@@ -1372,7 +1398,7 @@ const s = StyleSheet.create({
   },
   voiceCard: { backgroundColor: c.ink, borderRadius: 25, padding: 21, gap: 15 },
   voiceEyebrow: {
-    color: "#C9BECF",
+    color: "#C8BDB1",
     fontSize: 8,
     letterSpacing: 1.1,
     fontWeight: "700",
@@ -1386,7 +1412,7 @@ const s = StyleSheet.create({
   },
   statusRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   statusDot: { height: 6, width: 6, borderRadius: 4 },
-  statusText: { fontSize: 12, color: "#E1D9E8" },
+  statusText: { fontSize: 12, color: "#E1DAD2" },
   voiceButtons: { flexDirection: "row", gap: 10 },
   secondaryDark: {
     flex: 1,
@@ -1405,12 +1431,12 @@ const s = StyleSheet.create({
   buttonLight: { color: c.paper, fontSize: 14, fontWeight: "600" },
   arrow: { fontSize: 23, color: c.ink, marginLeft: 6 },
   textLinkLight: {
-    color: "#E1D9E8",
+    color: "#E1DAD2",
     fontSize: 13,
     textDecorationLine: "underline",
   },
   demoNotice: {
-    color: "#D1C4D5",
+    color: "#D1C5B9",
     fontSize: 10,
     lineHeight: 16,
     textAlign: "center",
@@ -1455,7 +1481,7 @@ const s = StyleSheet.create({
   },
   messageHeader: { flexDirection: "row", gap: 7, alignItems: "center" },
   messageRole: {
-    color: "#75677E",
+    color: "#6E5D4C",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
@@ -1528,7 +1554,7 @@ const s = StyleSheet.create({
   sheetCaption: { color: c.muted, fontSize: 14, lineHeight: 22 },
   urlInput: {
     backgroundColor: c.white,
-    borderColor: "#C9C0D0",
+    borderColor: "#C9C0B5",
     borderWidth: 1,
     borderRadius: 17,
     padding: 17,

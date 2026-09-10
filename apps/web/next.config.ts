@@ -43,6 +43,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
   turbopack: { root: path.join(import.meta.dirname, "../..") },
+  // Playwright and local browser checks use both loopback hostnames. Allow
+  // Next's development resources so the client can hydrate and accept input.
+  allowedDevOrigins: ["localhost", "127.0.0.1"],
   serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
   poweredByHeader: false,
   async headers() {

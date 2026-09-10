@@ -124,6 +124,8 @@ export function MobileVoiceActions({
   const [armed, setArmed] = useState(false);
   const [recognizing, setRecognizing] = useState(false);
   const [heard, setHeard] = useState("");
+  const [revealedExample, setRevealedExample] =
+    useState<MobileVoiceActionId | null>(null);
   const [notice, setNotice] = useState(t("Voice actions are off"));
   const previousLanguage = useRef(language);
   const armedRef = useRef(false);
@@ -432,29 +434,70 @@ export function MobileVoiceActions({
           </View>
         </Touch>
       </View>
-      <Text style={s.exampleLabel}>{t("Try an example")}</Text>
+      <View style={s.exampleHeading}>
+        <Text style={s.exampleLabel}>{t("Try an example")}</Text>
+        <Text style={s.exampleHint}>
+          {t("Try the action or reveal the words to say")}
+        </Text>
+      </View>
       <View style={s.exampleGrid}>
         {examples.map((example) => (
-          <Touch
+          <View
             key={example.phrase}
-            label={`“${t(example.phrase)}” ${t(example.result)}`}
-            motion={motion}
-            disabled={voiceBusy}
-            onPress={() =>
-              runAction({
-                id: `example-${example.action}`,
-                phrase: t(example.phrase),
-                action: example.action,
-              })
-            }
             style={[s.example, example.action === "cancel" && s.exampleWide]}
           >
-            <View style={s.exampleCopy}>
-              <Text style={s.examplePhrase}>“{t(example.phrase)}”</Text>
-              <Text style={s.exampleResult}>{t(example.result)}</Text>
-            </View>
-            <Text style={s.exampleArrow}>↗</Text>
-          </Touch>
+            <Touch
+              label={`“${t(example.phrase)}” ${t(example.result)}`}
+              motion={motion}
+              disabled={voiceBusy}
+              onPress={() =>
+                runAction({
+                  id: `example-${example.action}`,
+                  phrase: t(example.phrase),
+                  action: example.action,
+                })
+              }
+              style={s.exampleMain}
+            >
+              <View style={s.exampleCopy}>
+                <Text style={s.exampleResult}>{t(example.result)}</Text>
+                <Text style={s.exampleTry}>{t("Try it")}</Text>
+              </View>
+              <Text style={s.exampleArrow}>↗</Text>
+            </Touch>
+            <Touch
+              label={t(
+                revealedExample === example.action
+                  ? "Hide trigger"
+                  : "Show trigger",
+              )}
+              motion={motion}
+              onPress={() =>
+                setRevealedExample((current) =>
+                  current === example.action ? null : example.action,
+                )
+              }
+              style={s.exampleReveal}
+              selected={revealedExample === example.action}
+            >
+              <View style={s.eyeIcon}>
+                <View style={s.eyePupil} />
+              </View>
+              <Text style={s.exampleRevealText}>
+                {t(
+                  revealedExample === example.action
+                    ? "Hide phrase"
+                    : "Show phrase",
+                )}
+              </Text>
+            </Touch>
+            {revealedExample === example.action && (
+              <View style={s.exampleTrigger}>
+                <Text style={s.exampleTriggerLabel}>{t("Say this")}</Text>
+                <Text style={s.examplePhrase}>“{t(example.phrase)}”</Text>
+              </View>
+            )}
+          </View>
         ))}
       </View>
       <Modal
@@ -497,6 +540,7 @@ export function MobileVoiceActions({
               </Touch>
             </View>
             <ScrollView
+              style={s.builderScroll}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               contentContainerStyle={s.builderContent}
@@ -559,17 +603,6 @@ export function MobileVoiceActions({
                   ),
                 )}
               </View>
-              <Touch
-                label={t(editingId ? "Update trigger" : "Save trigger")}
-                motion={motion}
-                disabled={!phrase.trim()}
-                onPress={saveTrigger}
-                style={s.saveButton}
-              >
-                <Text style={s.saveText}>
-                  {t(editingId ? "Update trigger" : "Save trigger")}
-                </Text>
-              </Touch>
               {triggers.length > 0 && (
                 <View style={s.savedSection}>
                   <Text style={s.savedSectionTitle}>{t("Saved triggers")}</Text>
@@ -630,6 +663,19 @@ export function MobileVoiceActions({
                 )}
               </Text>
             </ScrollView>
+            <View style={s.builderFooter}>
+              <Touch
+                label={t(editingId ? "Update trigger" : "Save trigger")}
+                motion={motion}
+                disabled={!phrase.trim()}
+                onPress={saveTrigger}
+                style={s.saveButton}
+              >
+                <Text style={s.saveText}>
+                  {t(editingId ? "Update trigger" : "Save trigger")}
+                </Text>
+              </Touch>
+            </View>
           </View>
         </SafeAreaView>
       </Modal>
@@ -706,8 +752,15 @@ const s = StyleSheet.create({
   armButton: { backgroundColor: c.coral, borderRadius: 15, flexGrow: 0 },
   armContent: { flexDirection: "row", gap: 7, alignItems: "center" },
   armText: { color: c.ink, fontSize: 13, fontWeight: "700" },
-  exampleLabel: { color: c.muted, fontSize: 11, fontWeight: "700" },
+  exampleHeading: {
+    alignItems: "flex-start",
+    gap: 3,
+  },
+  exampleLabel: { color: c.ink, fontSize: 15, fontWeight: "800" },
+  exampleHint: { color: c.muted, fontSize: 11, lineHeight: 16 },
   exampleGrid: {
+    alignContent: "flex-start",
+    alignItems: "flex-start",
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
@@ -716,13 +769,25 @@ const s = StyleSheet.create({
   example: {
     backgroundColor: c.paper,
     borderColor: c.line,
+    borderWidth: 1,
     borderRadius: 13,
+    flexDirection: "column",
     flexGrow: 0,
-    minHeight: 76,
-    padding: 10,
+    minHeight: 136,
+    overflow: "hidden",
     width: "48%",
   },
   exampleWide: {
+    width: "100%",
+  },
+  exampleMain: {
+    alignItems: "stretch",
+    flexGrow: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 96,
+    padding: 13,
+    paddingRight: 28,
     width: "100%",
   },
   exampleCopy: {
@@ -732,12 +797,17 @@ const s = StyleSheet.create({
     minWidth: 0,
     width: "100%",
   },
-  examplePhrase: { color: c.ink, fontSize: 14, fontWeight: "800" },
   exampleResult: {
-    color: c.muted,
+    color: c.ink,
     flexShrink: 1,
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
+  },
+  exampleTry: {
+    color: c.muted,
+    fontSize: 10,
+    lineHeight: 14,
   },
   exampleArrow: {
     bottom: 8,
@@ -746,6 +816,50 @@ const s = StyleSheet.create({
     position: "absolute",
     right: 10,
   },
+  exampleReveal: {
+    alignItems: "center",
+    backgroundColor: "#FDFBF7",
+    borderTopColor: c.line,
+    borderTopWidth: 1,
+    borderRadius: 0,
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "flex-start",
+    minHeight: 39,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    width: "100%",
+  },
+  exampleRevealText: { color: c.ink, fontSize: 10, fontWeight: "700" },
+  eyeIcon: {
+    alignItems: "center",
+    borderColor: c.muted,
+    borderRadius: 9,
+    borderWidth: 1.7,
+    height: 15,
+    justifyContent: "center",
+    transform: [{ rotate: "-8deg" }],
+    width: 23,
+  },
+  eyePupil: {
+    backgroundColor: c.muted,
+    borderRadius: 3,
+    height: 5,
+    width: 5,
+  },
+  exampleTrigger: {
+    alignItems: "center",
+    backgroundColor: c.peach,
+    borderTopColor: c.line,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: 5,
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  exampleTriggerLabel: { color: c.muted, fontSize: 10 },
+  examplePhrase: { color: c.ink, fontSize: 11, fontWeight: "800" },
   builder: {
     backgroundColor: c.lavender,
     borderRadius: 18,
@@ -759,13 +873,15 @@ const s = StyleSheet.create({
     backgroundColor: "#201A2B80",
   },
   builderSheet: {
-    backgroundColor: "#F2ECFA",
+    backgroundColor: "#F2EEE8",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+    height: "92%",
     maxHeight: "92%",
     paddingHorizontal: 18,
     paddingTop: 10,
   },
+  builderScroll: { flex: 1, minHeight: 0 },
   builderHeader: {
     alignItems: "center",
     flexDirection: "row",
@@ -805,7 +921,7 @@ const s = StyleSheet.create({
     width: 40,
   },
   builderCloseText: { color: c.ink, fontSize: 23, fontWeight: "300" },
-  builderContent: { gap: 12, paddingBottom: 24 },
+  builderContent: { gap: 12, paddingBottom: 20 },
   builderStep: {
     alignItems: "center",
     flexDirection: "row",
@@ -813,7 +929,7 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   builderStepNumber: {
-    color: "#765D8E",
+    color: "#765B48",
     fontFamily: serif,
     fontSize: 20,
     fontWeight: "700",
@@ -885,6 +1001,13 @@ const s = StyleSheet.create({
     backgroundColor: c.ink,
     borderRadius: 13,
     width: "100%",
+  },
+  builderFooter: {
+    backgroundColor: "#F2EEE8",
+    borderTopColor: "#D9D1C5",
+    borderTopWidth: 1,
+    paddingBottom: 4,
+    paddingTop: 10,
   },
   saveText: { color: c.paper, fontSize: 13, fontWeight: "700" },
   savedSection: { gap: 8, marginTop: 3 },

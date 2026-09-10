@@ -3,8 +3,12 @@ appId: com.talktosource.demo
 # Interface checks only. A passing flow does not validate the production backend.
 - launchApp:
     clearState: true
-- tapOn: "Skip onboarding"
 - assertVisible: "Import a PDF"
+- assertVisible: "Explore"
+- assertVisible: "Conversation"
+- assertVisible: "Source"
+- tapOn: "Source"
+- assertVisible: "Add a source first to open this section."
 - tapOn: "About Ursly and language"
 - assertVisible: "App language"
 - tapOn: "Français"
@@ -16,6 +20,8 @@ appId: com.talktosource.demo
 - tapOn: "Close"
 - tapOn: "Try a sample text"
 - assertVisible: "The power of small breaks"
+- tapOn: "Source"
+- assertVisible: "It all starts here."
 - tapOn: "The source"
 - assertVisible: "It all starts here."
 - tapOn: "About Ursly and language"

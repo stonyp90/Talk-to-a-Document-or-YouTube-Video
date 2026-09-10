@@ -11,6 +11,8 @@ const config = [
       "apps/mobile/dist/**",
       "apps/mobile/.expo/**",
       "**/.next/**",
+      "**/dist/**",
+      "**/.next.previous/**",
       "**/.terraform/**",
       "**/test-results/**",
       "**/playwright-report/**",

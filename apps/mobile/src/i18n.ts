@@ -118,6 +118,14 @@ export const french = {
   "Start voice chat becomes available after you add a PDF or YouTube source.":
     "La conversation vocale devient disponible après l’ajout d’un PDF ou d’une source YouTube.",
   "Try an example": "Essayez un exemple",
+  "Try the action or reveal the words to say":
+    "Essayez l’action ou affichez les mots à dire",
+  "Try it": "Essayer",
+  "Show trigger": "Voir le déclencheur",
+  "Hide trigger": "Masquer le déclencheur",
+  "Show phrase": "Voir les mots",
+  "Hide phrase": "Masquer les mots",
+  "Say this": "Dites ceci",
   YouTube: "YouTube",
   Upload: "Importer",
   "Let's talk": "Parlons-en",
@@ -259,6 +267,13 @@ export const french = {
   LISTENING: "À L’ÉCOUTE",
   "Ask it in your own words.": "Demandez-le avec vos propres mots.",
   "What should I remember?": "Que dois-je retenir ?",
+  Explore: "Explorer",
+  Source: "Source",
+  "Open the home screen": "Ouvrir l’accueil",
+  "Open the conversation": "Ouvrir la conversation",
+  "Open the source": "Ouvrir la source",
+  "Add a source first to open this section.":
+    "Ajoutez d’abord une source pour ouvrir cette section.",
 } as const;
 export type TranslationKey = keyof typeof french;
 export function translate(language: Language, key: TranslationKey): string {

@@ -9,7 +9,8 @@ export type IconName =
   | "github"
   | "download"
   | "external"
-  | "bell";
+  | "bell"
+  | "eye";
 
 const PATHS: Record<IconName, string[]> = {
   document: [
@@ -46,6 +47,10 @@ const PATHS: Record<IconName, string[]> = {
     "M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5",
   ],
   bell: ["M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9", "M10 21h4"],
+  eye: [
+    "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z",
+    "M12 15.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Z",
+  ],
 };
 
 export function Icon({ name }: { name: IconName }) {

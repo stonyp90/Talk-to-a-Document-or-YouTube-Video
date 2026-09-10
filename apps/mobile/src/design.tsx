@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type AccessibilityRole,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -20,8 +21,8 @@ export const palette = {
   muted: "#6B6773",
   coral: "#F27561",
   peach: "#FBE2D6",
-  lavender: "#E8E1F5",
-  lilac: "#BCA8E0",
+  lavender: "#EEE9E1",
+  lilac: "#B8AA99",
   lime: "#D8EEAE",
   white: "#FFFFFF",
   line: "#E6E1DA",
@@ -64,6 +65,7 @@ export function Touch({
   motion,
   style,
   selected,
+  accessibilityRole,
 }: {
   children: React.ReactNode;
   onPress: () => void;
@@ -72,6 +74,7 @@ export function Touch({
   motion: boolean;
   style?: StyleProp<ViewStyle>;
   selected?: boolean;
+  accessibilityRole?: AccessibilityRole;
 }) {
   const [scale] = useState(() => new Animated.Value(1));
   const animate = (value: number) => {
@@ -90,7 +93,7 @@ export function Touch({
       style={[style, { opacity: disabled ? 0.42 : 1, transform: [{ scale }] }]}
     >
       <Pressable
-        accessibilityRole="button"
+        accessibilityRole={accessibilityRole ?? "button"}
         accessibilityLabel={label}
         accessibilityState={{
           disabled,
@@ -287,6 +290,30 @@ export function Bell({ color = palette.ink }: { color?: string }) {
   );
 }
 
+export function NavIcon({
+  kind,
+  color,
+}: {
+  kind: "home" | "chat" | "source";
+  color: string;
+}) {
+  if (kind === "source") return <SourceIcon kind="pdf" color={color} />;
+  if (kind === "chat")
+    return (
+      <View style={[d.navBubble, { borderColor: color }]}>
+        <View style={[d.navBubbleTail, { borderTopColor: color }]} />
+      </View>
+    );
+  return (
+    <View style={d.navHome}>
+      <View style={[d.navHomeRoof, { borderBottomColor: color }]} />
+      <View style={[d.navHomeBody, { borderColor: color }]}>
+        <View style={[d.navHomeDoor, { backgroundColor: color }]} />
+      </View>
+    </View>
+  );
+}
+
 export function Orbit({ motion }: { motion: boolean }) {
   const [float] = useState(() => new Animated.Value(0));
   useEffect(() => {
@@ -417,6 +444,41 @@ const d = StyleSheet.create({
     borderBottomRightRadius: 5,
   },
   bellClapper: { width: 5, height: 3, borderRadius: 3, marginTop: 1 },
+  navHome: { width: 22, height: 22, alignItems: "center" },
+  navHomeRoof: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 10,
+    borderRightWidth: 10,
+    borderBottomWidth: 8,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+  },
+  navHomeBody: {
+    width: 15,
+    height: 11,
+    borderWidth: 1.7,
+    borderTopWidth: 0,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  navHomeDoor: { width: 4, height: 7, borderRadius: 2 },
+  navBubble: {
+    width: 23,
+    height: 18,
+    borderWidth: 1.7,
+    borderRadius: 8,
+  },
+  navBubbleTail: {
+    position: "absolute",
+    left: 4,
+    bottom: -5,
+    width: 0,
+    height: 0,
+    borderTopWidth: 5,
+    borderRightWidth: 6,
+    borderRightColor: "transparent",
+  },
   orbit: {
     width: 164,
     height: 164,

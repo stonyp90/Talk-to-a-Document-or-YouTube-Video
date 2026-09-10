@@ -6,26 +6,45 @@ const steps = [
   {
     label: "Bring a source",
     title: "Start with something worth understanding.",
-    text: "Drop in a text-based PDF or paste a YouTube link with captions. Ursly reads the source so you can spend your attention on the ideas inside it.",
-    note: "PDFs up to 25 MB · captioned YouTube videos",
+    text: "Drop in a text-based PDF or paste a YouTube link with captions. Ursly reads it and keeps the extracted text available for you to check.",
+    note: "PDFs up to 25 MB · YouTube captions · source preview",
   },
   {
     label: "Ask naturally",
     title: "Use your voice when the thought arrives.",
-    text: "Select Start Voice Chat and ask in your own words. You can interrupt an answer, mute the microphone, or type whenever that feels easier.",
-    note: "Voice or text · you’re always in control",
+    text: "Select Start Voice Chat and ask in your own words. Interrupt an answer, mute the microphone, or type whenever that feels easier.",
+    note: "Live voice · mute · interrupt · text fallback",
   },
   {
     label: "Go deeper",
     title: "Turn information into your next aha.",
-    text: "Ask a follow-up, challenge an idea, or ask for a simpler explanation. Every answer stays grounded in the source you brought.",
-    note: "Ask · follow up · understand",
+    text: "Ask a follow-up, challenge an idea, or ask for a simpler explanation. Quick prompts help you get moving, and every answer stays grounded in your source.",
+    note: "Source-grounded answers · quick prompts · follow-ups",
   },
   {
     label: "Voice to action",
     title: "Say it once. Take the next step.",
-    text: "Voice to action turns a simple phrase into the next useful move: open a PDF picker, switch to YouTube, prepare a summary, or start voice chat.",
-    note: "Hands-free shortcuts · always in your control",
+    text: "Voice to action turns a simple phrase into the next useful move: open a PDF picker, switch to YouTube, prepare a summary, or start voice chat. Motion beta offers another hands-free way to reveal the next control.",
+    note: "Voice shortcuts · motion beta · always in your control",
+  },
+];
+
+const visualSteps = [
+  { label: "Source", title: "PDF or YouTube", detail: "Read it · preview it" },
+  {
+    label: "Conversation",
+    title: "Voice or text",
+    detail: "Ask · interrupt · mute",
+  },
+  {
+    label: "Understanding",
+    title: "Answers that stay grounded",
+    detail: "Follow up · go deeper",
+  },
+  {
+    label: "Shortcuts",
+    title: "Voice actions + motion",
+    detail: "Take the next step",
   },
 ];
 const storageKey = "ursly-welcome-v2";
@@ -94,9 +113,9 @@ export function Onboarding() {
     <div className="onboarding">
       <div className="onboarding-bar">
         <span>
-          <strong>Get oriented</strong>
+          <strong>Quick product tour</strong>
           <span className="onboarding-bar-detail">
-            4 short steps · about 25 seconds
+            4 features · about 25 seconds
           </span>
         </span>
         <button
@@ -123,6 +142,8 @@ export function Onboarding() {
           id="welcome-guide"
           className="welcome-guide"
           aria-labelledby="welcome-title"
+          aria-describedby="welcome-description"
+          aria-label="4-step product tour"
           onKeyDown={(event) => {
             if (event.key === "Escape") close();
           }}
@@ -141,7 +162,7 @@ export function Onboarding() {
             <h2 id="welcome-title" ref={heading} tabIndex={-1}>
               {steps[step].title}
             </h2>
-            <p>{steps[step].text}</p>
+            <p id="welcome-description">{steps[step].text}</p>
             <div className="welcome-note">
               <span aria-hidden="true">✦</span>
               {steps[step].note}
@@ -167,6 +188,34 @@ export function Onboarding() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="welcome-visual" aria-hidden="true">
+            <div className="welcome-visual-bar">
+              <span>URS-LY TOUR</span>
+              <span>0{step + 1} / 04</span>
+            </div>
+            <div
+              key={visualSteps[step].label}
+              className={`welcome-visual-screen feature-${step + 1}`}
+            >
+              <span className="welcome-visual-orb" />
+              <span className="welcome-visual-label">
+                {visualSteps[step].label}
+              </span>
+              <strong>{visualSteps[step].title}</strong>
+              <span>{visualSteps[step].detail}</span>
+              <div className="welcome-visual-lines">
+                <i />
+                <i />
+                <i />
+              </div>
+            </div>
+            <div className="welcome-visual-track">
+              {visualSteps.map((item, index) => (
+                <span key={item.label} data-active={index === step} />
+              ))}
+            </div>
           </div>
 
           <div className="welcome-guide-footer">

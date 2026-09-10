@@ -37,9 +37,9 @@ import {
 type SourceTab = "pdf" | "youtube";
 type EntryMode = "voice" | "text" | "motion";
 
-const INGEST_DEADLINE_MS = 120000;
+const INGEST_DEADLINE_MS = 60000;
 const SESSION_DEADLINE_MS = 25000;
-const ANSWER_DEADLINE_MS = 45000;
+const ANSWER_DEADLINE_MS = 25000;
 
 const statusText: Record<string, string> = {
   idle: "Ready",
@@ -122,7 +122,7 @@ function subscribeToConnectivity(notify: () => void): () => void {
 }
 
 export default function HomePage() {
-  const [entryMode, setEntryMode] = useState<EntryMode>("voice");
+  const [entryMode, setEntryMode] = useState<EntryMode>("text");
   const [motionEnabled, setMotionEnabled] = useState(false);
   const [motionNotice, setMotionNotice] = useState("");
   const [tab, setTab] = useState<SourceTab>("pdf");
@@ -137,7 +137,7 @@ export default function HomePage() {
   const [pendingAnswers, setPendingAnswers] = useState(0);
   const [providerMode, setProviderMode] = useState<string>("");
   const [activity, setActivity] = useState<VoiceActivity>("idle");
-  const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(true);
   const micSupported = useSyncExternalStore(
     NO_CHANGE,
     readMicrophoneSupport,
@@ -291,7 +291,7 @@ export default function HomePage() {
       const envelope = await withDeadline(
         controller,
         INGEST_DEADLINE_MS,
-        "Reading your source took too long. Check your connection and retry.",
+        "Reading your source timed out. Check your connection and retry.",
         async () => {
           const health = await requestJson<Health>("/api/health", {
             signal: controller.signal,
@@ -503,7 +503,7 @@ export default function HomePage() {
       const reply = await withDeadline(
         controller,
         ANSWER_DEADLINE_MS,
-        "The answer took too long. Check your connection and retry your question.",
+        "The answer timed out. Check your connection and retry your question.",
         () =>
           withSession(
             (body) =>
@@ -749,8 +749,6 @@ export default function HomePage() {
             </p>
           </div>
 
-          <Onboarding />
-
           <div
             className="entry-mode-switch"
             role="tablist"
@@ -779,17 +777,29 @@ export default function HomePage() {
             >
               <Icon name="document" /> Text action
             </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={entryMode === "motion"}
-              className={`entry-mode-trigger${
-                entryMode === "motion" ? " active" : ""
-              }`}
-              onClick={() => switchEntryMode("motion")}
-            >
-              <Icon name="motion" /> Motion beta
-            </button>
+            <span className="entry-mode-tooltip-wrap" role="presentation">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={entryMode === "motion"}
+                aria-describedby="motion-beta-tip"
+                title="Motion beta uses a deliberate device movement to reveal the next control."
+                className={`entry-mode-trigger${
+                  entryMode === "motion" ? " active" : ""
+                }`}
+                onClick={() => switchEntryMode("motion")}
+              >
+                <Icon name="motion" /> Motion beta
+              </button>
+              <span
+                id="motion-beta-tip"
+                className="entry-mode-tooltip"
+                role="tooltip"
+              >
+                Use a deliberate movement to reveal the next control. Motion
+                beta never uses your camera.
+              </span>
+            </span>
           </div>
 
           {entryMode === "voice" && (
@@ -823,6 +833,19 @@ export default function HomePage() {
               >
                 <Icon name="motion" />
                 {motionEnabled ? "Stop motion beta" : "Enable motion beta"}
+              </button>
+              <button
+                type="button"
+                className="secondary motion-actions-manual"
+                onClick={() => {
+                  setError("");
+                  setSourcePickerOpen(true);
+                  window.requestAnimationFrame(() =>
+                    fileInput.current?.focus(),
+                  );
+                }}
+              >
+                Use upload instead <Icon name="arrow" />
               </button>
               <div
                 className="motion-actions-status"
@@ -899,6 +922,17 @@ export default function HomePage() {
                 </div>
               )}
 
+              {!source && motionFirstStart && (
+                <div className="motion-first-source">
+                  <span className="eyebrow">Motion-first start</span>
+                  <h3>Move to reveal your source control.</h3>
+                  <p>
+                    Enable Motion beta above, then make one deliberate movement
+                    to bring the PDF picker into focus.
+                  </p>
+                </div>
+              )}
+
               {!source && voiceFirstStart && (
                 <div className="voice-first-source">
                   <div className="voice-first-source-copy">
@@ -929,7 +963,7 @@ export default function HomePage() {
               {(source || sourcePickerOpen) && (
                 <details
                   className="source-picker"
-                  open={source ? sourcePickerOpen : true}
+                  open={sourcePickerOpen}
                   onToggle={(event) => {
                     if (source) setSourcePickerOpen(event.currentTarget.open);
                   }}
@@ -1157,6 +1191,18 @@ export default function HomePage() {
                   above.
                 </p>
               )}
+              {source && (
+                <div className="source-next-step">
+                  <span className="source-next-step-number">2</span>
+                  <div>
+                    <strong>Next: ask a question</strong>
+                    <span>
+                      Use voice or type below. Answers stay anchored to this
+                      source.
+                    </span>
+                  </div>
+                </div>
+              )}
             </section>
 
             <section
@@ -1320,18 +1366,23 @@ export default function HomePage() {
               <label className="question-label" htmlFor="question">
                 {state.status === "connected"
                   ? "Or type instead of speaking"
-                  : "Your question"}
+                  : source
+                    ? "Your question"
+                    : "Your question (ready when your source is added)"}
               </label>
               <form className="composer" onSubmit={sendText}>
                 <input
                   id="question"
                   aria-label="Ask a question"
-                  hidden={!source}
                   ref={questionInput}
                   value={question}
                   onChange={(event) => setQuestion(event.target.value)}
-                  placeholder="Ask a question…"
-                  disabled={!source}
+                  placeholder={
+                    source
+                      ? "Ask a question…"
+                      : "Type what you want to understand…"
+                  }
+                  disabled={busy}
                 />
                 <button
                   className="secondary"
@@ -1342,11 +1393,16 @@ export default function HomePage() {
                 </button>
               </form>
               <p className="hint answer-note">
-                Answers come from your source. Check important details in “View
-                source text”.
+                {source
+                  ? "Answers come from your source. Check important details in “View source text”."
+                  : "Add a PDF or YouTube source before sending so answers stay grounded."}
               </p>
             </section>
           </div>
+        </div>
+
+        <div className="container">
+          <Onboarding />
         </div>
 
         <div className="container">
@@ -1364,8 +1420,8 @@ export default function HomePage() {
                 <span className="guide-number">01</span>
                 <h3>Bring your source</h3>
                 <p>
-                  Choose a text-based PDF up to 25 MB or a YouTube video with
-                  available captions.
+                  Choose a text-based PDF up to 25 MB or a captioned YouTube
+                  video, then check the extracted text in the preview.
                 </p>
               </article>
               <article>
@@ -1373,15 +1429,16 @@ export default function HomePage() {
                 <h3>Start talking</h3>
                 <p>
                   Select Start Voice Chat, allow the microphone, and ask out
-                  loud. Interrupt whenever you want; typing always works too.
+                  loud. Interrupt or mute whenever you want; typing is always
+                  available.
                 </p>
               </article>
               <article>
                 <span className="guide-number">03</span>
                 <h3>Go a little deeper</h3>
                 <p>
-                  Follow up naturally. Keep the source nearby to check important
-                  details.
+                  Use a suggestion or ask a follow-up in your own words. Keep
+                  the source nearby to check important details.
                 </p>
               </article>
             </div>

@@ -495,9 +495,9 @@ const art = StyleSheet.create({
     height: 210,
     borderRadius: 110,
     borderWidth: 1,
-    borderColor: "#D9CDE4",
+    borderColor: "#D9D1C5",
   },
-  ringInner: { width: 160, height: 160, borderColor: "#C7B5DA" },
+  ringInner: { width: 160, height: 160, borderColor: "#C8B6A3" },
   voiceCore: {
     width: 112,
     height: 112,

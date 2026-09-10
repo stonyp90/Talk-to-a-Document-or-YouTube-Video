@@ -417,6 +417,8 @@ h3 {
   pointer-events: none;
 }
 .control-dock-inner {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: stretch;
   gap: 4px;
@@ -489,12 +491,14 @@ h3 {
   transform: none;
 }
 .control-dock-tooltip {
-  position: absolute;
-  z-index: 40;
-  right: 0;
-  bottom: calc(100% + 11px);
+  position: fixed;
+  z-index: 50;
+  right: max(16px, calc((100vw - min(520px, calc(100vw - 32px))) / 2 + 4px));
+  bottom: calc(14px + var(--safe-bottom) + 67px);
   width: max-content;
   max-width: min(330px, calc(100vw - 32px));
+  max-height: min(22svh, 132px);
+  overflow: auto;
   padding: 10px 12px;
   border: 1px solid var(--violet-line);
   border-radius: 10px;
@@ -504,6 +508,7 @@ h3 {
   font-size: 11px;
   font-weight: 500;
   line-height: 1.45;
+  overflow-wrap: anywhere;
   opacity: 0;
   pointer-events: none;
   transform: translateY(4px);
@@ -513,7 +518,7 @@ h3 {
 }
 .control-dock-tooltip::after {
   position: absolute;
-  right: 22px;
+  right: 18px;
   bottom: -5px;
   width: 9px;
   height: 9px;
@@ -523,10 +528,30 @@ h3 {
   content: "";
   transform: rotate(45deg);
 }
-.control-dock-item:hover .control-dock-tooltip,
-.control-dock-item:focus-visible .control-dock-tooltip {
-  opacity: 1;
-  transform: translateY(0);
+@media (min-width: 701px) {
+  .control-dock-item:hover .control-dock-tooltip,
+  .control-dock-item:focus-visible .control-dock-tooltip {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 700px) {
+  .control-dock-tooltip {
+    display: none;
+  }
+}
+
+body:has(.intro-video-backdrop) .control-dock-tooltip {
+  display: none;
+  visibility: hidden;
+}
+body:has(.intro-video-backdrop) .control-dock {
+  visibility: hidden;
+  pointer-events: none;
+}
+body:has(.intro-video-backdrop) {
+  overflow: hidden;
 }
 .guide-toggle,
 .guide-skip,
@@ -2415,8 +2440,9 @@ h3 {
     font-size: 8px;
   }
   .control-dock-tooltip {
-    right: -4px;
-    max-width: calc(100vw - 28px);
+    right: 10px;
+    bottom: calc(9px + var(--safe-bottom) + 62px);
+    max-width: calc(100vw - 20px);
   }
   .workspace-label {
     padding: 8px 11px;

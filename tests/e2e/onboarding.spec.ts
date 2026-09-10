@@ -15,6 +15,8 @@ for (const width of [320, 390, 1440]) {
       .getByRole("button", { name: "Watch Ursly in 24 seconds" })
       .click();
     await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator(".control-dock")).toBeHidden();
+    await expect(page.locator(".control-dock-tooltip")).toBeHidden();
     await expect(page.getByRole("dialog").locator("video")).toHaveAttribute(
       "preload",
       "metadata",

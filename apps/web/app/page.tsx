@@ -268,35 +268,52 @@ export default function HomePage() {
           if (current()) setProviderMode(health.mode ?? "");
 
           if (tab === "pdf" && file && health.directUpload) {
-            const prepared = await requestJson<{
-              url: string;
-              fields: Record<string, string>;
-              key: string;
-            }>("/api/uploads", {
-              signal: controller.signal,
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: file.name,
-                type: file.type,
-                size: file.size,
-              }),
-            });
-            if (current()) setUploadProgress(0);
-            await uploadWithProgress(
-              prepared.url,
-              prepared.fields,
-              file,
-              (fraction) => current() && setUploadProgress(fraction),
-              controller.signal,
-            );
-            if (current()) setUploadProgress(undefined);
-            return requestJson<SourceEnvelope>("/api/uploads/extract", {
-              signal: controller.signal,
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ key: prepared.key, name: file.name }),
-            });
+            try {
+              const prepared = await requestJson<{
+                url: string;
+                fields: Record<string, string>;
+                key: string;
+              }>("/api/uploads", {
+                signal: controller.signal,
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  name: file.name,
+                  type: file.type,
+                  size: file.size,
+                }),
+              });
+              if (current()) setUploadProgress(0);
+              await uploadWithProgress(
+                prepared.url,
+                prepared.fields,
+                file,
+                (fraction) => current() && setUploadProgress(fraction),
+                controller.signal,
+              );
+              if (current()) setUploadProgress(undefined);
+              return requestJson<SourceEnvelope>("/api/uploads/extract", {
+                signal: controller.signal,
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key: prepared.key, name: file.name }),
+              });
+            } catch (directUploadError) {
+              if (controller.signal.aborted) throw directUploadError;
+              // A presigned upload can fail independently of the app (CORS,
+              // a local object store restart, or a brief network transition).
+              // Retry once through the bounded multipart route so the user is
+              // never stranded behind a direct-upload-only path.
+              if (current()) setUploadProgress(undefined);
+              const form = new FormData();
+              form.append("file", file);
+              return requestJson<SourceEnvelope>("/api/ingest", {
+                signal: controller.signal,
+                method: "POST",
+                body: form,
+                retries: 0,
+              });
+            }
           }
 
           const form = new FormData();
@@ -306,6 +323,7 @@ export default function HomePage() {
             method: "POST",
             body: form,
             signal: controller.signal,
+            retries: 0,
           });
         },
       );
@@ -1366,7 +1384,6 @@ export default function HomePage() {
               className={`control-dock-item control-dock-motion${
                 entryMode === "motion" ? " active" : ""
               }`}
-              title="Preview the movement-first AR/VR interaction."
               onClick={() => switchEntryMode("motion")}
             >
               <Icon name="motion" />

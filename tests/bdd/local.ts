@@ -102,7 +102,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     await h.open.call(this);
     await expect(
       (await h.page(this)).getByRole("heading", {
-        name: "Talk to a document or a video.",
+        name: "Less scrolling. More understanding.",
       }),
     ).toBeVisible();
   });

@@ -12,7 +12,7 @@ import {
   validatePdf,
   type IngestedSource,
 } from "../../packages/core/src/domain/ingestion";
-import { extractPdfText } from "../../apps/web/src/composition";
+import { contextBudget, extractPdfText } from "../../apps/web/src/composition";
 import { pendingSteps } from "./unsupported";
 import { fixturePdf } from "./fixtures";
 import { registerLocalChecks } from "./local";
@@ -145,6 +145,12 @@ async function session(this: World) {
   });
   this.status = response.status;
   this.body = await response.json();
+  // The session endpoint intentionally keeps the full prompt inside the
+  // ephemeral credential. Keep the domain-level context available to BDD
+  // assertions without requiring the API to echo source text to the browser.
+  if (this.status === 200) {
+    this.instructions = buildContextInstructions(this.source, contextBudget());
+  }
 }
 async function send(this: World) {
   const p = await page(this);
@@ -199,7 +205,9 @@ step(
   async function () {
     await session.call(this);
     assert.equal(this.status, 200);
-    assert.ok(String(this.body.instructions).includes(this.source.text));
+    assert.equal(this.body.instructions, undefined);
+    assert.ok(this.body.sourceId);
+    assert.ok(this.instructions.includes(this.source.text));
   },
 );
 step("the upload is rejected before extraction starts", function () {
@@ -319,7 +327,7 @@ step(
   ],
   function () {
     assert.equal(this.status, 200);
-    const instructions = String(this.body.instructions);
+    const instructions = this.instructions;
     assert.ok(instructions.includes(this.source.text));
     assert.ok(instructions.endsWith(this.source.text));
   },
@@ -350,17 +358,17 @@ step("source text exceeds the configured safety limit", function () {
   this.source = {
     kind: "pdf",
     sourceName: "large.pdf",
-    text: "x".repeat(60001),
-    characters: 60001,
+    text: "x".repeat(120001),
+    characters: 120001,
   };
 });
 step("the context request is rejected safely", function () {
   assert.equal(this.status, 200);
-  assert.match(String(this.body.instructions), /Only part of this source fits/);
+  assert.match(this.instructions, /Only part of this source fits/);
 });
 step("I see an actionable context-size error", function () {
   assert.match(
-    `${String(this.body.error ?? "")} ${String(this.body.instructions ?? "")}`,
+    `${String(this.body.error ?? "")} ${this.instructions}`,
     /context|size|large|limit|60,000 characters|omitted/i,
   );
 });
@@ -446,7 +454,10 @@ step(
   "the ingested source context is used to produce the response",
   async function () {
     if (this.requestBody.sourceId) {
-      assert.match(this.requestBody.sourceId, /^source-/);
+      assert.match(
+        this.requestBody.sourceId,
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
     } else {
       assert.deepEqual(this.requestBody.source, this.source);
     }
@@ -902,11 +913,14 @@ step(
     assert.deepEqual(Object.keys(this.body).sort(), [
       "clientSecret",
       "expiresAt",
-      "instructions",
       "mode",
       "model",
+      "sourceId",
     ]);
-    assert.ok(String(this.body.instructions).includes(this.source.text));
+    assert.match(
+      String(this.body.sourceId),
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
   },
 );
 step("a client requests a session without a source", async function () {

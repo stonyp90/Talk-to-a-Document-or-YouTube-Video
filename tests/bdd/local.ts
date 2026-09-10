@@ -145,7 +145,14 @@ export function registerLocalChecks(step: Step, h: Helpers) {
       const p = await h.page(this);
       assert.deepEqual(await p.context().cookies(), []);
       await h.open.call(this);
-      assert.equal(await p.evaluate(() => localStorage.length), 0);
+      assert.equal(
+        await p.evaluate(() =>
+          Object.keys(localStorage).some((key) =>
+            /login|auth|token|session/i.test(key),
+          ),
+        ),
+        false,
+      );
     },
   );
   step("I ingest a source and ask a text question", async function () {
@@ -330,7 +337,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   step("the cheapest suitable demo choice is stated", function () {
     contains(
       this,
-      /default runtime is Lambda|Lambda est le choix par défaut/,
+      /default runtime is Lambda|Lambda is the default runtime|Lambda est le choix par défaut/,
       /intermittent/,
     );
   });

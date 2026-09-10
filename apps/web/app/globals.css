@@ -2545,14 +2545,16 @@ h3 {
     width: 100%;
   }
   .saved-trigger {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
   }
   .saved-trigger-action {
     grid-column: 1;
   }
   .saved-trigger-actions {
-    grid-column: 2;
-    grid-row: 1 / span 2;
+    min-width: 0;
+    grid-column: 1;
+    grid-row: auto;
+    justify-content: flex-start;
   }
   .workspace {
     grid-template-columns: 1fr;

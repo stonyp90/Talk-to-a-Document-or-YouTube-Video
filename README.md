@@ -88,7 +88,7 @@ features/, tests/         Gherkin acceptance, unit, browser and architecture tes
 
 **Uploads bypass the API.** Large PDFs go straight to object storage through a short-lived presigned form post, with progress shown. The server then reads the object, extracts, and deletes it in a `finally` block. This keeps multi-megabyte bodies away from a 6 MB Lambda payload limit.
 
-**Hosting.** Terraform builds the Next.js image into ECR and runs it on Lambda behind API Gateway, alongside a caption Lambda, S3 and Secrets Manager. GitHub Actions deploys through OIDC with no long-lived AWS keys. Lambda suits intermittent demo traffic: no always-on ECS task, and it scales to zero between reviews. ECS Fargate would win on steady traffic and long-lived connections; it costs more to leave running for a demo.
+**Hosting.** Terraform builds the Next.js image into ECR and runs it on Lambda behind API Gateway, alongside a caption Lambda, S3 and Secrets Manager. GitHub Actions deploys through OIDC with no long-lived AWS keys. The default runtime is Lambda because its scale-to-zero behavior and per-request billing suit intermittent demo traffic. ECS Fargate would win on steady traffic and long-lived connections; it costs more to leave running for a demo.
 
 ---
 

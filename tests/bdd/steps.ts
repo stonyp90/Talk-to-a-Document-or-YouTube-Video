@@ -103,7 +103,6 @@ async function upload(
 ) {
   const p = await page(this);
   await revealSourcePicker(p);
-  await p.getByLabel("PDF file").setInputFiles({ name, mimeType, buffer });
   // Forward to the real server; read through APIResponse to avoid Chromium's
   // inspector evicting response bodies after a 25 MB upload.
   await p.route(/\/api\/(ingest|uploads(?:\/extract)?)$/, async (route) => {
@@ -119,6 +118,7 @@ async function upload(
         r.url().endsWith("/api/uploads/extract") ||
         (r.url().endsWith("/api/uploads") && !r.ok())),
   );
+  await p.getByLabel("PDF file").setInputFiles({ name, mimeType, buffer });
   await p.getByRole("button", { name: "Continue to questions" }).click();
   await response;
 }

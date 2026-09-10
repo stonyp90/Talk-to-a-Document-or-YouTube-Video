@@ -62,7 +62,7 @@ jobs:
             docker build --platform linux/amd64 --provenance=false --sbom=false -f infrastructure/transcript.Dockerfile --label org.opencontainers.image.revision="$TESTED_SHA" -t "$REGISTRY/talk-to-a-document-transcript:$TESTED_SHA" .
             docker push "$REGISTRY/talk-to-a-document-transcript:$TESTED_SHA"
           fi
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.14.7
           terraform_wrapper: false

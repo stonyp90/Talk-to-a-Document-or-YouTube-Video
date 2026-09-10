@@ -79,6 +79,13 @@ async function open(this: World) {
   const skipGuide = p.getByRole("button", { name: "Skip guide" });
   await skipGuide.click({ timeout: 10_000 }).catch(() => undefined);
 }
+async function revealSourcePicker(p: Page) {
+  const reveal = p.getByRole("button", { name: "Use upload instead" });
+  if (await reveal.count()) {
+    await reveal.click();
+    await expect(p.getByLabel("PDF file")).toBeVisible();
+  }
+}
 async function result(
   world: World,
   response: { status(): number; json(): Promise<Record<string, unknown>> },
@@ -94,10 +101,7 @@ async function upload(
   mimeType = "application/pdf",
 ) {
   const p = await page(this);
-  if (await p.getByRole("button", { name: "Use upload instead" }).count()) {
-    await p.getByRole("button", { name: "Use upload instead" }).click();
-    await expect(p.getByLabel("PDF file")).toBeVisible();
-  }
+  await revealSourcePicker(p);
   await p.getByLabel("PDF file").setInputFiles({ name, mimeType, buffer });
   // Forward to the real server; read through APIResponse to avoid Chromium's
   // inspector evicting response bodies after a 25 MB upload.
@@ -119,10 +123,7 @@ async function upload(
 }
 async function youtube(this: World, url = "https://youtu.be/dQw4w9WgXcQ") {
   const p = await page(this);
-  if (await p.getByRole("button", { name: "Use upload instead" }).count()) {
-    await p.getByRole("button", { name: "Use upload instead" }).click();
-    await expect(p.getByLabel("PDF file")).toBeVisible();
-  }
+  await revealSourcePicker(p);
   await p.getByRole("tab", { name: "YouTube video" }).click();
   await p.getByLabel("YouTube URL").fill(url);
   const response = p.waitForResponse((r) => r.url().endsWith("/api/ingest"));
@@ -530,6 +531,7 @@ step(
 );
 step("the PDF and YouTube source options are visible", async function () {
   const p = await page(this);
+  await revealSourcePicker(p);
   await expect(p.getByRole("tab", { name: "PDF document" })).toBeVisible();
   await expect(p.getByRole("tab", { name: "YouTube video" })).toBeVisible();
 });
@@ -548,6 +550,7 @@ step(
 );
 step("I see an explanatory empty state", async function () {
   const p = await page(this);
+  await revealSourcePicker(p);
   await expect(
     p.getByText("We’ll read it for you. Then you can ask about it."),
   ).toBeVisible();
@@ -752,6 +755,7 @@ step("I have submitted a source", async function () {
     await blocked;
     await route.continue();
   });
+  await revealSourcePicker(p);
   await p.getByRole("tab", { name: "YouTube video" }).click();
   await p.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
   await p.getByRole("button", { name: "Continue to questions" }).click();

@@ -86,15 +86,15 @@ async function emitSpeech(page: Page, transcript: string) {
   }, transcript);
 }
 
-test("text action is the default source entry and leaves the question box ready", async ({
+test("voice action is the default entry and keeps source controls opt-in", async ({
   page,
 }) => {
   await openClean(page);
 
   await expect(
-    page.getByRole("heading", { name: "1. Choose a source" }),
+    page.getByRole("heading", { name: "1. Start with your voice" }),
   ).toBeVisible();
-  await expect(page.getByLabel("PDF file")).toBeVisible();
+  await expect(page.getByLabel("PDF file")).toHaveCount(0);
   await expect(page.getByLabel("YouTube URL")).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "2. Ask a question" }),
@@ -102,7 +102,7 @@ test("text action is the default source entry and leaves the question box ready"
   await expect(
     page.getByLabel("Ask a question", { exact: true }),
   ).toBeEnabled();
-  await expect(page.getByRole("tab", { name: "Text action" })).toHaveAttribute(
+  await expect(page.getByRole("tab", { name: "Voice action" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
@@ -112,16 +112,6 @@ test("text action is the default source entry and leaves the question box ready"
   await expect(page.locator("#motion-beta-tip")).toContainText(
     "deliberate movement",
   );
-
-  await page.getByRole("tab", { name: "Voice action" }).click();
-  await expect(page.getByRole("tab", { name: "Voice action" })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  await expect(
-    page.getByRole("heading", { name: "Say a word. Take the next step." }),
-  ).toBeVisible();
-  await expect(page.getByLabel("PDF file")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Use upload instead" }).click();
   await expect(page.getByLabel("PDF file")).toBeVisible();
@@ -154,47 +144,35 @@ test("voice action examples reveal their spoken trigger without running it", asy
   await expect(page.getByText("Say this", { exact: true })).toHaveCount(0);
 });
 
-test("motion beta is a distinct entry mode with a safe device-motion trigger", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(window, "DeviceMotionEvent", {
-      configurable: true,
-      value: class FakeDeviceMotionEvent extends Event {},
-    });
-  });
+test("motion beta is a safe, hover-only concept preview", async ({ page }) => {
   await openClean(page);
 
   await page.getByRole("tab", { name: "Motion beta" }).click();
   await expect(
-    page.getByRole("heading", { name: "Move once. Take the next step." }),
+    page.getByRole("heading", { name: "Move once. Imagine the next layer." }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Say a word. Take the next step." }),
+    page.getByText("Preview only · no click-triggered actions"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Future direction: a deliberate phone movement"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "A hands-free layer for later." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Enable motion beta" }),
   ).toHaveCount(0);
+  await expect(page.getByLabel("PDF file")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Enable motion beta" }).click();
-  await expect(
-    page.getByText(/Motion beta is ready — move your phone/),
-  ).toBeVisible();
+  await page.getByRole("tab", { name: "Motion beta" }).hover();
+  await expect(page.locator("#motion-beta-tip")).toContainText(
+    "no pointer clicks",
+  );
 
-  await page.evaluate(() => {
-    const event = new Event("devicemotion");
-    Object.defineProperty(event, "accelerationIncludingGravity", {
-      configurable: true,
-      value: { x: 20, y: 0, z: 0 },
-    });
-    window.dispatchEvent(event);
-  });
-  await expect(page.getByLabel("PDF file")).toBeVisible();
-
-  await page.getByRole("button", { name: "Back to motion actions" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Move once. Take the next step." }),
-  ).toBeFocused();
   await page.getByRole("tab", { name: "Voice action" }).click();
   await expect(
-    page.getByRole("heading", { name: "Say a word. Take the next step." }),
+    page.getByRole("heading", { name: "Your voice is the shortcut." }),
   ).toBeVisible();
 });
 

@@ -68,7 +68,7 @@ Full environment reference: [`.env.example`](.env.example) and [service setup](S
 ## Technical overview
 
 ```text
-apps/web/                 Next.js interface, API routes, composition root
+apps/web/                 Next.js interface, Server routes, composition root
 apps/mobile/              Expo client (extra scope, not part of the web deliverable)
 packages/core/domain/     Source rules, context windowing, conversation state
 packages/core/application/Ports and technology-free use cases
@@ -144,7 +144,7 @@ npm run test:e2e                              # Playwright, including a 390 px v
 npm run test:gherkin -- --tags 'not @external'  # Cucumber acceptance scenarios
 ```
 
-Scenarios tagged `@external` need real providers or a deployed environment; mocks do not satisfy them. Undefined or pending steps fail the suite. Before publishing, `npm run security:secrets` scans history and publication candidates with Gitleaks; CI runs it too, alongside a build with canary secrets that greps the emitted client bundle.
+Scenarios tagged `@external` need real providers or a deployed environment; mocks do not satisfy them. Undefined or pending steps fail the suite: pending steps are not passing until they have executable evidence. Before publishing, `npm run security:secrets` scans history and publication candidates with Gitleaks; CI runs it too, alongside a build with canary secrets that greps the emitted client bundle.
 
 Mobile: `npm run typecheck --prefix apps/mobile && npm test --prefix apps/mobile`.
 
@@ -175,4 +175,4 @@ docker compose --env-file .env.local logs --tail=100 dev transcript
 
 ## AI-assisted development
 
-AI tooling (Claude Code and ChatGPT) was used throughout: decomposing the brief into executable Gherkin, designing the hexagonal boundaries, writing implementation and tests, debugging the Realtime event stream, and reviewing for security and requirement drift. Claims about behaviour are backed by executable tests or clearly labelled operational notes.
+AI tooling (Claude Code and ChatGPT) was used throughout: requirements decomposition into executable Gherkin, designing the hexagonal boundaries, writing implementation and tests, debugging the Realtime event stream, and reviewing for security and requirement drift. Claims about behaviour are backed by executable tests or clearly labelled operational notes.

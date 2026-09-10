@@ -736,6 +736,39 @@ h3 {
 .motion-actions-card > .hint {
   grid-column: 1 / -1;
 }
+.motion-sensor-flow {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid var(--violet-line);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+.motion-sensor-flow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.motion-sensor-flow .icon {
+  width: 15px;
+  height: 15px;
+  color: var(--accent);
+}
+.motion-sensor-arrow {
+  color: var(--accent);
+  font-size: 17px;
+}
+.motion-sensor-ar {
+  margin-left: auto;
+  color: var(--accent);
+}
 .voice-trigger-button {
   flex-shrink: 0;
   margin-top: 2px;
@@ -1136,7 +1169,7 @@ h3 {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
+  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.35fr);
   align-items: stretch;
   gap: 14px;
   min-height: min(650px, calc(100svh - 236px));
@@ -1772,6 +1805,85 @@ h3 {
   width: 24px;
   height: 24px;
   color: var(--accent);
+}
+.mode-orbit-text {
+  background: radial-gradient(circle, var(--violet-tint), transparent);
+}
+.mode-orbit-motion {
+  border-color: var(--violet-line);
+  background: radial-gradient(circle, var(--violet-tint), transparent);
+}
+.command-rail,
+.ar-vr-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 620px;
+  margin-top: 9px;
+}
+.command-rail {
+  flex-wrap: wrap;
+}
+.command-rail span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 1px solid var(--accent-border-wash);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+  box-shadow: 0 4px 14px var(--shadow-sm);
+}
+.command-rail .icon {
+  width: 14px;
+  height: 14px;
+}
+.ar-vr-preview {
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  justify-content: center;
+  gap: 10px;
+  max-width: 560px;
+  padding: 13px 16px;
+  border: 1px solid var(--violet-line);
+  border-radius: 14px;
+  background: linear-gradient(110deg, var(--violet-tint), var(--surface));
+  color: var(--muted);
+  text-align: left;
+}
+.ar-vr-preview > span:not(.ar-vr-preview-arrow):not(.ar-vr-preview-orbit) {
+  display: grid;
+  gap: 2px;
+}
+.ar-vr-preview strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+.ar-vr-preview small {
+  font-size: 10px;
+}
+.ar-vr-preview-orbit {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--accent-border);
+  border-radius: 50%;
+  color: var(--accent);
+}
+.ar-vr-preview-orbit .icon {
+  width: 18px;
+  height: 18px;
+}
+.ar-vr-preview-arrow {
+  align-self: center;
+  color: var(--accent);
+  font-size: 17px;
 }
 .voice-orbit[data-activity="listening"] {
   border-color: var(--accent);

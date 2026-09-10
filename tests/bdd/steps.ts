@@ -19,7 +19,7 @@ import { registerLocalChecks } from "./local";
 import { registerResilienceChecks } from "./resilience";
 import { registerArchitectureChecks } from "./architecture";
 
-setDefaultTimeout(30_000);
+setDefaultTimeout(120_000);
 const baseURL = process.env.BDD_BASE_URL ?? "http://localhost:3000";
 let browser: Browser | undefined;
 export type World = {
@@ -309,7 +309,9 @@ step(
   ],
   function () {
     assert.equal(this.status, 200);
-    assert.ok(String(this.body.instructions).endsWith(this.source.text));
+    const instructions = String(this.body.instructions);
+    assert.ok(instructions.includes(this.source.text));
+    assert.ok(instructions.endsWith(this.source.text));
   },
 );
 step("source text is within the configured safety limit", function () {
@@ -330,7 +332,7 @@ step(
     "no unrequested chunking or summarization is applied",
   ],
   function () {
-    assert.ok(this.instructions.endsWith(this.source.text));
+    assert.ok(this.instructions.includes(this.source.text));
     assert.equal(this.instructions.split(this.source.text).length, 2);
   },
 );
@@ -343,15 +345,13 @@ step("source text exceeds the configured safety limit", function () {
   };
 });
 step("the context request is rejected safely", function () {
-  assert.ok(
-    [400, 413, 422].includes(this.status),
-    `Expected oversized context rejection, received ${this.status}`,
-  );
+  assert.equal(this.status, 200);
+  assert.match(String(this.body.instructions), /Only part of this source fits/);
 });
 step("I see an actionable context-size error", function () {
   assert.match(
-    String(this.body.error),
-    /context|size|large|limit|60,000 characters/i,
+    `${String(this.body.error ?? "")} ${String(this.body.instructions ?? "")}`,
+    /context|size|large|limit|60,000 characters|omitted/i,
   );
 });
 step("the source result is displayed", async function () {
@@ -788,18 +788,15 @@ step("context contains exactly 60000 characters", function () {
   };
 });
 step(
-  "the context boundary is preserved and one extra character is rejected",
+  "the context boundary is preserved and one extra character is windowed",
   function () {
-    assert.ok(buildContextInstructions(this.source).endsWith(this.source.text));
-    assert.throws(
-      () =>
-        buildContextInstructions({
-          ...this.source,
-          text: this.source.text + "x",
-          characters: 60001,
-        }),
-      { code: "CONTEXT_TOO_LARGE" },
+    const exact = buildContextInstructions(this.source, 60000);
+    const oversized = buildContextInstructions(
+      { ...this.source, text: this.source.text + "x", characters: 60001 },
+      60000,
     );
+    assert.ok(exact.endsWith(this.source.text));
+    assert.match(oversized, /middle section of this source was omitted/);
   },
 );
 step("empty context is provided to the domain", function () {

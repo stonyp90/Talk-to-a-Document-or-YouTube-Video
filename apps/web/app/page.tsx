@@ -122,9 +122,7 @@ function subscribeToConnectivity(notify: () => void): () => void {
 }
 
 export default function HomePage() {
-  const [entryMode, setEntryMode] = useState<EntryMode>("text");
-  const [motionEnabled, setMotionEnabled] = useState(false);
-  const [motionNotice, setMotionNotice] = useState("");
+  const [entryMode, setEntryMode] = useState<EntryMode>("voice");
   const [tab, setTab] = useState<SourceTab>("pdf");
   const [file, setFile] = useState<File | undefined>();
   const [url, setUrl] = useState("");
@@ -137,7 +135,7 @@ export default function HomePage() {
   const [pendingAnswers, setPendingAnswers] = useState(0);
   const [providerMode, setProviderMode] = useState<string>("");
   const [activity, setActivity] = useState<VoiceActivity>("idle");
-  const [sourcePickerOpen, setSourcePickerOpen] = useState(true);
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
   const micSupported = useSyncExternalStore(
     NO_CHANGE,
     readMicrophoneSupport,
@@ -164,7 +162,6 @@ export default function HomePage() {
   const textRequests = useRef(new Set<AbortController>());
   const uploadRequest = useRef<AbortController | null>(null);
   const voiceActive = useRef(false);
-  const lastMotionTrigger = useRef(0);
   const sourceIdRef = useRef<string | undefined>(undefined);
   const fileInput = useRef<HTMLInputElement>(null);
   const voicePickerInput = useRef<HTMLInputElement>(null);
@@ -196,34 +193,6 @@ export default function HomePage() {
   useEffect(() => {
     if (source) questionInput.current?.focus();
   }, [source]);
-
-  useEffect(() => {
-    if (entryMode !== "motion" || !motionEnabled) return;
-
-    function onMotion(event: DeviceMotionEvent) {
-      const acceleration = event.accelerationIncludingGravity;
-      if (!acceleration) return;
-      const magnitude = Math.sqrt(
-        (acceleration.x ?? 0) ** 2 +
-          (acceleration.y ?? 0) ** 2 +
-          (acceleration.z ?? 0) ** 2,
-      );
-      const now = Date.now();
-      if (magnitude < 18 || now - lastMotionTrigger.current < 1400) return;
-      lastMotionTrigger.current = now;
-
-      if (source) {
-        setMotionNotice("Movement detected — your question box is ready.");
-        window.requestAnimationFrame(() => questionInput.current?.focus());
-      } else {
-        setMotionNotice("Movement detected — the PDF upload control is ready.");
-        focusSourceControl("upload");
-      }
-    }
-
-    window.addEventListener("devicemotion", onMotion);
-    return () => window.removeEventListener("devicemotion", onMotion);
-  }, [entryMode, motionEnabled, source]);
 
   const invalidateVoice = useCallback(() => {
     voiceVersion.current++;
@@ -559,47 +528,10 @@ export default function HomePage() {
 
   function switchEntryMode(mode: EntryMode) {
     setEntryMode(mode);
-    setMotionEnabled(false);
-    if (mode !== "motion") setMotionNotice("");
     setError("");
+    // Text owns the classic source form. Voice and motion keep the stage open
+    // so switching modes never silently starts an action or requests a sensor.
     setSourcePickerOpen(mode === "text" || Boolean(source));
-  }
-
-  async function toggleMotion() {
-    if (motionEnabled) {
-      setMotionEnabled(false);
-      setMotionNotice("Motion beta paused.");
-      return;
-    }
-
-    if (!("DeviceMotionEvent" in window)) {
-      setMotionNotice(
-        "Motion sensing is not available in this browser. Use voice or text action.",
-      );
-      return;
-    }
-
-    try {
-      const motionEvent =
-        window.DeviceMotionEvent as typeof DeviceMotionEvent & {
-          requestPermission?: () => Promise<PermissionState>;
-        };
-      const permission = await motionEvent.requestPermission?.();
-      if (permission === "denied") {
-        setMotionNotice(
-          "Motion permission was declined. You can still use voice or text action.",
-        );
-        return;
-      }
-      setMotionEnabled(true);
-      setMotionNotice(
-        "Motion beta is ready — move your phone or motion-enabled device to trigger the next step.",
-      );
-    } catch {
-      setMotionNotice(
-        "Motion permission could not be enabled. Use voice or text action instead.",
-      );
-    }
   }
 
   function openUploadPicker() {
@@ -796,8 +728,9 @@ export default function HomePage() {
                 className="entry-mode-tooltip"
                 role="tooltip"
               >
-                Use a deliberate movement to reveal the next control. Motion
-                beta never uses your camera.
+                Preview the movement-first interaction. Motion beta is
+                hover-only for now: no pointer clicks trigger actions, and it
+                never uses your camera.
               </span>
             </span>
           </div>
@@ -818,48 +751,37 @@ export default function HomePage() {
               <div className="motion-actions-copy">
                 <span className="eyebrow">Beta preview · motion actions</span>
                 <h2 id="motion-actions-heading" tabIndex={-1}>
-                  Move once. Take the next step.
+                  Move once. Imagine the next layer.
                 </h2>
                 <p>
-                  Enable motion sensing, then make one deliberate movement to
-                  open the next control. This beta uses device motion only — no
-                  camera or video.
+                  This is a preview-only beta: pointer clicks never trigger
+                  actions and no motion permission is requested. Hover over the
+                  mode to see the interaction we are exploring.
                 </p>
               </div>
-              <button
-                type="button"
-                className="primary motion-actions-toggle"
-                onClick={() => void toggleMotion()}
-              >
-                <Icon name="motion" />
-                {motionEnabled ? "Stop motion beta" : "Enable motion beta"}
-              </button>
-              <button
-                type="button"
-                className="secondary motion-actions-manual"
-                onClick={() => {
-                  setError("");
-                  setSourcePickerOpen(true);
-                  window.requestAnimationFrame(() =>
-                    fileInput.current?.focus(),
-                  );
-                }}
-              >
-                Use upload instead <Icon name="arrow" />
-              </button>
               <div
                 className="motion-actions-status"
-                data-enabled={motionEnabled}
+                data-enabled="false"
                 role="status"
                 aria-live="polite"
               >
                 <span className="motion-actions-pulse" aria-hidden="true" />
-                {motionNotice || "Motion beta is off until you enable it."}
+                Preview only · no click-triggered actions
+              </div>
+              <div className="motion-sensor-flow" aria-hidden="true">
+                <span>
+                  <Icon name="motion" /> Move
+                </span>
+                <span className="motion-sensor-arrow">→</span>
+                <span>
+                  <Icon name="arrow" /> Reveal
+                </span>
+                <span className="motion-sensor-ar">AR / VR layer</span>
               </div>
               <p className="hint">
-                Beta trigger: a deliberate movement reveals the PDF upload
-                control when no source is loaded, or focuses your question when
-                one is ready.
+                Future direction: a deliberate phone movement, gaze or gesture
+                could reveal the next safe control in an AR/VR space. Voice
+                remains the fallback and every action will still be cancellable.
               </p>
             </section>
           )}
@@ -925,10 +847,11 @@ export default function HomePage() {
               {!source && motionFirstStart && (
                 <div className="motion-first-source">
                   <span className="eyebrow">Motion-first start</span>
-                  <h3>Move to reveal your source control.</h3>
+                  <h3>Preview the movement-first workflow.</h3>
                   <p>
-                    Enable Motion beta above, then make one deliberate movement
-                    to bring the PDF picker into focus.
+                    This beta does not activate sensors or trigger controls yet.
+                    Use voice or text to add a source; motion only demonstrates
+                    the future AR/VR direction.
                   </p>
                 </div>
               )}
@@ -1295,43 +1218,99 @@ export default function HomePage() {
                 {state.messages.length === 0 ? (
                   <div className="empty-chat">
                     <div
-                      className="voice-orbit"
+                      className={`voice-orbit mode-orbit mode-orbit-${entryMode}`}
                       data-activity={sessionLive ? activity : "off"}
                       aria-hidden="true"
                     >
-                      <Icon name="voice" />
+                      <Icon
+                        name={
+                          entryMode === "motion"
+                            ? "motion"
+                            : entryMode === "text"
+                              ? "document"
+                              : "voice"
+                        }
+                      />
                     </div>
                     <h3>
-                      {source
-                        ? "What are you curious about?"
-                        : "Good questions start here."}
+                      {entryMode === "voice" && !source
+                        ? "Your voice is the shortcut."
+                        : entryMode === "motion" && !source
+                          ? "A hands-free layer for later."
+                          : source
+                            ? "What are you curious about?"
+                            : "Good questions start here."}
                     </h3>
                     <p className="hint">
-                      {source
-                        ? "Start voice chat and speak, type your question below, or choose an idea."
-                        : "Add a source, then explore the ideas inside it."}
+                      {entryMode === "voice" && !source
+                        ? "Arm voice actions above and say a command such as “upload” or “YouTube”. Nothing starts without your explicit command."
+                        : entryMode === "motion" && !source
+                          ? "Hover over Motion beta to explore the concept. This preview never turns a pointer click into an action."
+                          : source
+                            ? "Start voice chat and speak, type your question below, or choose an idea."
+                            : "Add a source, then explore the ideas inside it."}
                     </p>
-                    <div className="suggestions">
-                      {[
-                        "Summarize the key ideas",
-                        "Explain this simply",
-                        "What should I remember?",
-                      ].map((prompt) => (
-                        <button
-                          type="button"
-                          className="suggestion"
-                          key={prompt}
-                          disabled={!source}
-                          onClick={() => {
-                            setQuestion(prompt);
-                            questionInput.current?.focus();
-                          }}
+                    {entryMode === "voice" && !source ? (
+                      <div
+                        className="command-rail"
+                        aria-label="Voice command examples"
+                      >
+                        <span>
+                          <Icon name="document" /> “Upload”
+                        </span>
+                        <span>
+                          <Icon name="video" /> “YouTube”
+                        </span>
+                        <span>
+                          <Icon name="voice" /> “Let's talk”
+                        </span>
+                      </div>
+                    ) : entryMode === "motion" && !source ? (
+                      <div
+                        className="ar-vr-preview"
+                        aria-label="Future AR and VR preview"
+                      >
+                        <span className="ar-vr-preview-orbit">
+                          <Icon name="motion" />
+                        </span>
+                        <span>
+                          <strong>Move</strong>
+                          <small>gesture or gaze</small>
+                        </span>
+                        <span
+                          className="ar-vr-preview-arrow"
+                          aria-hidden="true"
                         >
-                          {prompt}
-                          <span aria-hidden="true">↗</span>
-                        </button>
-                      ))}
-                    </div>
+                          →
+                        </span>
+                        <span>
+                          <strong>Reveal</strong>
+                          <small>the next safe control</small>
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="suggestions">
+                        {[
+                          "Summarize the key ideas",
+                          "Explain this simply",
+                          "What should I remember?",
+                        ].map((prompt) => (
+                          <button
+                            type="button"
+                            className="suggestion"
+                            key={prompt}
+                            disabled={!source}
+                            onClick={() => {
+                              setQuestion(prompt);
+                              questionInput.current?.focus();
+                            }}
+                          >
+                            {prompt}
+                            <span aria-hidden="true">↗</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   state.messages.map((message) => (

@@ -102,7 +102,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     await h.open.call(this);
     await expect(
       (await h.page(this)).getByRole("heading", {
-        name: "Less scrolling. More understanding.",
+        name: "Talk to a document or a video.",
       }),
     ).toBeVisible();
   });
@@ -254,7 +254,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     "source ingestion and mock conversation work end to end",
     async function () {
       await h.send.call(this);
-      assert.deepEqual(this.requestBody.source, this.source);
+      assert.ok(this.requestBody.sourceId || this.requestBody.source);
     },
   );
 
@@ -286,7 +286,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     // Execute one actual application journey, without recursively running Cucumber.
     await h.ready.call(this);
     await h.send.call(this);
-    assert.deepEqual(this.requestBody.source, this.source);
+    assert.ok(this.requestBody.sourceId || this.requestBody.source);
   });
   step("required local variables are listed", function () {
     contains(

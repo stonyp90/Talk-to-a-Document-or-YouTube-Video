@@ -186,6 +186,24 @@ export const french = {
     "Les actions vocales nécessitent les autorisations du microphone et de la reconnaissance vocale.",
   "Voice actions paused while Ursly is busy.":
     "Les actions vocales sont en pause pendant qu’Ursly travaille.",
+  "Voice actions stopped after 8 seconds without speech.":
+    "Les actions vocales se sont arrêtées après 8 secondes sans parole.",
+  "Voice actions stopped after 30 seconds for your privacy.":
+    "Les actions vocales se sont arrêtées après 30 secondes pour votre confidentialité.",
+  "Voice actions stopped when the app was backgrounded.":
+    "Les actions vocales se sont arrêtées lorsque l’application est passée en arrière-plan.",
+  "Voice actions are preparing for the next command.":
+    "Les actions vocales se préparent pour la prochaine commande.",
+  "Voice actions could not start. Try again.":
+    "Les actions vocales n’ont pas pu démarrer. Réessayez.",
+  "Voice actions stopped. Press Arm voice actions to restart them.":
+    "Les actions vocales se sont arrêtées. Appuyez sur Activer les actions vocales pour recommencer.",
+  "Use at least one letter or number in the trigger phrase.":
+    "Utilisez au moins une lettre ou un chiffre dans la phrase déclencheuse.",
+  "Keep trigger phrases to 80 characters or fewer.":
+    "Limitez les phrases déclencheuses à 80 caractères.",
+  "You can save up to 32 voice triggers.":
+    "Vous pouvez enregistrer jusqu’à 32 déclencheurs vocaux.",
   "For uploads, your phone will ask you to choose a local file.":
     "Pour importer un fichier, votre téléphone vous demandera de choisir un fichier local.",
   "YouTube is ready — add a video link next.":

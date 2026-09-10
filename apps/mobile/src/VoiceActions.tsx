@@ -6,6 +6,7 @@ import {
 } from "expo-speech-recognition";
 import { useEffect, useRef, useState } from "react";
 import {
+  AppState,
   Modal,
   Pressable,
   SafeAreaView,
@@ -48,6 +49,11 @@ type Props = {
 };
 
 const storageKey = "ursly-mobile-voice-triggers-v1";
+const MAX_TRIGGER_LENGTH = 80;
+const MAX_SAVED_TRIGGERS = 32;
+const MAX_LISTENING_MS = 30_000;
+const SILENCE_TIMEOUT_MS = 8_000;
+const RESTART_DELAY_MS = 250;
 const actionLabels: Record<MobileVoiceActionId, TranslationKey> = {
   youtube: "Open the YouTube source",
   upload: "Open the PDF picker",
@@ -134,6 +140,15 @@ export function MobileVoiceActions({
   const hydrated = useRef(false);
   const handledTriggers = useRef(new Set<string>());
   const restart = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const maximumTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const silenceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const listeningEpoch = useRef(0);
+  const startInFlight = useRef(false);
+  const resumeAfterSpeech = useRef(false);
   const onActionRef = useRef(onAction);
   triggersRef.current = triggers;
   tRef.current = t;
@@ -204,27 +219,65 @@ export function MobileVoiceActions({
   useEffect(
     () => () => {
       armedRef.current = false;
+      listeningEpoch.current += 1;
       if (restart.current) clearTimeout(restart.current);
-      ExpoSpeechRecognitionModule.abort();
+      if (maximumTimer.current) clearTimeout(maximumTimer.current);
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      try {
+        ExpoSpeechRecognitionModule.abort();
+      } catch {
+        /* The native recognizer may already be gone during unmount. */
+      }
     },
     [],
   );
   useEffect(() => {
     if (!voiceBusy || !armedRef.current) return;
-    armedRef.current = false;
-    ExpoSpeechRecognitionModule.abort();
-    setArmed(false);
-    setRecognizing(false);
-    setNotice(t("Voice actions paused while Ursly is busy."));
+    stopListening(t("Voice actions paused while Ursly is busy."));
   }, [t, voiceBusy]);
 
-  function stopListening() {
-    armedRef.current = false;
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active" && armedRef.current)
+        stopListening(
+          t("Voice actions stopped when the app was backgrounded."),
+        );
+    });
+    return () => subscription.remove();
+  }, [t]);
+
+  function clearListeningTimers() {
     if (restart.current) clearTimeout(restart.current);
-    ExpoSpeechRecognitionModule.stop();
+    if (maximumTimer.current) clearTimeout(maximumTimer.current);
+    if (silenceTimer.current) clearTimeout(silenceTimer.current);
+    restart.current = undefined;
+    maximumTimer.current = undefined;
+    silenceTimer.current = undefined;
+  }
+
+  function resetSilenceTimer(epoch: number) {
+    if (!armedRef.current || epoch !== listeningEpoch.current) return;
+    if (silenceTimer.current) clearTimeout(silenceTimer.current);
+    silenceTimer.current = setTimeout(() => {
+      if (epoch !== listeningEpoch.current || !armedRef.current) return;
+      stopListening(t("Voice actions stopped after 8 seconds without speech."));
+    }, SILENCE_TIMEOUT_MS);
+  }
+
+  function stopListening(message = t("Voice actions are off")) {
+    listeningEpoch.current += 1;
+    armedRef.current = false;
+    startInFlight.current = false;
+    resumeAfterSpeech.current = false;
+    clearListeningTimers();
+    try {
+      ExpoSpeechRecognitionModule.stop();
+    } catch {
+      /* Native recognition stop is idempotent from the app's perspective. */
+    }
     setArmed(false);
     setRecognizing(false);
-    setNotice(t("Voice actions are off"));
+    setNotice(message);
   }
 
   function closeBuilder() {
@@ -244,14 +297,25 @@ export function MobileVoiceActions({
   }
 
   function runAction(trigger: VoiceTrigger, transcript = trigger.phrase) {
+    if (voiceBusy) {
+      stopListening(t("Voice actions paused while Ursly is busy."));
+      return;
+    }
+    if (trigger.action === "voice" && !canStartVoice) {
+      if (armedRef.current) stopListening();
+      setNotice(
+        t(
+          "Start voice chat becomes available after you add a PDF or YouTube source.",
+        ),
+      );
+      return;
+    }
     const continueListening =
       armedRef.current &&
       !["upload", "voice", "cancel"].includes(trigger.action);
     if (continueListening) {
-      armedRef.current = false;
-      ExpoSpeechRecognitionModule.stop();
-      setArmed(false);
-      setRecognizing(false);
+      stopListening(t("Voice actions are preparing for the next command."));
+      resumeAfterSpeech.current = true;
     } else if (
       trigger.action === "upload" ||
       trigger.action === "voice" ||
@@ -264,46 +328,78 @@ export function MobileVoiceActions({
     );
     speak(
       actionReplies[trigger.action],
-      continueListening ? startListening : undefined,
+      continueListening
+        ? () => {
+            if (!resumeAfterSpeech.current || voiceBusy) return;
+            resumeAfterSpeech.current = false;
+            startListening();
+          }
+        : undefined,
     );
     onActionRef.current(trigger.action);
   }
 
   function startListening() {
-    if (voiceBusy) return;
+    if (voiceBusy || armedRef.current || startInFlight.current) return;
     if (!triggers.length) {
       setOpen(true);
       setNotice(t("Create at least one trigger before arming voice actions."));
       return;
     }
-    void ExpoSpeechRecognitionModule.requestPermissionsAsync()
+    const epoch = listeningEpoch.current + 1;
+    listeningEpoch.current = epoch;
+    startInFlight.current = true;
+    void Promise.resolve()
+      .then(() => ExpoSpeechRecognitionModule.requestPermissionsAsync())
       .then((permission) => {
+        if (epoch !== listeningEpoch.current || voiceBusy) return;
         if (!permission.granted) {
+          startInFlight.current = false;
           setNotice(t("Voice actions need microphone and speech permissions."));
           return;
         }
+        startInFlight.current = false;
         armedRef.current = true;
         setArmed(true);
         setNotice(
           `${t("Listening for")} ${triggersRef.current.map((item) => `“${item.phrase}”`).join(", ")}.`,
         );
-        ExpoSpeechRecognitionModule.start({
-          lang: language === "fr" ? "fr-FR" : "en-US",
-          interimResults: true,
-          continuous: true,
-          maxAlternatives: 1,
-          contextualStrings: triggersRef.current.map((item) => item.phrase),
-        });
+        try {
+          ExpoSpeechRecognitionModule.start({
+            lang: language === "fr" ? "fr-FR" : "en-US",
+            interimResults: true,
+            continuous: true,
+            maxAlternatives: 1,
+            contextualStrings: triggersRef.current.map((item) => item.phrase),
+          });
+          maximumTimer.current = setTimeout(() => {
+            if (epoch === listeningEpoch.current && armedRef.current)
+              stopListening(
+                t("Voice actions stopped after 30 seconds for your privacy."),
+              );
+          }, MAX_LISTENING_MS);
+        } catch {
+          stopListening(t("Voice actions could not start. Try again."));
+        }
       })
-      .catch(() =>
-        setNotice(t("Voice actions need microphone and speech permissions.")),
-      );
+      .catch(() => {
+        if (epoch !== listeningEpoch.current) return;
+        startInFlight.current = false;
+        setNotice(t("Voice actions need microphone and speech permissions."));
+      });
   }
 
   function saveTrigger() {
     const nextPhrase = phrase.trim();
     const normalizedPhrase = normalizeVoiceText(nextPhrase);
-    if (!normalizedPhrase) return;
+    if (!normalizedPhrase) {
+      setNotice(t("Use at least one letter or number in the trigger phrase."));
+      return;
+    }
+    if (nextPhrase.length > MAX_TRIGGER_LENGTH) {
+      setNotice(t("Keep trigger phrases to 80 characters or fewer."));
+      return;
+    }
     if (
       triggers.some(
         (trigger) =>
@@ -315,6 +411,10 @@ export function MobileVoiceActions({
       onNotice?.(
         t("That trigger is already saved. Choose a different phrase."),
       );
+      return;
+    }
+    if (!editingId && triggers.length >= MAX_SAVED_TRIGGERS) {
+      setNotice(t("You can save up to 32 voice triggers."));
       return;
     }
     setTriggers((current) => {
@@ -336,21 +436,31 @@ export function MobileVoiceActions({
 
   useSpeechRecognitionEvent("start", () => {
     handledTriggers.current.clear();
-    if (armedRef.current) setRecognizing(true);
+    if (armedRef.current) {
+      setRecognizing(true);
+      resetSilenceTimer(listeningEpoch.current);
+    }
   });
   useSpeechRecognitionEvent("end", () => {
     setRecognizing(false);
     if (!armedRef.current) return;
+    const epoch = listeningEpoch.current;
     restart.current = setTimeout(() => {
-      if (armedRef.current)
+      if (epoch !== listeningEpoch.current || !armedRef.current) return;
+      try {
         ExpoSpeechRecognitionModule.start({
           lang: language === "fr" ? "fr-FR" : "en-US",
           interimResults: true,
           continuous: true,
           maxAlternatives: 1,
-          contextualStrings: triggers.map((item) => item.phrase),
+          contextualStrings: triggersRef.current.map((item) => item.phrase),
         });
-    }, 250);
+      } catch {
+        stopListening(
+          t("Voice actions stopped. Press Arm voice actions to restart them."),
+        );
+      }
+    }, RESTART_DELAY_MS);
   });
   useSpeechRecognitionEvent("result", (event) => {
     if (!armedRef.current) return;
@@ -359,6 +469,7 @@ export function MobileVoiceActions({
       .join(" ")
       .trim();
     if (!transcript) return;
+    resetSilenceTimer(listeningEpoch.current);
     setHeard(transcript);
     for (const match of findVoiceTriggerMatches(
       transcript,
@@ -372,10 +483,7 @@ export function MobileVoiceActions({
   });
   useSpeechRecognitionEvent("error", () => {
     if (!armedRef.current) return;
-    armedRef.current = false;
-    setArmed(false);
-    setRecognizing(false);
-    setNotice(t("Voice actions need microphone and speech permissions."));
+    stopListening(t("Voice actions need microphone and speech permissions."));
   });
 
   return (

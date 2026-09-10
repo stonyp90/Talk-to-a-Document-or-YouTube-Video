@@ -61,6 +61,12 @@ type VoiceActionsProps = {
   voiceBusy: boolean;
 };
 
+const MAX_TRIGGER_LENGTH = 80;
+const MAX_SAVED_TRIGGERS = 32;
+const MAX_LISTENING_MS = 30_000;
+const SILENCE_TIMEOUT_MS = 8_000;
+const RESTART_DELAY_MS = 250;
+
 const actionLabels: Record<VoiceActionId, string> = {
   youtube: "Open the YouTube source tab",
   upload: "Open the PDF upload picker",
@@ -153,21 +159,24 @@ function readSavedTriggers(): VoiceTrigger[] {
     if (stored === null) return defaultTriggers;
     const saved = JSON.parse(stored) as unknown;
     if (!Array.isArray(saved)) return [];
-    return saved.filter((item): item is VoiceTrigger =>
-      Boolean(
-        item &&
-          typeof item === "object" &&
-          "id" in item &&
-          "phrase" in item &&
-          "action" in item &&
-          typeof item.id === "string" &&
-          typeof item.phrase === "string" &&
-          item.phrase.trim() &&
-          typeof item.action === "string" &&
-          normalize(item.phrase) &&
-          Object.hasOwn(actionLabels, item.action),
-      ),
-    );
+    return saved
+      .filter((item): item is VoiceTrigger =>
+        Boolean(
+          item &&
+            typeof item === "object" &&
+            "id" in item &&
+            "phrase" in item &&
+            "action" in item &&
+            typeof item.id === "string" &&
+            typeof item.phrase === "string" &&
+            item.phrase.trim() &&
+            typeof item.action === "string" &&
+            normalize(item.phrase) &&
+            Object.hasOwn(actionLabels, item.action),
+        ),
+      )
+      .filter((item) => item.phrase.length <= MAX_TRIGGER_LENGTH)
+      .slice(0, MAX_SAVED_TRIGGERS);
   } catch {
     return [];
   }
@@ -202,6 +211,18 @@ export function VoiceActions({
   );
   const recognition = useRef<SpeechRecognitionInstance | null>(null);
   const armedRef = useRef(false);
+  const startingRef = useRef(false);
+  const listeningEpoch = useRef(0);
+  const maximumTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const silenceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const restartTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const resumeAfterSpeech = useRef(false);
   const triggersRef = useRef(triggers);
   const handledTriggers = useRef(new Set<string>());
   const onActionRef = useRef(onAction);
@@ -215,13 +236,51 @@ export function VoiceActions({
   }, [triggers]);
 
   function speak(reply: string, onDone?: () => void) {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    if (typeof SpeechSynthesisUtterance === "undefined") return;
+    if (typeof window === "undefined" || !window.speechSynthesis) return false;
+    if (typeof SpeechSynthesisUtterance === "undefined") return false;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(reply);
     utterance.lang = navigator.language || "en-US";
     utterance.onend = onDone ?? null;
     window.speechSynthesis.speak(utterance);
+    return true;
+  }
+
+  function clearListeningTimers() {
+    if (maximumTimer.current) clearTimeout(maximumTimer.current);
+    if (silenceTimer.current) clearTimeout(silenceTimer.current);
+    if (restartTimer.current) clearTimeout(restartTimer.current);
+    maximumTimer.current = undefined;
+    silenceTimer.current = undefined;
+    restartTimer.current = undefined;
+  }
+
+  function stopListening(
+    message = "Voice actions are off. Your saved triggers are ready for next time.",
+  ) {
+    listeningEpoch.current += 1;
+    armedRef.current = false;
+    startingRef.current = false;
+    resumeAfterSpeech.current = false;
+    clearListeningTimers();
+    const current = recognition.current;
+    recognition.current = null;
+    try {
+      current?.stop();
+    } catch {
+      /* Recognition may already have ended; stopping is intentionally idempotent. */
+    }
+    setArmed(false);
+    setNotice(message);
+  }
+
+  function resetSilenceTimer(epoch: number) {
+    if (!armedRef.current || epoch !== listeningEpoch.current) return;
+    if (silenceTimer.current) clearTimeout(silenceTimer.current);
+    silenceTimer.current = setTimeout(() => {
+      if (epoch !== listeningEpoch.current || !armedRef.current) return;
+      stopListening("Voice actions stopped after 8 seconds without speech.");
+    }, SILENCE_TIMEOUT_MS);
   }
 
   useEffect(() => {
@@ -235,7 +294,13 @@ export function VoiceActions({
   useEffect(
     () => () => {
       armedRef.current = false;
-      recognition.current?.stop();
+      listeningEpoch.current += 1;
+      clearListeningTimers();
+      try {
+        recognition.current?.stop();
+      } catch {
+        /* The component is unmounting; there is nothing left to recover. */
+      }
       recognition.current = null;
     },
     [],
@@ -243,25 +308,42 @@ export function VoiceActions({
 
   useEffect(() => {
     if (voiceBusy && armedRef.current) {
-      armedRef.current = false;
-      recognition.current?.stop();
-      recognition.current = null;
-      setArmed(false);
-      setNotice(
+      stopListening(
         "Voice actions paused while Ursly is busy with another action.",
       );
     }
   }, [voiceBusy]);
 
+  useEffect(() => {
+    function stopWhenHidden() {
+      if (document.visibilityState !== "visible" && armedRef.current)
+        stopListening("Voice actions stopped when this page was hidden.");
+    }
+    document.addEventListener("visibilitychange", stopWhenHidden);
+    return () =>
+      document.removeEventListener("visibilitychange", stopWhenHidden);
+  }, []);
+
   function runAction(trigger: VoiceTrigger, transcript = trigger.phrase) {
+    if (voiceBusy) {
+      stopListening(
+        "Voice actions paused while Ursly is busy with another action.",
+      );
+      return;
+    }
+    if (trigger.action === "voice" && !canStartVoice) {
+      if (armedRef.current) stopListening();
+      setNotice(
+        "Add a PDF or YouTube source first, then say “let’s talk” again.",
+      );
+      return;
+    }
     const continueListening =
       armedRef.current &&
       !["upload", "voice", "cancel"].includes(trigger.action);
     if (continueListening) {
-      armedRef.current = false;
-      recognition.current?.stop();
-      recognition.current = null;
-      setArmed(false);
+      stopListening("Voice actions are preparing for the next command.");
+      resumeAfterSpeech.current = true;
     } else if (
       armedRef.current &&
       ["upload", "voice", "cancel"].includes(trigger.action)
@@ -271,10 +353,20 @@ export function VoiceActions({
     setNotice(
       `Triggered “${trigger.phrase}” · ${actionLabels[trigger.action]}.`,
     );
-    speak(
+    const resumed = speak(
       actionReplies[trigger.action],
-      continueListening ? startListening : undefined,
+      continueListening
+        ? () => {
+            if (!resumeAfterSpeech.current || voiceBusy) return;
+            resumeAfterSpeech.current = false;
+            startListening();
+          }
+        : undefined,
     );
+    if (continueListening && !resumed) {
+      resumeAfterSpeech.current = false;
+      startListening();
+    }
     onActionRef.current(trigger.action);
   }
 
@@ -297,6 +389,12 @@ export function VoiceActions({
       setNotice("Use at least one letter or number in the trigger phrase.");
       return;
     }
+    if (nextPhrase.length > MAX_TRIGGER_LENGTH) {
+      setNotice(
+        `Keep trigger phrases to ${MAX_TRIGGER_LENGTH} characters or fewer.`,
+      );
+      return;
+    }
     if (
       triggers.some(
         (trigger) =>
@@ -307,8 +405,16 @@ export function VoiceActions({
       setNotice(`“${nextPhrase}” is already saved. Choose a different phrase.`);
       return;
     }
+    if (!editingId && triggers.length >= MAX_SAVED_TRIGGERS) {
+      setNotice(`You can save up to ${MAX_SAVED_TRIGGERS} voice triggers.`);
+      return;
+    }
     const next: VoiceTrigger = {
-      id: editingId ?? crypto.randomUUID(),
+      id:
+        editingId ??
+        (typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `trigger-${Date.now()}-${Math.random().toString(36).slice(2)}`),
       phrase: nextPhrase,
       action,
     };
@@ -324,17 +430,8 @@ export function VoiceActions({
     );
   }
 
-  function stopListening() {
-    armedRef.current = false;
-    recognition.current?.stop();
-    recognition.current = null;
-    setArmed(false);
-    setNotice(
-      "Voice actions are off. Your saved triggers are ready for next time.",
-    );
-  }
-
   function startListening() {
+    if (armedRef.current || startingRef.current || voiceBusy) return;
     if (!supported) {
       setNotice(
         "This browser does not support speech recognition. Use the example buttons or type instead.",
@@ -360,17 +457,35 @@ export function VoiceActions({
       );
       return;
     }
+    const epoch = listeningEpoch.current + 1;
+    listeningEpoch.current = epoch;
+    startingRef.current = true;
     instance.continuous = true;
     instance.interimResults = true;
     instance.lang = navigator.language || "en-US";
     instance.onstart = () => {
+      if (
+        epoch !== listeningEpoch.current ||
+        recognition.current !== instance
+      ) {
+        try {
+          instance.stop();
+        } catch {
+          /* Ignore a stale recognition instance. */
+        }
+        return;
+      }
+      startingRef.current = false;
       handledTriggers.current.clear();
       setArmed(true);
       setNotice(
         `Listening for ${triggersRef.current.map((item) => `“${item.phrase}”`).join(", ")}.`,
       );
+      resetSilenceTimer(epoch);
     };
     instance.onresult = (event) => {
+      if (epoch !== listeningEpoch.current || recognition.current !== instance)
+        return;
       const transcript = Array.from(
         { length: event.results.length - event.resultIndex },
         (_, index) =>
@@ -379,6 +494,7 @@ export function VoiceActions({
         .join(" ")
         .trim();
       if (!transcript) return;
+      resetSilenceTimer(epoch);
       setHeard(transcript);
       for (const match of findMatches(transcript, triggersRef.current)) {
         if (handledTriggers.current.has(match.id)) continue;
@@ -387,41 +503,61 @@ export function VoiceActions({
         if (!armedRef.current) break;
       }
     };
-    instance.onerror = () => {
-      if (armedRef.current) {
-        setNotice(
-          "Voice actions need microphone access. Check the browser permission and try again.",
-        );
-        setArmed(false);
-        armedRef.current = false;
-      }
+    instance.onerror = (event) => {
+      if (epoch !== listeningEpoch.current || recognition.current !== instance)
+        return;
+      const error = (event as Event & { error?: string }).error;
+      stopListening(
+        error === "not-allowed" || error === "service-not-allowed"
+          ? "Voice actions need microphone access. Check the browser permission and try again."
+          : "Voice recognition stopped unexpectedly. Press Arm voice actions to try again.",
+      );
     };
     instance.onend = () => {
+      if (epoch !== listeningEpoch.current || recognition.current !== instance)
+        return;
+      startingRef.current = false;
+      setArmed(false);
+      setNotice("Voice actions are reconnecting to the microphone…");
       if (!armedRef.current) {
-        setArmed(false);
         return;
       }
-      try {
-        instance.start();
-      } catch {
-        setArmed(false);
-        armedRef.current = false;
-        setNotice(
-          "Voice actions stopped. Press Arm voice actions to restart them.",
-        );
-      }
+      restartTimer.current = setTimeout(() => {
+        if (
+          epoch !== listeningEpoch.current ||
+          !armedRef.current ||
+          recognition.current !== instance
+        )
+          return;
+        try {
+          instance.start();
+        } catch {
+          stopListening(
+            "Voice actions stopped. Press Arm voice actions to restart them.",
+          );
+        }
+      }, RESTART_DELAY_MS);
     };
     recognition.current = instance;
     armedRef.current = true;
     try {
       instance.start();
     } catch {
+      clearListeningTimers();
       armedRef.current = false;
+      startingRef.current = false;
       recognition.current = null;
       setNotice(
         "Voice actions could not start. Check microphone permissions and try again.",
       );
+      return;
     }
+    maximumTimer.current = setTimeout(() => {
+      if (epoch === listeningEpoch.current && armedRef.current)
+        stopListening(
+          "Voice actions stopped after 30 seconds for your privacy.",
+        );
+    }, MAX_LISTENING_MS);
   }
 
   return (

@@ -24,8 +24,10 @@ export const palette = {
   lavender: "#EEE9E1",
   lilac: "#B8AA99",
   lime: "#D8EEAE",
-  white: "#FFFFFF",
+  // Keep native cards aligned with the web surface instead of pure white.
+  white: "#FFFDF9",
   line: "#E6E1DA",
+  scrim: "#29273580",
   error: "#A63732",
   errorBg: "#FCE8E3",
 };

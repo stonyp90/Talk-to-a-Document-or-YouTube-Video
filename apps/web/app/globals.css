@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --ink: #292735;
   --muted: #716c78;
   --paper: #f8f5ef;
@@ -44,36 +44,6 @@
 
 [hidden] {
   display: none !important;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #f2eee8;
-    --muted: #a7a1b0;
-    --paper: #17161d;
-    --surface: #201e28;
-    --surface-soft: #2a2732;
-    --line: #35313f;
-    --line-strong: #514b5b;
-    --accent: #f08b74;
-    --accent-glow: #f79076;
-    --accent-wash: #3a2620;
-    --accent-wash-soft: #2a1e1b;
-    --accent-border: #6d4437;
-    --accent-border-wash: #5b3a32;
-    --violet-wash: #2b2926;
-    --violet-tint: #302d29;
-    --violet-tint-alt: #272522;
-    --violet-line: #4a453e;
-    --danger: #e08585;
-    --success: #7fc79c;
-    --success-wash: #1e2f26;
-    --notice-wash: #302a17;
-    --notice-ink: #e8d79b;
-    --shadow-sm: #00000045;
-    --shadow-md: #00000060;
-    --shadow-lg: #00000088;
-  }
 }
 
 * {

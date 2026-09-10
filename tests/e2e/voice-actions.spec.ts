@@ -349,6 +349,47 @@ test("speech-recognition failures leave voice actions safely disarmed", async ({
   await expect(page.getByText(/need microphone access/)).toBeVisible();
 });
 
+test("manual stop prevents a late recognition result from triggering an action", async ({
+  page,
+}) => {
+  await installSpeechHarness(page);
+  await openVoiceActions(page);
+
+  await page.getByRole("button", { name: "Create voice trigger" }).click();
+  await page.getByLabel("Trigger word or phrase").fill("late upload");
+  await page.getByRole("button", { name: "Save trigger" }).click();
+  await page.getByRole("button", { name: "Arm voice actions" }).click();
+  await expect(page.getByText("Voice actions are listening")).toBeVisible();
+
+  await page.getByRole("button", { name: "Stop listening" }).click();
+  await emitSpeech(page, "late upload");
+
+  await expect(page.getByText("Voice actions are off")).toBeVisible();
+  await expect(page.getByText(/Triggered “late upload”/)).toHaveCount(0);
+});
+
+test("hiding the page stops an armed voice recognizer", async ({ page }) => {
+  await installSpeechHarness(page);
+  await openVoiceActions(page);
+
+  await page.getByRole("button", { name: "Create voice trigger" }).click();
+  await page.getByLabel("Trigger word or phrase").fill("background check");
+  await page.getByRole("button", { name: "Save trigger" }).click();
+  await page.getByRole("button", { name: "Arm voice actions" }).click();
+  await expect(page.getByText("Voice actions are listening")).toBeVisible();
+
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(
+    page.getByText("Voice actions stopped when this page was hidden."),
+  ).toBeVisible();
+});
+
 test("unsupported speech recognition explains the fallback path", async ({
   page,
 }) => {

@@ -1127,7 +1127,7 @@ const s = StyleSheet.create({
   headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   infoButton: {
     borderRadius: 24,
-    backgroundColor: "#EEE9E1",
+    backgroundColor: c.lavender,
     width: 45,
     height: 45,
   },
@@ -1533,7 +1533,7 @@ const s = StyleSheet.create({
   sourceText: { color: c.ink, fontSize: 16, lineHeight: 28 },
   outline: { borderWidth: 1, borderColor: c.line, borderRadius: 15 },
   modalRoot: { flex: 1, justifyContent: "flex-end" },
-  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "#201A2B80" },
+  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: c.scrim },
   sheet: {
     padding: 24,
     gap: 18,

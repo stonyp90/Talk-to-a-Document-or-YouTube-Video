@@ -602,7 +602,7 @@ export function VoiceActions({
           type="button"
           className="primary voice-actions-arm"
           disabled={voiceBusy}
-          onClick={armed ? stopListening : startListening}
+          onClick={armed ? () => stopListening() : startListening}
         >
           <Icon name="voice" /> {armed ? "Stop listening" : "Arm voice actions"}
         </button>

@@ -94,8 +94,10 @@ async function upload(
   mimeType = "application/pdf",
 ) {
   const p = await page(this);
-  if (await p.getByRole("button", { name: "Use upload instead" }).count())
+  if (await p.getByRole("button", { name: "Use upload instead" }).count()) {
     await p.getByRole("button", { name: "Use upload instead" }).click();
+    await expect(p.getByLabel("PDF file")).toBeVisible();
+  }
   await p.getByLabel("PDF file").setInputFiles({ name, mimeType, buffer });
   // Forward to the real server; read through APIResponse to avoid Chromium's
   // inspector evicting response bodies after a 25 MB upload.
@@ -117,8 +119,10 @@ async function upload(
 }
 async function youtube(this: World, url = "https://youtu.be/dQw4w9WgXcQ") {
   const p = await page(this);
-  if (await p.getByRole("button", { name: "Use upload instead" }).count())
+  if (await p.getByRole("button", { name: "Use upload instead" }).count()) {
     await p.getByRole("button", { name: "Use upload instead" }).click();
+    await expect(p.getByLabel("PDF file")).toBeVisible();
+  }
   await p.getByRole("tab", { name: "YouTube video" }).click();
   await p.getByLabel("YouTube URL").fill(url);
   const response = p.waitForResponse((r) => r.url().endsWith("/api/ingest"));

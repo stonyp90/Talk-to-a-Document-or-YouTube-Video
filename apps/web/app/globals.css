@@ -1061,6 +1061,7 @@ body:has(.intro-video-backdrop) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
   min-height: 32px;
   padding: 6px 8px;
   border: 0;
@@ -2388,6 +2389,10 @@ body:has(.intro-video-backdrop) {
 }
 
 @media (max-width: 700px) {
+  .voice-example-card {
+    flex-basis: 100%;
+    width: 100%;
+  }
   .shell {
     /* The container already owns the mobile gutter; avoid doubling it. */
     padding-inline: 0;
@@ -2554,6 +2559,7 @@ body:has(.intro-video-backdrop) {
   .voice-example-row {
     align-items: stretch;
     flex-direction: column;
+    flex-wrap: nowrap;
   }
   .voice-example-heading {
     align-items: flex-start;
@@ -2561,8 +2567,9 @@ body:has(.intro-video-backdrop) {
     gap: 3px;
   }
   .voice-example-card {
-    flex: 0 1 auto;
+    flex: 1 1 100%;
     width: 100%;
+    min-width: 0;
   }
   .voice-trigger-form {
     grid-template-columns: 1fr;
@@ -2632,6 +2639,14 @@ body:has(.intro-video-backdrop) {
   .footer {
     flex-direction: column;
     gap: 7px;
+  }
+}
+
+@media (max-width: 700px) {
+  .voice-example-card {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
   }
 }
 

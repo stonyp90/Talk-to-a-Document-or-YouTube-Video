@@ -48,6 +48,33 @@ Full environment reference: [`.env.example`](.env.example) and [service setup](S
 
 ---
 
+## What a visitor sees
+
+1. **The introduction, once.** A first visit opens a 24-second silent video in the
+   visitor's language (English or French), with captions, a transcript and a
+   _Skip intro_ button from the first frame. It is remembered per browser and can
+   be replayed from the top menu.
+2. **A fixed top menu.** It carries the three control modes — _Voice to action_
+   (default), _Keyboard to action_ and _Motion to action_, shown as a beta that is
+   not available yet — plus the _Platform_ section, the intro and the language
+   switch. It stays in place while scrolling.
+3. **The workspace, right away.** Add a PDF or a captioned YouTube video, then ask
+   by voice or by typing. A first answer is three actions away.
+4. **Platform**, a static section reachable from the menu: a human stays in the
+   loop, voice models that adapt to each speaker with consent, voice, movement or
+   keyboard, and the surfaces to come (connected objects, 3D objects), with a
+   dateless roadmap.
+
+### Languages
+
+English is the source language; French is a full translation. Every page is
+served under `/en` and `/fr`, prerendered with the right `<html lang>`. The root
+URL follows the browser (`Accept-Language`), and an explicit choice from the menu
+is remembered in a cookie. Interface copy is keyed by its English text in
+`apps/web/app/i18n/fr.ts`; a missing key falls back to English. The intro video
+exists once per language (`scripts/brand/intro-video.mjs` renders both from the
+original recording) because its text is burned into the frames.
+
 ## How each requirement is met
 
 | Requirement                                              | Where it lives                                                                                                                                                                                                                                                    |
@@ -68,7 +95,7 @@ Full environment reference: [`.env.example`](.env.example) and [service setup](S
 ## Technical overview
 
 ```text
-apps/web/                 Next.js interface, API routes, composition root
+apps/web/                 Next.js interface, Server routes, composition root
 apps/mobile/              Expo client (extra scope, not part of the web deliverable)
 packages/core/domain/     Source rules, context windowing, conversation state
 packages/core/application/Ports and technology-free use cases
@@ -88,7 +115,7 @@ features/, tests/         Gherkin acceptance, unit, browser and architecture tes
 
 **Uploads bypass the API.** Large PDFs go straight to object storage through a short-lived presigned form post, with progress shown. The server then reads the object, extracts, and deletes it in a `finally` block. This keeps multi-megabyte bodies away from a 6 MB Lambda payload limit.
 
-**Hosting.** Terraform builds the Next.js image into ECR and runs it on Lambda behind API Gateway, alongside a caption Lambda, S3 and Secrets Manager. GitHub Actions deploys through OIDC with no long-lived AWS keys. Lambda suits intermittent demo traffic: no always-on ECS task, and it scales to zero between reviews. ECS Fargate would win on steady traffic and long-lived connections; it costs more to leave running for a demo.
+**Hosting.** Terraform builds the Next.js image into ECR and runs it on Lambda behind API Gateway, alongside a caption Lambda, S3 and Secrets Manager. GitHub Actions deploys through OIDC with no long-lived AWS keys. The default runtime is Lambda because its scale-to-zero behavior and per-request billing suit intermittent demo traffic. ECS Fargate would win on steady traffic and long-lived connections; it costs more to leave running for a demo.
 
 ---
 
@@ -144,9 +171,28 @@ npm run test:e2e                              # Playwright, including a 390 px v
 npm run test:gherkin -- --tags 'not @external'  # Cucumber acceptance scenarios
 ```
 
-Scenarios tagged `@external` need real providers or a deployed environment; mocks do not satisfy them. Undefined or pending steps fail the suite. Before publishing, `npm run security:secrets` scans history and publication candidates with Gitleaks; CI runs it too, alongside a build with canary secrets that greps the emitted client bundle.
+Scenarios tagged `@external` need real providers or a deployed environment; mocks do not satisfy them. Undefined or pending steps fail the suite: pending steps are not passing until they have executable evidence. Before publishing, `npm run security:secrets` scans history and publication candidates with Gitleaks; CI runs it too, alongside a build with canary secrets that greps the emitted client bundle.
 
 Mobile: `npm run typecheck --prefix apps/mobile && npm test --prefix apps/mobile`.
+
+---
+
+## How we build
+
+Every feature walks one loop, and it is done only when the loop closes. The landing page explains and animates the same loop for visitors.
+
+1. **Concept** — an idea worth building, said plainly.
+2. **Plan** — how it will be built, written before any code.
+3. **Tools** — the best technology for the job, not the most familiar.
+4. **Local** — the whole stack on one machine with Compose, every dependency included.
+5. **Test** — behaviour (Gherkin), contract and unit tests on every cycle, so nothing regresses when the next feature lands.
+6. **Secure** — security and compliance are the law: secret scanning, canary builds, CodeQL and dependency audits run on every change.
+7. **Deliver** — continuous integration and delivery: every change is checked, then shipped automatically from `main`.
+8. **Production** — deployed through OIDC and smoke-tested in production.
+9. **Listen** — enough feedback from real people to make the models better each cycle.
+10. **Train** — the direction we are building toward: what the loop learns trains the models, and every model provider gets its turn. The best model from one provider proves itself, an event hands off to the best from the next, each iterating on its own, locally and then in beta, through this same loop before the next step.
+
+The training stage has a loop of its own, and the big loop waits for it. We build by voice because it is faster than a keyboard; gestures come next, and the motion mode shown in the top menu is the first step.
 
 ---
 
@@ -175,4 +221,4 @@ docker compose --env-file .env.local logs --tail=100 dev transcript
 
 ## AI-assisted development
 
-AI tooling (Claude Code and ChatGPT) was used throughout: decomposing the brief into executable Gherkin, designing the hexagonal boundaries, writing implementation and tests, debugging the Realtime event stream, and reviewing for security and requirement drift. Claims about behaviour are backed by executable tests or clearly labelled operational notes.
+AI tooling (Claude Code and ChatGPT) was used throughout: requirements decomposition into executable Gherkin, designing the hexagonal boundaries, writing implementation and tests, debugging the Realtime event stream, and reviewing for security and requirement drift. Claims about behaviour are backed by executable tests or clearly labelled operational notes.

@@ -254,6 +254,16 @@ export const french = {
   "QUICK TOUR": "VISITE GUIDÉE",
   "Pause slides": "Mettre en pause",
   "Resume slides": "Reprendre",
+  "Watch Ursly in 24 seconds": "Voir Ursly en 24 secondes",
+  "The Ursly story": "L’histoire d’Ursly",
+  "A source. A conversation.": "Une source. Une conversation.",
+  "A quick, high-level look at how Ursly helps ideas become clear.":
+    "Un aperçu rapide de la façon dont Ursly rend les idées plus claires.",
+  "Read the intro instead": "Lire la présentation",
+  "The intro is unavailable right now.":
+    "La présentation est indisponible pour le moment.",
+  "Ursly turns a document or a captioned video into a conversation. Bring a source, ask by voice or text, and explore what matters. Voice actions help you take the next step. Motion beta previews a future hands-free AR/VR layer without triggering actions from pointer clicks.":
+    "Ursly transforme un document ou une vidéo sous-titrée en conversation. Importez une source, questionnez à la voix ou à l’écrit et explorez l’essentiel. Les actions vocales vous aident à avancer; la bêta Motion présente une future couche mains libres AR/VR sans déclencher d’action par clic.",
   STEP: "ÉTAPE",
   "Go to step": "Aller à l’étape",
   "Guide progress": "Progression de la visite",
@@ -276,6 +286,20 @@ export const french = {
   "Ask a follow-up, challenge an idea, or make it simpler. Every answer stays grounded in your source.":
     "Posez une question, challengez une idée ou demandez une explication plus simple. Chaque réponse reste ancrée dans votre source.",
   "Ask · follow up · understand": "Questionnez · approfondissez · comprenez",
+  "Choose your flow": "Choisissez votre façon de faire",
+  "Voice, text, or a glimpse of what’s next.":
+    "Voix, texte ou aperçu de la suite.",
+  "Voice is the default way to move through Ursly. Text is always ready, and Motion beta previews a future hands-free AR/VR layer without activating sensors.":
+    "La voix est la façon par défaut de naviguer dans Ursly. Le texte est toujours prêt et la bêta Motion présente une future couche mains libres AR/VR sans activer de capteurs.",
+  "Voice to action · text fallback · motion beta":
+    "Action vocale · texte de secours · bêta Motion",
+  VOICE: "VOIX",
+  TEXT: "TEXTE",
+  "MOTION BETA": "BÊTA MOTION",
+  Default: "Par défaut",
+  Classic: "Classique",
+  "Preview only": "Aperçu seulement",
+  "Always in your control": "Toujours sous votre contrôle",
   "Skip onboarding": "Passer la présentation",
   Continue: "Continuer",
   "Open Ursly": "Ouvrir Ursly",

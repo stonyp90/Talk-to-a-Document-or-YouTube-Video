@@ -7,7 +7,9 @@ export type IconName =
   | "download"
   | "external"
   | "bell"
-  | "eye";
+  | "eye"
+  | "play"
+  | "close";
 
 const PATHS: Record<IconName, string[]> = {
   document: [
@@ -36,6 +38,8 @@ const PATHS: Record<IconName, string[]> = {
     "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z",
     "M12 15.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Z",
   ],
+  play: ["M7 5v14l11-7L7 5Z"],
+  close: ["M6 6l12 12", "M18 6 6 18"],
 };
 
 export function Icon({ name }: { name: IconName }) {

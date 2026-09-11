@@ -1,5 +1,8 @@
-import { expect, test, type Page } from "@playwright/test";
+import { test as firstVisit, type Page } from "@playwright/test";
+import { expect, test } from "./base";
 import { pdfFixture } from "../pdf-fixture";
+
+const nav = (page: Page) => page.getByRole("navigation", { name: "Primary" });
 
 async function upload(
   page: Page,
@@ -18,7 +21,8 @@ async function upload(
   await expect(page.locator(".preview-text")).toBeHidden();
 }
 
-test("real PDF upload, grounded answer, source preview and replacement", async ({
+// The plain `test` keeps this the real first visit: the intro must play.
+firstVisit("real PDF upload, grounded answer, source preview and replacement", async ({
   page,
   request,
 }, testInfo) => {
@@ -30,11 +34,7 @@ test("real PDF upload, grounded answer, source preview and replacement", async (
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByRole("button", { name: "Open Ursly" }).click();
-  await page.getByRole("button", { name: "Use upload instead" }).click();
+  await page.getByRole("button", { name: "Skip intro" }).click();
   await upload(page);
   await expect(
     page.locator('.progress-steps [aria-current="step"]'),
@@ -66,8 +66,6 @@ test("real PDF upload, grounded answer, source preview and replacement", async (
 
 test("invalid source has an understandable recovery path", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Skip guide" }).click();
-  await page.getByRole("button", { name: "Use upload instead" }).click();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://example.com/not-a-video");
   await page.getByRole("button", { name: "Continue to questions" }).click();
@@ -78,9 +76,11 @@ test("invalid source has an understandable recovery path", async ({ page }) => {
   await expect(page.getByLabel("PDF file")).toBeVisible();
   await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
   await page.reload();
-  await expect(page.getByRole("button", { name: "Quick tour" })).toBeVisible();
-  await page.getByRole("button", { name: "Quick tour" }).click();
-  await expect(page.locator("#welcome-title")).toBeFocused();
+  await nav(page).getByRole("button", { name: "Watch the intro" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Skip intro" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 test("real voice transport connects, answers typed input, mutes and stops", async ({
@@ -91,8 +91,6 @@ test("real voice transport connects, answers typed input, mutes and stops", asyn
     "Real WebRTC checked in desktop Chromium; physical mobile audio requires a device.",
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "Skip guide" }).click();
-  await page.getByRole("button", { name: "Use upload instead" }).click();
   await upload(page);
   await page.getByRole("button", { name: "Start Voice Chat" }).click();
   await expect(page.locator(".conversation-card .status")).toHaveText(
@@ -129,8 +127,9 @@ test("a fresh browser loads every app asset and hydrates the controls", async ({
       failedAssets.push(request.url());
   });
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Skip guide" })).toBeVisible();
-  await page.getByRole("button", { name: "Skip guide" }).click();
+  await expect(
+    page.getByRole("radio", { name: "Voice to action" }),
+  ).toBeVisible();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await expect(page.getByLabel("YouTube URL")).toBeVisible();
   expect(failedAssets).toEqual([]);

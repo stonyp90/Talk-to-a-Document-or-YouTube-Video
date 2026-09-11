@@ -31,11 +31,6 @@
   flex-shrink: 0;
   text-underline-offset: 4px;
 }
-.releaseLink :global(.icon) {
-  width: 16px;
-  height: 16px;
-  color: var(--accent);
-}
 .releaseLink :global(.brand-icon) {
   width: 17px;
   height: 17px;
@@ -106,9 +101,6 @@
   margin-right: 8px;
   flex: 0 0 auto;
   fill: currentColor;
-}
-.action :global(.icon-github) {
-  margin-right: 7px;
 }
 .action span {
   margin-left: auto;

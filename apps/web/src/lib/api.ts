@@ -68,7 +68,10 @@ export async function requestJson<T>(
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (attempt > 0)
-      await wait(BASE_BACKOFF_MS * 2 ** (attempt - 1), request.signal ?? undefined);
+      await wait(
+        BASE_BACKOFF_MS * 2 ** (attempt - 1),
+        request.signal ?? undefined,
+      );
     try {
       const response = await fetch(input, request);
       if (response.ok) return (await response.json()) as T;
@@ -86,7 +89,8 @@ export async function requestJson<T>(
         throw error;
       lastError = error;
     } catch (caught) {
-      if (caught instanceof DOMException && caught.name === "AbortError") throw caught;
+      if (caught instanceof DOMException && caught.name === "AbortError")
+        throw caught;
       if (caught instanceof ApiError && !RETRYABLE_STATUS.has(caught.status))
         throw caught;
       if (attempt === retries)
@@ -121,6 +125,10 @@ export function uploadWithProgress(
 
     const request = new XMLHttpRequest();
     request.open("POST", url);
+    // A presigned object-store request can hang indefinitely when a local
+    // object store restarts or a browser blocks its CORS preflight. Keep the
+    // ingestion flow recoverable: the caller can fall back to multipart.
+    request.timeout = 18_000;
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
     };
@@ -140,6 +148,14 @@ export function uploadWithProgress(
           "The upload was interrupted. Check your connection and retry.",
           "NETWORK_ERROR",
           0,
+        ),
+      );
+    request.ontimeout = () =>
+      reject(
+        new ApiError(
+          "The upload took too long. We will retry it through a safer path.",
+          "UPLOAD_TIMEOUT",
+          408,
         ),
       );
     request.onabort = () =>

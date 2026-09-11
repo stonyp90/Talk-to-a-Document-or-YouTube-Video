@@ -9,7 +9,7 @@ Feature: Verify local domain boundaries and API contracts
 
   Scenario: Enforce the precise context size boundary
     Given context contains exactly 60000 characters
-    Then the context boundary is preserved and one extra character is rejected
+    Then the context boundary is preserved and one extra character is windowed
 
   Scenario: Reject whitespace-only context
     Given empty context is provided to the domain

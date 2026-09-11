@@ -19,7 +19,7 @@ Feature: Prepare source context for conversation
     Then the source text is passed directly to the session instructions
     And no unrequested chunking or summarization is applied
 
-  Scenario: Reject a context payload that exceeds the configured safety limit
+  Scenario: Bound a context payload that exceeds the configured safety limit
     Given source text exceeds the configured safety limit
     When a Realtime session is prepared
     Then the context request is rejected safely

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/security/advisories/new
+    about: Please report security issues privately instead of opening a public issue.
+  - name: Live demo
+    url: https://ursly.io
+    about: Try the deployed application before filing a product issue.
+  - name: Project documentation
+    url: https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video/wiki
+    about: Read setup, architecture, and operations notes.

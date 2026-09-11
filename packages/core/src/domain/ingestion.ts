@@ -14,8 +14,8 @@ export type IngestedSource = {
 export class InputValidationError extends Error {
   readonly code: string;
 
-  constructor(message: string, code: string) {
-    super(message);
+  constructor(message: string, code: string, options?: { cause?: unknown }) {
+    super(message, options);
     this.name = "InputValidationError";
     this.code = code;
   }

@@ -17,6 +17,7 @@ export function BrandIcon({ name }: { name: BrandIconName }) {
     <svg
       className={`brand-icon brand-icon-${name}`}
       viewBox="0 0 24 24"
+      fill="currentColor"
       aria-hidden="true"
       focusable="false"
     >

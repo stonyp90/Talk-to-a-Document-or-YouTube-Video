@@ -186,6 +186,24 @@ export const french = {
     "Les actions vocales nécessitent les autorisations du microphone et de la reconnaissance vocale.",
   "Voice actions paused while Ursly is busy.":
     "Les actions vocales sont en pause pendant qu’Ursly travaille.",
+  "Voice actions stopped after 8 seconds without speech.":
+    "Les actions vocales se sont arrêtées après 8 secondes sans parole.",
+  "Voice actions stopped after 30 seconds for your privacy.":
+    "Les actions vocales se sont arrêtées après 30 secondes pour votre confidentialité.",
+  "Voice actions stopped when the app was backgrounded.":
+    "Les actions vocales se sont arrêtées lorsque l’application est passée en arrière-plan.",
+  "Voice actions are preparing for the next command.":
+    "Les actions vocales se préparent pour la prochaine commande.",
+  "Voice actions could not start. Try again.":
+    "Les actions vocales n’ont pas pu démarrer. Réessayez.",
+  "Voice actions stopped. Press Arm voice actions to restart them.":
+    "Les actions vocales se sont arrêtées. Appuyez sur Activer les actions vocales pour recommencer.",
+  "Use at least one letter or number in the trigger phrase.":
+    "Utilisez au moins une lettre ou un chiffre dans la phrase déclencheuse.",
+  "Keep trigger phrases to 80 characters or fewer.":
+    "Limitez les phrases déclencheuses à 80 caractères.",
+  "You can save up to 32 voice triggers.":
+    "Vous pouvez enregistrer jusqu’à 32 déclencheurs vocaux.",
   "For uploads, your phone will ask you to choose a local file.":
     "Pour importer un fichier, votre téléphone vous demandera de choisir un fichier local.",
   "YouTube is ready — add a video link next.":
@@ -236,6 +254,16 @@ export const french = {
   "QUICK TOUR": "VISITE GUIDÉE",
   "Pause slides": "Mettre en pause",
   "Resume slides": "Reprendre",
+  "Watch Ursly in 24 seconds": "Voir Ursly en 24 secondes",
+  "The Ursly story": "L’histoire d’Ursly",
+  "A source. A conversation.": "Une source. Une conversation.",
+  "A quick, high-level look at how Ursly helps ideas become clear.":
+    "Un aperçu rapide de la façon dont Ursly rend les idées plus claires.",
+  "Read the intro instead": "Lire la présentation",
+  "The intro is unavailable right now.":
+    "La présentation est indisponible pour le moment.",
+  "Ursly turns a document or a captioned video into a conversation. Bring a source, ask by voice or text, and explore what matters. Voice actions help you take the next step. Motion beta previews a future hands-free AR/VR layer without triggering actions from pointer clicks.":
+    "Ursly transforme un document ou une vidéo sous-titrée en conversation. Importez une source, questionnez à la voix ou à l’écrit et explorez l’essentiel. Les actions vocales vous aident à avancer; la bêta Motion présente une future couche mains libres AR/VR sans déclencher d’action par clic.",
   STEP: "ÉTAPE",
   "Go to step": "Aller à l’étape",
   "Guide progress": "Progression de la visite",
@@ -258,6 +286,20 @@ export const french = {
   "Ask a follow-up, challenge an idea, or make it simpler. Every answer stays grounded in your source.":
     "Posez une question, challengez une idée ou demandez une explication plus simple. Chaque réponse reste ancrée dans votre source.",
   "Ask · follow up · understand": "Questionnez · approfondissez · comprenez",
+  "Choose your flow": "Choisissez votre façon de faire",
+  "Voice, text, or a glimpse of what’s next.":
+    "Voix, texte ou aperçu de la suite.",
+  "Voice is the default way to move through Ursly. Text is always ready, and Motion beta previews a future hands-free AR/VR layer without activating sensors.":
+    "La voix est la façon par défaut de naviguer dans Ursly. Le texte est toujours prêt et la bêta Motion présente une future couche mains libres AR/VR sans activer de capteurs.",
+  "Voice to action · text fallback · motion beta":
+    "Action vocale · texte de secours · bêta Motion",
+  VOICE: "VOIX",
+  TEXT: "TEXTE",
+  "MOTION BETA": "BÊTA MOTION",
+  Default: "Par défaut",
+  Classic: "Classique",
+  "Preview only": "Aperçu seulement",
+  "Always in your control": "Toujours sous votre contrôle",
   "Skip onboarding": "Passer la présentation",
   Continue: "Continuer",
   "Open Ursly": "Ouvrir Ursly",

@@ -1,0 +1,51 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      production-dependencies:
+        dependency-type: production
+      development-dependencies:
+        dependency-type: development
+  - package-ecosystem: npm
+    directory: /apps/mobile
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      mobile-dependencies:
+        patterns:
+          - "*"
+  - package-ecosystem: pip
+    directory: /services/transcript
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: terraform
+    directory: /infrastructure/terraform/bootstrap
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+  - package-ecosystem: terraform
+    directory: /infrastructure/terraform/modules/demo
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+  - package-ecosystem: terraform
+    directory: /infrastructure/terraform/environments/demo
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+  - package-ecosystem: terraform
+    directory: /infrastructure/terraform/environments/domain
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3

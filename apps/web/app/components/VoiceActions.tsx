@@ -1,7 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Icon } from "./Icon";
+import { useLanguage } from "../i18n/LanguageProvider";
+
+/** BCP 47 tags the speech engines expect for each interface language. */
+const SPEECH_LOCALES = { en: "en-US", fr: "fr-CA" } as const;
 
 export type VoiceActionId =
   | "youtube"
@@ -65,6 +76,8 @@ const MAX_TRIGGER_LENGTH = 80;
 const MAX_SAVED_TRIGGERS = 32;
 const MAX_LISTENING_MS = 30_000;
 const SILENCE_TIMEOUT_MS = 8_000;
+/** Longest a spoken confirmation may hold the microphone before listening resumes. */
+const REPLY_GUARD_MS = 4_000;
 const RESTART_DELAY_MS = 250;
 
 const actionLabels: Record<VoiceActionId, string> = {
@@ -153,9 +166,10 @@ function findMatches(
     .map(({ trigger }) => trigger);
 }
 
-function readSavedTriggers(): VoiceTrigger[] {
+const TRIGGER_STORAGE_NAME = "ursly-voice-triggers-v1";
+
+function parseSavedTriggers(stored: string | null): VoiceTrigger[] {
   try {
-    const stored = localStorage.getItem("ursly-voice-triggers-v1");
     if (stored === null) return defaultTriggers;
     const saved = JSON.parse(stored) as unknown;
     if (!Array.isArray(saved)) return [];
@@ -182,6 +196,31 @@ function readSavedTriggers(): VoiceTrigger[] {
   }
 }
 
+/**
+ * The saved triggers as an external store: browser storage is the source, the
+ * server snapshot is the default set, and the parsed value is cached per raw
+ * string so React sees a stable reference between renders.
+ */
+let savedTriggersCache: { raw: string | null; parsed: VoiceTrigger[] } = {
+  raw: null,
+  parsed: defaultTriggers,
+};
+function readSavedTriggers(): VoiceTrigger[] {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(TRIGGER_STORAGE_NAME);
+  } catch {
+    raw = null;
+  }
+  if (savedTriggersCache.raw !== raw || raw === null)
+    savedTriggersCache = { raw, parsed: parseSavedTriggers(raw) };
+  return savedTriggersCache.parsed;
+}
+function subscribeToTriggerStorage(notify: () => void): () => void {
+  window.addEventListener("storage", notify);
+  return () => window.removeEventListener("storage", notify);
+}
+
 function browserSupportsSpeechRecognition(): boolean {
   if (typeof window === "undefined") return false;
   const speechWindow = window as SpeechWindow;
@@ -195,19 +234,40 @@ export function VoiceActions({
   canStartVoice,
   voiceBusy,
 }: VoiceActionsProps) {
+  const { language, t } = useLanguage();
+  const speechLocale = SPEECH_LOCALES[language];
   const [open, setOpen] = useState(false);
   const [phrase, setPhrase] = useState("");
   const [action, setAction] = useState<VoiceActionId>("upload");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [triggers, setTriggers] = useState<VoiceTrigger[]>(readSavedTriggers);
-  const [supported] = useState(browserSupportsSpeechRecognition);
-  const [armed, setArmed] = useState(false);
-  const [heard, setHeard] = useState("");
-  const [revealedExample, setRevealedExample] = useState<VoiceActionId | null>(
+  // Saved triggers live in browser storage, which the server cannot read: the
+  // server snapshot is the default set, hydration reads the saved one, and an
+  // edit made on this page wins over both until it is persisted.
+  const savedTriggers = useSyncExternalStore(
+    subscribeToTriggerStorage,
+    readSavedTriggers,
+    () => defaultTriggers,
+  );
+  const [editedTriggers, setEditedTriggers] = useState<VoiceTrigger[] | null>(
     null,
   );
+  const triggers = editedTriggers ?? savedTriggers;
+  const setTriggers = useCallback(
+    (update: (current: VoiceTrigger[]) => VoiceTrigger[]) =>
+      setEditedTriggers((current) => update(current ?? readSavedTriggers())),
+    [],
+  );
+  // The server cannot know the browser; it assumes support and hydration
+  // corrects it without a mismatch.
+  const supported = useSyncExternalStore(
+    () => () => {},
+    browserSupportsSpeechRecognition,
+    () => true,
+  );
+  const [armed, setArmed] = useState(false);
+  const [heard, setHeard] = useState("");
   const [notice, setNotice] = useState(
-    "Create a trigger, then arm voice actions to try it hands-free.",
+    "Press once, then say a command such as “upload” or “YouTube”.",
   );
   const recognition = useRef<SpeechRecognitionInstance | null>(null);
   const armedRef = useRef(false);
@@ -240,8 +300,20 @@ export function VoiceActions({
     if (typeof SpeechSynthesisUtterance === "undefined") return false;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(reply);
-    utterance.lang = navigator.language || "en-US";
-    utterance.onend = onDone ?? null;
+    utterance.lang = speechLocale;
+    // A browser without a voice never reports the end of an utterance. The
+    // microphone must not stay closed behind a reply nobody hears, so the
+    // hand-back happens on end, on error, or after the reply's own length.
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(guard);
+      onDone?.();
+    };
+    const guard = window.setTimeout(settle, REPLY_GUARD_MS);
+    utterance.onend = settle;
+    utterance.onerror = settle;
     window.speechSynthesis.speak(utterance);
     return true;
   }
@@ -284,12 +356,16 @@ export function VoiceActions({
   }
 
   useEffect(() => {
+    if (!editedTriggers) return;
     try {
-      localStorage.setItem("ursly-voice-triggers-v1", JSON.stringify(triggers));
+      localStorage.setItem(
+        TRIGGER_STORAGE_NAME,
+        JSON.stringify(editedTriggers),
+      );
     } catch {
       /* Voice triggers still work for this session when storage is unavailable. */
     }
-  }, [triggers]);
+  }, [editedTriggers]);
 
   useEffect(
     () => () => {
@@ -462,7 +538,7 @@ export function VoiceActions({
     startingRef.current = true;
     instance.continuous = true;
     instance.interimResults = true;
-    instance.lang = navigator.language || "en-US";
+    instance.lang = speechLocale;
     instance.onstart = () => {
       if (
         epoch !== listeningEpoch.current ||
@@ -560,137 +636,94 @@ export function VoiceActions({
     }, MAX_LISTENING_MS);
   }
 
+  const examplesToShow = examples.slice(0, 4);
+
   return (
     <section
-      className="voice-actions-card"
+      className="voice-commands"
       aria-labelledby="voice-actions-heading"
+      data-armed={armed}
     >
-      <div className="voice-actions-heading">
-        <div>
-          <span className="eyebrow">Demo preview · voice actions</span>
-          <h2 id="voice-actions-heading" tabIndex={-1}>
-            Say a word. Take the next step.
-          </h2>
-          <p>
-            Create a spoken trigger for an app action. Say that word anywhere in
-            a sentence and Ursly acts as soon as it hears it.
-          </p>
-        </div>
+      <div className="voice-commands-row">
         <button
           type="button"
-          className="secondary voice-trigger-button"
-          aria-expanded={open}
-          aria-controls="voice-trigger-builder"
-          onClick={() => setOpen((current) => !current)}
-        >
-          <Icon name="voice" />{" "}
-          {open ? "Close trigger builder" : "Create voice trigger"}
-        </button>
-      </div>
-
-      <div className="voice-actions-preview">
-        <div className="voice-actions-status" data-armed={armed}>
-          <span className="voice-actions-status-dot" aria-hidden="true" />
-          <div>
-            <strong>
-              {armed ? "Voice actions are listening" : "Voice actions are off"}
-            </strong>
-            <span>{notice}</span>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="primary voice-actions-arm"
+          className="voice-mic"
           disabled={voiceBusy}
-          onClick={armed ? stopListening : startListening}
+          aria-pressed={armed}
+          onClick={armed ? () => stopListening() : startListening}
         >
-          <Icon name="voice" /> {armed ? "Stop listening" : "Arm voice actions"}
+          <span className="voice-mic-ring" aria-hidden="true" />
+          <Icon name="voice" />
+          <span className="voice-mic-label">
+            {armed ? t("Stop listening") : t("Speak a command")}
+          </span>
         </button>
+        <div className="voice-commands-status" role="status" aria-live="polite">
+          <strong id="voice-actions-heading">
+            {armed ? t("Listening for a command") : t("Voice to action")}
+          </strong>
+          <span>{t(notice)}</span>
+        </div>
       </div>
 
-      <div className="voice-example-row" aria-label="Voice action examples">
-        <div className="voice-example-heading">
-          <span className="voice-example-label">Try an example</span>
-          <span className="voice-example-hint">
-            Tap to try · <Icon name="eye" /> to see what to say
-          </span>
-        </div>
-        {examples.map((example) => (
-          <div className="voice-example-card" key={example.phrase}>
-            <button
-              type="button"
-              className="voice-example"
-              disabled={voiceBusy}
-              aria-label={`“${example.phrase}” ${example.label}`}
-              onClick={() => runExample(example)}
-            >
-              <span className="voice-example-copy">
-                <strong>{example.label}</strong>
-                <small>Try this action</small>
-              </span>
-              <span className="voice-example-arrow" aria-hidden="true">
-                ↗
-              </span>
-            </button>
-            <button
-              type="button"
-              className="voice-example-reveal"
-              aria-expanded={revealedExample === example.action}
-              aria-controls={`voice-example-trigger-${example.action}`}
-              onClick={() =>
-                setRevealedExample((current) =>
-                  current === example.action ? null : example.action,
-                )
-              }
-            >
-              <Icon name="eye" />
-              {revealedExample === example.action
-                ? "Hide trigger"
-                : "Show trigger"}
-            </button>
-            {revealedExample === example.action && (
-              <div
-                id={`voice-example-trigger-${example.action}`}
-                className="voice-example-trigger"
-              >
-                <span>Say this</span>
-                <strong>“{example.phrase}”</strong>
-              </div>
-            )}
-          </div>
+      <div
+        className="voice-example-row"
+        aria-label={t("Voice command examples")}
+      >
+        <span className="voice-example-say">{t("Say")}</span>
+        {examplesToShow.map((example) => (
+          <button
+            key={example.phrase}
+            type="button"
+            className="voice-example"
+            disabled={voiceBusy}
+            aria-label={`“${t(example.phrase)}” ${t(example.label)}`}
+            title={t(example.label)}
+            onClick={() => runExample(example)}
+          >
+            “{t(example.phrase)}”
+          </button>
         ))}
       </div>
 
       {heard && (
         <p className="voice-heard" role="status">
-          Heard: <strong>{heard}</strong>
+          {t("Heard:")} <strong>{heard}</strong>
         </p>
       )}
 
-      {open && (
+      <details
+        className="voice-customize"
+        open={open}
+        onToggle={(event) => setOpen(event.currentTarget.open)}
+      >
+        <summary>{t("Customize commands")}</summary>
         <div id="voice-trigger-builder" className="voice-trigger-builder">
           <div className="voice-trigger-builder-copy">
-            <h3>Build a trigger</h3>
+            <h3>{t("Build a trigger")}</h3>
             <p>
-              The phrases stay on this device. Every action is configurable,
-              including the built-in Back, Next, and Cancel commands.
+              {t(
+                "The phrases stay on this device. Every action is configurable, including the built-in Back, Next, and Cancel commands.",
+              )}
             </p>
           </div>
           <form className="voice-trigger-form" onSubmit={saveTrigger}>
             <div className="voice-trigger-field">
               <label htmlFor="voice-trigger-phrase">
-                Trigger word or phrase
+                {t("Trigger word or phrase")}
               </label>
               <input
                 id="voice-trigger-phrase"
                 value={phrase}
                 onChange={(event) => setPhrase(event.target.value)}
-                placeholder="e.g. upload"
+                placeholder={t("e.g. upload")}
                 autoComplete="off"
               />
             </div>
             <div className="voice-trigger-field">
-              <label htmlFor="voice-trigger-action">When I say it…</label>
+              <label htmlFor="voice-trigger-action">
+                {t("When I say it…")}
+              </label>
               <select
                 id="voice-trigger-action"
                 value={action}
@@ -700,7 +733,7 @@ export function VoiceActions({
               >
                 {Object.entries(actionLabels).map(([id, label]) => (
                   <option key={id} value={id}>
-                    {label}
+                    {t(label)}
                   </option>
                 ))}
               </select>
@@ -710,14 +743,14 @@ export function VoiceActions({
               type="submit"
               disabled={!normalize(phrase)}
             >
-              {editingId ? "Update trigger" : "Save trigger"}
+              {editingId ? t("Update trigger") : t("Save trigger")}
             </button>
           </form>
 
           <div className="saved-trigger-list">
             {triggers.length === 0 ? (
               <p className="hint">
-                No saved triggers yet. Start with “upload” or “YouTube”.
+                {t("No saved triggers yet. Start with “upload” or “YouTube”.")}
               </p>
             ) : (
               triggers.map((trigger) => (
@@ -726,13 +759,15 @@ export function VoiceActions({
                     “{trigger.phrase}”
                   </span>
                   <span className="saved-trigger-action">
-                    {actionLabels[trigger.action]}
+                    {t(actionLabels[trigger.action])}
                   </span>
                   <div className="saved-trigger-actions">
                     <button
                       type="button"
                       className="saved-trigger-remove"
-                      aria-label={`Edit trigger ${trigger.phrase}`}
+                      aria-label={t("Edit trigger {phrase}", {
+                        phrase: trigger.phrase,
+                      })}
                       onClick={() => {
                         setPhrase(trigger.phrase);
                         setAction(trigger.action);
@@ -740,19 +775,21 @@ export function VoiceActions({
                         setOpen(true);
                       }}
                     >
-                      Edit
+                      {t("Edit")}
                     </button>
                     <button
                       type="button"
                       className="saved-trigger-remove"
-                      aria-label={`Remove trigger ${trigger.phrase}`}
+                      aria-label={t("Remove trigger {phrase}", {
+                        phrase: trigger.phrase,
+                      })}
                       onClick={() =>
                         setTriggers((current) =>
                           current.filter((item) => item.id !== trigger.id),
                         )
                       }
                     >
-                      Remove
+                      {t("Remove")}
                     </button>
                   </div>
                 </div>
@@ -761,22 +798,25 @@ export function VoiceActions({
           </div>
           {!supported && (
             <p className="hint voice-support-note">
-              Live speech recognition is not available in this browser. The demo
-              buttons still preview every action.
+              {t(
+                "Live speech recognition is not available in this browser. The example buttons still preview every action.",
+              )}
             </p>
           )}
           {!canStartVoice && (
             <p className="hint voice-support-note">
-              Start voice chat becomes available after you add a PDF or YouTube
-              source.
+              {t(
+                "Start voice chat becomes available after you add a PDF or YouTube source.",
+              )}
             </p>
           )}
           <p className="hint voice-support-note">
-            For uploads, your browser still asks you to confirm the local file;
-            websites cannot read arbitrary files without that confirmation.
+            {t(
+              "For uploads, your browser still asks you to confirm the local file; websites cannot read arbitrary files without that confirmation.",
+            )}
           </p>
         </div>
-      )}
+      </details>
     </section>
   );
 }

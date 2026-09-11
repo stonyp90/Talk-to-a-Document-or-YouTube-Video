@@ -32,27 +32,44 @@ export function json<T>(body: T, status = 200): Response {
  * different specifiers, and an error that crosses that boundary would otherwise
  * lose its identity and be reported as an internal failure.
  */
-const named = (error: unknown, name: string): error is Error & { code?: string } =>
+const named = (
+  error: unknown,
+  name: string,
+): error is Error & { code?: string } =>
   error instanceof Error && error.name === name;
 
 export function errorResponse(error: unknown, fallback: string): Response {
-  if (error instanceof InputValidationError || named(error, "InputValidationError"))
+  if (
+    error instanceof InputValidationError ||
+    named(error, "InputValidationError")
+  )
     return jsonError(
       (error as { code?: string }).code ?? "INVALID_INPUT",
       (error as Error).message,
       400,
     );
-  if (error instanceof SessionExpiredError || named(error, "SessionExpiredError"))
+  if (
+    error instanceof SessionExpiredError ||
+    named(error, "SessionExpiredError")
+  )
     return jsonError("SOURCE_EXPIRED", (error as Error).message, 409);
   if (
     error instanceof TranscriptUnavailableError ||
     named(error, "TranscriptUnavailableError")
-  )
+  ) {
+    const reason = (error as { reason?: string }).reason;
+    const status =
+      reason === "NO_CAPTIONS"
+        ? 400
+        : reason === "TRANSCRIPT_TIMEOUT"
+          ? 504
+          : 502;
     return jsonError(
-      (error as { reason?: string }).reason ?? "TRANSCRIPT_UNAVAILABLE",
+      reason ?? "TRANSCRIPT_UNAVAILABLE",
       (error as Error).message,
-      502,
+      status,
     );
+  }
   console.error("[api]", error);
   return jsonError("INTERNAL_ERROR", fallback, 500);
 }

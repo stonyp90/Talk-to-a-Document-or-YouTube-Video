@@ -218,6 +218,8 @@ export const french: Dictionary = {
   Ended: "Terminé",
   "Needs attention": "À vérifier",
   "Listening for your question": "À l’écoute de votre question",
+  Answering: "Réponse en cours",
+  Listening: "À l’écoute",
   "Hearing you": "Je vous entends",
   "Answering — speak to interrupt":
     "Réponse en cours : parlez pour interrompre",

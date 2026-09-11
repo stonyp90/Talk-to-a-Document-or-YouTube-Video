@@ -76,6 +76,8 @@ const MAX_TRIGGER_LENGTH = 80;
 const MAX_SAVED_TRIGGERS = 32;
 const MAX_LISTENING_MS = 30_000;
 const SILENCE_TIMEOUT_MS = 8_000;
+/** Longest a spoken confirmation may hold the microphone before listening resumes. */
+const REPLY_GUARD_MS = 4_000;
 const RESTART_DELAY_MS = 250;
 
 const actionLabels: Record<VoiceActionId, string> = {
@@ -299,7 +301,19 @@ export function VoiceActions({
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(reply);
     utterance.lang = speechLocale;
-    utterance.onend = onDone ?? null;
+    // A browser without a voice never reports the end of an utterance. The
+    // microphone must not stay closed behind a reply nobody hears, so the
+    // hand-back happens on end, on error, or after the reply's own length.
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(guard);
+      onDone?.();
+    };
+    const guard = window.setTimeout(settle, REPLY_GUARD_MS);
+    utterance.onend = settle;
+    utterance.onerror = settle;
     window.speechSynthesis.speak(utterance);
     return true;
   }

@@ -24,6 +24,11 @@ export const french: Dictionary = {
   "Watch the intro": "Voir l’intro",
   Language: "Langue",
   "Skip to workspace": "Aller à l’atelier",
+  "Skip to content": "Aller au contenu",
+  "Open the app": "Ouvrir l’application",
+  App: "App",
+  "Back to the story": "Retour à l’histoire",
+  Story: "Histoire",
 
   // Introduction
   Welcome: "Bienvenue",
@@ -33,10 +38,9 @@ export const french: Dictionary = {
   "Skip intro": "Passer l’intro",
   "Play the intro": "Lire l’intro",
   "Intro progress": "Progression de l’intro",
-  "Continues to the app in {seconds} s":
-    "L’application s’ouvre dans {seconds} s",
-  "Skip whenever you like. The app is right behind this.":
-    "Passez quand vous voulez. L’application est juste derrière.",
+  "Continues in {seconds} s": "Suite dans {seconds} s",
+  "Skip whenever you like. Ursly is right behind this.":
+    "Passez quand vous voulez. Ursly est juste derrière.",
   "Read the intro instead": "Lire l’intro plutôt",
   "The intro is unavailable right now.":
     "L’intro n’est pas disponible pour le moment.",
@@ -47,9 +51,16 @@ export const french: Dictionary = {
     "Posez vos questions à la voix, au clavier et bientôt par le mouvement.",
   "Source, question, understanding.": "Source, question, compréhension.",
 
-  // Workspace heading
+  // Landing hero
+  "Voice first": "La voix d’abord",
   "Less scrolling.": "Moins défiler.",
   "More understanding.": "Mieux comprendre.",
+  "Bring a PDF or a captioned YouTube video, ask by voice or keyboard, and get answers that stay anchored to your source.":
+    "Apportez un PDF ou une vidéo YouTube sous-titrée, posez vos questions à la voix ou au clavier, et obtenez des réponses qui restent ancrées dans votre source.",
+
+  // Workspace heading
+  "Your source.": "Votre source.",
+  "Your questions.": "Vos questions.",
   "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.":
     "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis parlez-lui. Dites une commande, posez votre question à voix haute ou écrivez quand vous préférez.",
   "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.":
@@ -322,7 +333,7 @@ export const french: Dictionary = {
     "Des profils vocaux qui s’adaptent à chaque personne, avec consentement et suppression d’un seul geste. Le mouvement, en version bêta.",
   "Connected objects, 3D objects and other surfaces. Whole industries, not only websites.":
     "Objets connectés, objets 3D et autres surfaces. Des industries entières, pas seulement des sites Web.",
-  "Try it above": "Essayez-le ci-dessus",
+  "Try it now": "Essayez-le maintenant",
   "No dates. We publish what ships, and we revise this as we learn. Not on the list: replacing your keyboard, or acting without asking.":
     "Sans dates. Nous publions ce qui est livré et nous révisons ce plan à mesure que nous apprenons. Pas au programme : remplacer votre clavier, ou agir sans demander.",
   "Open source": "Code source ouvert",

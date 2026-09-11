@@ -56,7 +56,7 @@ export function PlatformSection({
 }: {
   onReplayIntro: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <section
       className="platform"
@@ -104,8 +104,8 @@ export function PlatformSection({
             </span>
             <p>{t(item.text)}</p>
             {index === 0 && (
-              <a className="roadmap-link" href="#workspace">
-                {t("Try it above")} <Icon name="arrow" />
+              <a className="roadmap-link" href={`/${language}/app`}>
+                {t("Try it now")} <Icon name="arrow" />
               </a>
             )}
           </li>

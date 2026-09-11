@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, type RefObject } from "react";
+import { usePathname } from "next/navigation";
 import { Icon } from "./Icon";
 import { ModeSwitcher, type EntryMode } from "./ModeSwitcher";
 import { useLanguage } from "../i18n/LanguageProvider";
-import { LANGUAGES, type Language } from "../i18n/languages";
+import { LANGUAGES, withLanguage, type Language } from "../i18n/languages";
 
 /** Each language names itself, so a reader always recognises their own. */
 const LANGUAGE_NAMES: Record<Language, string> = { en: "English", fr: "Français" };
@@ -40,25 +41,81 @@ function useActiveSection(ids: readonly string[]): string | undefined {
   return active;
 }
 
+const NO_SECTIONS: readonly string[] = [];
+
 /**
- * The fixed top menu: brand, the three control modes, the platform section,
- * the intro replay and the language. It never scrolls away, so a mode change
- * or a look at the platform story is one tap from anywhere on the page.
+ * Each page carries only its own concerns: the landing page owns the story
+ * anchors and the intro replay, the app page owns the control modes. Making
+ * that a union rather than optional props means neither page can accidentally
+ * render a control that does nothing where it stands.
  */
-export function TopNav({
-  mode,
-  onModeChange,
-  onReplayIntro,
-  replayButton,
-}: {
-  mode: EntryMode;
-  onModeChange: (mode: EntryMode) => void;
+type StoryControls = {
+  page: "landing";
   onReplayIntro: () => void;
   replayButton: RefObject<HTMLButtonElement | null>;
-}) {
+};
+
+type TopNavProps =
+  | StoryControls
+  | {
+      page: "app";
+      mode: EntryMode;
+      onModeChange: (mode: EntryMode) => void;
+    };
+
+/**
+ * The story anchors and the intro replay: landing-page furniture, in its own
+ * component so the button's ref arrives as a plain parameter rather than
+ * being read off a narrowed props object during render.
+ */
+function StoryNavControls({
+  onReplayIntro,
+  replayButton,
+  active,
+}: StoryControls & { active?: string }) {
+  const { t } = useLanguage();
+  return (
+    <>
+      {SECTIONS.map((section) => (
+        <a
+          key={section.id}
+          className="nav-link nav-section-link"
+          href={`#${section.id}`}
+          aria-current={active === section.id ? "location" : undefined}
+        >
+          {t(section.label)}
+        </a>
+      ))}
+      <button
+        ref={replayButton}
+        type="button"
+        className="nav-link nav-intro"
+        onClick={onReplayIntro}
+        aria-label={t("Watch the intro")}
+        title={t("Watch the intro")}
+      >
+        <Icon name="play" />
+        <span className="nav-intro-label">{t("Watch the intro")}</span>
+      </button>
+    </>
+  );
+}
+
+/**
+ * The fixed top menu: brand, the control modes on the app page, the story
+ * anchors and the intro replay on the landing page, the route between the
+ * two, and the language. It never scrolls away, so the way in or out is one
+ * tap from anywhere on either page.
+ */
+export function TopNav(props: TopNavProps) {
+  const { page } = props;
+  const story = props.page === "landing" ? props : undefined;
   const { language, t } = useLanguage();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
-  const active = useActiveSection(SECTIONS.map((section) => section.id));
+  const active = useActiveSection(
+    page === "landing" ? SECTIONS.map((section) => section.id) : NO_SECTIONS,
+  );
 
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 4);
@@ -66,48 +123,68 @@ export function TopNav({
     return subscribeToScroll(update);
   }, []);
 
+  // One slot, two faces: on the landing page it is the commitment to go and
+  // use the app; in the app it is the quiet way back to the story.
+  const route =
+    page === "landing"
+      ? {
+          href: `/${language}/app`,
+          full: "Open the app",
+          short: "App",
+          className: "primary",
+        }
+      : {
+          href: `/${language}`,
+          full: "Back to the story",
+          short: "Story",
+          className: "nav-link",
+        };
+
   return (
-    <nav className="nav" aria-label={t("Primary")} data-scrolled={scrolled}>
+    <nav
+      className="nav"
+      aria-label={t("Primary")}
+      data-scrolled={scrolled}
+      data-page={page}
+    >
       <div className="nav-inner">
         <a className="brand" href={`/${language}`} aria-label={t("Ursly home")}>
           {/* A vector stays crisp at every screen density. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="brand-mark" src="/brand/ursly-mark.svg" width="32" height="32" alt="" />
+          <img
+            className="brand-mark"
+            src="/brand/ursly-mark.svg"
+            width="32"
+            height="32"
+            alt=""
+          />
           ursly<span className="brand-dot">.</span>
         </a>
 
-        <div className="nav-modes">
-          <ModeSwitcher mode={mode} onChange={onModeChange} />
-        </div>
+        {props.page === "app" && (
+          <div className="nav-modes">
+            <ModeSwitcher mode={props.mode} onChange={props.onModeChange} />
+          </div>
+        )}
 
         <div className="nav-actions">
-          {SECTIONS.map((section) => (
-            <a
-              key={section.id}
-              className="nav-link"
-              href={`#${section.id}`}
-              aria-current={active === section.id ? "location" : undefined}
-            >
-              {t(section.label)}
-            </a>
-          ))}
-          <button
-            ref={replayButton}
-            type="button"
-            className="nav-link nav-intro"
-            onClick={onReplayIntro}
-            aria-label={t("Watch the intro")}
-            title={t("Watch the intro")}
+          {story && <StoryNavControls {...story} active={active} />}
+          <a
+            className={`${route.className} nav-cta`}
+            href={route.href}
+            aria-label={t(route.full)}
           >
-            <Icon name="play" />
-            <span className="nav-intro-label">{t("Watch the intro")}</span>
-          </button>
+            <span className="nav-cta-full">{t(route.full)}</span>
+            <span className="nav-cta-short" aria-hidden="true">
+              {t(route.short)}
+            </span>
+          </a>
           <div className="nav-languages" aria-label={t("Language")}>
             {LANGUAGES.map((code) => (
               <a
                 key={code}
                 className="nav-language"
-                href={`/${code}`}
+                href={withLanguage(pathname, code)}
                 hrefLang={code}
                 lang={code}
                 aria-label={LANGUAGE_NAMES[code]}

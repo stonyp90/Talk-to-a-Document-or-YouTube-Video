@@ -1432,6 +1432,18 @@ h3 {
   width: 14px;
   height: 14px;
 }
+/* The way between the story and the app: sized like the rest of the bar,
+   weighted by whichever of .primary or .nav-link it is worn over. */
+.nav-cta {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nav-cta-short {
+  display: none;
+}
 .nav-languages {
   display: inline-flex;
   margin-left: 4px;
@@ -1805,6 +1817,18 @@ h3 {
 .hero {
   padding: 32px 0;
 }
+.landing-hero {
+  padding: 40px 0 32px;
+}
+.landing-hero .lede {
+  max-width: 640px;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
 .hero h1 {
   margin: 10px 0;
   font-size: clamp(2rem, 5vw, 3rem);
@@ -2164,6 +2188,14 @@ h3 {
 }
 
 @media (max-width: 960px) {
+  /* Below this width the bar is a two-row grid whose height feeds the body
+     padding, the scroll padding and every scroll margin. Only the app page
+     carries a modes row, so the landing page must be told the bar is one row
+     tall: redefining the variable fixes all four consumers at once. Where
+     :has() is unsupported the cost is extra padding, never a broken page. */
+  :root:not(:has(.nav-modes)) {
+    --nav-h-mobile: var(--nav-row);
+  }
   body {
     padding-top: calc(var(--nav-h-mobile) + var(--safe-top));
   }
@@ -2199,6 +2231,11 @@ h3 {
     gap: 4px;
   }
   .nav-link {
+    min-height: 36px;
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+  .nav-cta {
     min-height: 36px;
     padding: 6px 9px;
     font-size: 11px;
@@ -2361,4 +2398,20 @@ h3 {
   color: var(--muted);
   font-size: 10px;
   line-height: 1.4;
+}
+
+/* The narrowest supported width: the bar keeps the brand, the way in or out,
+   and the language. The story anchor yields to the primary action, which
+   falls back to its short label. The platform section stays reachable by
+   scrolling and from the footer. */
+@media (max-width: 400px) {
+  .nav-section-link {
+    display: none;
+  }
+  .nav-cta-full {
+    display: none;
+  }
+  .nav-cta-short {
+    display: inline;
+  }
 }

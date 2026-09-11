@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const connect = vi.hoisted(() => vi.fn());
 vi.mock("./realtimeClient", () => ({
   RealtimeClient: class {
@@ -16,7 +16,12 @@ vi.mock("./realtimeClient", () => ({
     stop = vi.fn();
   },
 }));
-import HomePage from "../../app/page";
+import HomePage from "../../app/components/HomePage";
+
+beforeEach(() => {
+  // These cases exercise the workspace, not the first-visit introduction.
+  localStorage.setItem("ursly-intro-v1", "seen");
+});
 
 afterEach(() => {
   cleanup();
@@ -38,10 +43,7 @@ const envelope = {
 async function ingestFixture(request: ReturnType<typeof vi.fn>): Promise<void> {
   vi.stubGlobal("fetch", request);
   render(<HomePage />);
-  fireEvent.click(screen.getByRole("button", { name: "Use upload instead" }));
-  await waitFor(() =>
-    expect(screen.getByRole("tab", { name: "YouTube video" })).toBeVisible(),
-  );
+  // The picker is on screen from the start: no disclosure to open first.
   fireEvent.click(screen.getByRole("tab", { name: "YouTube video" }));
   fireEvent.change(screen.getByLabelText("YouTube URL"), {
     target: { value: "https://youtu.be/dQw4w9WgXcQ" },
@@ -82,10 +84,6 @@ it("unmount aborts session setup and ignores its eventual response", async () =>
   });
   vi.stubGlobal("fetch", request);
   const view = render(<HomePage />);
-  fireEvent.click(screen.getByRole("button", { name: "Use upload instead" }));
-  await waitFor(() =>
-    expect(screen.getByRole("tab", { name: "YouTube video" })).toBeVisible(),
-  );
   fireEvent.click(screen.getByRole("tab", { name: "YouTube video" }));
   fireEvent.change(screen.getByLabelText("YouTube URL"), {
     target: { value: "https://youtu.be/dQw4w9WgXcQ" },

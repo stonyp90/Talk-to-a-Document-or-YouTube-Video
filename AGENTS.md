@@ -15,3 +15,11 @@ copy, accessibility labels, and new demonstration scripts. Keep French as an
 explicit optional translation. Use English source keys for localization and an
 English fallback for unsupported locales. Preserve user-provided source content
 in its original language.
+
+## Definition of done
+
+No feature or task is complete until it has walked the whole build loop in
+`README.md` ("How we build"): concept, plan, tools, local run, tests at every
+level (behaviour, contract, unit) with no regressions, security and compliance,
+continuous delivery, production verification, and feedback. Do not start the
+next cycle while the current one is still open.

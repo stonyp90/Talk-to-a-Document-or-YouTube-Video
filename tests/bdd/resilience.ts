@@ -146,7 +146,7 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
         json: { error: "Source extraction failed. Please retry." },
       }),
     );
-    await p.getByRole("button", { name: "Use upload instead" }).click();
+    await expect(p.getByLabel("PDF file")).toBeVisible();
     await p.getByRole("tab", { name: "YouTube video" }).click();
     await p.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
     await p.getByRole("button", { name: "Continue to questions" }).click();

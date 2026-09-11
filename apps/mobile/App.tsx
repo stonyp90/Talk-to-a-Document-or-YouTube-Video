@@ -111,9 +111,9 @@ export default function App() {
   const voice = useRef<NativeVoice | null>(null);
   const operation = useRef(0);
   const sequence = useRef(0);
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const followTranscript = useRef(true);
-  const composer = useRef<TextInput>(null);
+  const composer = useRef<React.ComponentRef<typeof TextInput>>(null);
   const active = ["connecting", "connected", "reconnecting"].includes(status);
 
   function showToast(message: string) {
@@ -1533,7 +1533,7 @@ const s = StyleSheet.create({
   sourceText: { color: c.ink, fontSize: 16, lineHeight: 28 },
   outline: { borderWidth: 1, borderColor: c.line, borderRadius: 15 },
   modalRoot: { flex: 1, justifyContent: "flex-end" },
-  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: c.scrim },
+  scrim: { ...StyleSheet.absoluteFill, backgroundColor: c.scrim },
   sheet: {
     padding: 24,
     gap: 18,

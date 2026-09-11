@@ -7,3 +7,10 @@ id = "aws-temporary-access-key"
 description = "AWS temporary access key identifier; session credentials must never be committed"
 regex = '''\bASIA[A-Z0-9]{16}\b'''
 keywords = ["ASIA"]
+
+# Browser storage names such as "ursly-intro-v1" are identifiers, not
+# credentials. The generic rule keys on a variable called *_KEY next to a
+# quoted string, which is exactly how a storage-key constant is written.
+[allowlist]
+description = "Local storage and cookie names"
+regexes = ['''ursly-[a-z0-9-]+-v[0-9]+''']

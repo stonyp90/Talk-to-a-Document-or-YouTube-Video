@@ -20,6 +20,7 @@ import { registerResilienceChecks } from "./resilience";
 import { registerArchitectureChecks } from "./architecture";
 import { registerEntryChecks } from "./entry";
 import { registerProcessChecks } from "./process";
+import { registerVoiceChecks } from "./voice";
 
 setDefaultTimeout(120_000);
 const baseURL = process.env.BDD_BASE_URL ?? "http://localhost:3000";
@@ -948,6 +949,7 @@ registerResilienceChecks(step, { page, open, ready, baseURL });
 registerArchitectureChecks(step);
 registerEntryChecks(step, { page, open, baseURL });
 registerProcessChecks(step, { page });
+registerVoiceChecks(step);
 
 // Static inventory: unsupported steps are PENDING, never successful. Newly added
 // phrases without implementations remain undefined and fail the default gate.

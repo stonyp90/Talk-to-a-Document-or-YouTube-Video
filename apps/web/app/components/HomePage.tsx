@@ -20,6 +20,7 @@ import { PlatformSection } from "./PlatformSection";
 import { Process } from "./Process";
 import { TopNav } from "./TopNav";
 import { VoiceActions, type VoiceActionId } from "./VoiceActions";
+import { spokenExamples } from "@/apps/web/src/lib/voiceCommands";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   conversationReducer,
@@ -127,6 +128,10 @@ function readSavedMode(): EntryMode {
 
 export default function HomePage() {
   const { t, language } = useLanguage();
+  /** The wording this language listens for, so a notice never quotes another. */
+  const spokenPhrase = (action: VoiceActionId) =>
+    spokenExamples(language).find((example) => example.action === action)
+      ?.phrase ?? "";
   // The chosen mode is remembered per browser. The server snapshot is voice,
   // so hydration has nothing to reconcile; a choice made here wins over it.
   const savedMode = useSyncExternalStore(
@@ -677,7 +682,9 @@ export default function HomePage() {
     if (action === "voice") {
       if (!source) {
         setVoiceActionNotice(
-          t("Add a PDF or YouTube source first, then say “let’s talk” again."),
+          t("Add a PDF or YouTube source first, then say “{phrase}” again.", {
+            phrase: spokenPhrase("voice"),
+          }),
         );
         return;
       }
@@ -687,9 +694,9 @@ export default function HomePage() {
     if (action === "summarize") {
       if (!source) {
         setVoiceActionNotice(
-          t(
-            "Add a PDF or YouTube source first, then say “summarize this” again.",
-          ),
+          t("Add a PDF or YouTube source first, then say “{phrase}” again.", {
+            phrase: spokenPhrase("summarize"),
+          }),
         );
         return;
       }

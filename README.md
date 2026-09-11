@@ -46,6 +46,24 @@ OPENAI_API_KEY=<your-project-key>
 
 Full environment reference: [`.env.example`](.env.example) and [service setup](SERVICE-SETUP.md).
 
+### Choose the voice that answers
+
+`OPENAI_REALTIME_VOICE` selects it. The default is `marin`, one of the two voices trained for the realtime model; `OPENAI_REALTIME_VOICE_SPEED`, `OPENAI_REALTIME_TURN_DETECTION`, `OPENAI_REALTIME_TURN_EAGERNESS` and `OPENAI_REALTIME_NOISE_REDUCTION` tune the rest of the exchange.
+
+To answer in **your own voice**, the provider has to mint a custom voice from two recordings of you, and that identifier then replaces the voice name. The helper tells you what to record:
+
+```sh
+npm run voice:enroll -- --language fr
+```
+
+It prints the consent sentence you must read word for word, and what the speech sample needs to contain. Record both, then:
+
+```sh
+npm run voice:enroll -- --name my-voice --language fr --consent consent.wav --sample sample.wav
+```
+
+It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom voices are limited to eligible OpenAI accounts, and no phrase spoken inside the application can clone a voice: the enrolment is deliberate, consented and done once.
+
 ---
 
 ## What a visitor sees
@@ -107,7 +125,9 @@ features/, tests/         Gherkin acceptance, unit, browser and architecture tes
 
 **Hexagonal, and enforced.** Dependencies point inward: inbound adapters → application → domain. The core imports no framework, no SDK, no environment variable and no network client. [`apps/web/src/composition.ts`](apps/web/src/composition.ts) is the only place concrete adapters are assembled, and [`tests/architecture.test.ts`](tests/architecture.test.ts) fails the build if a route reaches past it. Replacing S3, the caption source or the model vendor means writing one adapter and editing one file. Details in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-**Voice path.** The browser asks the backend for a Realtime session. The backend primes it with the source text and returns only a short-lived client secret, then steps aside: the browser negotiates SDP straight with OpenAI and media never transits our servers. Server-side voice activity detection is what lets a caller cut in mid-answer; the client closes its own caption on the same event so the transcript matches what was actually heard.
+**Voice path.** The browser asks the backend for a Realtime session. The backend primes it with the source text and returns only a short-lived client secret, then steps aside: the browser negotiates SDP straight with OpenAI and media never transits our servers. Provider-side voice activity detection is what lets a caller cut in mid-answer; the client closes its own caption on the same event so the transcript matches what was actually heard. Detection is semantic by default, so it waits for a finished thought rather than a silent gap and does not cut off a caller who pauses to think.
+
+**Spoken answers are written to be heard.** The session carries delivery guidance on top of the source: short sentences, no markup a listener cannot hear, two or three sentences before handing the floor back, and the caller's own language. A blocked autoplay no longer ends a working call — the next tap starts the audio.
 
 **Sources live on the server.** Ingestion returns an opaque `sourceId`, and later requests carry that id instead of the whole extraction. If the server has forgotten the session — a cold start, or another instance — the client resends the source once and the conversation continues. Storage is in-memory with a TTL and a cap, which the assessment names as sufficient; a shared store is a one-adapter swap.
 

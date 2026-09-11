@@ -10,24 +10,29 @@ import {
 } from "react";
 import { Icon } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
+import type { Language } from "../i18n/languages";
+import {
+  SPEECH_DELIVERY,
+  selectSpeechVoice,
+} from "@/apps/web/src/lib/speechVoice";
+import {
+  VOICE_ACTION_IDS,
+  actionHint,
+  actionLabel,
+  actionReply,
+  defaultTriggers,
+  matchTriggers,
+  normalizeSpoken,
+  spokenExamples,
+  type SpokenExample,
+  type VoiceActionId,
+  type VoiceTrigger,
+} from "@/apps/web/src/lib/voiceCommands";
 
 /** BCP 47 tags the speech engines expect for each interface language. */
 const SPEECH_LOCALES = { en: "en-US", fr: "fr-CA" } as const;
 
-export type VoiceActionId =
-  | "youtube"
-  | "upload"
-  | "voice"
-  | "summarize"
-  | "back"
-  | "next"
-  | "cancel";
-
-type VoiceTrigger = {
-  id: string;
-  phrase: string;
-  action: VoiceActionId;
-};
+export type { VoiceActionId };
 
 type SpeechRecognitionAlternativeLike = {
   transcript: string;
@@ -80,97 +85,27 @@ const SILENCE_TIMEOUT_MS = 8_000;
 const REPLY_GUARD_MS = 4_000;
 const RESTART_DELAY_MS = 250;
 
-const actionLabels: Record<VoiceActionId, string> = {
-  youtube: "Open the YouTube source tab",
-  upload: "Open the PDF upload picker",
-  voice: "Start voice chat",
-  summarize: "Ask for a key-ideas summary",
-  back: "Go back or undo the last step",
-  next: "Go forward to the next step",
-  cancel: "Cancel the current action",
-};
-
-const actionReplies: Record<VoiceActionId, string> = {
-  youtube: "Opening the YouTube source tab.",
-  upload: "Opening the PDF upload picker.",
-  voice: "Starting voice chat.",
-  summarize: "Preparing a key-ideas summary.",
-  back: "Going back and undoing the last step.",
-  next: "Moving forward to the next step.",
-  cancel: "Cancelling the current action.",
-};
-
-const defaultTriggers: VoiceTrigger[] = [
-  { id: "default-back", phrase: "back", action: "back" },
-  { id: "default-next", phrase: "next", action: "next" },
-  { id: "default-cancel", phrase: "cancel", action: "cancel" },
-];
-
-const examples: Array<{
-  phrase: string;
-  action: VoiceActionId;
-  label: string;
-}> = [
-  { phrase: "YouTube", action: "youtube", label: "switch to YouTube" },
-  { phrase: "Upload", action: "upload", label: "open the PDF picker" },
-  { phrase: "Let's talk", action: "voice", label: "try a voice action" },
-  {
-    phrase: "Summarize this",
-    action: "summarize",
-    label: "ask for a summary",
-  },
-  { phrase: "Back", action: "back", label: "undo the last step" },
-  { phrase: "Next", action: "next", label: "continue forward" },
-  { phrase: "Cancel", action: "cancel", label: "stop the current action" },
-];
-
-function normalize(text: string): string {
-  return text
-    .toLocaleLowerCase()
-    .replace(/[-–—]/g, "")
-    .replace(/[^\p{L}\p{N}\s']/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function escaped(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function findMatches(
-  transcript: string,
-  available: VoiceTrigger[],
-): VoiceTrigger[] {
-  const spoken = normalize(transcript);
-  return available
-    .map((trigger, index) => {
-      const phrase = normalize(trigger.phrase);
-      if (!phrase) return null;
-      const match = spoken.match(
-        new RegExp(`(?:^|\\s)${escaped(phrase)}(?=$|\\s)`),
-      );
-      return match
-        ? { trigger, index, position: match.index ?? Number.MAX_SAFE_INTEGER }
-        : null;
-    })
-    .filter(
-      (
-        item,
-      ): item is { trigger: VoiceTrigger; index: number; position: number } =>
-        item !== null,
-    )
-    .sort(
-      (left, right) =>
-        left.position - right.position || left.index - right.index,
-    )
-    .map(({ trigger }) => trigger);
-}
-
 const TRIGGER_STORAGE_NAME = "ursly-voice-triggers-v1";
 
-function parseSavedTriggers(stored: string | null): VoiceTrigger[] {
+/**
+ * The default set per language, kept by reference: React compares snapshots
+ * identity-first, so a freshly built array on every read would never settle.
+ */
+const defaultsByLanguage = new Map<Language, VoiceTrigger[]>();
+function defaults(language: Language): VoiceTrigger[] {
+  const existing = defaultsByLanguage.get(language);
+  if (existing) return existing;
+  const built = defaultTriggers(language);
+  defaultsByLanguage.set(language, built);
+  return built;
+}
+
+function parseSavedTriggers(
+  stored: string | null,
+  language: Language,
+): VoiceTrigger[] {
   try {
-    if (stored === null) return defaultTriggers;
+    if (stored === null) return defaults(language);
     const saved = JSON.parse(stored) as unknown;
     if (!Array.isArray(saved)) return [];
     return saved
@@ -185,8 +120,8 @@ function parseSavedTriggers(stored: string | null): VoiceTrigger[] {
             typeof item.phrase === "string" &&
             item.phrase.trim() &&
             typeof item.action === "string" &&
-            normalize(item.phrase) &&
-            Object.hasOwn(actionLabels, item.action),
+            normalizeSpoken(item.phrase) &&
+            (VOICE_ACTION_IDS as readonly string[]).includes(item.action),
         ),
       )
       .filter((item) => item.phrase.length <= MAX_TRIGGER_LENGTH)
@@ -201,19 +136,27 @@ function parseSavedTriggers(stored: string | null): VoiceTrigger[] {
  * server snapshot is the default set, and the parsed value is cached per raw
  * string so React sees a stable reference between renders.
  */
-let savedTriggersCache: { raw: string | null; parsed: VoiceTrigger[] } = {
-  raw: null,
-  parsed: defaultTriggers,
-};
-function readSavedTriggers(): VoiceTrigger[] {
+let savedTriggersCache: {
+  raw: string | null;
+  language?: Language;
+  parsed: VoiceTrigger[];
+} = { raw: null, parsed: [] };
+function readSavedTriggers(language: Language): VoiceTrigger[] {
   let raw: string | null = null;
   try {
     raw = localStorage.getItem(TRIGGER_STORAGE_NAME);
   } catch {
     raw = null;
   }
-  if (savedTriggersCache.raw !== raw || raw === null)
-    savedTriggersCache = { raw, parsed: parseSavedTriggers(raw) };
+  if (
+    savedTriggersCache.raw !== raw ||
+    savedTriggersCache.language !== language
+  )
+    savedTriggersCache = {
+      raw,
+      language,
+      parsed: parseSavedTriggers(raw, language),
+    };
   return savedTriggersCache.parsed;
 }
 function subscribeToTriggerStorage(notify: () => void): () => void {
@@ -245,8 +188,8 @@ export function VoiceActions({
   // edit made on this page wins over both until it is persisted.
   const savedTriggers = useSyncExternalStore(
     subscribeToTriggerStorage,
-    readSavedTriggers,
-    () => defaultTriggers,
+    useCallback(() => readSavedTriggers(language), [language]),
+    useCallback(() => defaults(language), [language]),
   );
   const [editedTriggers, setEditedTriggers] = useState<VoiceTrigger[] | null>(
     null,
@@ -254,8 +197,10 @@ export function VoiceActions({
   const triggers = editedTriggers ?? savedTriggers;
   const setTriggers = useCallback(
     (update: (current: VoiceTrigger[]) => VoiceTrigger[]) =>
-      setEditedTriggers((current) => update(current ?? readSavedTriggers())),
-    [],
+      setEditedTriggers((current) =>
+        update(current ?? readSavedTriggers(language)),
+      ),
+    [language],
   );
   // The server cannot know the browser; it assumes support and hydration
   // corrects it without a mismatch.
@@ -266,9 +211,9 @@ export function VoiceActions({
   );
   const [armed, setArmed] = useState(false);
   const [heard, setHeard] = useState("");
-  const [notice, setNotice] = useState(
-    "Press once, then say a command such as “upload” or “YouTube”.",
-  );
+  // Nothing said yet: the opening line quotes the words this language answers
+  // to, so the caller never has to guess which wording will work.
+  const [notice, setNotice] = useState<string | null>(null);
   const recognition = useRef<SpeechRecognitionInstance | null>(null);
   const armedRef = useRef(false);
   const startingRef = useRef(false);
@@ -295,12 +240,29 @@ export function VoiceActions({
     triggersRef.current = triggers;
   }, [triggers]);
 
+  useEffect(() => {
+    // Installed voices load lazily, and the list is empty until something asks
+    // for it. Asking on mount means the first spoken reply already has one.
+    window.speechSynthesis?.getVoices();
+  }, []);
+
   function speak(reply: string, onDone?: () => void) {
     if (typeof window === "undefined" || !window.speechSynthesis) return false;
     if (typeof SpeechSynthesisUtterance === "undefined") return false;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(reply);
     utterance.lang = speechLocale;
+    // The browser default is whichever voice was installed first, and it is
+    // often the small robotic one. Voices also arrive asynchronously, so an
+    // empty list here simply means the default is used this once.
+    const chosen = selectSpeechVoice(
+      window.speechSynthesis.getVoices(),
+      speechLocale,
+    );
+    if (chosen) utterance.voice = chosen;
+    utterance.rate = SPEECH_DELIVERY.rate;
+    utterance.pitch = SPEECH_DELIVERY.pitch;
+    utterance.volume = SPEECH_DELIVERY.volume;
     // A browser without a voice never reports the end of an utterance. The
     // microphone must not stay closed behind a reply nobody hears, so the
     // hand-back happens on end, on error, or after the reply's own length.
@@ -410,7 +372,12 @@ export function VoiceActions({
     if (trigger.action === "voice" && !canStartVoice) {
       if (armedRef.current) stopListening();
       setNotice(
-        "Add a PDF or YouTube source first, then say “let’s talk” again.",
+        t("Add a PDF or YouTube source first, then say “{phrase}” again.", {
+          phrase:
+            spokenExamples(language).find(
+              (example) => example.action === "voice",
+            )?.phrase ?? "",
+        }),
       );
       return;
     }
@@ -427,10 +394,15 @@ export function VoiceActions({
       stopListening();
     }
     setNotice(
-      `Triggered “${trigger.phrase}” · ${actionLabels[trigger.action]}.`,
+      t("Triggered “{phrase}” · {action}.", {
+        phrase: trigger.phrase,
+        action: t(actionLabel(trigger.action)),
+      }),
     );
+    // The confirmation is spoken, so it has to be in the language the voice is
+    // speaking: an English sentence read by a French voice is unintelligible.
     const resumed = speak(
-      actionReplies[trigger.action],
+      t(actionReply(trigger.action)),
       continueListening
         ? () => {
             if (!resumeAfterSpeech.current || voiceBusy) return;
@@ -446,12 +418,13 @@ export function VoiceActions({
     onActionRef.current(trigger.action);
   }
 
-  function runExample(example: (typeof examples)[number]) {
+  function runExample(example: SpokenExample) {
     runAction(
       {
         id: `example-${example.action}`,
         phrase: example.phrase,
         action: example.action,
+        aliases: example.aliases,
       },
       example.phrase,
     );
@@ -460,7 +433,7 @@ export function VoiceActions({
   function saveTrigger(event: FormEvent) {
     event.preventDefault();
     const nextPhrase = phrase.trim();
-    const normalizedPhrase = normalize(nextPhrase);
+    const normalizedPhrase = normalizeSpoken(nextPhrase);
     if (!normalizedPhrase) {
       setNotice("Use at least one letter or number in the trigger phrase.");
       return;
@@ -475,7 +448,7 @@ export function VoiceActions({
       triggers.some(
         (trigger) =>
           trigger.id !== editingId &&
-          normalize(trigger.phrase) === normalizedPhrase,
+          normalizeSpoken(trigger.phrase) === normalizedPhrase,
       )
     ) {
       setNotice(`“${nextPhrase}” is already saved. Choose a different phrase.`);
@@ -572,7 +545,7 @@ export function VoiceActions({
       if (!transcript) return;
       resetSilenceTimer(epoch);
       setHeard(transcript);
-      for (const match of findMatches(transcript, triggersRef.current)) {
+      for (const match of matchTriggers(transcript, triggersRef.current)) {
         if (handledTriggers.current.has(match.id)) continue;
         handledTriggers.current.add(match.id);
         runAction(match, transcript);
@@ -636,7 +609,14 @@ export function VoiceActions({
     }, MAX_LISTENING_MS);
   }
 
-  const examplesToShow = examples.slice(0, 4);
+  const spoken = spokenExamples(language);
+  const examplesToShow = spoken.slice(0, 4);
+  const wordsFor = (id: VoiceActionId) =>
+    spoken.find((example) => example.action === id)?.phrase ?? "";
+  const opening = t(
+    "Press once, then say a command such as “{first}” or “{second}”.",
+    { first: wordsFor("upload"), second: wordsFor("youtube") },
+  );
 
   return (
     <section
@@ -662,7 +642,7 @@ export function VoiceActions({
           <strong id="voice-actions-heading">
             {armed ? t("Listening for a command") : t("Voice to action")}
           </strong>
-          <span>{t(notice)}</span>
+          <span>{notice === null ? opening : t(notice)}</span>
         </div>
       </div>
 
@@ -677,11 +657,11 @@ export function VoiceActions({
             type="button"
             className="voice-example"
             disabled={voiceBusy}
-            aria-label={`“${t(example.phrase)}” ${t(example.label)}`}
-            title={t(example.label)}
+            aria-label={`“${example.phrase}” ${t(example.hint)}`}
+            title={t(example.hint)}
             onClick={() => runExample(example)}
           >
-            “{t(example.phrase)}”
+            “{example.phrase}”
           </button>
         ))}
       </div>
@@ -731,9 +711,9 @@ export function VoiceActions({
                   setAction(event.target.value as VoiceActionId)
                 }
               >
-                {Object.entries(actionLabels).map(([id, label]) => (
+                {VOICE_ACTION_IDS.map((id) => (
                   <option key={id} value={id}>
-                    {t(label)}
+                    {t(actionLabel(id))}
                   </option>
                 ))}
               </select>
@@ -741,7 +721,7 @@ export function VoiceActions({
             <button
               className="primary"
               type="submit"
-              disabled={!normalize(phrase)}
+              disabled={!normalizeSpoken(phrase)}
             >
               {editingId ? t("Update trigger") : t("Save trigger")}
             </button>
@@ -759,7 +739,7 @@ export function VoiceActions({
                     “{trigger.phrase}”
                   </span>
                   <span className="saved-trigger-action">
-                    {t(actionLabels[trigger.action])}
+                    {t(actionLabel(trigger.action))}
                   </span>
                   <div className="saved-trigger-actions">
                     <button

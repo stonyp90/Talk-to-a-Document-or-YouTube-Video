@@ -116,8 +116,19 @@ export const french: Dictionary = {
   "Speak a command": "Dire une commande",
   "Stop listening": "Arrêter l’écoute",
   "Listening for a command": "À l’écoute d’une commande",
-  "Press once, then say a command such as “upload” or “YouTube”.":
-    "Appuyez une fois, puis dites une commande comme « téléverser » ou « YouTube ».",
+  "Press once, then say a command such as “{first}” or “{second}”.":
+    "Appuyez une fois, puis dites une commande comme « {first} » ou « {second} ».",
+  "Triggered “{phrase}” · {action}.": "Déclenché « {phrase} » · {action}.",
+
+  // Spoken confirmations: these are read out loud by the browser voice.
+  "Opening the YouTube source tab.": "J’ouvre l’onglet source YouTube.",
+  "Opening the PDF upload picker.": "J’ouvre le sélecteur de PDF.",
+  "Starting voice chat.": "Je démarre la conversation vocale.",
+  "Preparing a key-ideas summary.": "Je prépare un résumé des idées clés.",
+  "Going back and undoing the last step.":
+    "Je reviens en arrière et j’annule la dernière étape.",
+  "Moving forward to the next step.": "Je passe à l’étape suivante.",
+  "Cancelling the current action.": "J’annule l’action en cours.",
   Say: "Dites",
   "Voice command examples": "Exemples de commandes vocales",
   YouTube: "YouTube",
@@ -170,10 +181,8 @@ export const french: Dictionary = {
     "Les commandes vocales sont en pause pendant qu’Ursly termine une autre action.",
   "Voice actions stopped when this page was hidden.":
     "Les commandes vocales se sont arrêtées quand la page a été masquée.",
-  "Add a PDF or YouTube source first, then say “let’s talk” again.":
-    "Ajoutez d’abord un PDF ou une source YouTube, puis redites « parlons-en ».",
-  "Add a PDF or YouTube source first, then say “summarize this” again.":
-    "Ajoutez d’abord un PDF ou une source YouTube, puis redites « résume ceci ».",
+  "Add a PDF or YouTube source first, then say “{phrase}” again.":
+    "Ajoutez d’abord un PDF ou une source YouTube, puis redites « {phrase} ».",
   "Voice actions are preparing for the next command.":
     "Les commandes vocales se préparent pour la prochaine commande.",
   "Use at least one letter or number in the trigger phrase.":

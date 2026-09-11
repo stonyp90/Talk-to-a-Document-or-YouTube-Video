@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./base";
 import { pdfFixture } from "../pdf-fixture";
+import { APP_PATH } from "../routes";
 
 type SpeechHarnessInstance = {
   emit: (transcript: string) => void;
@@ -80,7 +81,7 @@ async function installSpeechHarness(page: Page) {
 }
 
 async function openClean(page: Page) {
-  await page.goto("/");
+  await page.goto(APP_PATH);
   await page.evaluate(() => localStorage.removeItem("ursly-voice-triggers-v1"));
   await page.reload();
 }
@@ -183,9 +184,7 @@ test("voice command examples name their phrase and effect, and the builder stays
     "“Let’s talk” try a voice action",
     "“Summarize this” ask for a summary",
   ])
-    await expect(
-      page.getByRole("button", { name, exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
 
   const customize = page.locator(".voice-customize");
   await expect(customize).not.toHaveAttribute("open", "");

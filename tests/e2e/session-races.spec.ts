@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./base";
 import { pdfFixture } from "../pdf-fixture";
+import { APP_PATH } from "../routes";
 
 // Explicit fault injection: delayed fetch completions intentionally ignore abort,
 // modelling a response already queued when a source/session is invalidated.
@@ -180,7 +181,7 @@ test.beforeEach(async ({ page }) => {
       value: Peer,
     });
   });
-  await page.goto("/");
+  await page.goto(APP_PATH);
   await ingest(page);
 });
 

@@ -22,11 +22,12 @@ cp .env.example .env.local && npm ci
 docker compose --env-file .env.local --profile dev up --build dev
 ```
 
-Open **[localhost:3000](http://localhost:3000)**. The defaults run in `mock` mode, which needs no OpenAI key, no AWS account and no network: PDF extraction is real, and provider replies are deterministic stand-ins.
+Open **[localhost:3000](http://localhost:3000)** for the landing page, or **[localhost:3000/app](http://localhost:3000/app)** to go straight to the application. The defaults run in `mock` mode, which needs no OpenAI key, no AWS account and no network: PDF extraction is real, and provider replies are deterministic stand-ins.
 
 | Service                | Address                                                           |
 | ---------------------- | ----------------------------------------------------------------- |
-| Web and API            | [localhost:3000](http://localhost:3000)                           |
+| Landing page           | [localhost:3000](http://localhost:3000)                           |
+| Application            | [localhost:3000/app](http://localhost:3000/app)                   |
 | API health             | [localhost:3000/api/health](http://localhost:3000/api/health)     |
 | OpenAPI document       | [localhost:3000/api/openapi](http://localhost:3000/api/openapi)   |
 | Caption service health | [localhost:3010/health](http://localhost:3010/health)             |
@@ -82,6 +83,18 @@ It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom vo
    loop, voice models that adapt to each speaker with consent, voice, movement or
    keyboard, and the surfaces to come (connected objects, 3D objects), with a
    dateless roadmap.
+
+### Pages
+
+Two pages, deliberately separate. `/<lang>` is the landing page: what Ursly is,
+the 24-second introduction, the platform story, how we build, the guide, and the
+mobile downloads (`apps/web/app/components/LandingPage.tsx`). `/<lang>/app` is
+the application: add a source, ask a question, by voice or keyboard
+(`apps/web/app/components/Workspace.tsx`). The fixed top menu carries a reader
+between them from either side, and the two components share only that menu, the
+footer and the language provider — the landing page holds no conversation state
+and the application holds none of the story. The bare `/app` is rewritten to the
+negotiated language, so an installed app (`start_url: "/app"`) opens the tool.
 
 ### Languages
 

@@ -668,7 +668,8 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   });
   step("the repository is reviewed", async function () {
     for (const path of [
-      "apps/web/app/components/HomePage.tsx",
+      "apps/web/app/components/LandingPage.tsx",
+      "apps/web/app/components/Workspace.tsx",
       "packages/core/src/domain/ingestion.ts",
       "packages/adapters/src/providers.ts",
       "tests/bdd/steps.ts",
@@ -679,12 +680,16 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   step(
     "frontend, domain, provider, test, and infrastructure boundaries are identifiable",
     async function () {
-      const client = await readFile(
-        "apps/web/app/components/HomePage.tsx",
-        "utf8",
-      );
-      assert.match(client, /use client/);
-      assert.doesNotMatch(client, /from ["'][^"']*server\//);
+      // Two client entry points since the story and the application split:
+      // both are browser code, and neither reaches for a server module.
+      for (const path of [
+        "apps/web/app/components/LandingPage.tsx",
+        "apps/web/app/components/Workspace.tsx",
+      ]) {
+        const client = await readFile(path, "utf8");
+        assert.match(client, /use client/, path);
+        assert.doesNotMatch(client, /from ["'][^"']*server\//, path);
+      }
     },
   );
   step("the backend can be packaged as a Docker image", async function () {

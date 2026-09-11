@@ -164,7 +164,7 @@ function findMatches(
     .map(({ trigger }) => trigger);
 }
 
-const TRIGGER_STORAGE_KEY = "ursly-voice-triggers-v1";
+const TRIGGER_STORAGE_NAME = "ursly-voice-triggers-v1";
 
 function parseSavedTriggers(stored: string | null): VoiceTrigger[] {
   try {
@@ -206,7 +206,7 @@ let savedTriggersCache: { raw: string | null; parsed: VoiceTrigger[] } = {
 function readSavedTriggers(): VoiceTrigger[] {
   let raw: string | null = null;
   try {
-    raw = localStorage.getItem(TRIGGER_STORAGE_KEY);
+    raw = localStorage.getItem(TRIGGER_STORAGE_NAME);
   } catch {
     raw = null;
   }
@@ -344,7 +344,10 @@ export function VoiceActions({
   useEffect(() => {
     if (!editedTriggers) return;
     try {
-      localStorage.setItem(TRIGGER_STORAGE_KEY, JSON.stringify(editedTriggers));
+      localStorage.setItem(
+        TRIGGER_STORAGE_NAME,
+        JSON.stringify(editedTriggers),
+      );
     } catch {
       /* Voice triggers still work for this session when storage is unavailable. */
     }
@@ -649,7 +652,10 @@ export function VoiceActions({
         </div>
       </div>
 
-      <div className="voice-example-row" aria-label={t("Voice command examples")}>
+      <div
+        className="voice-example-row"
+        aria-label={t("Voice command examples")}
+      >
         <span className="voice-example-say">{t("Say")}</span>
         {examplesToShow.map((example) => (
           <button
@@ -682,7 +688,9 @@ export function VoiceActions({
           <div className="voice-trigger-builder-copy">
             <h3>{t("Build a trigger")}</h3>
             <p>
-              {t("The phrases stay on this device. Every action is configurable, including the built-in Back, Next, and Cancel commands.")}
+              {t(
+                "The phrases stay on this device. Every action is configurable, including the built-in Back, Next, and Cancel commands.",
+              )}
             </p>
           </div>
           <form className="voice-trigger-form" onSubmit={saveTrigger}>
@@ -699,7 +707,9 @@ export function VoiceActions({
               />
             </div>
             <div className="voice-trigger-field">
-              <label htmlFor="voice-trigger-action">{t("When I say it…")}</label>
+              <label htmlFor="voice-trigger-action">
+                {t("When I say it…")}
+              </label>
               <select
                 id="voice-trigger-action"
                 value={action}
@@ -741,7 +751,9 @@ export function VoiceActions({
                     <button
                       type="button"
                       className="saved-trigger-remove"
-                      aria-label={t("Edit trigger {phrase}", { phrase: trigger.phrase })}
+                      aria-label={t("Edit trigger {phrase}", {
+                        phrase: trigger.phrase,
+                      })}
                       onClick={() => {
                         setPhrase(trigger.phrase);
                         setAction(trigger.action);
@@ -754,7 +766,9 @@ export function VoiceActions({
                     <button
                       type="button"
                       className="saved-trigger-remove"
-                      aria-label={t("Remove trigger {phrase}", { phrase: trigger.phrase })}
+                      aria-label={t("Remove trigger {phrase}", {
+                        phrase: trigger.phrase,
+                      })}
                       onClick={() =>
                         setTriggers((current) =>
                           current.filter((item) => item.id !== trigger.id),
@@ -770,16 +784,22 @@ export function VoiceActions({
           </div>
           {!supported && (
             <p className="hint voice-support-note">
-              {t("Live speech recognition is not available in this browser. The example buttons still preview every action.")}
+              {t(
+                "Live speech recognition is not available in this browser. The example buttons still preview every action.",
+              )}
             </p>
           )}
           {!canStartVoice && (
             <p className="hint voice-support-note">
-              {t("Start voice chat becomes available after you add a PDF or YouTube source.")}
+              {t(
+                "Start voice chat becomes available after you add a PDF or YouTube source.",
+              )}
             </p>
           )}
           <p className="hint voice-support-note">
-            {t("For uploads, your browser still asks you to confirm the local file; websites cannot read arbitrary files without that confirmation.")}
+            {t(
+              "For uploads, your browser still asks you to confirm the local file; websites cannot read arbitrary files without that confirmation.",
+            )}
           </p>
         </div>
       </details>

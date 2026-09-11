@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import "../globals.css";
 import { LANGUAGES, isLanguage, type Language } from "../i18n/languages";
 
-const copy: Record<Language, { title: string; description: string; social: string }> = {
+const copy: Record<
+  Language,
+  { title: string; description: string; social: string }
+> = {
   en: {
     title: "Ursly — The joy of understanding",
     description:
@@ -24,9 +27,12 @@ export function generateStaticParams() {
   return LANGUAGES.map((lang) => ({ lang }));
 }
 
+/** Route params, spelled out so `tsc` does not depend on generated route types. */
+type LanguageParams = { params: Promise<{ lang: string }> };
+
 export async function generateMetadata({
   params,
-}: LayoutProps<"/[lang]">): Promise<Metadata> {
+}: LanguageParams): Promise<Metadata> {
   const { lang } = await params;
   const language: Language = isLanguage(lang) ? lang : "en";
   const text = copy[language];
@@ -55,7 +61,10 @@ export async function generateMetadata({
         },
       ],
     },
-    twitter: { card: "summary_large_image", images: ["/brand/social-card.png"] },
+    twitter: {
+      card: "summary_large_image",
+      images: ["/brand/social-card.png"],
+    },
   };
 }
 
@@ -67,7 +76,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children,
   params,
-}: LayoutProps<"/[lang]">) {
+}: LanguageParams & { children: React.ReactNode }) {
   const { lang } = await params;
   if (!isLanguage(lang)) notFound();
   return (

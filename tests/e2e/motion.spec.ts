@@ -36,10 +36,6 @@ for (const [name, path] of [
   }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.goto(path);
-    if (path === LANDING_PATH)
-      // Make sure the animated section has actually been on screen, or this
-      // would pass for the wrong reason: the build loop only moves in view.
-      await page.locator("#how-we-build").scrollIntoViewIfNeeded();
     await expect
       .poll(
         () =>
@@ -60,9 +56,40 @@ for (const [name, path] of [
   });
 }
 
+const running = (page: Page) =>
+  page.evaluate(
+    () =>
+      document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.playState === "running" &&
+            animation.timeline instanceof DocumentTimeline,
+        ).length,
+  );
+
+test("the build loop moves only while it is on screen", async ({ page }) => {
+  // The section that carries the page's decorative motion now sits alone on
+  // the landing page, so the bound on it belongs here: it steps while a
+  // reader is looking at the picture, and stops when they are not. Without
+  // this, "settles within 6.5s" would pass on a page whose only animation is
+  // below the fold, which proves nothing about the animation.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto(LANDING_PATH);
+  await page.locator("#how-we-build").scrollIntoViewIfNeeded();
+  await expect.poll(() => running(page), { timeout: 4000 }).toBeGreaterThan(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(() => running(page), { timeout: 6500 }).toBe(0);
+  // And a reader who wants it still can stop it while looking straight at it.
+  await page.locator("#how-we-build").scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: /Pause/ }).click();
+  await expect.poll(() => running(page), { timeout: 6500 }).toBe(0);
+});
+
 test("the landing page adds no animation under reduced motion", async ({
   page,
 }) => {
+  // Even with the picture straight on screen, and including the new hero.
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(LANDING_PATH);
   await page.locator("#how-we-build").scrollIntoViewIfNeeded();

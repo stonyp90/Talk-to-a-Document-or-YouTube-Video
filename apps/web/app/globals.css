@@ -2240,6 +2240,12 @@ h3 {
     padding: 6px 9px;
     font-size: 11px;
   }
+  .nav-cta-full {
+    display: none;
+  }
+  .nav-cta-short {
+    display: inline;
+  }
   .nav-intro-label {
     display: none;
   }
@@ -2400,18 +2406,11 @@ h3 {
   line-height: 1.4;
 }
 
-/* The narrowest supported width: the bar keeps the brand, the way in or out,
-   and the language. The story anchor yields to the primary action, which
-   falls back to its short label. The platform section stays reachable by
-   scrolling and from the footer. */
-@media (max-width: 400px) {
+/* The narrowest phones: the bar keeps the brand, the way in or out, and the
+   language, and the story anchor yields to the primary action. The platform
+   section stays reachable by scrolling and from the footer. */
+@media (max-width: 380px) {
   .nav-section-link {
     display: none;
-  }
-  .nav-cta-full {
-    display: none;
-  }
-  .nav-cta-short {
-    display: inline;
   }
 }

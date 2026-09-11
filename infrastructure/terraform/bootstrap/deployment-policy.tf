@@ -44,9 +44,15 @@ resource "aws_iam_role_policy" "deployment" {
         Sid       = "BoundedRoleCreation", Effect = "Allow", Action = ["iam:CreateRole", "iam:PutRolePermissionsBoundary"], Resource = local.runtime_arns
         Condition = { StringEquals = { "iam:PermissionsBoundary" = aws_iam_policy.runtime_boundary.arn } }
       },
+      # Deliberately without iam:UpdateAssumeRolePolicy: IAM has no condition key
+      # for the contents of a trust policy, so the action cannot be scoped, and a
+      # holder would rewrite a runtime role to trust this one and then assume it
+      # outright. modules/demo writes each trust policy at iam:CreateRole and
+      # never changes it, so only drift correction would need it; an operator
+      # repairs that by hand rather than leave the path open.
       {
         Sid      = "RuntimeRoleConfiguration", Effect = "Allow"
-        Action   = ["iam:GetRole", "iam:DeleteRole", "iam:UpdateAssumeRolePolicy", "iam:PutRolePolicy", "iam:GetRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole", "iam:TagRole", "iam:UntagRole"]
+        Action   = ["iam:GetRole", "iam:DeleteRole", "iam:PutRolePolicy", "iam:GetRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole", "iam:TagRole", "iam:UntagRole"]
         Resource = local.runtime_arns
       },
       {

@@ -51,3 +51,53 @@ run "reject_mutable_image_tag" {
   variables { image_tag = "latest" }
   expect_failures = [var.image_tag]
 }
+run "no_email_permission_before_the_operator_verifies_the_domain" {
+  command = apply
+  assert {
+    condition     = length(jsondecode(aws_iam_role_policy.runtime["api"].policy).Statement) == 3 && alltrue([for statement in jsondecode(aws_iam_role_policy.runtime["api"].policy).Statement : !anytrue([for action in statement.Action : startswith(action, "ses:")])])
+    error_message = "Without a verified identity the api role must hold no email permission at all."
+  }
+  assert {
+    condition     = !contains(keys(aws_lambda_function.runtime["api"].environment[0].variables), "SES_FROM_ADDRESS")
+    error_message = "An unconfigured deployment must keep exactly today's function environment."
+  }
+}
+run "email_permission_scoped_to_one_identity_and_one_sender" {
+  command = apply
+  variables {
+    ses_identity_arn           = "arn:aws:ses:us-east-1:123456789012:identity/example.test"
+    ses_configuration_set_name = "talk-to-a-document-transactional"
+    ses_from_address           = "no-reply@example.test"
+  }
+  assert {
+    condition = length([for statement in jsondecode(aws_iam_role_policy.runtime["api"].policy).Statement : statement if try(
+      statement.Action == ["ses:SendEmail"] &&
+      statement.Condition.StringEquals["ses:FromAddress"] == "no-reply@example.test" &&
+      contains(statement.Resource, "arn:aws:ses:us-east-1:123456789012:identity/example.test") &&
+      contains(statement.Resource, "arn:aws:ses:us-east-1:123456789012:configuration-set/talk-to-a-document-transactional"),
+    false)]) == 1
+    error_message = "Sending must be one statement pinned to the identity, the configuration set and the single From address."
+  }
+  assert {
+    condition     = length(jsondecode(aws_iam_role_policy.runtime["transcript"].policy).Statement) == 1
+    error_message = "Transcript processing may only write its logs; it never sends mail."
+  }
+  assert {
+    condition     = aws_lambda_function.runtime["api"].environment[0].variables["SES_FROM_ADDRESS"] == "no-reply@example.test" && aws_lambda_function.runtime["api"].environment[0].variables["SES_CONFIGURATION_SET_NAME"] == "talk-to-a-document-transactional"
+    error_message = "The api function needs the From address and configuration set it is authorized to use."
+  }
+}
+run "reject_sender_outside_the_verified_domain" {
+  command = plan
+  variables {
+    ses_identity_arn           = "arn:aws:ses:us-east-1:123456789012:identity/example.test"
+    ses_configuration_set_name = "talk-to-a-document-transactional"
+    ses_from_address           = "no-reply@attacker.test"
+  }
+  expect_failures = [var.ses_from_address]
+}
+run "reject_identity_without_configuration_set_and_sender" {
+  command = plan
+  variables { ses_identity_arn = "arn:aws:ses:us-east-1:123456789012:identity/example.test" }
+  expect_failures = [var.ses_configuration_set_name, var.ses_from_address]
+}

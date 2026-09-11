@@ -28,13 +28,30 @@ variable "app_origin" {
   type    = string
   default = "http://localhost:3000"
 }
+# Empty until the operator has applied environments/email and copied its outputs
+# into the production environment variables; the deployment is unchanged until then.
+variable "ses_identity_arn" {
+  type    = string
+  default = ""
+}
+variable "ses_configuration_set_name" {
+  type    = string
+  default = ""
+}
+variable "ses_from_address" {
+  type    = string
+  default = ""
+}
 module "demo" {
-  source            = "../../modules/demo"
-  region            = var.region
-  account_id        = var.account_id
-  image_tag         = var.image_tag
-  openai_secret_arn = var.openai_secret_arn
-  app_origin        = var.app_origin
+  source                     = "../../modules/demo"
+  region                     = var.region
+  account_id                 = var.account_id
+  image_tag                  = var.image_tag
+  openai_secret_arn          = var.openai_secret_arn
+  app_origin                 = var.app_origin
+  ses_identity_arn           = var.ses_identity_arn
+  ses_configuration_set_name = var.ses_configuration_set_name
+  ses_from_address           = var.ses_from_address
 }
 output "public_url" { value = module.demo.public_url }
 output "upload_bucket" { value = module.demo.upload_bucket }

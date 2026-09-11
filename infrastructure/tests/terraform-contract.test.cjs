@@ -53,3 +53,75 @@ test("bootstrap separates deployment authority and protects state", () => {
   assert.match(backend, /use_lockfile\s*=\s*true/);
   assert.doesNotMatch(backend, /terraform_remote_state/);
 });
+test("transactional email is operator-owned and adds no CI authority", () => {
+  const policy = read(
+    "infrastructure/terraform/bootstrap/deployment-policy.tf",
+  );
+  assert.doesNotMatch(policy, /\bses:|sesv2|route53/i);
+  assert.doesNotMatch(policy, /(email|domain)\/terraform\.tfstate/);
+  const boundary = read("infrastructure/terraform/bootstrap/main.tf");
+  assert.match(boundary, /"ses:SendEmail"/);
+  assert.match(boundary, /ses:FromAddress/);
+  const emailModule = read("infrastructure/terraform/modules/email/main.tf");
+  assert.doesNotMatch(emailModule, /aws_route53_record|aws_iam_/);
+  assert.match(emailModule, /RSA_2048_BIT/);
+  assert.match(emailModule, /REJECT_MESSAGE/);
+  assert.match(emailModule, /tls_policy\s*=\s*"REQUIRE"/);
+  const emailRoot = read("infrastructure/terraform/environments/email/main.tf");
+  assert.match(emailRoot, /key\s*=\s*"email\/terraform\.tfstate"/);
+  assert.match(
+    emailRoot,
+    /v=DMARC1; p=\$\{var\.dmarc_policy\}; adkim=r; aspf=r; rua=mailto:\$\{var\.dmarc_rua\}/,
+  );
+  assert.match(
+    emailRoot,
+    /variable "dmarc_policy" \{[^}]*default\s*=\s*"quarantine"/,
+  );
+  // The import block and prevent_destroy are the whole of the protection for the
+  // zone's pre-existing registrar DMARC record, and the root's own tftest proves
+  // neither: it overrides that resource and exercises no import. Without the
+  // block the first plan creates a name Route 53 already holds; without the
+  // lifecycle rule a destroy drops the domain from quarantine to no policy at all.
+  const dmarcImport = emailRoot.match(/import \{[\s\S]+?\n\}/)[0];
+  assert.match(dmarcImport, /to\s*=\s*aws_route53_record\.dmarc\b/);
+  assert.match(
+    dmarcImport,
+    /id\s*=\s*"\$\{local\.zone_id\}_\$\{local\.dmarc_name\}_TXT"/,
+  );
+  const dmarcRecord = emailRoot.match(
+    /resource "aws_route53_record" "dmarc" \{[\s\S]+?\n\}/,
+  )[0];
+  assert.match(dmarcRecord, /prevent_destroy\s*=\s*true/);
+  assert.match(
+    emailRoot,
+    /variable "dmarc_rua" \{\s*type\s*=\s*string\s*validation \{/,
+  );
+  // The root's own tftest proves how these two inputs behave; these checks only
+  // catch a validation being deleted. Both inputs can weaken a live policy:
+  // DMARC here uses relaxed alignment, so a permissive apex SPF record would
+  // hand every sender on the internet a DMARC pass as ursly.io, and a reports
+  // mailbox on a domain that receives no mail loses every aggregate report.
+  const apexSpf = emailRoot.match(
+    /variable "apex_spf_record" \{[\s\S]+?\n\}/,
+  )[0];
+  assert.match(apexSpf, /\(-\|~\)all\$/);
+  assert.match(apexSpf, /\?all\|redirect=/);
+  assert.match(apexSpf, /relaxed alignment/);
+  const dmarcRua = emailRoot.match(/variable "dmarc_rua" \{[\s\S]+?\n\}/)[0];
+  assert.match(dmarcRua, /_report\._dmarc/);
+  const deploy = read(".github/workflows/deploy.yml");
+  for (const name of [
+    "SES_IDENTITY_ARN",
+    "SES_CONFIGURATION_SET_NAME",
+    "SES_FROM_ADDRESS",
+  ])
+    assert.match(
+      deploy,
+      new RegExp(
+        `TF_VAR_${name.toLowerCase()}: \\$\\{\\{ vars\\.${name} \\}\\}`,
+      ),
+    );
+  const ci = read(".github/workflows/ci.yml");
+  assert.match(ci, /modules\/email test/);
+  assert.match(ci, /environments\/email test/);
+});

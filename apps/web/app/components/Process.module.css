@@ -137,21 +137,26 @@
 .node[data-active="true"] .label {
   fill: var(--ink);
 }
+/* The orbit and its markers carry meaning, so they hold the accent rather
+   than the decorative border tint, which reads at about 1.8:1 on the surface.
+   The active turn is then said by weight: it thickens, it never changes hue
+   and it never fades into the paper. */
 .satelliteRing {
   fill: none;
-  stroke: var(--accent-border);
+  stroke: var(--accent);
+  stroke-width: 1.2;
   stroke-dasharray: 3 4;
-  transition: stroke 260ms var(--ease-out);
+  transition: stroke-width 260ms var(--ease-out);
 }
 .satelliteDot {
   fill: var(--accent);
 }
 .diagram[data-inner-loop="active"] .satelliteRing {
-  stroke: var(--accent);
+  stroke-width: 2;
 }
 .providerDot {
   fill: var(--surface);
-  stroke: var(--accent-border);
+  stroke: var(--accent);
   stroke-width: 1.2;
 }
 .diagram[data-inner-loop="active"] .providerDot {
@@ -164,11 +169,11 @@
   }
   70% {
     fill: var(--accent-wash);
-    stroke: var(--accent-border);
+    stroke: var(--accent);
   }
   100% {
     fill: var(--surface);
-    stroke: var(--accent-border);
+    stroke: var(--accent);
   }
 }
 .caption {
@@ -237,9 +242,14 @@
   box-shadow: none;
   transform: none;
 }
+/* The chosen stage is said by a full-strength edge and by weight, so it does
+   not rest on a tint alone. */
 .step button[aria-current="step"] {
-  border-color: var(--accent-border);
+  border-color: var(--accent);
   background: var(--accent-wash-soft);
+}
+.step button[aria-current="step"] .stepTitle {
+  font-weight: 750;
 }
 .stepNumber {
   padding-top: 2px;

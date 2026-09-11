@@ -48,9 +48,13 @@ function prefersReducedMotion(): boolean {
 export function IntroGate({
   open,
   onClose,
+  onClosed,
 }: {
   open: boolean;
+  /** The visitor skipped, the video ended, or Escape was pressed. */
   onClose: () => void;
+  /** The dialog has actually closed; safe to move focus. */
+  onClosed?: () => void;
 }) {
   const { language, t } = useLanguage();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -59,6 +63,14 @@ export function IntroGate({
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  // The hand-off runs from the dialog's own close event: closing a modal
+  // dialog restores focus to whatever had it before, so anything focused
+  // earlier would be undone.
+  const onClosedRef = useRef(onClosed);
+  useEffect(() => {
+    onClosedRef.current = onClosed;
+  }, [onClosed]);
 
   // Open and close the native dialog in step with the prop.
   useEffect(() => {
@@ -74,7 +86,10 @@ export function IntroGate({
       else element.setAttribute("open", "");
     } else if (!open && element.open) {
       if (typeof element.close === "function") element.close();
-      else element.removeAttribute("open");
+      else {
+        element.removeAttribute("open");
+        onClosedRef.current?.();
+      }
     }
   }, [open]);
 
@@ -120,6 +135,7 @@ export function IntroGate({
       }}
       onClose={() => {
         if (open) finish();
+        onClosedRef.current?.();
       }}
     >
       <div className="intro-gate-inner">
@@ -143,7 +159,9 @@ export function IntroGate({
           <span className="eyebrow">{t("Welcome")}</span>
           <h2 id="intro-title">{t("Ursly, in 24 seconds.")}</h2>
           <p id="intro-lede">
-            {t("A source, a question, and a conversation that stays grounded in what you brought.")}
+            {t(
+              "A source, a question, and a conversation that stays grounded in what you brought.",
+            )}
           </p>
         </div>
 
@@ -162,14 +180,21 @@ export function IntroGate({
               poster="/brand/social-card.png"
               onTimeUpdate={(event) => {
                 const player = event.currentTarget;
-                if (player.duration) setProgress(player.currentTime / player.duration);
+                if (player.duration)
+                  setProgress(player.currentTime / player.duration);
               }}
               onPlaying={() => setAutoplayBlocked(false)}
               onEnded={finish}
               onError={() => setFailed(true)}
             >
-              <source src={`/brand/ursly-intro.${language}.webm`} type="video/webm" />
-              <source src={`/brand/ursly-intro.${language}.mp4`} type="video/mp4" />
+              <source
+                src={`/brand/ursly-intro.${language}.webm`}
+                type="video/webm"
+              />
+              <source
+                src={`/brand/ursly-intro.${language}.mp4`}
+                type="video/mp4"
+              />
               <track
                 kind="captions"
                 srcLang={language}

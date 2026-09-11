@@ -282,18 +282,20 @@ export default function HomePage() {
 
   function closeIntro() {
     setIntroOverride(false);
-    // Land where the work is: the workspace on a first visit, the menu button
-    // that opened the replay otherwise.
-    window.requestAnimationFrame(() => {
-      if (introOrigin.current === "replay") {
-        replayButton.current?.focus();
-        return;
-      }
-      const first =
-        document.querySelector<HTMLElement>("#workspace .voice-mic") ??
-        fileInput.current;
-      (first ?? document.getElementById("workspace"))?.focus();
-    });
+  }
+
+  // Land where the work is: the workspace on a first visit, the menu button
+  // that opened the replay otherwise. Runs once the dialog has closed, after
+  // the browser has restored focus to whatever had it before.
+  function focusAfterIntro() {
+    if (introOrigin.current === "replay") {
+      replayButton.current?.focus();
+      return;
+    }
+    const first =
+      document.querySelector<HTMLElement>("#workspace .voice-mic") ??
+      fileInput.current;
+    (first ?? document.getElementById("workspace"))?.focus();
   }
 
   /**
@@ -419,7 +421,9 @@ export default function HomePage() {
     } catch (caught) {
       if (current())
         setError(
-          t(readable(caught, "We couldn’t read this source. Please try again.")),
+          t(
+            readable(caught, "We couldn’t read this source. Please try again."),
+          ),
         );
     } finally {
       if (uploadRequest.current === controller) uploadRequest.current = null;
@@ -449,7 +453,9 @@ export default function HomePage() {
       const session = await withDeadline(
         controller,
         SESSION_DEADLINE_MS,
-        t("Voice session setup timed out. Check your connection and retry Start Voice Chat."),
+        t(
+          "Voice session setup timed out. Check your connection and retry Start Voice Chat.",
+        ),
         () =>
           withSession((body) =>
             requestJson<RealtimeCredential>("/api/realtime/session", {
@@ -577,7 +583,9 @@ export default function HomePage() {
       const reply = await withDeadline(
         controller,
         ANSWER_DEADLINE_MS,
-        t("The answer timed out. Check your connection and retry your question."),
+        t(
+          "The answer timed out. Check your connection and retry your question.",
+        ),
         () =>
           withSession(
             (body) =>
@@ -679,7 +687,9 @@ export default function HomePage() {
     if (action === "summarize") {
       if (!source) {
         setVoiceActionNotice(
-          t("Add a PDF or YouTube source first, then say “summarize this” again."),
+          t(
+            "Add a PDF or YouTube source first, then say “summarize this” again.",
+          ),
         );
         return;
       }
@@ -748,13 +758,19 @@ export default function HomePage() {
         onReplayIntro={openIntro}
         replayButton={replayButton}
       />
-      <IntroGate open={introOpen} onClose={closeIntro} />
+      <IntroGate
+        open={introOpen}
+        onClose={closeIntro}
+        onClosed={focusAfterIntro}
+      />
 
       <main className="shell">
         <div className="container app-frame">
           {!online && (
             <p className="banner banner-offline" role="alert">
-              {t("You are offline. Ursly will reconnect when your network returns.")}
+              {t(
+                "You are offline. Ursly will reconnect when your network returns.",
+              )}
             </p>
           )}
 
@@ -765,12 +781,19 @@ export default function HomePage() {
               </h1>
               <p className="lede">
                 {entryMode === "voice"
-                  ? t("Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.")
-                  : t("Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.")}
+                  ? t(
+                      "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.",
+                    )
+                  : t(
+                      "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.",
+                    )}
               </p>
             </div>
             <ol className="progress-steps" aria-label={t("Progress")}>
-              <li aria-current={source ? undefined : "step"} data-done={Boolean(source)}>
+              <li
+                aria-current={source ? undefined : "step"}
+                data-done={Boolean(source)}
+              >
                 <span>{source ? "✓" : "1"}</span> {t("Add a source")}
               </li>
               <li aria-current={source ? "step" : undefined}>
@@ -827,7 +850,9 @@ export default function HomePage() {
                   />
                   <div>
                     <strong>{source.sourceName}</strong>
-                    <span>{t("Ready · Your answers will use this source")}</span>
+                    <span>
+                      {t("Ready · Your answers will use this source")}
+                    </span>
                   </div>
                 </div>
               )}
@@ -868,7 +893,11 @@ export default function HomePage() {
                     {(
                       [
                         { id: "pdf", label: "PDF document", icon: "document" },
-                        { id: "youtube", label: "YouTube video", icon: "video" },
+                        {
+                          id: "youtube",
+                          label: "YouTube video",
+                          icon: "video",
+                        },
                       ] as const
                     ).map(({ id, label, icon }) => (
                       <button
@@ -943,9 +972,14 @@ export default function HomePage() {
                             ? t("{size} MB · Ready to continue", {
                                 size: (file.size / 1024 / 1024).toFixed(1),
                               })
-                            : t("or choose one from your device · up to 25 MB, text-based")}
+                            : t(
+                                "or choose one from your device · up to 25 MB, text-based",
+                              )}
                         </div>
-                        <span className="secondary dropzone-button" aria-hidden="true">
+                        <span
+                          className="secondary dropzone-button"
+                          aria-hidden="true"
+                        >
                           {file ? t("Choose another PDF") : t("Choose a PDF")}
                         </span>
                         <input
@@ -974,7 +1008,9 @@ export default function HomePage() {
                           aria-describedby="youtube-hint"
                         />
                         <p id="youtube-hint" className="hint">
-                          {t("Paste a link to a captioned video. Watch pages, Shorts, share links and embeds all work.")}
+                          {t(
+                            "Paste a link to a captioned video. Watch pages, Shorts, share links and embeds all work.",
+                          )}
                         </p>
                       </div>
                     )}
@@ -989,7 +1025,9 @@ export default function HomePage() {
                         ) : (
                           <Icon name="arrow" />
                         )}
-                        {busy ? t("Reading your source…") : t("Continue to questions")}
+                        {busy
+                          ? t("Reading your source…")
+                          : t("Continue to questions")}
                       </button>
                     </div>
                   </form>
@@ -1038,7 +1076,9 @@ export default function HomePage() {
               )}
               {busy && uploadProgress === undefined && (
                 <p className="hint" role="status">
-                  {t("Reading your source. This may take up to a minute. Your questions are next.")}
+                  {t(
+                    "Reading your source. This may take up to a minute. Your questions are next.",
+                  )}
                 </p>
               )}
 
@@ -1054,10 +1094,13 @@ export default function HomePage() {
               )}
               {context?.truncated && (
                 <p className="hint context-note" role="status">
-                  {t("This source is longer than one conversation can hold. The assistant reads {used} of {total} characters, taken from the opening and the ending. The full text stays available above.", {
-                    used: context.usedCharacters.toLocaleString(),
-                    total: context.totalCharacters.toLocaleString(),
-                  })}
+                  {t(
+                    "This source is longer than one conversation can hold. The assistant reads {used} of {total} characters, taken from the opening and the ending. The full text stays available above.",
+                    {
+                      used: context.usedCharacters.toLocaleString(),
+                      total: context.totalCharacters.toLocaleString(),
+                    },
+                  )}
                 </p>
               )}
               {source && (
@@ -1066,7 +1109,9 @@ export default function HomePage() {
                   <div>
                     <strong>{t("Next: ask a question")}</strong>
                     <span>
-                      {t("Use voice or type below. Answers stay anchored to this source.")}
+                      {t(
+                        "Use voice or type below. Answers stay anchored to this source.",
+                      )}
                     </span>
                   </div>
                 </div>
@@ -1101,7 +1146,11 @@ export default function HomePage() {
                   <span className="voice-learning-dot" aria-hidden="true" />
                   <span>
                     <strong>{t("Adapting to your voice")}</strong>
-                    <small>{t("Learning your accent, pace and words from this session. Nothing is kept without your say.")}</small>
+                    <small>
+                      {t(
+                        "Learning your accent, pace and words from this session. Nothing is kept without your say.",
+                      )}
+                    </small>
                   </span>
                 </a>
               )}
@@ -1113,7 +1162,9 @@ export default function HomePage() {
               )}
               {providerMode === "mock" && (
                 <p className="hint" role="status">
-                  {t("Demo simulation: AI replies are simulated; microphone audio is not sent to AI. Use live mode for real answers and voice.")}
+                  {t(
+                    "Demo simulation: AI replies are simulated; microphone audio is not sent to AI. Use live mode for real answers and voice.",
+                  )}
                 </p>
               )}
 
@@ -1140,7 +1191,9 @@ export default function HomePage() {
                     aria-pressed={state.muted}
                     type="button"
                   >
-                    {state.muted ? t("Unmute microphone") : t("Mute microphone")}
+                    {state.muted
+                      ? t("Unmute microphone")
+                      : t("Mute microphone")}
                   </button>
                   <button
                     className="danger"
@@ -1154,16 +1207,24 @@ export default function HomePage() {
                 </div>
                 <p className="hint voice-hint" aria-live="polite">
                   {!micSupported
-                    ? t("This browser will not share a microphone here, so voice is unavailable. Type your question below instead.")
+                    ? t(
+                        "This browser will not share a microphone here, so voice is unavailable. Type your question below instead.",
+                      )
                     : sessionLive
                       ? state.status === "connected"
                         ? state.muted
-                          ? t("Microphone muted. Unmute to speak, or keep typing.")
+                          ? t(
+                              "Microphone muted. Unmute to speak, or keep typing.",
+                            )
                           : activityText[activity]
                         : statusText[state.status]
                       : source
-                        ? t("Allow microphone access when prompted, then speak. You can mute or stop at any time, and typing always works.")
-                        : t("Voice chat opens as soon as your source is ready. Typing always works too.")}
+                        ? t(
+                            "Allow microphone access when prompted, then speak. You can mute or stop at any time, and typing always works.",
+                          )
+                        : t(
+                            "Voice chat opens as soon as your source is ready. Typing always works too.",
+                          )}
                 </p>
               </div>
 
@@ -1189,7 +1250,9 @@ export default function HomePage() {
                     >
                       <span className="voice-orbit-ring" />
                       <span className="voice-orbit-ring" />
-                      <Icon name={entryMode === "text" ? "document" : "voice"} />
+                      <Icon
+                        name={entryMode === "text" ? "document" : "voice"}
+                      />
                     </div>
                     <h3>
                       {source
@@ -1200,10 +1263,16 @@ export default function HomePage() {
                     </h3>
                     <p className="hint">
                       {source
-                        ? t("Start voice chat and speak, type your question below, or choose an idea.")
+                        ? t(
+                            "Start voice chat and speak, type your question below, or choose an idea.",
+                          )
                         : entryMode === "voice"
-                          ? t("Bring a source in with a word, then ask out loud. Nothing starts without your word, and typing always works.")
-                          : t("Add a source, then explore the ideas inside it.")}
+                          ? t(
+                              "Bring a source in with a word, then ask out loud. Nothing starts without your word, and typing always works.",
+                            )
+                          : t(
+                              "Add a source, then explore the ideas inside it.",
+                            )}
                     </p>
                     {source && (
                       <div className="suggestions">
@@ -1285,8 +1354,12 @@ export default function HomePage() {
               </form>
               <p className="hint answer-note">
                 {source
-                  ? t("Answers come from your source. Check important details in “View source text”.")
-                  : t("Add a PDF or YouTube source before sending so answers stay grounded.")}
+                  ? t(
+                      "Answers come from your source. Check important details in “View source text”.",
+                    )
+                  : t(
+                      "Add a PDF or YouTube source before sending so answers stay grounded.",
+                    )}
               </p>
             </section>
           </div>

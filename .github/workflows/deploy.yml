@@ -43,7 +43,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$TESTED_SHA"
           test -n "$AWS_REGION" && test -n "$AWS_ROLE_ARN" && test -n "$TF_STATE_BUCKET" && test -n "$TF_VAR_account_id"
           test -n "$OPENAI_SECRET_ARN"
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}

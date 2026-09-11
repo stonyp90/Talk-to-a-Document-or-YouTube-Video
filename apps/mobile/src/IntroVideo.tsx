@@ -26,6 +26,20 @@ const sources: Record<Language, number> = {
   fr: require("../assets/ursly-intro.fr.mp4"),
 };
 
+/**
+ * The native player is released together with its view. An effect cleanup or
+ * an app-state listener that fires after that (closing the onboarding, for
+ * one) would otherwise throw, and in a release build an uncaught error ends
+ * the app.
+ */
+function pause(player: ReturnType<typeof useVideoPlayer>) {
+  try {
+    player.pause();
+  } catch {
+    /* Already released with the view; there is nothing to pause. */
+  }
+}
+
 export function IntroVideo({ motion, language, t }: Props) {
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -39,8 +53,8 @@ export function IntroVideo({ motion, language, t }: Props) {
 
   useEffect(() => {
     if (open && !failed) player.play();
-    else player.pause();
-    return () => player.pause();
+    else pause(player);
+    return () => pause(player);
   }, [failed, open, player]);
 
   useEffect(() => {
@@ -52,13 +66,13 @@ export function IntroVideo({ motion, language, t }: Props) {
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state !== "active") player.pause();
+      if (state !== "active") pause(player);
     });
     return () => subscription.remove();
   }, [player]);
 
   function close() {
-    player.pause();
+    pause(player);
     setOpen(false);
   }
 

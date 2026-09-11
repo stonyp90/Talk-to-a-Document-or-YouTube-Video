@@ -32,20 +32,33 @@ export const french = {
   "e.g. upload": "ex. importer",
   "Back to voice actions": "Retour aux actions vocales",
   "Saved triggers": "Déclencheurs enregistrés",
-  Notifications: "Notifications",
-  "You're all caught up.": "Aucune nouvelle notification.",
   "Source ready": "Source prête",
   "Answer ready": "Réponse prête",
   "Voice action received": "Action vocale reçue",
   "About Ursly and language": "À propos d’Ursly",
-  "A LITTLE MORE CLARITY": "UN PEU PLUS DE CLARTÉ",
-  "Your ideas.": "Vos idées.",
-  "Made clear.": "Plus claires.",
-  "A document. A video.": "Un document. Une vidéo.",
-  "And the conversation begins.": "Et la conversation commence.",
-  "Less scrolling. More understanding.": "Moins défiler. Mieux comprendre.",
   "Let’s explore": "On explore quoi ?",
   "Your choice": "À vous de choisir",
+  "Less scrolling.": "Moins défiler.",
+  "More understanding.": "Mieux comprendre.",
+  "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.":
+    "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis parlez-lui. Dites une commande, posez votre question à voix haute ou écrivez quand vous préférez.",
+  "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.":
+    "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis posez vos questions au clavier. La voix reste à un geste.",
+  // The control menu, the same three modes as the website
+  "Control mode": "Mode de contrôle",
+  "Voice to action": "Commande vocale",
+  "Keyboard to action": "Clavier",
+  "Motion to action": "Mouvement",
+  Voice: "Voix",
+  Keyboard: "Clavier",
+  Motion: "Mouvement",
+  Beta: "Bêta",
+  "Voice to action: say a command, or use the controls as usual.":
+    "Commande vocale : dites une commande ou utilisez les contrôles comme d’habitude.",
+  "Keyboard to action: everything works by typing and clicking.":
+    "Clavier : tout fonctionne en écrivant et en touchant.",
+  "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.":
+    "Le mouvement n’est pas encore disponible. Nous y travaillons. La voix et le clavier sont prêts dès aujourd’hui.",
   "Import a PDF": "Importer un PDF",
   "A document": "Un document",
   "PDF · up to 25 MB": "PDF · jusqu’à 25 Mo",
@@ -58,11 +71,6 @@ export const french = {
   "Try a sample text": "Essayer avec un texte de découverte",
   "A little taste of Ursly": "Juste pour essayer",
   "Explore Ursly with a short read.": "Découvrez Ursly avec un court texte.",
-  "A NEW WAY TO LEARN": "UNE NOUVELLE FAÇON D’APPRENDRE",
-  Add: "Ajoutez",
-  Ask: "Questionnez",
-  Understand: "Comprenez",
-  "Make room for your next aha.": "Faites de la place aux déclics.",
   "Demo space · simulated answers and audio":
     "Espace de démonstration · réponses et audio simulés",
   "Back to sources": "Retour aux sources",
@@ -309,13 +317,6 @@ export const french = {
   LISTENING: "À L’ÉCOUTE",
   "Ask it in your own words.": "Demandez-le avec vos propres mots.",
   "What should I remember?": "Que dois-je retenir ?",
-  Explore: "Explorer",
-  Source: "Source",
-  "Open the home screen": "Ouvrir l’accueil",
-  "Open the conversation": "Ouvrir la conversation",
-  "Open the source": "Ouvrir la source",
-  "Add a source first to open this section.":
-    "Ajoutez d’abord une source pour ouvrir cette section.",
 } as const;
 export type TranslationKey = keyof typeof french;
 export function translate(language: Language, key: TranslationKey): string {

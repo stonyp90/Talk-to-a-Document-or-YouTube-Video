@@ -8,11 +8,11 @@ export const INTRO_STORAGE_KEY = "ursly-intro-v1";
 const INTRO_SECONDS = 24;
 
 /** The on-screen text of the video, sequenced, for people who cannot watch it. */
-const TRANSCRIPT = [
-  "Ursly. A source. A conversation.",
-  "Bring a document or a video. Ursly reads it for you.",
-  "Ask by voice, by keyboard, and soon by movement.",
-  "Source, question, understanding.",
+export const INTRO_TRANSCRIPT = [
+  "Ursly on the web. A source, a conversation.",
+  "Bring a document or a video. Ursly reads it, then you ask.",
+  "The same Ursly on iPhone: voice to action by default, keyboard one tap away.",
+  "And on Android. Source, question, understanding.",
 ];
 
 export function hasSeenIntro(): boolean {
@@ -206,7 +206,7 @@ export function IntroGate({
             <div className="intro-fallback" role="status">
               <strong>{t("The intro is unavailable right now.")}</strong>
               <ol className="intro-transcript-list">
-                {TRANSCRIPT.map((line) => (
+                {INTRO_TRANSCRIPT.map((line) => (
                   <li key={line}>{t(line)}</li>
                 ))}
               </ol>
@@ -246,7 +246,7 @@ export function IntroGate({
           <details className="intro-transcript" open={reduced}>
             <summary>{t("Read the intro instead")}</summary>
             <ol className="intro-transcript-list">
-              {TRANSCRIPT.map((line) => (
+              {INTRO_TRANSCRIPT.map((line) => (
                 <li key={line}>{t(line)}</li>
               ))}
             </ol>

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# CocoaPods refuses to run from a shell without a UTF-8 locale (CI, cron, agents).
+export LANG="${LANG:-en_US.UTF-8}"
 
 # Copy only this mobile application and its type-only shared contract. Native
 # projects are regenerated so no absolute paths from the original Pods survive.

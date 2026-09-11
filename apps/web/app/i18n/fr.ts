@@ -40,12 +40,14 @@ export const french: Dictionary = {
   "Read the intro instead": "Lire l’intro plutôt",
   "The intro is unavailable right now.":
     "L’intro n’est pas disponible pour le moment.",
-  "Ursly. A source. A conversation.": "Ursly. Une source. Une conversation.",
-  "Bring a document or a video. Ursly reads it for you.":
-    "Apportez un document ou une vidéo. Ursly le lit pour vous.",
-  "Ask by voice, by keyboard, and soon by movement.":
-    "Posez vos questions à la voix, au clavier et bientôt par le mouvement.",
-  "Source, question, understanding.": "Source, question, compréhension.",
+  "Ursly on the web. A source, a conversation.":
+    "Ursly sur le web. Une source, une conversation.",
+  "Bring a document or a video. Ursly reads it, then you ask.":
+    "Apportez un document ou une vidéo. Ursly le lit, puis vous questionnez.",
+  "The same Ursly on iPhone: voice to action by default, keyboard one tap away.":
+    "Le même Ursly sur iPhone : la voix d’abord, le clavier à un geste.",
+  "And on Android. Source, question, understanding.":
+    "Et sur Android. Source, question, compréhension.",
 
   // Workspace heading
   "Less scrolling.": "Moins défiler.",

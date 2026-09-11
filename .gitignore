@@ -41,3 +41,6 @@ secrets.json
 # Local Python bytecode from running the caption service tests
 __pycache__/
 *.pyc
+
+# Screen recordings the intro video is composed from (scripts/brand)
+.brand-captures/

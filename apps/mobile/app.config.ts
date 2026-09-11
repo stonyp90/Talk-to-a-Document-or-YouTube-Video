@@ -1,3 +1,23 @@
+import { withAndroidManifest, type ConfigPlugin } from "expo/config-plugins";
+
+/**
+ * Release builds talk to a local API over plain HTTP on the emulator (through
+ * `adb reverse`), which Android blocks unless the manifest says otherwise.
+ * `android.usesCleartextTraffic` below documents the intent, but prebuild does
+ * not write it, so the manifest attribute is set here. Distributed builds
+ * point at an HTTPS API and never rely on it.
+ */
+const LOCAL_CLEARTEXT = true;
+const withLocalCleartext: ConfigPlugin = (expoConfig) =>
+  withAndroidManifest(expoConfig, (mod) => {
+    const application = mod.modResults.manifest.application?.[0];
+    if (application)
+      application.$["android:usesCleartextTraffic"] = LOCAL_CLEARTEXT
+        ? "true"
+        : "false";
+    return mod;
+  });
+
 const cloudBuild = Boolean(process.env.EAS_BUILD_PROFILE);
 if (cloudBuild) {
   if (
@@ -54,7 +74,7 @@ const config = {
       package: "com.talktosource.demo",
       versionCode: 2,
       permissions: ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS"],
-      usesCleartextTraffic: true,
+      usesCleartextTraffic: LOCAL_CLEARTEXT,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#F27561",
@@ -62,6 +82,7 @@ const config = {
       },
     },
     plugins: [
+      withLocalCleartext,
       "expo-document-picker",
       "expo-dev-client",
       "expo-speech-recognition",

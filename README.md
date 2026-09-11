@@ -90,8 +90,12 @@ served under `/en` and `/fr`, prerendered with the right `<html lang>`. The root
 URL follows the browser (`Accept-Language`), and an explicit choice from the menu
 is remembered in a cookie. Interface copy is keyed by its English text in
 `apps/web/app/i18n/fr.ts`; a missing key falls back to English. The intro video
-exists once per language (`scripts/brand/intro-video.mjs` renders both from the
-original recording) because its text is burned into the frames.
+exists once per language because its text is burned into the frames:
+`scripts/brand/capture-intro.mjs` records the real product (the web application in
+a desktop browser, the native app in the iOS Simulator and in the Android
+emulator, all against the local API in mock mode) and
+`scripts/brand/intro-video.mjs` cuts those recordings into the 24-second take
+and writes the matching captions.
 
 ## How each requirement is met
 

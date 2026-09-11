@@ -32,9 +32,7 @@ import {
 } from "./src/client";
 import { NativeVoice, VoiceStatus } from "./src/voice";
 import {
-  Bell,
   Brand,
-  Orbit,
   palette as c,
   Reveal,
   serif,
@@ -45,7 +43,17 @@ import {
 } from "./src/design";
 import { MobileVoiceActions } from "./src/VoiceActions";
 import type { MobileVoiceActionId } from "./src/VoiceActions";
-import { MobileBottomNav, type MobileDestination } from "./src/BottomNav";
+import { ModeBar } from "./src/ModeBar";
+import { MobileOnboarding } from "./src/Onboarding";
+import {
+  chooseMode,
+  DEFAULT_MODE,
+  MODE_STORAGE_KEY,
+  parseSavedMode,
+  type EntryMode,
+  type ModeId,
+} from "./src/modes";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const api = new ApiClient(
   apiOrigin(Platform.OS, process.env.EXPO_PUBLIC_API_URL),
@@ -108,6 +116,14 @@ export default function App() {
   const [status, setStatus] = useState<VoiceStatus>("ended");
   const [muted, setMuted] = useState(false);
   const [mode, setMode] = useState<"mock" | "live" | "unknown">("unknown");
+  // The way this person drives Ursly. Voice until they choose otherwise;
+  // the choice is remembered on the device, as the web remembers it per browser.
+  const [entryMode, setEntryMode] = useState<EntryMode>(DEFAULT_MODE);
+  useEffect(() => {
+    AsyncStorage.getItem(MODE_STORAGE_KEY)
+      .then((saved) => setEntryMode(parseSavedMode(saved)))
+      .catch(() => undefined);
+  }, []);
   const voice = useRef<NativeVoice | null>(null);
   const operation = useRef(0);
   const sequence = useRef(0);
@@ -298,22 +314,16 @@ export default function App() {
     setError("");
     setQuestion("");
   }
-  function navigate(destination: MobileDestination) {
-    if (destination === "home") {
-      operation.current++;
-      stop();
-      setBusy(null);
-      setScreen("home");
-      setTab("chat");
-      Keyboard.dismiss();
-      return;
+  function chooseEntryMode(id: ModeId) {
+    const next = chooseMode(entryMode, id);
+    if (next.mode !== entryMode) {
+      setEntryMode(next.mode);
+      setError("");
+      void AsyncStorage.setItem(MODE_STORAGE_KEY, next.mode).catch(
+        () => undefined,
+      );
     }
-    if (!source) {
-      showToast(t("Add a source first to open this section."));
-      return;
-    }
-    setScreen("conversation");
-    setTab(destination === "source" ? "source" : "chat");
+    showToast(t(next.notice));
     Keyboard.dismiss();
   }
   function trySample() {
@@ -358,54 +368,41 @@ export default function App() {
             >
               <View style={s.header}>
                 <Brand />
-                <View style={s.headerActions}>
-                  <Touch
-                    label={t("Notifications")}
-                    onPress={() => showToast(t("You're all caught up."))}
-                    motion={motion}
-                    style={s.bellButton}
-                  >
-                    <Bell />
-                  </Touch>
-                  <Touch
-                    label={t("About Ursly and language")}
-                    onPress={() => setSheet("about")}
-                    motion={motion}
-                    style={s.infoButton}
-                  >
-                    <Text style={s.tabLabel}>{language.toUpperCase()}</Text>
-                  </Touch>
-                </View>
+                <Touch
+                  label={t("About Ursly and language")}
+                  onPress={() => setSheet("about")}
+                  motion={motion}
+                  style={s.infoButton}
+                >
+                  <Text style={s.tabLabel}>{language.toUpperCase()}</Text>
+                </Touch>
               </View>
-              <Reveal motion={motion} style={s.hero}>
-                <View style={s.rowBetween}>
-                  <Text style={s.heroEyebrow}>
-                    {t("A LITTLE MORE CLARITY")}
-                  </Text>
-                  <View style={s.smallDot} />
-                </View>
-                <View style={s.heroMain}>
-                  <Text style={s.heroTitle}>
-                    {t("Your ideas.")}
-                    {"\n"}
-                    <Text style={{ color: c.lime }}>{t("Made clear.")}</Text>
-                  </Text>
-                  <View style={s.heroArt}>
-                    <Orbit motion={motion} />
-                  </View>
-                </View>
-                <Text style={s.heroDescription}>
-                  {t("A document. A video.")}
-                  {"\n"}
-                  {t("And the conversation begins.")}
+              <Reveal motion={motion} style={s.workspaceHeading}>
+                <Text accessibilityRole="header" style={s.title}>
+                  {t("Less scrolling.")}{" "}
+                  <Text style={s.titleAccent}>{t("More understanding.")}</Text>
                 </Text>
-                <View style={s.heroFooter}>
-                  <View style={s.heroLine} />
-                  <Text style={s.heroFooterText}>
-                    {t("Less scrolling. More understanding.")}
-                  </Text>
-                </View>
+                <Text style={s.lede}>
+                  {entryMode === "voice"
+                    ? t(
+                        "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.",
+                      )
+                    : t(
+                        "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.",
+                      )}
+                </Text>
               </Reveal>
+              {entryMode === "voice" && !source && (
+                <MobileVoiceActions
+                  language={language}
+                  motion={motion}
+                  voiceBusy={!!busy || active}
+                  canStartVoice={!!source}
+                  t={t}
+                  onAction={handleVoiceAction}
+                  onNotice={showToast}
+                />
+              )}
               <Reveal motion={motion} delay={70}>
                 <View style={s.sectionHeading}>
                   <Text style={s.heading}>{t("Let’s explore")}</Text>
@@ -519,33 +516,6 @@ export default function App() {
                   </Touch>
                 </Reveal>
               )}
-              <MobileVoiceActions
-                language={language}
-                motion={motion}
-                voiceBusy={!!busy || active}
-                canStartVoice={!!source}
-                t={t}
-                onAction={handleVoiceAction}
-                onNotice={showToast}
-              />
-              <Reveal motion={motion} delay={180} style={s.how}>
-                <Text style={s.eyebrow}>{t("A NEW WAY TO LEARN")}</Text>
-                <View style={s.steps}>
-                  {[
-                    ["01", t("Add")],
-                    ["02", t("Ask")],
-                    ["03", t("Understand")],
-                  ].map(([number, label]) => (
-                    <View key={number} style={s.step}>
-                      <Text style={s.stepNumber}>{number}</Text>
-                      <Text style={s.stepText}>{label}</Text>
-                    </View>
-                  ))}
-                </View>
-              </Reveal>
-              <Text style={s.signature}>
-                {t("Make room for your next aha.")}
-              </Text>
               {mode === "mock" && (
                 <Text style={s.demoFootnote}>
                   {t("Demo space · simulated answers and audio")}
@@ -928,12 +898,11 @@ export default function App() {
               )}
             </>
           )}
-          <MobileBottomNav
-            destination={screen === "home" ? "home" : tab}
-            language={language}
+          <ModeBar
+            mode={entryMode}
             motion={motion}
             t={t}
-            onNavigate={navigate}
+            onChoose={chooseEntryMode}
           />
         </KeyboardAvoidingView>
         {toast && (
@@ -1104,6 +1073,7 @@ export default function App() {
           </KeyboardAvoidingView>
         </Modal>
       </SafeAreaView>
+      <MobileOnboarding motion={motion} language={language} t={t} />
     </SafeAreaProvider>
   );
 }
@@ -1111,6 +1081,16 @@ export default function App() {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.paper },
   homeScroll: { flex: 1 },
+  workspaceHeading: { gap: 8, paddingTop: 4 },
+  title: {
+    fontFamily: serif,
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.6,
+    color: c.ink,
+  },
+  titleAccent: { color: c.accent },
+  lede: { fontSize: 14, lineHeight: 21, color: c.muted },
   flex: { flex: 1 },
   homeContent: {
     paddingHorizontal: 22,
@@ -1124,78 +1104,18 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 1,
   },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   infoButton: {
     borderRadius: 24,
     backgroundColor: c.lavender,
     width: 45,
     height: 45,
   },
-  bellButton: {
-    borderRadius: 23,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: "transparent",
-    width: 45,
-    height: 45,
-  },
-  infoLetter: { fontFamily: serif, fontSize: 20, color: c.ink },
   rowBetween: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     gap: 12,
   },
-  hero: {
-    backgroundColor: c.ink,
-    borderRadius: 29,
-    padding: 23,
-    overflow: "hidden",
-  },
-  heroEyebrow: {
-    color: "#D4C9BF",
-    fontSize: 10,
-    letterSpacing: 1.6,
-    fontWeight: "700",
-  },
-  smallDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.lime },
-  heroMain: {
-    flexDirection: "row",
-    alignItems: "center",
-    minHeight: 156,
-    marginTop: 8,
-  },
-  heroTitle: {
-    fontFamily: serif,
-    fontSize: 37,
-    lineHeight: 43,
-    letterSpacing: -1.7,
-    color: c.paper,
-    flex: 1,
-    zIndex: 1,
-  },
-  heroArt: {
-    width: 113,
-    height: 142,
-    justifyContent: "center",
-    alignItems: "center",
-    transform: [{ scale: 0.78 }],
-    marginRight: -7,
-  },
-  heroDescription: {
-    color: "#E3DDD5",
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: -3,
-  },
-  heroFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 18,
-  },
-  heroLine: { width: 22, height: 1, backgroundColor: c.coral },
-  heroFooterText: { color: "#CDC1B5", fontSize: 11 },
   sectionHeading: {
     flexDirection: "row",
     alignItems: "baseline",
@@ -1262,34 +1182,17 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   caption: { fontSize: 12, color: c.muted, lineHeight: 18 },
-  how: { paddingHorizontal: 2, paddingTop: 1 },
   eyebrow: {
     fontSize: 9,
     letterSpacing: 1.3,
     color: c.muted,
     fontWeight: "700",
   },
-  steps: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingTop: 16,
-  },
-  step: { flexDirection: "row", alignItems: "center", gap: 6 },
-  stepNumber: { fontFamily: serif, color: "#88776A", fontSize: 17 },
-  stepText: { fontSize: 11, color: c.ink },
-  signature: {
-    color: "#746B63",
-    fontFamily: serif,
-    fontStyle: "italic",
-    fontSize: 16,
-    textAlign: "center",
-    paddingTop: 3,
-  },
   demoFootnote: {
     textAlign: "center",
     fontSize: 10,
     color: c.muted,
-    marginTop: -12,
+    marginTop: 0,
   },
   resume: { backgroundColor: c.lavender, borderRadius: 22 },
   resumeIcon: {
@@ -1311,7 +1214,7 @@ const s = StyleSheet.create({
     position: "absolute",
     left: 18,
     right: 18,
-    bottom: 96,
+    bottom: 128,
     zIndex: 20,
     elevation: 20,
   },

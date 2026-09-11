@@ -172,7 +172,7 @@ test("voice command examples name their phrase and effect, and the builder stays
   await openVoiceActions(page);
 
   await expect(commandStatus(page)).toContainText(
-    "Press once, then say a command such as “upload” or “YouTube”.",
+    "Press once, then say a command such as “Upload” or “YouTube”.",
   );
   await expect(page.locator(".voice-example-row .voice-example")).toHaveCount(
     4,
@@ -180,7 +180,7 @@ test("voice command examples name their phrase and effect, and the builder stays
   for (const name of [
     "“YouTube” switch to YouTube",
     "“Upload” open the PDF picker",
-    "“Let's talk” try a voice action",
+    "“Let’s talk” try a voice action",
     "“Summarize this” ask for a summary",
   ])
     await expect(
@@ -281,9 +281,9 @@ test("example actions route to their controls and guard voice without a source",
     /Add a PDF or YouTube source first/,
   );
 
-  await example(page, /“Let's talk”/).click();
+  await example(page, /“Let’s talk”/).click();
   await expect(commandStatus(page)).toContainText(
-    /Add a PDF or YouTube source first, then say “let’s talk” again/,
+    /Add a PDF or YouTube source first, then say “Let’s talk” again/,
   );
   await expect(page.locator(".conversation-card .status")).toHaveText("Ready");
 

@@ -1,11 +1,5 @@
 Feature: Provide a polished mobile-first conversation UI
 
-  Scenario: Keep control modes available from the fixed bottom dock
-    When I open the application
-    Then the fixed control dock is visible
-    And voice action is the default control mode
-    And text and motion beta controls remain available
-
   Scenario: Offer a short accessible product introduction
     When I open the application
     Then the short Ursly intro is available

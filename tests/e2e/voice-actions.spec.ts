@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./base";
 import { pdfFixture } from "../pdf-fixture";
 
 type SpeechHarnessInstance = {
@@ -9,6 +10,20 @@ type SpeechHarnessInstance = {
 type VoiceTestWindow = Window & {
   __urslySpeech?: { instances: SpeechHarnessInstance[] };
 };
+
+const nav = (page: Page) => page.getByRole("navigation", { name: "Primary" });
+const modes = (page: Page) =>
+  nav(page).getByRole("radiogroup", { name: "Control mode" });
+const mode = (page: Page, name: string | RegExp) =>
+  modes(page).getByRole("radio", { name });
+const tooltip = (page: Page) => modes(page).locator(".mode-tooltip");
+const speakButton = (page: Page) =>
+  page.getByRole("button", { name: "Speak a command" });
+const stopButton = (page: Page) =>
+  page.getByRole("button", { name: "Stop listening" });
+const commandStatus = (page: Page) => page.locator(".voice-commands-status");
+const example = (page: Page, name: RegExp) =>
+  page.locator(".voice-example-row").getByRole("button", { name });
 
 async function installSpeechHarness(page: Page) {
   await page.addInitScript(() => {
@@ -68,15 +83,33 @@ async function openClean(page: Page) {
   await page.goto("/");
   await page.evaluate(() => localStorage.removeItem("ursly-voice-triggers-v1"));
   await page.reload();
-  await page
-    .getByRole("button", { name: "Skip guide" })
-    .click({ timeout: 2_000 })
-    .catch(() => undefined);
 }
 
+/** Voice to action is the default control mode, so opening the page is enough. */
 async function openVoiceActions(page: Page) {
   await openClean(page);
-  await page.getByRole("tab", { name: "Voice action" }).click();
+  await expect(speakButton(page)).toBeVisible();
+}
+
+/** Opens the trigger builder, which lives behind a “Customize commands” summary. */
+async function openCustomize(page: Page) {
+  const customize = page.locator(".voice-customize");
+  if (!(await customize.evaluate((element) => element.hasAttribute("open"))))
+    await page.getByText("Customize commands", { exact: true }).click();
+  await expect(page.getByLabel("Trigger word or phrase")).toBeVisible();
+}
+
+async function saveTrigger(page: Page, phrase: string) {
+  await openCustomize(page);
+  await page.getByLabel("Trigger word or phrase").fill(phrase);
+  await page.getByRole("button", { name: "Save trigger" }).click();
+  await expect(page.getByText(`“${phrase}”`, { exact: true })).toBeVisible();
+}
+
+async function arm(page: Page) {
+  await speakButton(page).click();
+  await expect(stopButton(page)).toHaveAttribute("aria-pressed", "true");
+  await expect(commandStatus(page)).toContainText("Listening for a command");
 }
 
 async function emitSpeech(page: Page, transcript: string) {
@@ -86,101 +119,113 @@ async function emitSpeech(page: Page, transcript: string) {
   }, transcript);
 }
 
-test("voice action is the default entry and keeps source controls opt-in", async ({
+test("voice to action is the default mode and the source picker is immediate", async ({
   page,
 }) => {
   await openClean(page);
 
-  await expect(page.locator(".control-dock")).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Voice action" })).toHaveAttribute(
-    "aria-selected",
+  await expect(modes(page)).toBeVisible();
+  await expect(mode(page, "Voice to action")).toHaveAttribute(
+    "aria-checked",
     "true",
   );
-  await expect(page.getByRole("tab", { name: "Text action" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Motion beta" })).toBeVisible();
+  await expect(mode(page, "Keyboard to action")).toBeVisible();
+  await expect(mode(page, "Keyboard to action")).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
+  const motion = mode(page, /Motion to action/);
+  await expect(motion).toBeVisible();
+  await expect(motion).toHaveAttribute("aria-disabled", "true");
+
   await expect(
-    page.getByRole("heading", { name: "1. Start with your voice" }),
+    page.getByRole("heading", { name: "1. Add a source" }),
   ).toBeVisible();
-  await expect(page.getByLabel("PDF file")).toHaveCount(0);
-  await expect(page.getByLabel("YouTube URL")).toHaveCount(0);
+  await expect(page.getByLabel("PDF file")).toBeVisible();
+  await expect(speakButton(page)).toHaveAttribute("aria-pressed", "false");
   await expect(
     page.getByRole("heading", { name: "2. Ask a question" }),
   ).toBeVisible();
   await expect(
     page.getByLabel("Ask a question", { exact: true }),
   ).toBeEnabled();
-  await expect(page.getByRole("tab", { name: "Voice action" })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  const motionTab = page.getByRole("tab", { name: "Motion beta" });
-  await motionTab.hover();
-  await expect(page.locator("#motion-beta-tip")).toHaveCSS("opacity", "1");
-  await expect(page.locator("#motion-beta-tip")).toContainText(
-    "deliberate movement",
-  );
 
-  await page.getByRole("button", { name: "Use upload instead" }).click();
-  await expect(page.getByLabel("PDF file")).toBeVisible();
+  await motion.hover();
+  await expect(tooltip(page)).toHaveCSS("opacity", "1");
+  await expect(tooltip(page)).toContainText("not available yet");
+
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await expect(page.getByLabel("YouTube URL")).toBeVisible();
-  await page.getByRole("button", { name: "Back to voice actions" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Say a word. Take the next step." }),
-  ).toBeFocused();
-  await expect(page.getByLabel("PDF file")).toHaveCount(0);
-  await expect(page.getByLabel("YouTube URL")).toHaveCount(0);
+
+  await mode(page, "Keyboard to action").click();
+  await expect(mode(page, "Keyboard to action")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(speakButton(page)).toHaveCount(0);
+  await expect(page.getByLabel("YouTube URL")).toBeVisible();
 });
 
-test("voice action examples reveal their spoken trigger without running it", async ({
+test("voice command examples name their phrase and effect, and the builder stays tucked away", async ({
   page,
 }) => {
   await openVoiceActions(page);
 
-  const reveal = page.getByRole("button", { name: "Show trigger" }).first();
-  await reveal.click();
-  await expect(
-    page.getByRole("button", { name: "Hide trigger" }).first(),
-  ).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByText("Say this", { exact: true })).toBeVisible();
-  await expect(page.getByText("“YouTube”", { exact: true })).toBeVisible();
+  await expect(commandStatus(page)).toContainText(
+    "Press once, then say a command such as “upload” or “YouTube”.",
+  );
+  await expect(page.locator(".voice-example-row .voice-example")).toHaveCount(
+    4,
+  );
+  for (const name of [
+    "“YouTube” switch to YouTube",
+    "“Upload” open the PDF picker",
+    "“Let's talk” try a voice action",
+    "“Summarize this” ask for a summary",
+  ])
+    await expect(
+      page.getByRole("button", { name, exact: true }),
+    ).toBeVisible();
 
-  await page
-    .getByRole("button", { name: "Hide trigger" })
-    .click({ force: true });
-  await expect(page.getByText("Say this", { exact: true })).toHaveCount(0);
+  const customize = page.locator(".voice-customize");
+  await expect(customize).not.toHaveAttribute("open", "");
+  await expect(page.getByLabel("Trigger word or phrase")).toBeHidden();
+  await openCustomize(page);
+  await expect(customize).toHaveAttribute("open", "");
+  await expect(
+    page.getByRole("heading", { name: "Build a trigger" }),
+  ).toBeVisible();
 });
 
-test("motion beta is a safe, hover-only concept preview", async ({ page }) => {
+test("motion to action stays a disabled beta that only explains itself", async ({
+  page,
+}) => {
   await openClean(page);
 
-  await page.getByRole("tab", { name: "Motion beta" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Move once. Imagine the next layer." }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("Preview only · no click-triggered actions"),
-  ).toBeVisible();
-  await expect(
-    page.getByText("Future direction: a deliberate phone movement"),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "A hands-free layer for later." }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Enable motion beta" }),
-  ).toHaveCount(0);
-  await expect(page.getByLabel("PDF file")).toHaveCount(0);
-
-  await page.getByRole("tab", { name: "Motion beta" }).hover();
-  await expect(page.locator("#motion-beta-tip")).toContainText(
-    "no pointer clicks",
+  const motion = mode(page, /Motion to action/);
+  await motion.click({ force: true });
+  await expect(motion).toHaveAttribute("aria-checked", "false");
+  await expect(mode(page, "Voice to action")).toHaveAttribute(
+    "aria-checked",
+    "true",
   );
+  await expect(modes(page)).toHaveAttribute("data-explaining", "true");
+  await expect(tooltip(page)).toHaveCSS("opacity", "1");
+  await expect(tooltip(page)).toContainText("not available yet");
+  await expect(page.getByLabel("PDF file")).toBeVisible();
+  await expect(speakButton(page)).toBeVisible();
 
-  await page.getByRole("tab", { name: "Voice action" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Your voice is the shortcut." }),
-  ).toBeVisible();
+  await mode(page, "Keyboard to action").click();
+  await expect(mode(page, "Keyboard to action")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await motion.click({ force: true });
+  await expect(mode(page, "Keyboard to action")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(motion).toHaveAttribute("aria-checked", "false");
 });
 
 test("default upload action runs from a spoken trigger through the PDF picker", async ({
@@ -189,7 +234,7 @@ test("default upload action runs from a spoken trigger through the PDF picker", 
   await installSpeechHarness(page);
   await openVoiceActions(page);
 
-  await page.getByRole("button", { name: "Create voice trigger" }).click();
+  await openCustomize(page);
   await expect(page.getByLabel("When I say it…")).toHaveValue("upload");
   await expect(
     page.getByRole("button", { name: "Save trigger" }),
@@ -198,8 +243,7 @@ test("default upload action runs from a spoken trigger through the PDF picker", 
   await page.getByRole("button", { name: "Save trigger" }).click();
   await expect(page.getByText("“open upload”", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Arm voice actions" }).click();
-  await expect(page.getByText("Voice actions are listening")).toBeVisible();
+  await arm(page);
 
   const fileChooser = page.waitForEvent("filechooser");
   await emitSpeech(page, "Please, OPEN UPLOAD!!!");
@@ -217,29 +261,31 @@ test("default upload action runs from a spoken trigger through the PDF picker", 
   await expect(page.getByText(/Triggered “open upload”/)).toBeVisible();
 });
 
-test("all example actions route to their intended controls and guard voice without a source", async ({
+test("example actions route to their controls and guard voice without a source", async ({
   page,
 }) => {
   await installSpeechHarness(page);
   await openVoiceActions(page);
 
-  await page
-    .getByRole("button", { name: /“YouTube” switch to YouTube/ })
-    .click();
+  await example(page, /“YouTube” switch to YouTube/).click();
   await expect(
     page.getByRole("tab", { name: "YouTube video" }),
   ).toHaveAttribute("aria-selected", "true");
   await expect(page.getByLabel("YouTube URL")).toBeFocused();
 
-  await page
-    .getByRole("button", { name: /“Summarize this” ask for a summary/ })
-    .click();
+  await example(page, /“Summarize this” ask for a summary/).click();
   await expect(page.getByLabel("Ask a question", { exact: true })).toHaveValue(
     "",
   );
-  await expect(
-    page.getByText(/Add a PDF or YouTube source first/),
-  ).toBeVisible();
+  await expect(page.locator(".toast")).toContainText(
+    /Add a PDF or YouTube source first/,
+  );
+
+  await example(page, /“Let's talk”/).click();
+  await expect(commandStatus(page)).toContainText(
+    /Add a PDF or YouTube source first, then say “let’s talk” again/,
+  );
+  await expect(page.locator(".conversation-card .status")).toHaveText("Ready");
 
   await page.route("**/api/ingest", (route) =>
     route.fulfill({
@@ -266,9 +312,9 @@ test("all example actions route to their intended controls and guard voice witho
     page.getByLabel("Ask a question", { exact: true }),
   ).toBeEnabled();
 
-  await page
-    .getByRole("button", { name: /“Summarize this” ask for a summary/ })
-    .click();
+  // Once a source exists the command panel steps aside for the conversation.
+  await expect(speakButton(page)).toHaveCount(0);
+  await page.getByRole("button", { name: "Summarize the key ideas" }).click();
   await expect(page.getByLabel("Ask a question", { exact: true })).toHaveValue(
     "Summarize the key ideas",
   );
@@ -276,7 +322,7 @@ test("all example actions route to their intended controls and guard voice witho
     page.getByLabel("Ask a question", { exact: true }),
   ).toBeFocused();
 
-  await page.getByRole("button", { name: /“Let's talk”/ }).click();
+  await page.getByRole("button", { name: "Start Voice Chat" }).click();
   await expect(
     page.getByRole("region", { name: "2. Ask a question" }).locator(".status"),
   ).toHaveText("Connected");
@@ -288,13 +334,11 @@ test("speech matching ignores unrelated input and suppresses an immediate duplic
   await installSpeechHarness(page);
   await openVoiceActions(page);
 
-  await page.getByRole("button", { name: "Create voice trigger" }).click();
-  await page.getByLabel("Trigger word or phrase").fill("upload this");
-  await page.getByRole("button", { name: "Save trigger" }).click();
-  await page.getByRole("button", { name: "Arm voice actions" }).click();
+  await saveTrigger(page, "upload this");
+  await arm(page);
 
   await emitSpeech(page, "nothing relevant");
-  await expect(page.getByText("Voice actions are listening")).toBeVisible();
+  await expect(stopButton(page)).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Heard: nothing relevant")).toBeVisible();
 
   const firstChooser = page.waitForEvent("filechooser");
@@ -320,18 +364,18 @@ test("speech-recognition failures leave voice actions safely disarmed", async ({
   await installSpeechHarness(page);
   await openVoiceActions(page);
 
-  await page.getByRole("button", { name: "Create voice trigger" }).click();
-  await page.getByLabel("Trigger word or phrase").fill("listen now");
-  await page.getByRole("button", { name: "Save trigger" }).click();
-  await page.getByRole("button", { name: "Arm voice actions" }).click();
-  await expect(page.getByText("Voice actions are listening")).toBeVisible();
+  await saveTrigger(page, "listen now");
+  await arm(page);
 
   await page.evaluate(() => {
     const speech = (window as VoiceTestWindow).__urslySpeech;
     speech?.instances.at(-1)?.fail();
   });
-  await expect(page.getByText("Voice actions are off")).toBeVisible();
-  await expect(page.getByText(/need microphone access/)).toBeVisible();
+  await expect(speakButton(page)).toHaveAttribute("aria-pressed", "false");
+  await expect(commandStatus(page)).toContainText("Voice to action");
+  await expect(commandStatus(page)).toContainText(
+    /stopped unexpectedly|need microphone access/,
+  );
 });
 
 test("manual stop prevents a late recognition result from triggering an action", async ({
@@ -340,13 +384,10 @@ test("manual stop prevents a late recognition result from triggering an action",
   await installSpeechHarness(page);
   await openVoiceActions(page);
 
-  await page.getByRole("button", { name: "Create voice trigger" }).click();
-  await page.getByLabel("Trigger word or phrase").fill("late upload");
-  await page.getByRole("button", { name: "Save trigger" }).click();
-  await page.getByRole("button", { name: "Arm voice actions" }).click();
-  await expect(page.getByText("Voice actions are listening")).toBeVisible();
+  await saveTrigger(page, "late upload");
+  await arm(page);
 
-  await page.getByRole("button", { name: "Stop listening" }).click();
+  await stopButton(page).click();
   await emitSpeech(page, "late upload");
 
   await expect(page.getByText("Voice actions are off")).toBeVisible();
@@ -357,11 +398,8 @@ test("hiding the page stops an armed voice recognizer", async ({ page }) => {
   await installSpeechHarness(page);
   await openVoiceActions(page);
 
-  await page.getByRole("button", { name: "Create voice trigger" }).click();
-  await page.getByLabel("Trigger word or phrase").fill("background check");
-  await page.getByRole("button", { name: "Save trigger" }).click();
-  await page.getByRole("button", { name: "Arm voice actions" }).click();
-  await expect(page.getByText("Voice actions are listening")).toBeVisible();
+  await saveTrigger(page, "background check");
+  await arm(page);
 
   await page.evaluate(() => {
     Object.defineProperty(document, "visibilityState", {
@@ -390,14 +428,15 @@ test("unsupported speech recognition explains the fallback path", async ({
   });
   await openVoiceActions(page);
 
-  await page.getByRole("button", { name: "Create voice trigger" }).click();
-  await page.getByLabel("Trigger word or phrase").fill("hello");
-  await page.getByRole("button", { name: "Save trigger" }).click();
-  await page.getByRole("button", { name: "Arm voice actions" }).click();
+  await saveTrigger(page, "hello");
+  await speakButton(page).click();
   await expect(
     page.getByText(/does not support speech recognition/),
   ).toBeVisible();
-  await expect(page.getByText("Voice actions are off")).toBeVisible();
+  await expect(speakButton(page)).toHaveAttribute("aria-pressed", "false");
+  await expect(
+    page.getByText(/Live speech recognition is not available in this browser/),
+  ).toBeVisible();
 });
 
 test("invalid and duplicate trigger phrases cannot become catch-all actions", async ({
@@ -406,7 +445,7 @@ test("invalid and duplicate trigger phrases cannot become catch-all actions", as
   await installSpeechHarness(page);
   await openVoiceActions(page);
 
-  await page.getByRole("button", { name: "Create voice trigger" }).click();
+  await openCustomize(page);
   const save = page.getByRole("button", { name: "Save trigger" });
   const phrase = page.getByLabel("Trigger word or phrase");
   await phrase.fill("!!!");
@@ -435,12 +474,8 @@ test("invalid and duplicate trigger phrases cannot become catch-all actions", as
     );
   });
   await page.reload();
-  await page
-    .getByRole("button", { name: "Skip guide" })
-    .click({ timeout: 2_000 })
-    .catch(() => undefined);
-  await page.getByRole("tab", { name: "Voice action" }).click();
-  await page.getByRole("button", { name: "Create voice trigger" }).click();
+  await expect(speakButton(page)).toBeVisible();
+  await openCustomize(page);
   await expect(page.getByText(/No saved triggers yet/)).toBeVisible();
 });
 
@@ -450,7 +485,7 @@ test("back, next and cancel are active defaults and can be edited", async ({
   await installSpeechHarness(page);
   await openVoiceActions(page);
 
-  await page.getByRole("button", { name: "Create voice trigger" }).click();
+  await openCustomize(page);
   await expect(page.getByText("“back”", { exact: true })).toBeVisible();
   await expect(page.getByText("“next”", { exact: true })).toBeVisible();
   await expect(page.getByText("“cancel”", { exact: true })).toBeVisible();
@@ -461,7 +496,7 @@ test("back, next and cancel are active defaults and can be edited", async ({
   await expect(page.getByText("“previous”", { exact: true })).toBeVisible();
   await expect(page.getByText("“back”", { exact: true })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Arm voice actions" }).click();
+  await arm(page);
   await emitSpeech(page, "previous");
   await expect(
     page.getByText("Going back — the source controls are ready."),

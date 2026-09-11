@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./base";
 import { pdfFixture } from "../pdf-fixture";
 
 // Compose's configured origin is localhost; exercise the real browser upload
@@ -42,9 +43,7 @@ test.describe("source conversation journey", () => {
       "Run against freshly built Compose with object-store uploads and mock AI",
     ).toMatchObject({ ok: true, mode: "mock", directUpload: true });
     await page.goto("/");
-    const skipGuide = page.getByRole("button", { name: "Skip guide" });
-    await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
-    await page.getByRole("button", { name: "Use upload instead" }).click();
+    await expect(page.getByLabel("PDF file")).toBeVisible();
   });
 
   test("uploads a real PDF through object storage and previews extracted text", async ({
@@ -86,7 +85,7 @@ test.describe("source conversation journey", () => {
     await page.getByRole("button", { name: "Continue to questions" }).click();
     expect((await extraction).ok()).toBeFalsy();
     const alert = page
-      .getByRole("region", { name: "1. Choose a source" })
+      .getByRole("region", { name: "1. Add a source" })
       .getByRole("alert");
     await expect(alert).toBeVisible();
     await expect(alert).not.toBeEmpty();
@@ -111,7 +110,7 @@ test.describe("source conversation journey", () => {
     expect((await ingestion).status()).toBe(400);
     await expect(
       page
-        .getByRole("region", { name: "1. Choose a source" })
+        .getByRole("region", { name: "1. Add a source" })
         .getByRole("alert"),
     ).toContainText(/valid YouTube URL/i);
     await expect(
@@ -282,9 +281,6 @@ test("keyboard source selection and a suggested question work with a second vide
   page,
 }) => {
   await page.goto("/");
-  const skipGuide = page.getByRole("button", { name: "Skip guide" });
-  await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
-  await page.getByRole("button", { name: "Use upload instead" }).click();
   const pdfTab = page.getByRole("tab", { name: "PDF document" });
   const youtubeTab = page.getByRole("tab", { name: "YouTube video" });
   await pdfTab.focus();

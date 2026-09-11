@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./base";
 import {
   installRealtimeHarness,
   type RealtimeHarness,
@@ -18,9 +19,6 @@ const status = (page: Page) => page.locator(".conversation-card .status");
 test.beforeEach(async ({ page }) => {
   harness = await installRealtimeHarness(page);
   await page.goto("/");
-  const skipGuide = page.getByRole("button", { name: "Skip guide" });
-  await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
-  await page.getByRole("button", { name: "Use upload instead" }).click();
   await page.getByLabel("PDF file").setInputFiles({
     name: "transport.pdf",
     mimeType: "application/pdf",

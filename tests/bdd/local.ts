@@ -656,7 +656,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   });
   step("the repository is reviewed", async function () {
     for (const path of [
-      "apps/web/app/page.tsx",
+      "apps/web/app/components/HomePage.tsx",
       "packages/core/src/domain/ingestion.ts",
       "packages/adapters/src/providers.ts",
       "tests/bdd/steps.ts",
@@ -667,7 +667,10 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   step(
     "frontend, domain, provider, test, and infrastructure boundaries are identifiable",
     async function () {
-      const client = await readFile("apps/web/app/page.tsx", "utf8");
+      const client = await readFile(
+        "apps/web/app/components/HomePage.tsx",
+        "utf8",
+      );
       assert.match(client, /use client/);
       assert.doesNotMatch(client, /from ["'][^"']*server\//);
     },

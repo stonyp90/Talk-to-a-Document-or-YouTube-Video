@@ -11,10 +11,16 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { Onboarding } from "./components/Onboarding";
-import { Applications } from "./components/Applications";
-import { Icon } from "./components/Icon";
-import { VoiceActions, type VoiceActionId } from "./components/VoiceActions";
+import { Applications } from "./Applications";
+import { HowItWorks } from "./HowItWorks";
+import { Icon } from "./Icon";
+import { IntroGate, hasSeenIntro } from "./IntroGate";
+import type { EntryMode } from "./ModeSwitcher";
+import { PlatformSection } from "./PlatformSection";
+import { Process } from "./Process";
+import { TopNav } from "./TopNav";
+import { VoiceActions, type VoiceActionId } from "./VoiceActions";
+import { useLanguage } from "../i18n/LanguageProvider";
 import {
   conversationReducer,
   initialConversationState,
@@ -35,29 +41,12 @@ import {
 } from "@/apps/web/src/lib/api";
 
 type SourceTab = "pdf" | "youtube";
-type EntryMode = "voice" | "text" | "motion";
 
 const INGEST_DEADLINE_MS = 60000;
 const SESSION_DEADLINE_MS = 25000;
 const ANSWER_DEADLINE_MS = 25000;
 
-const statusText: Record<string, string> = {
-  idle: "Ready",
-  preparing: "Preparing",
-  connecting: "Connecting",
-  connected: "Connected",
-  reconnecting: "Reconnecting",
-  ended: "Ended",
-  error: "Needs attention",
-};
-
 const LIVE_STATUSES = ["preparing", "connecting", "connected", "reconnecting"];
-
-const activityText: Record<VoiceActivity, string> = {
-  idle: "Listening for your question",
-  listening: "Hearing you",
-  speaking: "Answering — speak to interrupt",
-};
 
 async function withDeadline<T>(
   controller: AbortController,
@@ -121,8 +110,32 @@ function subscribeToConnectivity(notify: () => void): () => void {
   };
 }
 
+function subscribeToStorage(notify: () => void): () => void {
+  window.addEventListener("storage", notify);
+  return () => window.removeEventListener("storage", notify);
+}
+
+const MODE_STORAGE_KEY = "ursly-mode-v1";
+
+function readSavedMode(): EntryMode {
+  try {
+    return localStorage.getItem(MODE_STORAGE_KEY) === "text" ? "text" : "voice";
+  } catch {
+    return "voice";
+  }
+}
+
 export default function HomePage() {
-  const [entryMode, setEntryMode] = useState<EntryMode>("voice");
+  const { t, language } = useLanguage();
+  // The chosen mode is remembered per browser. The server snapshot is voice,
+  // so hydration has nothing to reconcile; a choice made here wins over it.
+  const savedMode = useSyncExternalStore(
+    subscribeToStorage,
+    readSavedMode,
+    () => "voice" as EntryMode,
+  );
+  const [chosenMode, setChosenMode] = useState<EntryMode | null>(null);
+  const entryMode: EntryMode = chosenMode ?? savedMode;
   const [tab, setTab] = useState<SourceTab>("pdf");
   const [file, setFile] = useState<File | undefined>();
   const [url, setUrl] = useState("");
@@ -135,7 +148,9 @@ export default function HomePage() {
   const [pendingAnswers, setPendingAnswers] = useState(0);
   const [providerMode, setProviderMode] = useState<string>("");
   const [activity, setActivity] = useState<VoiceActivity>("idle");
-  const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(true);
+  const [dragging, setDragging] = useState(false);
+  const [voiceActionNotice, setVoiceActionNotice] = useState("");
   const micSupported = useSyncExternalStore(
     NO_CHANGE,
     readMicrophoneSupport,
@@ -146,10 +161,35 @@ export default function HomePage() {
     () => navigator.onLine,
     () => true,
   );
+  // The server never shows the intro; a first visit opens it after hydration.
+  const firstVisit = useSyncExternalStore(
+    subscribeToStorage,
+    () => !hasSeenIntro(),
+    () => false,
+  );
+  const [introOverride, setIntroOverride] = useState<boolean | null>(null);
+  const introOpen = introOverride ?? firstVisit;
+  const introOrigin = useRef<"first" | "replay">("first");
+  const replayButton = useRef<HTMLButtonElement>(null);
   const [state, dispatch] = useReducer(
     conversationReducer,
     initialConversationState,
   );
+
+  const statusText: Record<string, string> = {
+    idle: t("Ready"),
+    preparing: t("Preparing"),
+    connecting: t("Connecting"),
+    connected: t("Connected"),
+    reconnecting: t("Reconnecting"),
+    ended: t("Ended"),
+    error: t("Needs attention"),
+  };
+  const activityText: Record<VoiceActivity, string> = {
+    idle: t("Listening for your question"),
+    listening: t("Hearing you"),
+    speaking: t("Answering — speak to interrupt"),
+  };
 
   const questionInput = useRef<HTMLInputElement>(null);
   const chatLog = useRef<HTMLDivElement>(null);
@@ -194,6 +234,31 @@ export default function HomePage() {
     if (source) questionInput.current?.focus();
   }, [source]);
 
+  // The tab title carries the live voice state, visible from any other tab.
+  useEffect(() => {
+    const base = document.title.replace(/^[^—]*— /, "");
+    if (state.status !== "connected") {
+      document.title = base;
+      return;
+    }
+    const live =
+      activity === "speaking"
+        ? t("Answering")
+        : activity === "listening"
+          ? t("Hearing you")
+          : t("Listening");
+    document.title = `● ${live} — ${base}`;
+    return () => {
+      document.title = base;
+    };
+  }, [state.status, activity, t]);
+
+  useEffect(() => {
+    if (!voiceActionNotice) return;
+    const timeout = window.setTimeout(() => setVoiceActionNotice(""), 4200);
+    return () => window.clearTimeout(timeout);
+  }, [voiceActionNotice]);
+
   const invalidateVoice = useCallback(() => {
     voiceVersion.current++;
     sessionRequest.current?.abort();
@@ -209,9 +274,29 @@ export default function HomePage() {
     [file, tab, url],
   );
   const sessionLive = LIVE_STATUSES.includes(state.status);
-  const actionFirstStart = !source && !sourcePickerOpen && !busy;
-  const voiceFirstStart = entryMode === "voice" && actionFirstStart;
-  const motionFirstStart = entryMode === "motion" && actionFirstStart;
+
+  function openIntro() {
+    introOrigin.current = "replay";
+    setIntroOverride(true);
+  }
+
+  function closeIntro() {
+    setIntroOverride(false);
+  }
+
+  // Land where the work is: the workspace on a first visit, the menu button
+  // that opened the replay otherwise. Runs once the dialog has closed, after
+  // the browser has restored focus to whatever had it before.
+  function focusAfterIntro() {
+    if (introOrigin.current === "replay") {
+      replayButton.current?.focus();
+      return;
+    }
+    const first =
+      document.querySelector<HTMLElement>("#workspace .voice-mic") ??
+      fileInput.current;
+    (first ?? document.getElementById("workspace"))?.focus();
+  }
 
   /**
    * Calls an endpoint with the opaque session id, and resends the whole source
@@ -260,7 +345,7 @@ export default function HomePage() {
       const envelope = await withDeadline(
         controller,
         INGEST_DEADLINE_MS,
-        "Reading your source timed out. Check your connection and retry.",
+        t("Reading your source timed out. Check your connection and retry."),
         async () => {
           const health = await requestJson<Health>("/api/health", {
             signal: controller.signal,
@@ -336,7 +421,9 @@ export default function HomePage() {
     } catch (caught) {
       if (current())
         setError(
-          readable(caught, "We couldn’t read this source. Please try again."),
+          t(
+            readable(caught, "We couldn’t read this source. Please try again."),
+          ),
         );
     } finally {
       if (uploadRequest.current === controller) uploadRequest.current = null;
@@ -366,7 +453,9 @@ export default function HomePage() {
       const session = await withDeadline(
         controller,
         SESSION_DEADLINE_MS,
-        "Voice session setup timed out. Check your connection and retry Start Voice Chat.",
+        t(
+          "Voice session setup timed out. Check your connection and retry Start Voice Chat.",
+        ),
         () =>
           withSession((body) =>
             requestJson<RealtimeCredential>("/api/realtime/session", {
@@ -424,9 +513,11 @@ export default function HomePage() {
     } catch (caught) {
       if (!current()) return;
       invalidateVoice();
-      const message = readable(
-        caught,
-        "Microphone access is unavailable. You can type your question instead.",
+      const message = t(
+        readable(
+          caught,
+          "Microphone access is unavailable. You can type your question instead.",
+        ),
       );
       dispatch({ type: "ERROR", message });
       setError(message);
@@ -460,9 +551,11 @@ export default function HomePage() {
         realtime.current.sendText(trimmed);
       } catch (caught) {
         invalidateVoice();
-        const message = readable(
-          caught,
-          "That message did not reach the voice session. Please retry.",
+        const message = t(
+          readable(
+            caught,
+            "That message did not reach the voice session. Please retry.",
+          ),
         );
         dispatch({ type: "ERROR", message });
         setError(message);
@@ -490,7 +583,9 @@ export default function HomePage() {
       const reply = await withDeadline(
         controller,
         ANSWER_DEADLINE_MS,
-        "The answer timed out. Check your connection and retry your question.",
+        t(
+          "The answer timed out. Check your connection and retry your question.",
+        ),
         () =>
           withSession(
             (body) =>
@@ -519,7 +614,7 @@ export default function HomePage() {
       });
     } catch (caught) {
       if (current()) {
-        setError(readable(caught, "The answer could not be produced."));
+        setError(t(readable(caught, "The answer could not be produced.")));
         setQuestion((draft) => draft || trimmed);
       }
     } finally {
@@ -545,34 +640,33 @@ export default function HomePage() {
   }
 
   function switchEntryMode(mode: EntryMode) {
-    setEntryMode(mode);
+    setChosenMode(mode);
+    try {
+      localStorage.setItem(MODE_STORAGE_KEY, mode);
+    } catch {
+      /* The choice still holds for this visit. */
+    }
     setError("");
-    // Text owns the classic source form. Voice and motion keep the stage open
-    // so switching modes never silently starts an action or requests a sensor.
-    setSourcePickerOpen(mode === "text" || Boolean(source));
+    setVoiceActionNotice(
+      mode === "voice"
+        ? t("Voice to action: say a command, or use the controls as usual.")
+        : t("Keyboard to action: everything works by typing and clicking."),
+    );
   }
 
   function openUploadPicker() {
     focusSourceControl("upload");
     setVoiceActionNotice(
-      "Upload is ready — choose a PDF in the file picker to finish.",
+      t("Upload is ready — choose a PDF in the file picker to finish."),
     );
     voicePickerInput.current?.click();
   }
-
-  const [voiceActionNotice, setVoiceActionNotice] = useState("");
-
-  useEffect(() => {
-    if (!voiceActionNotice) return;
-    const timeout = window.setTimeout(() => setVoiceActionNotice(""), 4200);
-    return () => window.clearTimeout(timeout);
-  }, [voiceActionNotice]);
 
   function handleVoiceAction(action: VoiceActionId) {
     if (action === "youtube") {
       focusSourceControl("youtube");
       setVoiceActionNotice(
-        "YouTube is ready — dictate or paste a video link next.",
+        t("YouTube is ready — dictate or paste a video link next."),
       );
       return;
     }
@@ -583,7 +677,7 @@ export default function HomePage() {
     if (action === "voice") {
       if (!source) {
         setVoiceActionNotice(
-          "Add a PDF or YouTube source first, then say “let’s talk” again.",
+          t("Add a PDF or YouTube source first, then say “let’s talk” again."),
         );
         return;
       }
@@ -593,14 +687,15 @@ export default function HomePage() {
     if (action === "summarize") {
       if (!source) {
         setVoiceActionNotice(
-          "Add a PDF or YouTube source first, then say “summarize this” again.",
+          t(
+            "Add a PDF or YouTube source first, then say “summarize this” again.",
+          ),
         );
         return;
       }
-      const prompt = "Summarize the key ideas";
-      setQuestion(prompt);
+      setQuestion(t("Summarize the key ideas"));
       setVoiceActionNotice(
-        "Your summary request is ready in the question box.",
+        t("Your summary request is ready in the question box."),
       );
       window.requestAnimationFrame(() => questionInput.current?.focus());
       return;
@@ -609,18 +704,18 @@ export default function HomePage() {
       if (sessionLive) stopVoice();
       setSourcePickerOpen(true);
       focusSourceControl(tab === "youtube" ? "youtube" : "upload");
-      setVoiceActionNotice("Going back — the source controls are ready.");
+      setVoiceActionNotice(t("Going back — the source controls are ready."));
       return;
     }
     if (action === "next") {
       if (!source) {
         focusSourceControl(tab === "youtube" ? "youtube" : "upload");
         setVoiceActionNotice(
-          "Next step: choose a PDF or paste a YouTube link.",
+          t("Next step: choose a PDF or paste a YouTube link."),
         );
         return;
       }
-      setVoiceActionNotice("Next step: ask your question.");
+      setVoiceActionNotice(t("Next step: ask your question."));
       window.requestAnimationFrame(() => questionInput.current?.focus());
       return;
     }
@@ -634,8 +729,14 @@ export default function HomePage() {
     setUploadProgress(undefined);
     setError("");
     dispatch({ type: "ENDED" });
-    setVoiceActionNotice("Cancelled — the current action has been stopped.");
+    setVoiceActionNotice(t("Cancelled — the current action has been stopped."));
   }
+
+  const suggestions = [
+    t("Summarize the key ideas"),
+    t("Explain this simply"),
+    t("What should I remember?"),
+  ];
 
   return (
     <>
@@ -649,106 +750,57 @@ export default function HomePage() {
         onChange={onFile}
       />
       <a className="skip-link" href="#workspace">
-        Skip to workspace
+        {t("Skip to workspace")}
       </a>
+      <TopNav
+        mode={entryMode}
+        onModeChange={switchEntryMode}
+        onReplayIntro={openIntro}
+        replayButton={replayButton}
+      />
+      <IntroGate
+        open={introOpen}
+        onClose={closeIntro}
+        onClosed={focusAfterIntro}
+      />
+
       <main className="shell">
         <div className="container app-frame">
-          <header className="topbar">
-            <a className="brand" href="/" aria-label="Ursly home">
-              {/* A vector stays crisp at every screen density. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="brand-mark"
-                src="/brand/ursly-mark.svg"
-                width="36"
-                height="36"
-                alt=""
-              />
-              ursly<span className="brand-dot">.</span>
-            </a>
-            <span className="topbar-note">Talk to a document or a video.</span>
-            <div className="topbar-actions">
-              <button
-                type="button"
-                className="outline-button notification-button"
-                aria-label="Notifications"
-                title="Notifications"
-                onClick={() => setVoiceActionNotice("You’re all caught up.")}
-              >
-                <Icon name="bell" />
-              </button>
-              <a className="workspace-label" href="#how-it-works">
-                How it works <span aria-hidden="true">↓</span>
-              </a>
-            </div>
-          </header>
-
           {!online && (
             <p className="banner banner-offline" role="alert">
-              You are offline. Ursly will reconnect when your network returns.
+              {t(
+                "You are offline. Ursly will reconnect when your network returns.",
+              )}
             </p>
           )}
 
-          <div className="hero hero-compact">
-            <h1>
-              Less scrolling. <span>More understanding.</span>
-            </h1>
-            <p className="lede">
-              Add a PDF or a captioned YouTube video, then talk to it. Speak
-              your question and hear the answer, or type instead.
-            </p>
-          </div>
-
-          {entryMode === "voice" && (
-            <VoiceActions
-              onAction={handleVoiceAction}
-              canStartVoice={Boolean(source)}
-              voiceBusy={sessionLive || busy}
-            />
-          )}
-
-          {entryMode === "motion" && (
-            <section
-              className="motion-actions-card"
-              aria-labelledby="motion-actions-heading"
-            >
-              <div className="motion-actions-copy">
-                <span className="eyebrow">Beta preview · motion actions</span>
-                <h2 id="motion-actions-heading" tabIndex={-1}>
-                  Move once. Imagine the next layer.
-                </h2>
-                <p>
-                  This is a preview-only beta: pointer clicks never trigger
-                  actions and no motion permission is requested. Hover over the
-                  mode to see the interaction we are exploring.
-                </p>
-              </div>
-              <div
-                className="motion-actions-status"
-                data-enabled="false"
-                role="status"
-                aria-live="polite"
-              >
-                <span className="motion-actions-pulse" aria-hidden="true" />
-                Preview only · no click-triggered actions
-              </div>
-              <div className="motion-sensor-flow" aria-hidden="true">
-                <span>
-                  <Icon name="motion" /> Move
-                </span>
-                <span className="motion-sensor-arrow">→</span>
-                <span>
-                  <Icon name="arrow" /> Reveal
-                </span>
-                <span className="motion-sensor-ar">AR / VR layer</span>
-              </div>
-              <p className="hint">
-                Future direction: a deliberate phone movement, gaze or gesture
-                could reveal the next safe control in an AR/VR space. Voice
-                remains the fallback and every action will still be cancellable.
+          <div className="workspace-heading">
+            <div className="workspace-heading-copy">
+              <h1>
+                {t("Less scrolling.")} <span>{t("More understanding.")}</span>
+              </h1>
+              <p className="lede">
+                {entryMode === "voice"
+                  ? t(
+                      "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.",
+                    )
+                  : t(
+                      "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.",
+                    )}
               </p>
-            </section>
-          )}
+            </div>
+            <ol className="progress-steps" aria-label={t("Progress")}>
+              <li
+                aria-current={source ? undefined : "step"}
+                data-done={Boolean(source)}
+              >
+                <span>{source ? "✓" : "1"}</span> {t("Add a source")}
+              </li>
+              <li aria-current={source ? "step" : undefined}>
+                <span>2</span> {t("Ask a question")}
+              </li>
+            </ol>
+          </div>
 
           {voiceActionNotice && (
             <div className="toast" role="status" aria-live="polite">
@@ -756,7 +808,7 @@ export default function HomePage() {
               <button
                 type="button"
                 className="toast-dismiss"
-                aria-label="Dismiss notification"
+                aria-label={t("Dismiss notification")}
                 onClick={() => setVoiceActionNotice("")}
               >
                 ×
@@ -764,20 +816,19 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="workspace" id="workspace" tabIndex={-1}>
+          <div
+            className="workspace"
+            id="workspace"
+            tabIndex={-1}
+            data-mode={entryMode}
+          >
             <section
               className="card source-card"
               aria-labelledby="source-heading"
             >
               <div className="status-row">
                 <h2 id="source-heading">
-                  {source
-                    ? "Your source"
-                    : voiceFirstStart
-                      ? "1. Start with your voice"
-                      : motionFirstStart
-                        ? "1. Move to begin"
-                        : "1. Choose a source"}
+                  {source ? t("Your source") : t("1. Add a source")}
                 </h2>
                 <span
                   className="status"
@@ -785,14 +836,10 @@ export default function HomePage() {
                   aria-live="polite"
                 >
                   {busy
-                    ? "Extracting"
+                    ? t("Extracting")
                     : source
-                      ? "Source ready"
-                      : voiceFirstStart
-                        ? "Voice-first mode"
-                        : motionFirstStart
-                          ? "Motion beta"
-                          : "Step 1 of 2"}
+                      ? t("Source ready")
+                      : t("Step 1 of 2")}
                 </span>
               </div>
 
@@ -803,224 +850,196 @@ export default function HomePage() {
                   />
                   <div>
                     <strong>{source.sourceName}</strong>
-                    <span>Ready · Your answers will use this source</span>
+                    <span>
+                      {t("Ready · Your answers will use this source")}
+                    </span>
                   </div>
                 </div>
               )}
 
-              {!source && motionFirstStart && (
-                <div className="motion-first-source">
-                  <span className="eyebrow">Motion-first start</span>
-                  <h3>Preview the movement-first workflow.</h3>
-                  <p>
-                    This beta does not activate sensors or trigger controls yet.
-                    Use voice or text to add a source; motion only demonstrates
-                    the future AR/VR direction.
-                  </p>
-                </div>
+              {entryMode === "voice" && !source && (
+                <VoiceActions
+                  onAction={handleVoiceAction}
+                  canStartVoice={Boolean(source)}
+                  voiceBusy={sessionLive || busy}
+                />
               )}
 
-              {!source && voiceFirstStart && (
-                <div className="voice-first-source">
-                  <div className="voice-first-source-copy">
-                    <span className="eyebrow">Voice-first start</span>
-                    <h3>Say “upload” or “YouTube” to bring something in.</h3>
-                    <p>
-                      Arm voice actions above, then speak a trigger. Ursly will
-                      open the right source control for you.
-                    </p>
-                  </div>
-                  <div className="voice-first-source-example">
-                    <span>“Upload”</span>
-                    <small>opens the PDF picker</small>
-                  </div>
-                  <button
-                    type="button"
-                    className="secondary voice-first-manual"
-                    onClick={() => {
-                      setError("");
-                      setSourcePickerOpen(true);
-                    }}
+              <details
+                className="source-picker"
+                data-collapsible={Boolean(source)}
+                open={!source || sourcePickerOpen}
+                onToggle={(event) => {
+                  if (source) setSourcePickerOpen(event.currentTarget.open);
+                }}
+              >
+                <summary>
+                  {source
+                    ? t("Change source")
+                    : t("Choose a PDF or a video to get started")}
+                </summary>
+                <p className="section-intro">
+                  {source
+                    ? t("Adding a new source starts a new conversation.")
+                    : t("We’ll read it for you. Then you can ask about it.")}
+                </p>
+                <div className="source-controls">
+                  <div
+                    className="tabs"
+                    data-tab={tab}
+                    role="tablist"
+                    aria-label={t("Source type")}
                   >
-                    Use upload instead <Icon name="arrow" />
-                  </button>
-                </div>
-              )}
-
-              {(source || sourcePickerOpen) && (
-                <details
-                  className="source-picker"
-                  open={sourcePickerOpen}
-                  onToggle={(event) => {
-                    if (source) setSourcePickerOpen(event.currentTarget.open);
-                  }}
-                >
-                  <summary>
-                    {source
-                      ? "Change source"
-                      : "Choose a PDF or a video to get started"}
-                  </summary>
-                  {!source && (
-                    <button
-                      type="button"
-                      className="source-back-actions"
-                      onClick={() => {
-                        setError("");
-                        setSourcePickerOpen(false);
-                        window.requestAnimationFrame(() =>
-                          document
-                            .getElementById(
-                              entryMode === "motion"
-                                ? "motion-actions-heading"
-                                : "voice-actions-heading",
+                    {(
+                      [
+                        { id: "pdf", label: "PDF document", icon: "document" },
+                        {
+                          id: "youtube",
+                          label: "YouTube video",
+                          icon: "video",
+                        },
+                      ] as const
+                    ).map(({ id, label, icon }) => (
+                      <button
+                        key={id}
+                        className={`tab ${tab === id ? "active" : ""}`}
+                        id={`tab-${id}`}
+                        disabled={busy}
+                        aria-controls="source-panel"
+                        tabIndex={tab === id ? 0 : -1}
+                        role="tab"
+                        aria-selected={tab === id}
+                        onKeyDown={(event) => {
+                          if (
+                            ["ArrowRight", "ArrowLeft", "Home", "End"].includes(
+                              event.key,
                             )
-                            ?.focus(),
-                        );
-                      }}
-                    >
-                      <span aria-hidden="true">←</span> Back to {entryMode}{" "}
-                      actions
-                    </button>
-                  )}
-                  <p className="section-intro">
-                    {source
-                      ? "Adding a new source starts a new conversation."
-                      : "We’ll read it for you. Then you can ask about it."}
-                  </p>
-                  <div className="source-controls">
-                    <div
-                      className="tabs"
-                      data-tab={tab}
-                      role="tablist"
-                      aria-label="Source type"
-                    >
-                      {(
-                        [
-                          {
-                            id: "pdf",
-                            label: "PDF document",
-                            icon: "document",
-                          },
-                          {
-                            id: "youtube",
-                            label: "YouTube video",
-                            icon: "video",
-                          },
-                        ] as const
-                      ).map(({ id, label, icon }) => (
-                        <button
-                          key={id}
-                          className={`tab ${tab === id ? "active" : ""}`}
-                          id={`tab-${id}`}
-                          disabled={busy}
-                          aria-controls="source-panel"
-                          tabIndex={tab === id ? 0 : -1}
-                          role="tab"
-                          aria-selected={tab === id}
-                          onKeyDown={(event) => {
-                            if (
-                              [
-                                "ArrowRight",
-                                "ArrowLeft",
-                                "Home",
-                                "End",
-                              ].includes(event.key)
-                            ) {
-                              event.preventDefault();
-                              const next = id === "pdf" ? "youtube" : "pdf";
-                              setTab(next);
-                              document.getElementById(`tab-${next}`)?.focus();
-                            }
-                          }}
-                          onClick={() => {
-                            setTab(id);
-                            setError("");
-                          }}
-                        >
-                          <Icon name={icon} /> {label}
-                        </button>
-                      ))}
-                    </div>
-
-                    <form
-                      onSubmit={ingest}
-                      className="source-grid"
-                      id="source-panel"
-                      role="tabpanel"
-                      aria-labelledby={`tab-${tab}`}
-                      aria-busy={busy}
-                    >
-                      {tab === "pdf" ? (
-                        <label className="dropzone full" htmlFor="pdf-file">
-                          <span className="upload-icon">
-                            <Icon name="document" />
-                          </span>
-                          <strong>
-                            {file ? file.name : "Pick a PDF up to 25 MB"}
-                          </strong>
-                          <div className="hint">
-                            {file
-                              ? `${(file.size / 1024 / 1024).toFixed(1)} MB · Ready to continue`
-                              : "Choose a text-based paper, report, or document."}
-                          </div>
-                          <input
-                            id="pdf-file"
-                            aria-label="PDF file"
-                            ref={fileInput}
-                            type="file"
-                            accept="application/pdf,.pdf"
-                            onChange={onFile}
-                            disabled={busy}
-                          />
-                        </label>
-                      ) : (
-                        <div className="field full" key="youtube">
-                          <span className="upload-icon">
-                            <Icon name="video" />
-                          </span>
-                          <label htmlFor="youtube-url">YouTube URL</label>
-                          <input
-                            id="youtube-url"
-                            value={url}
-                            onChange={(event) => setUrl(event.target.value)}
-                            placeholder="https://youtube.com/watch?v=..."
-                            inputMode="url"
-                            disabled={busy}
-                            aria-describedby="youtube-hint"
-                          />
-                          <p id="youtube-hint" className="hint">
-                            Paste a link to a captioned video. Watch pages,
-                            Shorts, share links and embeds all work.
-                          </p>
-                        </div>
-                      )}
-                      <div className="actions full">
-                        <button
-                          className="primary"
-                          disabled={!canIngest || busy}
-                          type="submit"
-                        >
-                          {busy ? (
-                            <span className="spinner" aria-hidden="true" />
-                          ) : (
-                            <Icon name="arrow" />
-                          )}
-                          {busy
-                            ? "Reading your source…"
-                            : "Continue to questions"}
-                        </button>
-                      </div>
-                    </form>
+                          ) {
+                            event.preventDefault();
+                            const next = id === "pdf" ? "youtube" : "pdf";
+                            setTab(next);
+                            document.getElementById(`tab-${next}`)?.focus();
+                          }
+                        }}
+                        onClick={() => {
+                          setTab(id);
+                          setError("");
+                        }}
+                      >
+                        <Icon name={icon} /> {t(label)}
+                      </button>
+                    ))}
                   </div>
-                </details>
-              )}
+
+                  <form
+                    onSubmit={ingest}
+                    className="source-grid"
+                    id="source-panel"
+                    role="tabpanel"
+                    aria-labelledby={`tab-${tab}`}
+                    aria-busy={busy}
+                  >
+                    {tab === "pdf" ? (
+                      <label
+                        className="dropzone full"
+                        htmlFor="pdf-file"
+                        data-dragging={dragging}
+                        data-filled={Boolean(file)}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          if (!busy) setDragging(true);
+                        }}
+                        onDragLeave={() => setDragging(false)}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          setDragging(false);
+                          if (busy) return;
+                          const dropped = event.dataTransfer.files?.[0];
+                          if (dropped) {
+                            setFile(dropped);
+                            setError("");
+                          }
+                        }}
+                      >
+                        <span className="upload-icon">
+                          <Icon name={file ? "document" : "download"} />
+                        </span>
+                        <strong>
+                          {file ? file.name : t("Drop a PDF here")}
+                        </strong>
+                        <div className="hint">
+                          {file
+                            ? t("{size} MB · Ready to continue", {
+                                size: (file.size / 1024 / 1024).toFixed(1),
+                              })
+                            : t(
+                                "or choose one from your device · up to 25 MB, text-based",
+                              )}
+                        </div>
+                        <span
+                          className="secondary dropzone-button"
+                          aria-hidden="true"
+                        >
+                          {file ? t("Choose another PDF") : t("Choose a PDF")}
+                        </span>
+                        <input
+                          id="pdf-file"
+                          aria-label={t("PDF file")}
+                          ref={fileInput}
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          onChange={onFile}
+                          disabled={busy}
+                        />
+                      </label>
+                    ) : (
+                      <div className="field full" key="youtube">
+                        <span className="upload-icon">
+                          <Icon name="video" />
+                        </span>
+                        <label htmlFor="youtube-url">{t("YouTube URL")}</label>
+                        <input
+                          id="youtube-url"
+                          value={url}
+                          onChange={(event) => setUrl(event.target.value)}
+                          placeholder="https://youtube.com/watch?v=..."
+                          inputMode="url"
+                          disabled={busy}
+                          aria-describedby="youtube-hint"
+                        />
+                        <p id="youtube-hint" className="hint">
+                          {t(
+                            "Paste a link to a captioned video. Watch pages, Shorts, share links and embeds all work.",
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    <div className="actions full">
+                      <button
+                        className="primary"
+                        disabled={!canIngest || busy}
+                        type="submit"
+                      >
+                        {busy ? (
+                          <span className="spinner" aria-hidden="true" />
+                        ) : (
+                          <Icon name="arrow" />
+                        )}
+                        {busy
+                          ? t("Reading your source…")
+                          : t("Continue to questions")}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </details>
 
               {uploadProgress !== undefined && (
                 <div className="progress" role="status">
                   <div
                     className="progress-track"
                     role="progressbar"
-                    aria-label="Upload progress"
+                    aria-label={t("Upload progress")}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={Math.round(uploadProgress * 100)}
@@ -1030,7 +1049,9 @@ export default function HomePage() {
                     />
                   </div>
                   <span className="hint">
-                    Uploading · {Math.round(uploadProgress * 100)}%
+                    {t("Uploading · {percent}%", {
+                      percent: Math.round(uploadProgress * 100),
+                    })}
                   </span>
                 </div>
               )}
@@ -1050,42 +1071,47 @@ export default function HomePage() {
                     document.getElementById("tab-pdf")?.focus();
                   }}
                 >
-                  Use a PDF instead
+                  {t("Use a PDF instead")}
                 </button>
               )}
               {busy && uploadProgress === undefined && (
                 <p className="hint" role="status">
-                  Reading your source. This may take up to a minute. Your
-                  questions are next.
+                  {t(
+                    "Reading your source. This may take up to a minute. Your questions are next.",
+                  )}
                 </p>
               )}
 
               {source && (
                 <details className="preview">
                   <summary>
-                    View source text · {source.characters.toLocaleString()}{" "}
-                    characters
+                    {t("View source text · {count} characters", {
+                      count: source.characters.toLocaleString(),
+                    })}
                   </summary>
                   <div className="preview-text">{source.text}</div>
                 </details>
               )}
               {context?.truncated && (
                 <p className="hint context-note" role="status">
-                  This source is longer than one conversation can hold. The
-                  assistant reads {context.usedCharacters.toLocaleString()} of{" "}
-                  {context.totalCharacters.toLocaleString()} characters, taken
-                  from the opening and the ending. The full text stays available
-                  above.
+                  {t(
+                    "This source is longer than one conversation can hold. The assistant reads {used} of {total} characters, taken from the opening and the ending. The full text stays available above.",
+                    {
+                      used: context.usedCharacters.toLocaleString(),
+                      total: context.totalCharacters.toLocaleString(),
+                    },
+                  )}
                 </p>
               )}
               {source && (
                 <div className="source-next-step">
                   <span className="source-next-step-number">2</span>
                   <div>
-                    <strong>Next: ask a question</strong>
+                    <strong>{t("Next: ask a question")}</strong>
                     <span>
-                      Use voice or type below. Answers stay anchored to this
-                      source.
+                      {t(
+                        "Use voice or type below. Answers stay anchored to this source.",
+                      )}
                     </span>
                   </div>
                 </div>
@@ -1099,7 +1125,7 @@ export default function HomePage() {
             >
               <div className="status-row">
                 <h2 id="conversation-heading" tabIndex={-1}>
-                  2. Ask a question
+                  {t("2. Ask a question")}
                 </h2>
                 <span
                   className="status"
@@ -1110,19 +1136,43 @@ export default function HomePage() {
                 </span>
               </div>
 
+              {/*
+                A quiet, honest signal that the voice model is learning from
+                this person while they talk: present, never in the way, and
+                one tap from the consent story.
+              */}
+              {sessionLive && state.status === "connected" && (
+                <a className="voice-learning" href="#platform">
+                  <span className="voice-learning-dot" aria-hidden="true" />
+                  <span>
+                    <strong>{t("Adapting to your voice")}</strong>
+                    <small>
+                      {t(
+                        "Learning your accent, pace and words from this session. Nothing is kept without your say.",
+                      )}
+                    </small>
+                  </span>
+                </a>
+              )}
+
               {source && (
                 <p className="conversation-source">
-                  Exploring <strong>{source.sourceName}</strong>
+                  {t("Exploring")} <strong>{source.sourceName}</strong>
                 </p>
               )}
               {providerMode === "mock" && (
                 <p className="hint" role="status">
-                  Demo simulation: AI replies are simulated; microphone audio is
-                  not sent to AI. Use live mode for real answers and voice.
+                  {t(
+                    "Demo simulation: AI replies are simulated; microphone audio is not sent to AI. Use live mode for real answers and voice.",
+                  )}
                 </p>
               )}
 
-              <div className="voice-panel" data-live={sessionLive}>
+              <div
+                className="voice-panel"
+                data-live={sessionLive}
+                data-empty={!source}
+              >
                 <div className="voice-controls actions">
                   <button
                     className="primary voice-start"
@@ -1131,7 +1181,7 @@ export default function HomePage() {
                     onClick={startVoice}
                     type="button"
                   >
-                    <Icon name="voice" /> Start Voice Chat
+                    <Icon name="voice" /> {t("Start Voice Chat")}
                   </button>
                   <button
                     className="secondary"
@@ -1141,7 +1191,9 @@ export default function HomePage() {
                     aria-pressed={state.muted}
                     type="button"
                   >
-                    {state.muted ? "Unmute microphone" : "Mute microphone"}
+                    {state.muted
+                      ? t("Unmute microphone")
+                      : t("Mute microphone")}
                   </button>
                   <button
                     className="danger"
@@ -1150,19 +1202,29 @@ export default function HomePage() {
                     onClick={stopVoice}
                     type="button"
                   >
-                    Stop
+                    {t("Stop")}
                   </button>
                 </div>
                 <p className="hint voice-hint" aria-live="polite">
                   {!micSupported
-                    ? "This browser will not share a microphone here, so voice is unavailable. Type your question below instead."
+                    ? t(
+                        "This browser will not share a microphone here, so voice is unavailable. Type your question below instead.",
+                      )
                     : sessionLive
                       ? state.status === "connected"
                         ? state.muted
-                          ? "Microphone muted. Unmute to speak, or keep typing."
+                          ? t(
+                              "Microphone muted. Unmute to speak, or keep typing.",
+                            )
                           : activityText[activity]
                         : statusText[state.status]
-                      : "Allow microphone access when prompted, then speak. You can mute or stop at any time, and typing always works."}
+                      : source
+                        ? t(
+                            "Allow microphone access when prompted, then speak. You can mute or stop at any time, and typing always works.",
+                          )
+                        : t(
+                            "Voice chat opens as soon as your source is ready. Typing always works too.",
+                          )}
                 </p>
               </div>
 
@@ -1176,94 +1238,49 @@ export default function HomePage() {
                     log.scrollHeight - log.scrollTop - log.clientHeight < 64;
                 }}
                 role="log"
-                aria-label="Conversation"
+                aria-label={t("Conversation")}
                 aria-live="polite"
               >
                 {state.messages.length === 0 ? (
-                  <div className="empty-chat">
+                  <div className="empty-chat" data-mode={entryMode}>
                     <div
                       className={`voice-orbit mode-orbit mode-orbit-${entryMode}`}
                       data-activity={sessionLive ? activity : "off"}
                       aria-hidden="true"
                     >
+                      <span className="voice-orbit-ring" />
+                      <span className="voice-orbit-ring" />
                       <Icon
-                        name={
-                          entryMode === "motion"
-                            ? "motion"
-                            : entryMode === "text"
-                              ? "document"
-                              : "voice"
-                        }
+                        name={entryMode === "text" ? "document" : "voice"}
                       />
                     </div>
                     <h3>
-                      {entryMode === "voice" && !source
-                        ? "Your voice is the shortcut."
-                        : entryMode === "motion" && !source
-                          ? "A hands-free layer for later."
-                          : source
-                            ? "What are you curious about?"
-                            : "Good questions start here."}
+                      {source
+                        ? t("What are you curious about?")
+                        : entryMode === "voice"
+                          ? t("Your voice is the shortcut.")
+                          : t("Good questions start here.")}
                     </h3>
                     <p className="hint">
-                      {entryMode === "voice" && !source
-                        ? "Arm voice actions above and say a command such as “upload” or “YouTube”. Nothing starts without your explicit command."
-                        : entryMode === "motion" && !source
-                          ? "Hover over Motion beta to explore the concept. This preview never turns a pointer click into an action."
-                          : source
-                            ? "Start voice chat and speak, type your question below, or choose an idea."
-                            : "Add a source, then explore the ideas inside it."}
+                      {source
+                        ? t(
+                            "Start voice chat and speak, type your question below, or choose an idea.",
+                          )
+                        : entryMode === "voice"
+                          ? t(
+                              "Bring a source in with a word, then ask out loud. Nothing starts without your word, and typing always works.",
+                            )
+                          : t(
+                              "Add a source, then explore the ideas inside it.",
+                            )}
                     </p>
-                    {entryMode === "voice" && !source ? (
-                      <div
-                        className="command-rail"
-                        aria-label="Voice command examples"
-                      >
-                        <span>
-                          <Icon name="document" /> “Upload”
-                        </span>
-                        <span>
-                          <Icon name="video" /> “YouTube”
-                        </span>
-                        <span>
-                          <Icon name="voice" /> “Let&apos;s talk”
-                        </span>
-                      </div>
-                    ) : entryMode === "motion" && !source ? (
-                      <div
-                        className="ar-vr-preview"
-                        aria-label="Future AR and VR preview"
-                      >
-                        <span className="ar-vr-preview-orbit">
-                          <Icon name="motion" />
-                        </span>
-                        <span>
-                          <strong>Move</strong>
-                          <small>gesture or gaze</small>
-                        </span>
-                        <span
-                          className="ar-vr-preview-arrow"
-                          aria-hidden="true"
-                        >
-                          →
-                        </span>
-                        <span>
-                          <strong>Reveal</strong>
-                          <small>the next safe control</small>
-                        </span>
-                      </div>
-                    ) : (
+                    {source && (
                       <div className="suggestions">
-                        {[
-                          "Summarize the key ideas",
-                          "Explain this simply",
-                          "What should I remember?",
-                        ].map((prompt) => (
+                        {suggestions.map((prompt) => (
                           <button
                             type="button"
                             className="suggestion"
                             key={prompt}
-                            disabled={!source}
                             onClick={() => {
                               setQuestion(prompt);
                               questionInput.current?.focus();
@@ -1281,10 +1298,10 @@ export default function HomePage() {
                     <div key={message.id} className={`message ${message.role}`}>
                       <span className="message-author">
                         {message.role === "user"
-                          ? "You"
+                          ? t("You")
                           : message.role === "assistant"
                             ? "Ursly"
-                            : "Session update"}
+                            : t("Session update")}
                       </span>
                       <span className="message-text">
                         {message.text || "…"}
@@ -1296,8 +1313,8 @@ export default function HomePage() {
 
               {pendingAnswers > 0 && (
                 <p className="answer-pending" role="status">
-                  <span className="spinner" aria-hidden="true" /> Finding an
-                  answer in your source…
+                  <span className="spinner" aria-hidden="true" />{" "}
+                  {t("Finding an answer in your source…")}
                 </p>
               )}
               {source && (error || state.error) && (
@@ -1308,22 +1325,22 @@ export default function HomePage() {
 
               <label className="question-label" htmlFor="question">
                 {state.status === "connected"
-                  ? "Or type instead of speaking"
+                  ? t("Or type instead of speaking")
                   : source
-                    ? "Your question"
-                    : "Your question (ready when your source is added)"}
+                    ? t("Your question")
+                    : t("Your question (ready when your source is added)")}
               </label>
               <form className="composer" onSubmit={sendText}>
                 <input
                   id="question"
-                  aria-label="Ask a question"
+                  aria-label={t("Ask a question")}
                   ref={questionInput}
                   value={question}
                   onChange={(event) => setQuestion(event.target.value)}
                   placeholder={
                     source
-                      ? "Ask a question…"
-                      : "Type what you want to understand…"
+                      ? t("Ask a question…")
+                      : t("Type what you want to understand…")
                   }
                   disabled={busy}
                 />
@@ -1332,134 +1349,33 @@ export default function HomePage() {
                   type="submit"
                   disabled={!source || !question.trim() || pendingAnswers > 0}
                 >
-                  Send <Icon name="arrow" />
+                  {t("Send")} <Icon name="arrow" />
                 </button>
               </form>
               <p className="hint answer-note">
                 {source
-                  ? "Answers come from your source. Check important details in “View source text”."
-                  : "Add a PDF or YouTube source before sending so answers stay grounded."}
+                  ? t(
+                      "Answers come from your source. Check important details in “View source text”.",
+                    )
+                  : t(
+                      "Add a PDF or YouTube source before sending so answers stay grounded.",
+                    )}
               </p>
             </section>
           </div>
         </div>
 
-        <nav className="control-dock" aria-label="Choose a control mode">
-          <div className="control-dock-inner" role="tablist">
-            <span className="control-dock-label">Control with</span>
-            <button
-              type="button"
-              role="tab"
-              aria-label="Voice action"
-              aria-selected={entryMode === "voice"}
-              className={`control-dock-item${
-                entryMode === "voice" ? " active" : ""
-              }`}
-              onClick={() => switchEntryMode("voice")}
-            >
-              <Icon name="voice" />
-              <span>Voice</span>
-              <small>Default</small>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-label="Text action"
-              aria-selected={entryMode === "text"}
-              className={`control-dock-item${
-                entryMode === "text" ? " active" : ""
-              }`}
-              onClick={() => switchEntryMode("text")}
-            >
-              <Icon name="document" />
-              <span>Text</span>
-              <small>Classic</small>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-label="Motion beta"
-              aria-selected={entryMode === "motion"}
-              aria-describedby="motion-beta-tip"
-              className={`control-dock-item control-dock-motion${
-                entryMode === "motion" ? " active" : ""
-              }`}
-              onClick={() => switchEntryMode("motion")}
-            >
-              <Icon name="motion" />
-              <span>Motion</span>
-              <small>Beta</small>
-              <span
-                id="motion-beta-tip"
-                className="control-dock-tooltip"
-                role="tooltip"
-              >
-                Hover to preview the deliberate movement-first AR/VR concept. No
-                pointer click triggers an action, no camera is used, and this
-                beta requests no motion permission.
-              </span>
-            </button>
-          </div>
-        </nav>
-
         <div className="container">
-          <Onboarding />
-        </div>
-
-        <div className="container">
-          <section
-            className="how-it-works"
-            id="how-it-works"
-            aria-labelledby="how-heading"
-          >
-            <div className="guide-heading">
-              <span className="eyebrow">A little guidance</span>
-              <h2 id="how-heading">From information to understanding.</h2>
-            </div>
-            <div className="guide-grid">
-              <article>
-                <span className="guide-number">01</span>
-                <h3>Bring your source</h3>
-                <p>
-                  Choose a text-based PDF up to 25 MB or a captioned YouTube
-                  video, then check the extracted text in the preview.
-                </p>
-              </article>
-              <article>
-                <span className="guide-number">02</span>
-                <h3>Start talking</h3>
-                <p>
-                  Select Start Voice Chat, allow the microphone, and ask out
-                  loud. Interrupt or mute whenever you want; typing is always
-                  available.
-                </p>
-              </article>
-              <article>
-                <span className="guide-number">03</span>
-                <h3>Go a little deeper</h3>
-                <p>
-                  Use a suggestion or ask a follow-up in your own words. Keep
-                  the source nearby to check important details.
-                </p>
-              </article>
-            </div>
-            <details className="help-detail">
-              <summary>
-                Having trouble with a source or your microphone?
-              </summary>
-              <p>
-                Scanned PDFs need a text layer before upload. YouTube captions
-                must be available, and some videos may be blocked by YouTube.
-                For voice, allow microphone access in your browser. If voice
-                cannot connect, you can still type your questions about an
-                extracted source.
-              </p>
-            </details>
-          </section>
+          <PlatformSection onReplayIntro={openIntro} />
+          <Process locale={language} />
+          <HowItWorks />
           <Applications />
           <footer className="footer">
-            <span>Ursly · Made for your next “aha”.</span>
-            <a href="#applications">Applications &amp; GitHub ↗</a>
+            <span>{t("Ursly · Made for your next “aha”.")}</span>
+            <span className="footer-links">
+              <a href="#how-it-works">{t("How it works")} ↓</a>
+              <a href="#applications">{t("Applications & GitHub")} ↗</a>
+            </span>
           </footer>
         </div>
       </main>

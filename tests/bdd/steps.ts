@@ -18,12 +18,18 @@ import { fixturePdf } from "./fixtures";
 import { registerLocalChecks } from "./local";
 import { registerResilienceChecks } from "./resilience";
 import { registerArchitectureChecks } from "./architecture";
+import { registerEntryChecks } from "./entry";
+import { registerProcessChecks } from "./process";
 
 setDefaultTimeout(120_000);
 const baseURL = process.env.BDD_BASE_URL ?? "http://localhost:3000";
 let browser: Browser | undefined;
 export type World = {
   page?: Page;
+  /** Browser locale for the next page, e.g. "fr-CA" for a French visitor. */
+  locale?: string;
+  /** Opens the next page as a first visit, so the introduction plays. */
+  firstVisit?: boolean;
   source: IngestedSource;
   status: number;
   body: Record<string, unknown>;
@@ -60,7 +66,14 @@ async function page(world: World) {
     browser ??= await chromium.launch();
     world.page = await browser.newPage({
       viewport: { width: 390, height: 844 },
+      locale: world.locale,
     });
+    // The introduction is a modal dialog, so every scenario that is not
+    // about it starts as a returning visitor.
+    if (!world.firstVisit)
+      await world.page.addInitScript(() =>
+        localStorage.setItem("ursly-intro-v1", "seen"),
+      );
     world.requests = [];
     world.page.on("request", (request) => world.requests.push(request.url()));
   }
@@ -77,15 +90,6 @@ AfterAll(async () => {
 async function open(this: World) {
   const p = await page(this);
   await p.goto(baseURL);
-  const skipGuide = p.getByRole("button", { name: "Skip guide" });
-  await skipGuide.click({ timeout: 10_000 }).catch(() => undefined);
-}
-async function revealSourcePicker(p: Page) {
-  const reveal = p.getByRole("button", { name: "Use upload instead" });
-  if (await reveal.count()) {
-    await reveal.click();
-    await expect(p.getByLabel("PDF file")).toBeVisible();
-  }
 }
 async function result(
   world: World,
@@ -102,7 +106,6 @@ async function upload(
   mimeType = "application/pdf",
 ) {
   const p = await page(this);
-  await revealSourcePicker(p);
   // Forward to the real server; read through APIResponse to avoid Chromium's
   // inspector evicting response bodies after a 25 MB upload.
   await p.route(/\/api\/(ingest|uploads(?:\/extract)?)$/, async (route) => {
@@ -124,7 +127,6 @@ async function upload(
 }
 async function youtube(this: World, url = "https://youtu.be/dQw4w9WgXcQ") {
   const p = await page(this);
-  await revealSourcePicker(p);
   await p.getByRole("tab", { name: "YouTube video" }).click();
   await p.getByLabel("YouTube URL").fill(url);
   const response = p.waitForResponse((r) => r.url().endsWith("/api/ingest"));
@@ -541,41 +543,28 @@ step(
   ],
   open,
 );
-step("the fixed control dock is visible", async function () {
-  const dock = (await page(this)).locator(".control-dock");
-  await expect(dock).toBeVisible();
-  assert.equal(
-    await dock.evaluate((element) => getComputedStyle(element).position),
-    "fixed",
-  );
-});
-step("voice action is the default control mode", async function () {
-  await expect(
-    (await page(this)).getByRole("tab", { name: "Voice action" }),
-  ).toHaveAttribute("aria-selected", "true");
-});
-step("text and motion beta controls remain available", async function () {
-  const p = await page(this);
-  await expect(p.getByRole("tab", { name: "Text action" })).toBeVisible();
-  await expect(p.getByRole("tab", { name: "Motion beta" })).toBeVisible();
-});
 step("the short Ursly intro is available", async function () {
   const p = await page(this);
-  await p.getByRole("button", { name: "Watch Ursly in 24 seconds" }).click();
+  await p
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("button", { name: "Watch the intro" })
+    .click();
   await expect(p.getByRole("dialog")).toBeVisible();
   await expect(p.getByRole("dialog").locator("video")).toHaveAttribute(
     "preload",
-    "metadata",
+    "auto",
   );
 });
 step("the intro has a text alternative", async function () {
+  const p = await page(this);
   await expect(
-    (await page(this)).getByText("Read the intro instead", { exact: true }),
+    p.getByRole("dialog").getByText("Read the intro instead", { exact: true }),
   ).toBeVisible();
+  await p.keyboard.press("Escape");
+  await expect(p.getByRole("dialog")).toHaveCount(0);
 });
 step("the PDF and YouTube source options are visible", async function () {
   const p = await page(this);
-  await revealSourcePicker(p);
   await expect(p.getByRole("tab", { name: "PDF document" })).toBeVisible();
   await expect(p.getByRole("tab", { name: "YouTube video" })).toBeVisible();
 });
@@ -594,7 +583,6 @@ step(
 );
 step("I see an explanatory empty state", async function () {
   const p = await page(this);
-  await revealSourcePicker(p);
   await expect(
     p.getByText("We’ll read it for you. Then you can ask about it."),
   ).toBeVisible();
@@ -799,7 +787,6 @@ step("I have submitted a source", async function () {
     await blocked;
     await route.continue();
   });
-  await revealSourcePicker(p);
   await p.getByRole("tab", { name: "YouTube video" }).click();
   await p.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
   await p.getByRole("button", { name: "Continue to questions" }).click();
@@ -959,6 +946,8 @@ registerLocalChecks(step, {
 });
 registerResilienceChecks(step, { page, open, ready, baseURL });
 registerArchitectureChecks(step);
+registerEntryChecks(step, { page, open, baseURL });
+registerProcessChecks(step, { page });
 
 // Static inventory: unsupported steps are PENDING, never successful. Newly added
 // phrases without implementations remain undefined and fail the default gate.

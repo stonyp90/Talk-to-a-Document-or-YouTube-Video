@@ -20,7 +20,10 @@ x-app-environment: &app-environment
   APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
   CONTEXT_CHARACTER_BUDGET: ${CONTEXT_CHARACTER_BUDGET:-120000}
   SESSION_TTL_MS: ${SESSION_TTL_MS:-3600000}
-  RATE_LIMIT_DISABLED: ${RATE_LIMIT_DISABLED:-}
+  # The local stack exists to be exercised: the acceptance suite issues far
+  # more than the production budget of 20 ingests a minute from one address.
+  # Production keeps the limiter; set RATE_LIMIT_DISABLED= to test it here.
+  RATE_LIMIT_DISABLED: ${RATE_LIMIT_DISABLED:-true}
 
 services:
   # Next.js owns both the frontend and API routes; there is no unused second API.
@@ -29,7 +32,10 @@ services:
       context: .
       target: runtime
       args:
-        OBJECT_STORE_PUBLIC_ENDPOINT: ${OBJECT_STORE_PUBLIC_ENDPOINT:-}
+        # The Content Security Policy is fixed at build time, so the browser
+        # may only reach the object store the image was built for. It must be
+        # the same address the runtime hands out for presigned uploads.
+        OBJECT_STORE_PUBLIC_ENDPOINT: ${OBJECT_STORE_PUBLIC_ENDPOINT:-http://localhost:9002}
     environment:
       <<: *app-environment
       PORT: 3000
@@ -71,7 +77,10 @@ services:
       context: .
       target: test
       args:
-        OBJECT_STORE_PUBLIC_ENDPOINT: ${OBJECT_STORE_PUBLIC_ENDPOINT:-}
+        # The Content Security Policy is fixed at build time, so the browser
+        # may only reach the object store the image was built for. It must be
+        # the same address the runtime hands out for presigned uploads.
+        OBJECT_STORE_PUBLIC_ENDPOINT: ${OBJECT_STORE_PUBLIC_ENDPOINT:-http://localhost:9002}
     network_mode: service:web
     environment:
       <<: *app-environment

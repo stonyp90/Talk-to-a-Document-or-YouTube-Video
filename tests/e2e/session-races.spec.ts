@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./base";
 import { pdfFixture } from "../pdf-fixture";
 
 // Explicit fault injection: delayed fetch completions intentionally ignore abort,
@@ -38,9 +39,7 @@ const stop = (page: Page) =>
   page.getByRole("button", { name: "Stop", exact: true });
 
 async function ingest(page: Page, id = "dQw4w9WgXcQ") {
-  if (await page.getByRole("button", { name: "Use upload instead" }).count())
-    await page.getByRole("button", { name: "Use upload instead" }).click();
-  else if (await page.locator(".source-picker:not([open])").count())
+  if (await page.locator(".source-picker:not([open])").count())
     await page.getByText("Change source", { exact: true }).click();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill(`https://youtu.be/${id}`);
@@ -182,8 +181,6 @@ test.beforeEach(async ({ page }) => {
     });
   });
   await page.goto("/");
-  const skipGuide = page.getByRole("button", { name: "Skip guide" });
-  await skipGuide.click({ timeout: 2_000 }).catch(() => undefined);
   await ingest(page);
 });
 

@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
-import { TranslationKey } from "./i18n";
+import { Language, TranslationKey } from "./i18n";
 import { palette as c, Touch, serif } from "./design";
 
 const transcript: TranslationKey =
@@ -16,14 +16,21 @@ const transcript: TranslationKey =
 
 type Props = {
   motion: boolean;
+  language: Language;
   t: (key: TranslationKey) => string;
 };
 
-export function IntroVideo({ motion, t }: Props) {
+/** One rendering per language: the text is burned into the frames. */
+const sources: Record<Language, number> = {
+  en: require("../assets/ursly-intro.en.mp4"),
+  fr: require("../assets/ursly-intro.fr.mp4"),
+};
+
+export function IntroVideo({ motion, language, t }: Props) {
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
   const player = useVideoPlayer(
-    require("../assets/ursly-intro.mp4"),
+    sources[language],
     (video) => {
       video.loop = false;
       video.muted = true;

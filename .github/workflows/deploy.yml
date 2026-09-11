@@ -27,6 +27,9 @@ jobs:
       TF_VAR_image_tag: ${{ github.event.workflow_run.head_sha }}
       TF_VAR_openai_secret_arn: ${{ vars.OPENAI_SECRET_ARN }}
       TF_VAR_app_origin: ${{ vars.APP_ORIGIN || 'http://localhost:3000' }}
+      TF_VAR_ses_identity_arn: ${{ vars.SES_IDENTITY_ARN }}
+      TF_VAR_ses_configuration_set_name: ${{ vars.SES_CONFIGURATION_SET_NAME }}
+      TF_VAR_ses_from_address: ${{ vars.SES_FROM_ADDRESS }}
       OPENAI_SECRET_ARN: ${{ vars.OPENAI_SECRET_ARN }}
       APP_ORIGIN: ${{ vars.APP_ORIGIN }}
       ECR_REPOSITORY: talk-to-a-document-api

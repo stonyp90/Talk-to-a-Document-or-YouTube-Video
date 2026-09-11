@@ -8,6 +8,23 @@ locals {
     api        = { memory = 1024, timeout = 28, concurrency = 20, role = "${local.name}-runtime" }
     transcript = { memory = 256, timeout = 20, concurrency = 2, role = "${local.name}-transcript-runtime" }
   }
+  # SendEmail is authorized against the identity and, when the call names one,
+  # the configuration set, so both ARNs are listed. The FromAddress condition is
+  # what stops a compromised function sending as any other mailbox on the domain;
+  # a bare identity grant would hand it the whole domain. The configuration set
+  # is also attached to the identity itself, so bounce and complaint events are
+  # published even if a caller omits the parameter.
+  ses_statements = var.ses_identity_arn == "" ? [] : [{
+    Effect    = "Allow"
+    Action    = ["ses:SendEmail"]
+    Resource  = [var.ses_identity_arn, "arn:aws:ses:${var.region}:${var.account_id}:configuration-set/${var.ses_configuration_set_name}"]
+    Condition = { StringEquals = { "ses:FromAddress" = var.ses_from_address } }
+  }]
+  ses_environment = var.ses_identity_arn == "" ? {} : {
+    SES_IDENTITY_ARN           = var.ses_identity_arn
+    SES_CONFIGURATION_SET_NAME = var.ses_configuration_set_name
+    SES_FROM_ADDRESS           = var.ses_from_address
+  }
   paid_routes = toset(["POST /api/realtime/session", "POST /api/realtime/connect", "POST /api/text-chat", "POST /api/uploads", "POST /api/uploads/extract"])
   routes = merge(
     { "ANY /" = "api", "ANY /{proxy+}" = "api", "GET /transcript/{videoId}" = "transcript" },
@@ -101,7 +118,8 @@ resource "aws_iam_role_policy" "runtime" {
       each.key == "api" ? [
         { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = ["${aws_s3_bucket.uploads.arn}/uploads/*"] },
         { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn] }
-      ] : []
+      ] : [],
+      each.key == "api" ? local.ses_statements : []
     )
   })
 }
@@ -116,7 +134,7 @@ resource "aws_lambda_function" "runtime" {
   timeout                        = each.value.timeout
   reserved_concurrent_executions = each.value.concurrency
   environment {
-    variables = each.key == "api" ? {
+    variables = each.key == "api" ? merge({
       PORT                     = "3000", HOSTNAME = "0.0.0.0", PROVIDER_MODE = "live"
       OPENAI_SECRET_ARN        = var.openai_secret_arn
       UPLOAD_BUCKET            = aws_s3_bucket.uploads.id
@@ -126,7 +144,7 @@ resource "aws_lambda_function" "runtime" {
       OPENAI_BASE_URL          = "https://api.openai.com"
       OPENAI_REALTIME_MODEL    = "gpt-realtime", OPENAI_TEXT_MODEL = "gpt-4.1-mini"
       CONTEXT_CHARACTER_BUDGET = tostring(var.context_character_budget)
-      } : merge(
+      }, local.ses_environment) : merge(
       { PORT = "3010", TRANSCRIPT_MODE = "live", UPSTREAM_TIMEOUT_SECONDS = "10" },
       var.transcript_proxy_url == "" ? {} : { TRANSCRIPT_PROXY_URL = var.transcript_proxy_url }
     )

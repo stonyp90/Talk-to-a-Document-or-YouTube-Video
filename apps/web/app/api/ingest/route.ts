@@ -1,5 +1,10 @@
 import { ingestFormData, openSource } from "@/apps/web/src/composition";
-import { errorResponse, json, rateLimit } from "@/apps/web/src/http";
+import {
+  errorResponse,
+  json,
+  multipartFormData,
+  rateLimit,
+} from "@/apps/web/src/http";
 
 export async function POST(request: Request) {
   const limited = rateLimit(request, {
@@ -9,7 +14,8 @@ export async function POST(request: Request) {
   });
   if (limited) return limited;
   try {
-    return json(await openSource(await ingestFormData(await request.formData())));
+    const form = await multipartFormData(request);
+    return json(await openSource(await ingestFormData(form)));
   } catch (error) {
     return errorResponse(error, "Source ingestion failed. Please try again.");
   }

@@ -350,6 +350,39 @@ export const french: Dictionary = {
   "Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, you can still type your questions about an extracted source.":
     "Les PDF numérisés doivent contenir une couche de texte avant le téléversement. Les sous-titres YouTube doivent être disponibles, et certaines vidéos peuvent être bloquées par YouTube. Pour la voix, autorisez le microphone dans votre navigateur. Si la voix ne se connecte pas, vous pouvez toujours écrire vos questions sur une source extraite.",
 
+  // Applications
+  Applications: "Applications",
+  "Your next insight, wherever you go.":
+    "Votre prochain déclic, où que vous soyez.",
+  "Try Ursly on Android, explore the iOS Simulator build, or look inside the code.":
+    "Essayez Ursly sur Android, explorez la version pour le simulateur iOS ou regardez le code de l’intérieur.",
+  "Release notes & installation": "Notes de version et installation",
+  "Android preview": "Aperçu Android",
+  "Take Ursly with you.": "Emportez Ursly avec vous.",
+  "Download the signed APK for Android 7.0 or later. Installation requires allowing apps from your browser.":
+    "Téléchargez l’APK signé pour Android 7.0 ou une version plus récente. L’installation exige d’autoriser les applications provenant de votre navigateur.",
+  "Download Android APK": "Télécharger l’APK Android",
+  "Preview {version} · APK": "Aperçu {version} · APK",
+  "iOS Simulator preview": "Aperçu simulateur iOS",
+  "Explore the iOS experience.": "Découvrez l’expérience iOS.",
+  "For the iOS Simulator in Xcode on an Apple silicon Mac. This archive cannot be installed on an iPhone.":
+    "Pour le simulateur iOS dans Xcode, sur un Mac à puce Apple. Cette archive ne peut pas être installée sur un iPhone.",
+  "Download iOS Simulator build":
+    "Télécharger la version pour le simulateur iOS",
+  "Preview {version} · ARM64 archive": "Aperçu {version} · archive ARM64",
+  "Public repository": "Dépôt public",
+  "See how it’s made.": "Voyez comment c’est fait.",
+  "Explore the source, architecture, development setup, and tests. Contributions and thoughtful feedback are welcome.":
+    "Explorez le code source, l’architecture, l’environnement de développement et les tests. Les contributions et les commentaires réfléchis sont bienvenus.",
+  "View on GitHub": "Voir sur GitHub",
+  // Names of technologies: identical in French, and said so on purpose.
+  "Next.js · Expo · TypeScript": "Next.js · Expo · TypeScript",
+  "These are evaluation builds. Review the {limitations} before downloading. {checksums}.":
+    "Ce sont des versions d’évaluation. Consultez les {limitations} avant de télécharger. {checksums}.",
+  "known limitations and installation instructions":
+    "limites connues et instructions d’installation",
+  "Verify download checksums": "Vérifier les sommes de contrôle",
+
   // Footer
   "Ursly · Made for your next “aha”.":
     "Ursly · Conçu pour votre prochain déclic.",

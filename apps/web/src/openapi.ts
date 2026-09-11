@@ -55,7 +55,11 @@ const OPERATIONS: Operation[] = [
       description: "The extracted source, its session id, and its context use.",
     },
     errors: [
-      { status: 400, description: "The source was rejected during validation." },
+      {
+        status: 400,
+        description:
+          "The body could not be read as multipart form data, or the source was rejected during validation.",
+      },
       { status: 429, description: "Too many ingestion requests." },
       { status: 502, description: "Captions could not be retrieved." },
     ],
@@ -73,7 +77,10 @@ const OPERATIONS: Operation[] = [
       description: "A presigned multipart form post.",
     },
     errors: [
-      { status: 400, description: "The described file is not an acceptable PDF." },
+      {
+        status: 400,
+        description: "The described file is not an acceptable PDF.",
+      },
       { status: 429, description: "Too many upload requests." },
     ],
   },
@@ -90,7 +97,10 @@ const OPERATIONS: Operation[] = [
       description: "The extracted source, its session id, and its context use.",
     },
     errors: [
-      { status: 400, description: "The upload reference or the PDF is unusable." },
+      {
+        status: 400,
+        description: "The upload reference or the PDF is unusable.",
+      },
       { status: 429, description: "Too many extraction requests." },
     ],
   },
@@ -104,11 +114,15 @@ const OPERATIONS: Operation[] = [
     response: {
       status: 200,
       schema: realtimeCredentialSchema,
-      description: "A short-lived credential the browser uses directly with OpenAI.",
+      description:
+        "A short-lived credential the browser uses directly with OpenAI.",
     },
     errors: [
       { status: 400, description: "No usable source was supplied." },
-      { status: 409, description: "The session expired and no source was resent." },
+      {
+        status: 409,
+        description: "The session expired and no source was resent.",
+      },
       { status: 429, description: "Too many voice sessions." },
     ],
   },
@@ -126,7 +140,10 @@ const OPERATIONS: Operation[] = [
     },
     errors: [
       { status: 400, description: "The question or the source is unusable." },
-      { status: 409, description: "The session expired and no source was resent." },
+      {
+        status: 409,
+        description: "The session expired and no source was resent.",
+      },
       { status: 429, description: "Too many questions." },
     ],
   },

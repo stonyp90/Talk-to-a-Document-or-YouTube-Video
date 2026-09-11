@@ -74,6 +74,68 @@ export function errorResponse(error: unknown, fallback: string): Response {
   return jsonError("INTERNAL_ERROR", fallback, 500);
 }
 
+/**
+ * Reads a multipart form, or reports the client's mistake as the client's.
+ * `Request.formData` throws on the wrong content type and on a truncated
+ * body, and letting that reach the generic handler would answer a malformed
+ * request with a 500: a healthy service looking broken, and the one person who
+ * can fix the call told nothing about how.
+ */
+export async function multipartFormData(request: Request): Promise<FormData> {
+  try {
+    return await request.formData();
+  } catch (cause) {
+    throw new InputValidationError(
+      "Send this request as multipart/form-data with a file or a url field.",
+      "INVALID_FORM_DATA",
+      { cause },
+    );
+  }
+}
+
+/** The first hop of a comma-separated proxy header, if it carries one. */
+const firstHop = (value: string | null): string | undefined =>
+  value?.split(",")[0]?.trim() || undefined;
+
+/** An absolute http(s) origin, or nothing when the value cannot be one. */
+const httpOrigin = (value: string | undefined): string | undefined => {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.origin
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * The origin the caller actually reached, which is the only origin a client
+ * generated from what we publish can call back. Behind the proxy the process
+ * is bound to a private address, so `request.url` names that bind address and
+ * not the public host: the forwarded headers are the truth there. `APP_ORIGIN`
+ * is the same configured origin the deployment already uses for CORS, for a
+ * proxy that forwards nothing, and in local development the request itself is
+ * already right. Nothing is hardcoded, so one image serves every environment.
+ */
+export function publicOrigin(request: Request): string {
+  const requestUrl = new URL(request.url);
+  const host =
+    firstHop(request.headers.get("x-forwarded-host")) ??
+    firstHop(request.headers.get("host"));
+  const forwardedScheme = firstHop(request.headers.get("x-forwarded-proto"));
+  const scheme =
+    forwardedScheme === "http" || forwardedScheme === "https"
+      ? forwardedScheme
+      : requestUrl.protocol.replace(":", "");
+  return (
+    (host ? httpOrigin(`${scheme}://${host}`) : undefined) ??
+    httpOrigin(process.env.APP_ORIGIN) ??
+    requestUrl.origin
+  );
+}
+
 type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
 

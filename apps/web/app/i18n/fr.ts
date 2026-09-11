@@ -33,11 +33,13 @@ export const french: Dictionary = {
   "Skip intro": "Passer l’intro",
   "Play the intro": "Lire l’intro",
   "Intro progress": "Progression de l’intro",
-  "Continues to the app in {seconds} s": "L’application s’ouvre dans {seconds} s",
+  "Continues to the app in {seconds} s":
+    "L’application s’ouvre dans {seconds} s",
   "Skip whenever you like. The app is right behind this.":
     "Passez quand vous voulez. L’application est juste derrière.",
   "Read the intro instead": "Lire l’intro plutôt",
-  "The intro is unavailable right now.": "L’intro n’est pas disponible pour le moment.",
+  "The intro is unavailable right now.":
+    "L’intro n’est pas disponible pour le moment.",
   "Ursly. A source. A conversation.": "Ursly. Une source. Une conversation.",
   "Bring a document or a video. Ursly reads it for you.":
     "Apportez un document ou une vidéo. Ursly le lit pour vous.",
@@ -156,7 +158,8 @@ export const french: Dictionary = {
   "Open the PDF upload picker": "Ouvrir le sélecteur de PDF",
   "Start voice chat": "Démarrer la conversation vocale",
   "Ask for a key-ideas summary": "Demander un résumé des idées clés",
-  "Go back or undo the last step": "Revenir en arrière ou annuler la dernière étape",
+  "Go back or undo the last step":
+    "Revenir en arrière ou annuler la dernière étape",
   "Go forward to the next step": "Passer à l’étape suivante",
   "Cancel the current action": "Annuler l’action en cours",
   "Voice actions are off. Your saved triggers are ready for next time.":
@@ -216,7 +219,8 @@ export const french: Dictionary = {
   "Needs attention": "À vérifier",
   "Listening for your question": "À l’écoute de votre question",
   "Hearing you": "Je vous entends",
-  "Answering — speak to interrupt": "Réponse en cours : parlez pour interrompre",
+  "Answering — speak to interrupt":
+    "Réponse en cours : parlez pour interrompre",
   Exploring: "Exploration de",
   "Demo simulation: AI replies are simulated; microphone audio is not sent to AI. Use live mode for real answers and voice.":
     "Démonstration : les réponses de l’IA sont simulées et l’audio du microphone n’est pas envoyé à l’IA. Utilisez le mode réel pour de vraies réponses et la voix.",
@@ -250,7 +254,8 @@ export const french: Dictionary = {
   "What should I remember?": "Que devrais-je retenir?",
   You: "Vous",
   "Session update": "Mise à jour de la session",
-  "Finding an answer in your source…": "Recherche d’une réponse dans votre source…",
+  "Finding an answer in your source…":
+    "Recherche d’une réponse dans votre source…",
   "Or type instead of speaking": "Ou écrivez au lieu de parler",
   "Your question": "Votre question",
   "Your question (ready when your source is added)":
@@ -284,8 +289,8 @@ export const french: Dictionary = {
   "A human stays in the loop.": "Un humain garde la main.",
   "Every action Ursly takes is one you asked for, can see and can undo. When it is unsure, it asks instead of guessing.":
     "Chaque action qu’Ursly effectue est une action que vous avez demandée, que vous voyez et que vous pouvez annuler. En cas de doute, Ursly vous pose la question au lieu de deviner.",
-  "A voice that adapts to you, with your permission.":
-    "Une voix qui s’adapte à vous, avec votre accord.",
+  "A voice model that learns your voice, with your permission.":
+    "Un modèle vocal qui apprend votre voix, avec votre permission.",
   "Ursly is built to tune itself to your accent, your pace and the words you actually use, so it understands you a little better each time. Your recordings stay yours: nothing is kept without your say, and everything can be deleted in one tap.":
     "Ursly est conçu pour se régler sur votre accent, votre débit et les mots que vous employez vraiment, pour vous comprendre un peu mieux à chaque échange. Vos enregistrements vous appartiennent : rien n’est conservé sans votre consentement et tout peut être supprimé d’un seul geste.",
   "Speak. Move. Type.": "Parlez. Bougez. Écrivez.",
@@ -295,7 +300,8 @@ export const french: Dictionary = {
     "Un site simple aujourd’hui. Toutes les surfaces demain.",
   "Talking to a document is the first surface. The same platform is designed to drive connected objects, 3D objects and interfaces that do not exist yet, without changing how you ask.":
     "Converser avec un document est la première surface. La même plateforme est conçue pour piloter des objets connectés, des objets 3D et des interfaces qui n’existent pas encore, sans changer votre façon de demander.",
-  "What is true today, next and later": "Ce qui est vrai aujourd’hui, ensuite et plus tard",
+  "What is true today, next and later":
+    "Ce qui est vrai aujourd’hui, ensuite et plus tard",
   Today: "Aujourd’hui",
   Next: "Ensuite",
   Later: "Plus tard",
@@ -309,7 +315,8 @@ export const french: Dictionary = {
   "No dates. We publish what ships, and we revise this as we learn. Not on the list: replacing your keyboard, or acting without asking.":
     "Sans dates. Nous publions ce qui est livré et nous révisons ce plan à mesure que nous apprenons. Pas au programme : remplacer votre clavier, ou agir sans demander.",
   "Open source": "Code source ouvert",
-  "Tests and CI on every change": "Tests et intégration continue à chaque changement",
+  "Tests and CI on every change":
+    "Tests et intégration continue à chaque changement",
   "Signed builds and release notes": "Versions signées et notes de version",
   "Watch the intro again": "Revoir l’intro",
   "Less scrolling. More understanding. On every surface that comes next.":
@@ -333,7 +340,8 @@ export const french: Dictionary = {
     "Les PDF numérisés doivent contenir une couche de texte avant le téléversement. Les sous-titres YouTube doivent être disponibles, et certaines vidéos peuvent être bloquées par YouTube. Pour la voix, autorisez le microphone dans votre navigateur. Si la voix ne se connecte pas, vous pouvez toujours écrire vos questions sur une source extraite.",
 
   // Footer
-  "Ursly · Made for your next “aha”.": "Ursly · Conçu pour votre prochain déclic.",
+  "Ursly · Made for your next “aha”.":
+    "Ursly · Conçu pour votre prochain déclic.",
   "How it works": "Comment ça marche",
   "Applications & GitHub": "Applications et GitHub",
 };

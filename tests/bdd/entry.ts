@@ -17,8 +17,9 @@ function intro(p: Page) {
 function video(p: Page) {
   return intro(p).locator("video");
 }
+/** Landmarks are named in the page language. */
 function nav(p: Page) {
-  return p.getByRole("navigation", { name: "Primary" });
+  return p.getByRole("navigation", { name: /^(Primary|Principale)$/ });
 }
 function modes(p: Page) {
   return nav(p).getByRole("radiogroup", { name: "Control mode" });
@@ -67,10 +68,7 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     await expect(p.locator("#workspace")).toBeVisible();
     await expect(p.getByLabel("PDF file")).toBeVisible();
     assert.equal(
-      await p.evaluate(
-        (key) => localStorage.getItem(key),
-        INTRO_STORAGE_KEY,
-      ),
+      await p.evaluate((key) => localStorage.getItem(key), INTRO_STORAGE_KEY),
       "seen",
     );
   });
@@ -134,7 +132,9 @@ export function registerEntryChecks(step: Step, h: Helpers) {
   });
   step("keyboard to action can be selected", async function () {
     const p = await h.page(this);
-    const keyboard = modes(p).getByRole("radio", { name: "Keyboard to action" });
+    const keyboard = modes(p).getByRole("radio", {
+      name: "Keyboard to action",
+    });
     await keyboard.click();
     await expect(keyboard).toHaveAttribute("aria-checked", "true");
     await expect(
@@ -175,7 +175,12 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     "the platform section explains connected objects, 3D objects and voice adaptation",
     async function () {
       const section = (await h.page(this)).locator("#platform");
-      for (const phrase of [/connected objects/i, /3D/, /your voice/i, /human/i])
+      for (const phrase of [
+        /connected objects/i,
+        /3D/,
+        /your voice/i,
+        /human/i,
+      ])
         await expect(section).toContainText(phrase);
     },
   );

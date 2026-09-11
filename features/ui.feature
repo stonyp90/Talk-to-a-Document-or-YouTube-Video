@@ -49,3 +49,10 @@ Feature: Provide a polished mobile-first conversation UI
     When I use the source and conversation screens
     Then all essential content remains reachable
     And no horizontal scrolling is required
+
+  Scenario: Explain how Ursly is built and what it is for
+    When I open the application
+    Then the build loop lists every stage from concept to training
+    And the build loop names security, compliance and continuous delivery
+    And the Ursly mission is stated in plain words
+    And the build loop animation can be paused

@@ -16,7 +16,7 @@ const CARDS: readonly Card[] = [
   },
   {
     icon: "voice",
-    title: "A voice that adapts to you, with your permission.",
+    title: "A voice model that learns your voice, with your permission.",
     body: "Ursly is built to tune itself to your accent, your pace and the words you actually use, so it understands you a little better each time. Your recordings stay yours: nothing is kept without your say, and everything can be deleted in one tap.",
   },
   {
@@ -51,15 +51,27 @@ const ROADMAP = [
  * true today and what comes next, told without a single superlative. It is
  * reachable from the fixed menu and reads in one scroll.
  */
-export function PlatformSection({ onReplayIntro }: { onReplayIntro: () => void }) {
+export function PlatformSection({
+  onReplayIntro,
+}: {
+  onReplayIntro: () => void;
+}) {
   const { t } = useLanguage();
   return (
-    <section className="platform" id="platform" aria-labelledby="platform-heading">
+    <section
+      className="platform"
+      id="platform"
+      aria-labelledby="platform-heading"
+    >
       <div className="platform-heading">
         <span className="eyebrow">{t("Platform")}</span>
-        <h2 id="platform-heading">{t("Not a new website. A new way to use one.")}</h2>
+        <h2 id="platform-heading">
+          {t("Not a new website. A new way to use one.")}
+        </h2>
         <p className="platform-lede">
-          {t("Ursly sits between what you mean and what a screen does. You speak, move or type; it listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.")}
+          {t(
+            "Ursly sits between what you mean and what a screen does. You speak, move or type; it listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.",
+          )}
         </p>
       </div>
 
@@ -75,7 +87,10 @@ export function PlatformSection({ onReplayIntro }: { onReplayIntro: () => void }
         ))}
       </div>
 
-      <ol className="roadmap" aria-label={t("What is true today, next and later")}>
+      <ol
+        className="roadmap"
+        aria-label={t("What is true today, next and later")}
+      >
         {ROADMAP.map((item, index) => (
           <li
             className="roadmap-item"
@@ -97,20 +112,28 @@ export function PlatformSection({ onReplayIntro }: { onReplayIntro: () => void }
         ))}
       </ol>
       <p className="roadmap-note">
-        {t("No dates. We publish what ships, and we revise this as we learn. Not on the list: replacing your keyboard, or acting without asking.")}
+        {t(
+          "No dates. We publish what ships, and we revise this as we learn. Not on the list: replacing your keyboard, or acting without asking.",
+        )}
       </p>
 
       <div className="platform-proof">
         <a href={repository}>{t("Open source")}</a>
-        <a href={`${repository}/actions`}>{t("Tests and CI on every change")}</a>
-        <a href={`${repository}/releases`}>{t("Signed builds and release notes")}</a>
+        <a href={`${repository}/actions`}>
+          {t("Tests and CI on every change")}
+        </a>
+        <a href={`${repository}/releases`}>
+          {t("Signed builds and release notes")}
+        </a>
         <button type="button" className="link-button" onClick={onReplayIntro}>
           {t("Watch the intro again")} · 24 s
         </button>
       </div>
 
       <p className="platform-closing">
-        {t("Less scrolling. More understanding. On every surface that comes next.")}
+        {t(
+          "Less scrolling. More understanding. On every surface that comes next.",
+        )}
       </p>
     </section>
   );

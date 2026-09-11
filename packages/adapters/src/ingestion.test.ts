@@ -15,3 +15,14 @@ it("rejects renamed non-PDF bytes", async () => {
     ),
   ).rejects.toThrow("not a valid PDF");
 });
+it("reports a PDF the parser cannot read as the caller's input, not a fault", async () => {
+  const corrupt = "%PDF-1.4\nThis is not a valid PDF document.";
+  await expect(
+    extractPdfText(
+      new File([corrupt], "broken.pdf", { type: "application/pdf" }),
+    ),
+  ).rejects.toMatchObject({
+    name: "InputValidationError",
+    code: "UNREADABLE_PDF",
+  });
+});

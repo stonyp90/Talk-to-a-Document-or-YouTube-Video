@@ -52,9 +52,13 @@ test.describe("source conversation journey", () => {
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
     ).toBeHidden();
+    // The composer is on screen from the start; only sending waits for a source.
     await expect(
       page.getByLabel("Ask a question", { exact: true }),
-    ).toBeHidden();
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Send", exact: true }),
+    ).toBeDisabled();
     const prepare = page.waitForResponse(
       (r) =>
         r.url().endsWith("/api/uploads") && r.request().method() === "POST",
@@ -93,9 +97,13 @@ test.describe("source conversation journey", () => {
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
     ).toBeHidden();
+    // The composer is on screen from the start; only sending waits for a source.
     await expect(
       page.getByLabel("Ask a question", { exact: true }),
-    ).toBeHidden();
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Send", exact: true }),
+    ).toBeDisabled();
   });
 
   test("rejects an invalid YouTube URL", async ({ page }) => {
@@ -116,9 +124,13 @@ test.describe("source conversation journey", () => {
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
     ).toBeHidden();
+    // The composer is on screen from the start; only sending waits for a source.
     await expect(
       page.getByLabel("Ask a question", { exact: true }),
-    ).toBeHidden();
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Send", exact: true }),
+    ).toBeDisabled();
   });
 
   test("ingests YouTube and displays the actual text fallback API answer", async ({

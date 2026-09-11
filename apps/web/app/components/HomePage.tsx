@@ -17,6 +17,7 @@ import { Icon } from "./Icon";
 import { IntroGate, hasSeenIntro } from "./IntroGate";
 import type { EntryMode } from "./ModeSwitcher";
 import { PlatformSection } from "./PlatformSection";
+import { Process } from "./Process";
 import { TopNav } from "./TopNav";
 import { VoiceActions, type VoiceActionId } from "./VoiceActions";
 import { useLanguage } from "../i18n/LanguageProvider";
@@ -125,13 +126,16 @@ function readSavedMode(): EntryMode {
 }
 
 export default function HomePage() {
-  const { t } = useLanguage();
-  const [entryMode, setEntryMode] = useState<EntryMode>("voice");
-  // The chosen mode is remembered per browser; the server always starts on
-  // voice so hydration has nothing to reconcile.
-  useEffect(() => {
-    setEntryMode(readSavedMode());
-  }, []);
+  const { t, language } = useLanguage();
+  // The chosen mode is remembered per browser. The server snapshot is voice,
+  // so hydration has nothing to reconcile; a choice made here wins over it.
+  const savedMode = useSyncExternalStore(
+    subscribeToStorage,
+    readSavedMode,
+    () => "voice" as EntryMode,
+  );
+  const [chosenMode, setChosenMode] = useState<EntryMode | null>(null);
+  const entryMode: EntryMode = chosenMode ?? savedMode;
   const [tab, setTab] = useState<SourceTab>("pdf");
   const [file, setFile] = useState<File | undefined>();
   const [url, setUrl] = useState("");
@@ -628,7 +632,7 @@ export default function HomePage() {
   }
 
   function switchEntryMode(mode: EntryMode) {
-    setEntryMode(mode);
+    setChosenMode(mode);
     try {
       localStorage.setItem(MODE_STORAGE_KEY, mode);
     } catch {
@@ -1290,6 +1294,7 @@ export default function HomePage() {
 
         <div className="container">
           <PlatformSection onReplayIntro={openIntro} />
+          <Process locale={language} />
           <HowItWorks />
           <Applications />
           <footer className="footer">

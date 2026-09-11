@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -163,9 +164,10 @@ function findMatches(
     .map(({ trigger }) => trigger);
 }
 
-function readSavedTriggers(): VoiceTrigger[] {
+const TRIGGER_STORAGE_KEY = "ursly-voice-triggers-v1";
+
+function parseSavedTriggers(stored: string | null): VoiceTrigger[] {
   try {
-    const stored = localStorage.getItem("ursly-voice-triggers-v1");
     if (stored === null) return defaultTriggers;
     const saved = JSON.parse(stored) as unknown;
     if (!Array.isArray(saved)) return [];
@@ -192,6 +194,31 @@ function readSavedTriggers(): VoiceTrigger[] {
   }
 }
 
+/**
+ * The saved triggers as an external store: browser storage is the source, the
+ * server snapshot is the default set, and the parsed value is cached per raw
+ * string so React sees a stable reference between renders.
+ */
+let savedTriggersCache: { raw: string | null; parsed: VoiceTrigger[] } = {
+  raw: null,
+  parsed: defaultTriggers,
+};
+function readSavedTriggers(): VoiceTrigger[] {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(TRIGGER_STORAGE_KEY);
+  } catch {
+    raw = null;
+  }
+  if (savedTriggersCache.raw !== raw || raw === null)
+    savedTriggersCache = { raw, parsed: parseSavedTriggers(raw) };
+  return savedTriggersCache.parsed;
+}
+function subscribeToTriggerStorage(notify: () => void): () => void {
+  window.addEventListener("storage", notify);
+  return () => window.removeEventListener("storage", notify);
+}
+
 function browserSupportsSpeechRecognition(): boolean {
   if (typeof window === "undefined") return false;
   const speechWindow = window as SpeechWindow;
@@ -211,10 +238,23 @@ export function VoiceActions({
   const [phrase, setPhrase] = useState("");
   const [action, setAction] = useState<VoiceActionId>("upload");
   const [editingId, setEditingId] = useState<string | null>(null);
-  // Saved triggers live in browser storage, which the server cannot read, so
-  // the first render uses the defaults and the saved set arrives after mount.
-  const [triggers, setTriggers] = useState<VoiceTrigger[]>(defaultTriggers);
-  const triggersLoaded = useRef(false);
+  // Saved triggers live in browser storage, which the server cannot read: the
+  // server snapshot is the default set, hydration reads the saved one, and an
+  // edit made on this page wins over both until it is persisted.
+  const savedTriggers = useSyncExternalStore(
+    subscribeToTriggerStorage,
+    readSavedTriggers,
+    () => defaultTriggers,
+  );
+  const [editedTriggers, setEditedTriggers] = useState<VoiceTrigger[] | null>(
+    null,
+  );
+  const triggers = editedTriggers ?? savedTriggers;
+  const setTriggers = useCallback(
+    (update: (current: VoiceTrigger[]) => VoiceTrigger[]) =>
+      setEditedTriggers((current) => update(current ?? readSavedTriggers())),
+    [],
+  );
   // The server cannot know the browser; it assumes support and hydration
   // corrects it without a mismatch.
   const supported = useSyncExternalStore(
@@ -302,18 +342,13 @@ export function VoiceActions({
   }
 
   useEffect(() => {
-    setTriggers(readSavedTriggers());
-    triggersLoaded.current = true;
-  }, []);
-
-  useEffect(() => {
-    if (!triggersLoaded.current) return;
+    if (!editedTriggers) return;
     try {
-      localStorage.setItem("ursly-voice-triggers-v1", JSON.stringify(triggers));
+      localStorage.setItem(TRIGGER_STORAGE_KEY, JSON.stringify(editedTriggers));
     } catch {
       /* Voice triggers still work for this session when storage is unavailable. */
     }
-  }, [triggers]);
+  }, [editedTriggers]);
 
   useEffect(
     () => () => {

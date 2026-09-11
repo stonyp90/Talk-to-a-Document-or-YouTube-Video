@@ -108,14 +108,16 @@ test.describe("french visitor", () => {
       .poll(() => video.evaluate((v: HTMLVideoElement) => v.currentSrc))
       .toMatch(/ursly-intro\.fr\.(webm|mp4)$/);
     await page.getByRole("button", { name: "Passer l’intro" }).click();
+    // Landmarks are named in the page language too.
+    const menu = page.getByRole("navigation", { name: "Principale" });
     await expect(
-      nav(page).getByRole("radiogroup", { name: "Mode de contrôle" }),
+      menu.getByRole("radiogroup", { name: "Mode de contrôle" }),
     ).toBeVisible();
     await expect(
-      nav(page).getByRole("radio", { name: "Voix vers action" }),
+      menu.getByRole("radio", { name: "Commande vocale" }),
     ).toHaveAttribute("aria-checked", "true");
     // Switching language is one tap and remembered by the root URL.
-    await nav(page).getByRole("link", { name: "English" }).click();
+    await menu.getByRole("link", { name: "English" }).click();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");

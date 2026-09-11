@@ -502,13 +502,25 @@ test("back, next and cancel are active defaults and can be edited", async ({
     page.getByText("Going back — the source controls are ready."),
   ).toBeVisible();
 
+  // Ursly speaks its confirmation before it listens again, so the next word
+  // is only heard once the microphone is back on.
+  await expect(page.getByText("Listening for a command")).toBeVisible({
+    timeout: 15_000,
+  });
   await emitSpeech(page, "next");
   await expect(
     page.getByText("Next step: choose a PDF or paste a YouTube link."),
   ).toBeVisible();
 
+  await expect(page.getByText("Listening for a command")).toBeVisible({
+    timeout: 15_000,
+  });
   await emitSpeech(page, "cancel");
-  await expect(page.getByText("Voice actions are off")).toBeVisible();
+  // Cancel stops listening: the button offers to start again.
+  await expect(
+    page.getByRole("button", { name: "Speak a command" }),
+  ).toBeVisible();
+  await expect(page.getByText("Listening for a command")).toHaveCount(0);
   await expect(
     page.getByText("Cancelled — the current action has been stopped."),
   ).toBeVisible();

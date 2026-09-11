@@ -55,3 +55,12 @@ Docker Compose includes every running application service: web/backend, transcri
 and S3-compatible MinIO plus bucket initialization. Terraform is deployment tooling,
 not a long-running service. iOS and Android simulators run on the host; this migration
 does not claim new device permissions or verified simulator/media access.
+
+Interface language is a routing concern, not a domain one. `apps/web/proxy.ts`
+negotiates `en` or `fr` (cookie, then `Accept-Language`) and rewrites the root
+URL to `app/[lang]`, so both languages are prerendered with the right `lang`.
+`apps/web/app/i18n` holds the English-keyed dictionary and the client provider;
+the core never sees a locale. Presigned uploads go straight from the browser to
+the object store, so the Content Security Policy — fixed at build time in
+`next.config.ts` — must name the public store address the runtime hands out;
+Compose passes the same value as a build argument and as an environment variable.

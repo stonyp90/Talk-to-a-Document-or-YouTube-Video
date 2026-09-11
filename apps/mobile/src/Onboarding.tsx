@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { TranslationKey } from "./i18n";
+import { Language, TranslationKey } from "./i18n";
 import {
   Brand,
   Orbit,
@@ -61,10 +61,11 @@ const steps: Step[] = [
 
 type Props = {
   motion: boolean;
+  language: Language;
   t: (key: TranslationKey) => string;
 };
 
-export function MobileOnboarding({ motion, t }: Props) {
+export function MobileOnboarding({ motion, language, t }: Props) {
   const [ready, setReady] = useState(false);
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
@@ -148,7 +149,7 @@ export function MobileOnboarding({ motion, t }: Props) {
               {t("QUICK TOUR")} · {String(step + 1).padStart(2, "0")} /{" "}
               {String(steps.length).padStart(2, "0")}
             </Text>
-            <IntroVideo motion={motion} t={t} />
+            <IntroVideo motion={motion} language={language} t={t} />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t(paused ? "Resume slides" : "Pause slides")}

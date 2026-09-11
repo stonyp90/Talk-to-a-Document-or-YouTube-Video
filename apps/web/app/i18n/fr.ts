@@ -1,6 +1,23 @@
 import type { Dictionary } from "./translate";
 
 /**
+ * The terms French writes exactly as English does: product and technology
+ * names, and the words the two languages happen to share. Every one of them is
+ * a decision, named here so it can be argued with.
+ *
+ * Anywhere else, an entry whose French equals its English is not a decision but
+ * a placeholder — the English copied across while the translation was late —
+ * and the page then reads English to a French reader. The tests hold the
+ * dictionary to that: identical means listed here, or it means untranslated.
+ */
+export const IDENTICAL_IN_BOTH: readonly string[] = [
+  "YouTube",
+  "Conversation",
+  "Applications",
+  "Next.js · Expo · TypeScript",
+];
+
+/**
  * French translations keyed by the English source string. Quebec French,
  * vouvoiement, typographic apostrophes, and a non-breaking space before
  * two-part punctuation. Terms follow the Office québécois de la langue
@@ -375,7 +392,7 @@ export const french: Dictionary = {
   "Explore the source, architecture, development setup, and tests. Contributions and thoughtful feedback are welcome.":
     "Explorez le code source, l’architecture, l’environnement de développement et les tests. Les contributions et les commentaires réfléchis sont bienvenus.",
   "View on GitHub": "Voir sur GitHub",
-  // Names of technologies: identical in French, and said so on purpose.
+  // Identical in French on purpose; see IDENTICAL_IN_BOTH above.
   "Next.js · Expo · TypeScript": "Next.js · Expo · TypeScript",
   "These are evaluation builds. Review the {limitations} before downloading. {checksums}.":
     "Ce sont des versions d’évaluation. Consultez les {limitations} avant de télécharger. {checksums}.",

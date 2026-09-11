@@ -26,7 +26,11 @@ jobs:
       TF_VAR_region: ${{ vars.AWS_REGION }}
       TF_VAR_image_tag: ${{ github.event.workflow_run.head_sha }}
       TF_VAR_openai_secret_arn: ${{ vars.OPENAI_SECRET_ARN }}
-      TF_VAR_app_origin: ${{ vars.APP_ORIGIN || 'http://localhost:3000' }}
+      # The origin the public reaches this deployment on, which CORS allows and
+      # the published OpenAPI document names as its server. Unset, the
+      # deployment names the gateway's own endpoint; a localhost default here
+      # would have deployed an address no caller of this API can reach.
+      TF_VAR_app_origin: ${{ vars.APP_ORIGIN }}
       TF_VAR_ses_identity_arn: ${{ vars.SES_IDENTITY_ARN }}
       TF_VAR_ses_configuration_set_name: ${{ vars.SES_CONFIGURATION_SET_NAME }}
       TF_VAR_ses_from_address: ${{ vars.SES_FROM_ADDRESS }}

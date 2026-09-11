@@ -2,6 +2,13 @@ locals {
   name     = "talk-to-a-document"
   bucket   = "${local.name}-uploads-${var.account_id}-${var.region}"
   boundary = "arn:aws:iam::${var.account_id}:policy/${local.name}-runtime-boundary"
+  # The origin the public reaches this deployment on: the site's own domain
+  # once one is mapped to the gateway, and the gateway's endpoint until then.
+  # Reachable either way, which is the point — the function publishes this as
+  # the server URL of its OpenAPI document, and a client generated from that
+  # document can only call an address that answers. The gateway endpoint is the
+  # honest fallback; a guessed default would send those clients nowhere.
+  public_origin = var.app_origin != "" ? var.app_origin : aws_apigatewayv2_api.http.api_endpoint
   functions = {
     # A fresh page loads several JS/CSS assets in parallel through this function.
     # Match the gateway burst capacity so five occupied slots cannot break hydration.
@@ -35,7 +42,12 @@ resource "aws_apigatewayv2_api" "http" {
   name          = "${local.name}-api"
   protocol_type = "HTTP"
   cors_configuration {
-    allow_origins = [var.app_origin]
+    # Only a site on another origin needs these headers, and this cannot name
+    # the gateway's own endpoint without depending on itself. Unconfigured, the
+    # app is reached here and calls itself, so allowing nothing is both correct
+    # and the closed door: an empty origin string would allow nothing either,
+    # while reading as though it allowed something.
+    allow_origins = compact([var.app_origin])
     allow_methods = ["*"]
     allow_headers = ["content-type"]
   }
@@ -85,7 +97,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
 resource "aws_s3_bucket_cors_configuration" "uploads" {
   bucket = aws_s3_bucket.uploads.id
   cors_rule {
-    allowed_origins = distinct([aws_apigatewayv2_api.http.api_endpoint, var.app_origin])
+    allowed_origins = distinct([aws_apigatewayv2_api.http.api_endpoint, local.public_origin])
     allowed_methods = ["POST"]
     allowed_headers = ["*"]
     expose_headers  = ["ETag"]
@@ -138,7 +150,7 @@ resource "aws_lambda_function" "runtime" {
       PORT                     = "3000", HOSTNAME = "0.0.0.0", PROVIDER_MODE = "live"
       OPENAI_SECRET_ARN        = var.openai_secret_arn
       UPLOAD_BUCKET            = aws_s3_bucket.uploads.id
-      APP_ORIGIN               = aws_apigatewayv2_api.http.api_endpoint
+      APP_ORIGIN               = local.public_origin
       YOUTUBE_TRANSCRIPT_MODE  = "live"
       TRANSCRIPT_SERVICE_URL   = aws_apigatewayv2_api.http.api_endpoint
       OPENAI_BASE_URL          = "https://api.openai.com"

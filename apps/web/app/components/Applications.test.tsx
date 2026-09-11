@@ -10,7 +10,7 @@ import {
 } from "./Applications";
 import { LanguageProvider } from "../i18n/LanguageProvider";
 import { dictionaryFor } from "../i18n/dictionaries";
-import { french } from "../i18n/fr";
+import { IDENTICAL_IN_BOTH, french } from "../i18n/fr";
 import type { Language } from "../i18n/languages";
 
 const inLanguage = (language: Language) => (
@@ -46,18 +46,18 @@ afterEach(cleanup);
 describe("Applications section", () => {
   /**
    * The section is bilingual or it is broken: a string that reads the same in
-   * both languages is either a deliberate decision, recorded by an explicit
-   * entry in the French dictionary, or a string somebody forgot to translate.
-   * Nothing here names the strings that exist today, so the next string added
-   * without a translation fails this too.
+   * both languages is either a term French writes the same way, named in
+   * `IDENTICAL_IN_BOTH`, or a string somebody forgot to translate. Intent is
+   * read from that list alone — a dictionary entry proves nothing, since the
+   * quickest way to ship a late translation is to copy the English into it.
+   * Nothing here names the strings that exist today, so a new string added
+   * without a translation fails this too, dictionary entry or not.
    */
   it("leaves no untranslated English on the French page", () => {
     const english = textOf("en");
     const translated = new Set(textOf("fr"));
     const untranslated = english.filter(
-      (run) =>
-        translated.has(run) &&
-        !Object.prototype.hasOwnProperty.call(french, run),
+      (run) => translated.has(run) && !IDENTICAL_IN_BOTH.includes(run),
     );
     expect(untranslated).toEqual([]);
   });
@@ -67,8 +67,13 @@ describe("Applications section", () => {
       (key) => !Object.prototype.hasOwnProperty.call(french, key),
     );
     expect(missing).toEqual([]);
-    for (const key of APPLICATION_STRINGS)
-      expect(french[key].trim()).not.toBe("");
+    // Present is not translated: blank and echoed-back English both fail.
+    const untranslated = APPLICATION_STRINGS.filter(
+      (key) =>
+        french[key].trim() === "" ||
+        (french[key] === key && !IDENTICAL_IN_BOTH.includes(key)),
+    );
+    expect(untranslated).toEqual([]);
   });
 
   it("reads in French: heading, every card, and the download disclosure", () => {

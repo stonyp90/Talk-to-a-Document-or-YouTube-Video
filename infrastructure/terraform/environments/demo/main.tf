@@ -26,7 +26,7 @@ variable "image_tag" { type = string }
 variable "openai_secret_arn" { type = string }
 variable "app_origin" {
   type    = string
-  default = "http://localhost:3000"
+  default = ""
 }
 # Empty until the operator has applied environments/email and copied its outputs
 # into the production environment variables; the deployment is unchanged until then.

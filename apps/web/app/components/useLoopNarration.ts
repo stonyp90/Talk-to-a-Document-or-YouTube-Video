@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { SPEECH_DELIVERY, selectSpeechVoice } from "../../src/lib/speechVoice";
 
 /** The locale each language is spoken in, which is not the same as its tag. */
@@ -22,23 +28,38 @@ const SPEECH_LOCALES: Record<string, string> = {
  * began talking would contradict the same restraint that keeps the rest of
  * this screen still once it has arrived.
  */
+/** Whether this browser can speak at all. Fixed for the life of the page. */
+function subscribeToNothing() {
+  return () => {};
+}
+function canSpeak() {
+  return (
+    typeof window !== "undefined" &&
+    !!window.speechSynthesis &&
+    typeof SpeechSynthesisUtterance !== "undefined"
+  );
+}
+
 export function useLoopNarration(locale: string) {
   const [speaking, setSpeaking] = useState(false);
-  const [available, setAvailable] = useState(false);
+  // Read rather than stored: the server has no speech synthesiser, so it must
+  // render the control absent and the browser must agree with it until it has
+  // hydrated. A state set from an effect would render one thing and then
+  // another, which is the flicker this hook exists to avoid.
+  const available = useSyncExternalStore(
+    subscribeToNothing,
+    canSpeak,
+    () => false,
+  );
   // What was last said, so a re-render on the same stage does not repeat it.
   const spoken = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    const supported =
-      typeof window !== "undefined" &&
-      !!window.speechSynthesis &&
-      typeof SpeechSynthesisUtterance !== "undefined";
-    setAvailable(supported);
-    if (!supported) return;
+    if (!available) return;
     // Voices arrive asynchronously in most browsers; asking once here means a
     // list is usually ready by the time anyone presses the control.
     window.speechSynthesis.getVoices?.();
-  }, []);
+  }, [available]);
 
   // Nothing should still be talking after the page is gone.
   useEffect(

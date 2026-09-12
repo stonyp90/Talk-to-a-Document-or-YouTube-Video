@@ -1,5 +1,6 @@
 node_modules
 .next
+.vitest
 coverage
 playwright-report
 test-results

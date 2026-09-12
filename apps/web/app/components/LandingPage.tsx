@@ -16,6 +16,7 @@ import { SiteFooter } from "./SiteFooter";
 import { TopNav } from "./TopNav";
 import { useHydrated } from "./useHydrated";
 import { useLanguage } from "../i18n/LanguageProvider";
+import { INTRO_DURATION_SECONDS } from "../content/intro-video";
 import {
   STORY_SECTIONS,
   appHref as appHrefFor,
@@ -51,7 +52,7 @@ const STORY_VIEWS: Record<StorySectionId, ComponentType<StoryContext>> = {
 };
 
 /**
- * The front door: what Ursly is, the 24-second introduction, and the story
+ * The front door: what Ursly is, the introduction that opens it, and the story
  * behind it — how we build first, then the platform, the guide and the mobile
  * applications. The application itself lives at `/<lang>/app`; this page
  * deliberately holds none of its state, so nothing about a conversation can
@@ -134,7 +135,8 @@ export default function LandingPage() {
                 onClick={openIntro}
                 disabled={!hydrated}
               >
-                <Icon name="play" /> {t("Watch the intro")} · 24 s
+                <Icon name="play" /> {t("Watch the intro")} ·{" "}
+                {INTRO_DURATION_SECONDS} s
               </button>
             </div>
             <p className="hero-note">

@@ -73,12 +73,14 @@ It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom vo
    visitor's language (English or French), with captions, a transcript and a
    _Skip intro_ button from the first frame. It is remembered per browser and can
    be replayed from the top menu.
-2. **A fixed top menu.** It carries the three control modes — _Voice to action_
-   (default), _Keyboard to action_ and _Motion to action_, shown as a beta that is
-   not available yet — plus the _Platform_ and _Pricing_ sections, the intro and
-   the language switch. It stays in place while scrolling.
+2. **A fixed top menu.** It carries the three control modes, in the order the
+   product argues for them: _Voice to action_ (default), _Motion to action_ (a
+   beta a reader can select, which drives the page from five movements read by
+   the camera) and _Keyboard to action_ (legacy, still does everything). Then the
+   _Platform_ and _Pricing_ sections, the intro and the language switch. It stays
+   in place while scrolling.
 3. **The workspace, right away.** Add a PDF or a captioned YouTube video, then ask
-   by voice or by typing. A first answer is three actions away.
+   by voice, by movement or by typing. A first answer is three actions away.
 4. **Platform**, a static section reachable from the menu: a human stays in the
    loop, voice models that adapt to each speaker with consent, voice, movement or
    keyboard, and the surfaces to come (connected objects, 3D objects), with a

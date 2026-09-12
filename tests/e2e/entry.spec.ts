@@ -365,7 +365,7 @@ test.describe("returning visitor", () => {
     });
   }
 
-  test("mode switcher is a keyboard-operable radio group with motion disabled", async ({
+  test("mode switcher is a keyboard-operable radio group over all three modes", async ({
     page,
   }) => {
     await page.goto(APP_PATH);
@@ -375,21 +375,23 @@ test.describe("returning visitor", () => {
     });
     const motion = modes(page).getByRole("radio", { name: /Motion to action/ });
     await expect(voice).toHaveAttribute("aria-checked", "true");
-    await expect(motion).toHaveAttribute("aria-disabled", "true");
-    await expect(motion).toHaveAccessibleDescription(/not available yet/i);
+    await expect(motion).not.toHaveAttribute("aria-disabled", "true");
     await voice.focus();
+    // The beta sits in the middle of the row, so the keys land on it.
+    await page.keyboard.press("ArrowRight");
+    await expect(motion).toHaveAttribute("aria-checked", "true");
+    await expect(motion).toBeFocused();
     await page.keyboard.press("ArrowRight");
     await expect(keyboard).toHaveAttribute("aria-checked", "true");
     await expect(keyboard).toBeFocused();
     await page.keyboard.press("ArrowRight");
-    // The disabled beta is skipped, never selected.
     await expect(voice).toHaveAttribute("aria-checked", "true");
-    await expect(motion).toHaveAttribute("aria-checked", "false");
-    await motion.click({ force: true });
-    await expect(motion).toHaveAttribute("aria-checked", "false");
-    await expect(voice).toHaveAttribute("aria-checked", "true");
+    await motion.click();
+    await expect(motion).toHaveAttribute("aria-checked", "true");
+    await expect(voice).toHaveAttribute("aria-checked", "false");
     // Only the selected radio is in the tab sequence.
-    expect(await voice.getAttribute("tabindex")).toBe("0");
+    expect(await motion.getAttribute("tabindex")).toBe("0");
+    expect(await voice.getAttribute("tabindex")).toBe("-1");
     expect(await keyboard.getAttribute("tabindex")).toBe("-1");
   });
 

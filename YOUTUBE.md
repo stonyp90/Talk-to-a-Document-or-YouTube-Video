@@ -26,8 +26,8 @@ subtitle track is the single largest thing you can hand a crawler about a video.
 
 The channel should say what the product says. The video argues, in order, that
 this is the next generation of internet, that voice is the way in, that motion
-is what comes next, and that the keyboard is the old way. The listings should
-argue the same thing.
+is a beta a reader can already use, and that the keyboard is the old way. The
+listings should argue the same thing.
 
 **English title:** Ursly — internet without a keyboard and a mouse
 

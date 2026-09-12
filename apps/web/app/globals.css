@@ -512,7 +512,149 @@ h3 {
   background: linear-gradient(150deg, var(--surface), var(--violet-tint-alt));
   transition: background var(--motion-slow) var(--ease-out);
 }
-.conversation-card[data-ready="false"] .voice-panel {
+.conversation-card[data-ready="false"] /* Motion to action: a small mirror of the room, a marker where movement is,
+   and the five movements written out. The preview is deliberately small — it
+   is a confidence signal, not a video call. */
+.motion-panel {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  background: var(--accent-wash-soft);
+  display: grid;
+  gap: var(--space-md);
+}
+.motion-stage {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  max-height: 180px;
+  border: 1px solid var(--accent-border-wash);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  display: grid;
+  place-items: center;
+}
+.motion-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* A mirror, so a reader raises the hand they see themselves raise. */
+  transform: scaleX(-1);
+  opacity: 0;
+  transition: opacity var(--motion-base) var(--ease-out);
+}
+.motion-stage[data-watching] .motion-preview {
+  opacity: 1;
+}
+.motion-idle {
+  position: absolute;
+  margin: 0;
+  padding: 0 var(--space-lg);
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+.motion-marker {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--accent-wash);
+  opacity: 0;
+  transition:
+    left 90ms linear,
+    top 90ms linear,
+    opacity var(--motion-fast) var(--ease-out);
+  pointer-events: none;
+}
+.motion-energy {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--accent);
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform 120ms linear;
+}
+.motion-controls {
+  display: flex;
+  gap: var(--space-sm);
+}
+.motion-choice {
+  display: grid;
+  gap: var(--space-2xs);
+}
+.motion-choice-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.motion-choice-prompt {
+  font-size: 15px;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+}
+.motion-legend {
+  display: grid;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+.motion-legend li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+}
+.motion-legend-label {
+  font-weight: 640;
+}
+.motion-legend-meaning {
+  color: var(--muted);
+}
+.motion-legend-arrow::before {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 13px;
+}
+.motion-legend-right .motion-legend-arrow::before {
+  content: "→";
+}
+.motion-legend-left .motion-legend-arrow::before {
+  content: "←";
+}
+.motion-legend-up .motion-legend-arrow::before {
+  content: "↑";
+}
+.motion-legend-down .motion-legend-arrow::before {
+  content: "↓";
+}
+.motion-legend-hold .motion-legend-arrow::before {
+  content: "✻";
+}
+.motion-notice {
+  margin: 0;
+  min-height: 1.2em;
+  color: var(--muted);
+  font-size: 11px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-marker,
+  .motion-energy,
+  .motion-preview {
+    transition: none;
+  }
+}
+.voice-panel {
   opacity: 0.72;
   transform: translateY(3px);
 }
@@ -1769,46 +1911,6 @@ h3 {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-/* The beta now sits in the middle of the row, so its explanation is centred
-   under the group rather than hung off the right edge. */
-.mode-tooltip {
-  --tooltip-width: min(320px, calc(100vw - 32px));
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 50%;
-  z-index: 50;
-  width: max-content;
-  max-width: min(320px, calc(100vw - 32px));
-  padding: var(--space-md) var(--space-md);
-  border-radius: var(--radius-md);
-  background: var(--ink);
-  color: var(--paper);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.45;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(4px);
-  transition:
-    opacity var(--motion-fast) ease,
-    transform var(--motion-fast) var(--ease-out);
-}
-.mode-tooltip::before {
-  position: absolute;
-  top: -5px;
-  left: calc(50% - 4.5px);
-  width: 9px;
-  height: 9px;
-  background: var(--ink);
-  content: "";
-  transform: rotate(45deg);
-}
-.mode-motion:hover ~ .mode-tooltip,
-.mode-motion:focus-visible ~ .mode-tooltip,
-.modes[data-explaining="true"] .mode-tooltip {
-  opacity: 1;
-  transform: translateY(0);
-}
 
 /* ---------------------------------------------------------------------------
  * Introduction
@@ -2789,9 +2891,6 @@ h3 {
     padding: var(--space-3xs) var(--space-2xs);
     font-size: 7.5px;
     letter-spacing: 0.04em;
-  }
-  .mode-tooltip {
-    --tooltip-width: calc(100vw - 16px);
   }
   .workspace-heading {
     flex-direction: column;

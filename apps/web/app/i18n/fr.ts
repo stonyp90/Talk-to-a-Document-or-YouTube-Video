@@ -37,8 +37,45 @@ export const french: Dictionary = {
   Motion: "Mouvement",
   Beta: "Bêta",
   Legacy: "Ancien",
-  "Motion to action is what comes next: control by movement, built for VR and AR headsets. It is not available yet. Voice works today, and the keyboard is still there.":
-    "Le mouvement vers action, c’est la suite : commander par le geste, pensé pour les casques de réalité virtuelle et augmentée. Ce n’est pas encore disponible. La voix fonctionne aujourd’hui, et le clavier est toujours là.",
+  // Motion to action
+  "Your hand is the shortcut.": "Votre main est le raccourci.",
+  "Motion to action: start the camera, then swipe to choose a question and wave to ask it.":
+    "Mouvement vers action : démarrez la caméra, puis balayez pour choisir une question et saluez pour la poser.",
+  "Add a PDF or a captioned YouTube video, then drive it with your hand. Swipe to choose a question, wave to ask it, and type whenever you prefer.":
+    "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis pilotez-la avec la main. Balayez pour choisir une question, saluez pour la poser, et écrivez quand vous préférez.",
+  "Add a source, then start the camera and swipe to choose a question. Typing always works too.":
+    "Ajoutez une source, démarrez la caméra, puis balayez pour choisir une question. Le clavier fonctionne toujours.",
+  "The camera is off. Nothing is recorded or sent.":
+    "La caméra est éteinte. Rien n’est enregistré ni envoyé.",
+  "Start motion": "Démarrer le mouvement",
+  "Stop motion": "Arrêter le mouvement",
+  "Starting the camera…": "Démarrage de la caméra…",
+  "Camera on. Swipe to choose, wave to ask.":
+    "Caméra allumée. Balayez pour choisir, saluez pour demander.",
+  "Camera off.": "Caméra éteinte.",
+  "Chosen question": "Question choisie",
+  "Swipe right": "Balayer vers la droite",
+  "Swipe left": "Balayer vers la gauche",
+  "Swipe up": "Balayer vers le haut",
+  "Swipe down": "Balayer vers le bas",
+  "Wave in place": "Saluer sur place",
+  "Next question": "Question suivante",
+  "Previous question": "Question précédente",
+  "Ask it": "La poser",
+  "Summarize the source": "Résumer la source",
+  "Add a source first, then wave to ask.":
+    "Ajoutez d’abord une source, puis saluez pour demander.",
+  "Asking: {question}": "Question envoyée : {question}",
+  "This browser will not share a camera here. Motion needs a secure connection; voice and typing still work.":
+    "Ce navigateur ne partagera pas de caméra ici. Le mouvement exige une connexion sécurisée; la voix et le clavier fonctionnent toujours.",
+  "The camera was not allowed. Allow it in your browser, then start motion again.":
+    "La caméra n’a pas été autorisée. Autorisez-la dans votre navigateur, puis redémarrez le mouvement.",
+  "No camera was found on this device.":
+    "Aucune caméra n’a été trouvée sur cet appareil.",
+  "The camera could not be started. Check it is not already in use.":
+    "La caméra n’a pas pu démarrer. Vérifiez qu’elle n’est pas déjà utilisée.",
+  "This browser will not share a camera here. Motion needs a secure connection.":
+    "Ce navigateur ne partagera pas de caméra ici. Le mouvement exige une connexion sécurisée.",
   Platform: "Plateforme",
   "How we build": "Notre façon de bâtir",
   Build: "Bâtir",
@@ -349,8 +386,8 @@ export const french: Dictionary = {
   // Platform section
   "Not a new website. A new way to use one.":
     "Pas un nouveau site Web. Une nouvelle façon de s’en servir.",
-  "Ursly sits between what you mean and what a screen does. You speak; soon you will move; you can still type. It listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.":
-    "Ursly se place entre ce que vous voulez dire et ce que l’écran fait. Vous parlez; bientôt vous bougerez; vous pouvez encore écrire. Ursly écoute, s’adapte à votre façon de parler et vous laisse, à vous et non au modèle, la maîtrise de la suite.",
+  "Ursly sits between what you mean and what a screen does. You speak; you move; you can still type. It listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.":
+    "Ursly se place entre ce que vous voulez dire et ce que l’écran fait. Vous parlez; vous bougez; vous pouvez encore écrire. Ursly écoute, s’adapte à votre façon de parler et vous laisse, à vous et non au modèle, la maîtrise de la suite.",
   "A human stays in the loop.": "Un humain garde la main.",
   "Every action Ursly takes is one you asked for, can see and can undo. When it is unsure, it asks instead of guessing.":
     "Chaque action qu’Ursly effectue est une action que vous avez demandée, que vous voyez et que vous pouvez annuler. En cas de doute, Ursly vous pose la question au lieu de deviner.",
@@ -358,10 +395,10 @@ export const french: Dictionary = {
     "Un modèle vocal qui apprend votre voix, avec votre permission.",
   "Ursly is built to tune itself to your accent, your pace and the words you actually use, so it understands you a little better each time. Your recordings stay yours: nothing is kept without your say, and everything can be deleted in one tap.":
     "Ursly est conçu pour se régler sur votre accent, votre débit et les mots que vous employez vraiment, pour vous comprendre un peu mieux à chaque échange. Vos enregistrements vous appartiennent : rien n’est conservé sans votre consentement et tout peut être supprimé d’un seul geste.",
-  "Voice now. Movement next. Keyboard still here.":
-    "La voix maintenant. Le mouvement ensuite. Le clavier toujours là.",
-  "Voice to action is how you use Ursly today. Motion to action comes next, in beta, built for VR and AR headsets. The keyboard is the old way in: it still does everything, we keep it and support it, and no one is left out. It is simply no longer where you start.":
-    "La commande vocale, c’est la façon d’utiliser Ursly aujourd’hui. Le mouvement vers action arrive ensuite, en version bêta, pensé pour les casques de réalité virtuelle et augmentée. Le clavier est l’ancienne porte d’entrée : il fait encore tout, nous le gardons et le prenons en charge, et personne n’est laissé de côté. Il n’est simplement plus le point de départ.",
+  "Voice first. Movement works too. Keyboard still here.":
+    "La voix d’abord. Le mouvement aussi. Le clavier toujours là.",
+  "Voice to action is how you use Ursly today. Motion to action works today too, in beta: start the camera and drive the page with five movements. It reads movement, not fingers, and nothing is recorded or sent. It is built for VR and AR headsets, and it runs in a browser now. The keyboard is the old way in: it still does everything, we keep it and support it, and no one is left out. It is simply no longer where you start.":
+    "La commande vocale, c’est la façon d’utiliser Ursly aujourd’hui. Le mouvement vers action fonctionne lui aussi dès maintenant, en version bêta : démarrez la caméra et pilotez la page avec cinq mouvements. Il lit le mouvement, pas les doigts, et rien n’est enregistré ni envoyé. Il est pensé pour les casques de réalité virtuelle et augmentée, et il fonctionne déjà dans un navigateur. Le clavier est l’ancienne porte d’entrée : il fait encore tout, nous le gardons et le prenons en charge, et personne n’est laissé de côté. Il n’est simplement plus le point de départ.",
   "A simple site today. Every surface tomorrow.":
     "Un site simple aujourd’hui. Toutes les surfaces demain.",
   "Talking to a document is the first surface. The same platform is designed to drive connected objects, 3D objects and interfaces that do not exist yet, without changing how you ask.":
@@ -371,10 +408,10 @@ export const french: Dictionary = {
   Today: "Aujourd’hui",
   Next: "Ensuite",
   Later: "Plus tard",
-  "Talk to a PDF or a captioned YouTube video. Say “upload”, “summarize” or “next” to drive the page. The keyboard still does all of it, for whoever wants it.":
-    "Conversez avec un PDF ou une vidéo YouTube sous-titrée. Dites « téléverser », « résume » ou « suivant » pour piloter la page. Le clavier fait encore tout cela, pour qui le souhaite.",
-  "Voice profiles that adapt to each speaker, with consent and one-tap deletion. Motion to action in beta, for VR and AR headsets.":
-    "Des profils vocaux qui s’adaptent à chaque personne, avec consentement et suppression d’un seul geste. Le mouvement vers action en version bêta, pour les casques de réalité virtuelle et augmentée.",
+  "Talk to a PDF or a captioned YouTube video. Say “upload”, “summarize” or “next” to drive the page. Or start the camera and drive it with five movements, in beta. The keyboard still does all of it, for whoever wants it.":
+    "Conversez avec un PDF ou une vidéo YouTube sous-titrée. Dites « téléverser », « résume » ou « suivant » pour piloter la page. Ou démarrez la caméra et pilotez-la avec cinq mouvements, en version bêta. Le clavier fait encore tout cela, pour qui le souhaite.",
+  "Voice profiles that adapt to each speaker, with consent and one-tap deletion. Motion to action on VR and AR headsets.":
+    "Des profils vocaux qui s’adaptent à chaque personne, avec consentement et suppression d’un seul geste. Le mouvement vers action sur les casques de réalité virtuelle et augmentée.",
   "Connected objects, 3D objects and other surfaces. Whole industries, not only websites.":
     "Objets connectés, objets 3D et autres surfaces. Des industries entières, pas seulement des sites Web.",
   "Try it now": "Essayez-le maintenant",

@@ -58,8 +58,11 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
-            // The app needs the microphone; it needs nothing else.
-            value: "microphone=(self), camera=(), geolocation=(), payment=()",
+            // The app needs the microphone to hear a question and the camera to
+            // read a hand. Neither picture nor sound leaves the page in motion
+            // mode: frames are compared and discarded. It needs nothing else.
+            value:
+              "microphone=(self), camera=(self), geolocation=(), payment=()",
           },
           {
             key: "Strict-Transport-Security",

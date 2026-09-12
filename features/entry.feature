@@ -35,13 +35,13 @@ Feature: Welcome each visitor once, then keep the way in one tap away
     Then the top menu stays fixed while I scroll
     And the control modes read voice first, motion next and keyboard last
     And voice to action is the selected control mode
-    And motion to action is shown as the beta that comes next for headsets
+    And motion to action is a beta that can be selected
     And keyboard to action is marked legacy and can still be selected
 
   Scenario: Reach the platform section from the top menu
     When I open the landing page
     And I choose Platform in the top menu
-    Then the platform section explains voice now, movement next and the keyboard as the old way
+    Then the platform section explains voice, movement and the keyboard as the old way
     And the platform section explains connected objects, 3D objects and voice adaptation
 
   Scenario: Open the story on how we build, before anything else

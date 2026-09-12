@@ -18,6 +18,7 @@ import { SiteFooter } from "./SiteFooter";
 import { TopNav } from "./TopNav";
 import { Markdown } from "./Markdown";
 import { VoiceActions, type VoiceActionId } from "./VoiceActions";
+import { MotionActions } from "./MotionActions";
 import { defaultPhrases } from "@/packages/core/src/domain/voiceCommands";
 import { VoiceLending } from "./VoiceLending";
 import { useLanguage } from "../i18n/LanguageProvider";
@@ -137,7 +138,8 @@ const MODE_STORAGE_KEY = "ursly-mode-v1";
 
 function readSavedMode(): EntryMode {
   try {
-    return localStorage.getItem(MODE_STORAGE_KEY) === "text" ? "text" : "voice";
+    const saved = localStorage.getItem(MODE_STORAGE_KEY);
+    return saved === "text" || saved === "motion" ? saved : "voice";
   } catch {
     return "voice";
   }
@@ -903,9 +905,13 @@ export default function Workspace() {
         ? t(
             "Voice to action: the way in. Say a command, or use the controls as usual.",
           )
-        : t(
-            "Keyboard to action: the old way in, still complete. Everything works by typing and clicking.",
-          ),
+        : mode === "motion"
+          ? t(
+              "Motion to action: start the camera, then swipe to choose a question and wave to ask it.",
+            )
+          : t(
+              "Keyboard to action: the old way in, still complete. Everything works by typing and clicking.",
+            ),
     );
   }
 
@@ -1024,6 +1030,24 @@ export default function Workspace() {
    * source arrived was the reason speaking stopped working exactly when it
    * started to matter.
    */
+  /**
+   * Driving with a hand. It sits where the spoken panel sits, uses the same
+   * action bus, and asks whichever question the reader has landed on, so a
+   * conversation can be held without a word or a keystroke.
+   */
+  const motionActions =
+    entryMode === "motion" ? (
+      <MotionActions
+        prompts={suggestions}
+        canAsk={Boolean(source)}
+        onAsk={(spoken) => {
+          setQuestion("");
+          void askQuestion(spoken);
+        }}
+        onAction={handleVoiceAction}
+      />
+    ) : null;
+
   const voiceActions =
     entryMode === "voice" ? (
       <VoiceActions
@@ -1077,9 +1101,13 @@ export default function Workspace() {
                   ? t(
                       "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.",
                     )
-                  : t(
-                      "Add a PDF or a captioned YouTube video, then ask about it by typing. This is the old way in, and it still does everything. Voice is one tap away.",
-                    )}
+                  : entryMode === "motion"
+                    ? t(
+                        "Add a PDF or a captioned YouTube video, then drive it with your hand. Swipe to choose a question, wave to ask it, and type whenever you prefer.",
+                      )
+                    : t(
+                        "Add a PDF or a captioned YouTube video, then ask about it by typing. This is the old way in, and it still does everything. Voice is one tap away.",
+                      )}
               </p>
             </div>
             <ol className="progress-steps" aria-label={t("Progress")}>
@@ -1120,6 +1148,7 @@ export default function Workspace() {
           )}
 
           {account !== null && voiceActions}
+          {account !== null && motionActions}
 
           <div
             className="workspace"
@@ -1593,7 +1622,13 @@ export default function Workspace() {
                         <span className="voice-orbit-ring" />
                         <span className="voice-orbit-ring" />
                         <Icon
-                          name={entryMode === "text" ? "document" : "voice"}
+                          name={
+                            entryMode === "text"
+                              ? "document"
+                              : entryMode === "motion"
+                                ? "motion"
+                                : "voice"
+                          }
                         />
                       </div>
                       <h3>
@@ -1601,7 +1636,9 @@ export default function Workspace() {
                           ? t("What are you curious about?")
                           : entryMode === "voice"
                             ? t("Your voice is the shortcut.")
-                            : t("Good questions start here.")}
+                            : entryMode === "motion"
+                              ? t("Your hand is the shortcut.")
+                              : t("Good questions start here.")}
                       </h3>
                       <p className="hint">
                         {source
@@ -1612,9 +1649,13 @@ export default function Workspace() {
                             ? t(
                                 "Bring a source in with a word, then ask out loud. Nothing starts without your word, and typing always works.",
                               )
-                            : t(
-                                "Add a source, then explore the ideas inside it.",
-                              )}
+                            : entryMode === "motion"
+                              ? t(
+                                  "Add a source, then start the camera and swipe to choose a question. Typing always works too.",
+                                )
+                              : t(
+                                  "Add a source, then explore the ideas inside it.",
+                                )}
                       </p>
                       {source && (
                         <div className="suggestions">

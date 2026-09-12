@@ -23,8 +23,8 @@ const CARDS: readonly Card[] = [
   },
   {
     icon: "motion",
-    title: "Voice now. Movement next. Keyboard still here.",
-    body: "Voice to action is how you use Ursly today. Motion to action comes next, in beta, built for VR and AR headsets. The keyboard is the old way in: it still does everything, we keep it and support it, and no one is left out. It is simply no longer where you start.",
+    title: "Voice first. Movement works too. Keyboard still here.",
+    body: "Voice to action is how you use Ursly today. Motion to action works today too, in beta: start the camera and drive the page with five movements. It reads movement, not fingers, and nothing is recorded or sent. It is built for VR and AR headsets, and it runs in a browser now. The keyboard is the old way in: it still does everything, we keep it and support it, and no one is left out. It is simply no longer where you start.",
   },
   {
     icon: "external",
@@ -36,11 +36,11 @@ const CARDS: readonly Card[] = [
 const ROADMAP = [
   {
     stage: "Today",
-    text: "Talk to a PDF or a captioned YouTube video. Say “upload”, “summarize” or “next” to drive the page. The keyboard still does all of it, for whoever wants it.",
+    text: "Talk to a PDF or a captioned YouTube video. Say “upload”, “summarize” or “next” to drive the page. Or start the camera and drive it with five movements, in beta. The keyboard still does all of it, for whoever wants it.",
   },
   {
     stage: "Next",
-    text: "Voice profiles that adapt to each speaker, with consent and one-tap deletion. Motion to action in beta, for VR and AR headsets.",
+    text: "Voice profiles that adapt to each speaker, with consent and one-tap deletion. Motion to action on VR and AR headsets.",
   },
   {
     stage: "Later",
@@ -76,7 +76,7 @@ export function PlatformSection({
         </h2>
         <p className="platform-lede">
           {t(
-            "Ursly sits between what you mean and what a screen does. You speak; soon you will move; you can still type. It listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.",
+            "Ursly sits between what you mean and what a screen does. You speak; you move; you can still type. It listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.",
           )}
         </p>
       </div>

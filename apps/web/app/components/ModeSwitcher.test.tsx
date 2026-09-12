@@ -24,9 +24,9 @@ function mount(mode: EntryMode = "voice") {
 
 /**
  * The switcher carries the product argument, not only a preference: voice is
- * the way in, motion is what comes next, and the keyboard is the old way that
- * still works. The order and the two badges are the whole story, so they are
- * asserted here rather than left to a screenshot.
+ * the way in, motion is the beta a reader can already use, and the keyboard is
+ * the old way that still works. The order and the two badges are the whole
+ * story, so they are asserted here rather than left to a screenshot.
  */
 describe("ModeSwitcher", () => {
   it("reads voice first, motion next and the keyboard last", () => {
@@ -58,36 +58,38 @@ describe("ModeSwitcher", () => {
     expect(onChange).toHaveBeenCalledWith("text");
   });
 
-  it("names the headsets motion is being built for, and stays honest about it", () => {
-    mount();
-    const motion = radio(/Motion to action/);
-    expect(motion).toHaveAttribute("aria-disabled", "true");
-    const tooltip = screen.getByRole("tooltip");
-    expect(motion).toHaveAttribute("aria-describedby", tooltip.id);
-    expect(tooltip).toHaveTextContent(/VR and AR headsets/i);
-    expect(tooltip).toHaveTextContent(/not available yet/i);
-  });
-
-  it("explains the beta instead of selecting it", () => {
+  it("selects the beta rather than explaining it away", () => {
     const onChange = mount();
     const motion = radio(/Motion to action/);
+    expect(motion).not.toHaveAttribute("aria-disabled");
     fireEvent.click(motion);
-    expect(onChange).not.toHaveBeenCalled();
-    expect(motion).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByRole("radiogroup")).toHaveAttribute(
-      "data-explaining",
-      "true",
-    );
+    expect(onChange).toHaveBeenCalledWith("motion");
+    // Nothing sits between the reader and the mode: no tooltip, no excuse.
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(motion).not.toHaveAttribute("aria-describedby");
   });
 
-  it("steps the arrow keys over the beta sitting in the middle", () => {
+  it("keeps the beta badge on a mode that works", () => {
+    mount("motion");
+    const motion = radio(/Motion to action/);
+    expect(motion).toHaveAttribute("aria-checked", "true");
+    // Beta is a promise about how well it reads movement, not about whether a
+    // reader may use it, so the badge stays on the selected mode.
+    expect(within(motion).getByText("Beta")).toHaveClass("mode-detail");
+  });
+
+  it("walks the arrow keys through all three modes", () => {
     const onChange = mount();
     fireEvent.keyDown(radio(/Voice to action/), { key: "ArrowRight" });
-    expect(onChange).toHaveBeenLastCalledWith("text");
-    fireEvent.keyDown(radio(/Voice to action/), { key: "ArrowLeft" });
-    expect(onChange).toHaveBeenLastCalledWith("text");
+    expect(onChange).toHaveBeenLastCalledWith("motion");
     fireEvent.keyDown(radio(/Motion to action/), { key: "ArrowRight" });
     expect(onChange).toHaveBeenLastCalledWith("text");
+    fireEvent.keyDown(radio(/Keyboard to action/), { key: "ArrowRight" });
+    expect(onChange).toHaveBeenLastCalledWith("voice");
+    fireEvent.keyDown(radio(/Voice to action/), { key: "ArrowLeft" });
+    expect(onChange).toHaveBeenLastCalledWith("text");
+    fireEvent.keyDown(radio(/Keyboard to action/), { key: "ArrowLeft" });
+    expect(onChange).toHaveBeenLastCalledWith("motion");
   });
 
   it("sends Home to voice and End to the keyboard", () => {

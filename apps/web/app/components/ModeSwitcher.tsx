@@ -1,12 +1,12 @@
 "use client";
 
-import { useId, useState, type KeyboardEvent } from "react";
+import { type KeyboardEvent } from "react";
 import { Icon, type IconName } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
 
-/** The ways a person can drive Ursly. Motion is announced, not yet offered. */
-export type EntryMode = "voice" | "text";
-type ModeId = EntryMode | "motion";
+/** The ways a person can drive Ursly, in the order they are offered. */
+export type EntryMode = "voice" | "text" | "motion";
+type ModeId = EntryMode;
 
 type Mode = {
   id: ModeId;
@@ -15,7 +15,6 @@ type Mode = {
   short: string;
   detail: string;
   icon: IconName;
-  available: boolean;
   /** The previous generation of input: kept and supported, no longer the door. */
   legacy?: boolean;
 };
@@ -32,7 +31,6 @@ const MODES: readonly Mode[] = [
     short: "Voice",
     detail: "",
     icon: "voice",
-    available: true,
   },
   {
     id: "motion",
@@ -40,7 +38,6 @@ const MODES: readonly Mode[] = [
     short: "Motion",
     detail: "Beta",
     icon: "motion",
-    available: false,
   },
   {
     id: "text",
@@ -48,25 +45,18 @@ const MODES: readonly Mode[] = [
     short: "Keyboard",
     detail: "Legacy",
     icon: "document",
-    available: true,
     legacy: true,
   },
 ];
 
-/**
- * The modes a person can actually land on, in the order they are drawn. The
- * beta sits between them, so this list is derived rather than written down:
- * the arrow keys walk these two and step over whatever is not ready.
- */
-const SELECTABLE = MODES.filter((mode) => mode.available).map(
-  (mode) => mode.id as EntryMode,
-);
+/** The modes in the order they are drawn, which is the order the keys walk. */
+const SELECTABLE = MODES.map((mode) => mode.id);
 
 /**
- * A segmented control with radio semantics: one mode is always selected, the
- * arrow keys move between the modes that exist today, and the beta mode stays
- * focusable so keyboard and screen-reader users learn what is coming without
- * being able to select something that does not work yet.
+ * A segmented control with radio semantics: one mode is always selected and the
+ * arrow keys move between them. Motion is marked beta because it reads a hand
+ * from a camera rather than a model, which is enough for five movements and
+ * honest about being no more than that.
  */
 export function ModeSwitcher({
   mode,
@@ -76,8 +66,6 @@ export function ModeSwitcher({
   onChange: (mode: EntryMode) => void;
 }) {
   const { t } = useLanguage();
-  const tooltipId = useId();
-  const [explaining, setExplaining] = useState(false);
 
   function move(from: EntryMode, step: 1 | -1) {
     const index = SELECTABLE.indexOf(from);
@@ -88,7 +76,7 @@ export function ModeSwitcher({
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>, current: ModeId) {
-    const origin: EntryMode = current === "motion" ? mode : current;
+    const origin: EntryMode = current;
     if (["ArrowRight", "ArrowDown"].includes(event.key)) {
       event.preventDefault();
       move(origin, 1);
@@ -112,7 +100,6 @@ export function ModeSwitcher({
       className="modes"
       role="radiogroup"
       aria-label={t("Control mode")}
-      data-explaining={explaining}
     >
       {MODES.map((item) => {
         const checked = item.id === mode;
@@ -125,14 +112,8 @@ export function ModeSwitcher({
             className={`mode mode-${item.id}${item.legacy ? " mode-legacy" : ""}`}
             aria-checked={checked}
             aria-label={t(item.label)}
-            aria-disabled={item.available ? undefined : true}
-            aria-describedby={item.available ? undefined : tooltipId}
             tabIndex={checked ? 0 : -1}
-            onClick={() => {
-              if (item.available) onChange(item.id as EntryMode);
-              else setExplaining((current) => !current);
-            }}
-            onBlur={() => setExplaining(false)}
+            onClick={() => onChange(item.id)}
             onKeyDown={(event) => onKeyDown(event, item.id)}
           >
             <Icon name={item.icon} />
@@ -146,11 +127,6 @@ export function ModeSwitcher({
           </button>
         );
       })}
-      <span id={tooltipId} role="tooltip" className="mode-tooltip">
-        {t(
-          "Motion to action is what comes next: control by movement, built for VR and AR headsets. It is not available yet. Voice works today, and the keyboard is still there.",
-        )}
-      </span>
     </div>
   );
 }

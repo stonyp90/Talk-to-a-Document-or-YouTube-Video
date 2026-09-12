@@ -15,7 +15,6 @@ const modes = (page: Page) =>
   nav(page).getByRole("radiogroup", { name: "Control mode" });
 const mode = (page: Page, name: string | RegExp) =>
   modes(page).getByRole("radio", { name });
-const tooltip = (page: Page) => modes(page).locator(".mode-tooltip");
 const speakButton = (page: Page) =>
   page.getByRole("button", { name: "Speak", exact: true });
 const stopButton = (page: Page) =>
@@ -116,7 +115,8 @@ test("voice to action is the default mode and the panel sits above both cards", 
   );
   const motion = mode(page, /Motion to action/);
   await expect(motion).toBeVisible();
-  await expect(motion).toHaveAttribute("aria-disabled", "true");
+  await expect(motion).not.toHaveAttribute("aria-disabled", "true");
+  await expect(motion).toHaveAttribute("aria-checked", "false");
 
   // One panel, ahead of both cards, so finding a source never unmounts it and
   // takes the microphone away in the middle of a sentence.
@@ -141,10 +141,6 @@ test("voice to action is the default mode and the panel sits above both cards", 
     page.getByRole("heading", { name: "2. Ask a question" }),
   ).toBeVisible();
   await expect(question(page)).toBeEnabled();
-
-  await motion.hover();
-  await expect(tooltip(page)).toHaveCSS("opacity", "1");
-  await expect(tooltip(page)).toContainText("not available yet");
 
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await expect(page.getByLabel("YouTube URL")).toBeVisible();
@@ -187,35 +183,41 @@ test("voice command examples name their phrase and effect, and the builder stays
   ).toBeVisible();
 });
 
-test("motion to action stays a disabled beta that only explains itself", async ({
+test("motion to action is a beta a reader can switch into, and back out of", async ({
   page,
 }) => {
   await openClean(page);
 
   const motion = mode(page, /Motion to action/);
-  await motion.click({ force: true });
-  await expect(motion).toHaveAttribute("aria-checked", "false");
+  await motion.click();
+  await expect(motion).toHaveAttribute("aria-checked", "true");
   await expect(mode(page, "Voice to action")).toHaveAttribute(
     "aria-checked",
-    "true",
+    "false",
   );
-  await expect(modes(page)).toHaveAttribute("data-explaining", "true");
-  await expect(tooltip(page)).toHaveCSS("opacity", "1");
-  await expect(tooltip(page)).toContainText("not available yet");
+
+  // The panel takes the place of the spoken commands and offers the camera
+  // rather than helping itself to one, which is all a browser without a
+  // webcam can be asked to prove.
+  const panel = page.getByRole("region", { name: "Motion to action" });
+  await expect(panel).toBeVisible();
+  await expect(
+    panel.getByRole("button", { name: /Start motion/ }),
+  ).toBeVisible();
+  await expect(panel.locator(".motion-legend li")).toHaveCount(5);
+  await expect(panel.locator(".motion-idle")).toContainText(
+    "The camera is off. Nothing is recorded or sent.",
+  );
+  await expect(speakButton(page)).toHaveCount(0);
   await expect(page.getByLabel("PDF file")).toBeVisible();
-  await expect(speakButton(page)).toBeVisible();
 
   await mode(page, "Keyboard to action").click();
   await expect(mode(page, "Keyboard to action")).toHaveAttribute(
     "aria-checked",
     "true",
   );
-  await motion.click({ force: true });
-  await expect(mode(page, "Keyboard to action")).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
   await expect(motion).toHaveAttribute("aria-checked", "false");
+  await expect(panel).toHaveCount(0);
 });
 
 test("a saved trigger heard inside a sentence opens the PDF picker", async ({

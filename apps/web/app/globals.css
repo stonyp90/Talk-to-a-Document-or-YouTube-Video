@@ -59,7 +59,6 @@
      stay inside --nav-h, so the space the page reserves never changes. */
   --nav-float: 8px;
   --nav-float-h: 52px;
-  --nav-max: 1200px;
   --nav-glass-strong: #f8f5eff2;
   --nav-aurora: #f477621f;
   --nav-edge: #e0d8cd;
@@ -1459,10 +1458,10 @@ h3 {
 @media (min-width: 961px) {
   .nav {
     top: calc(var(--safe-top) + var(--nav-float));
+    /* The panel keeps the page's own measure, so its edge and the text
+       below it answer to the same margin. */
     right: var(--gutter);
     left: var(--gutter);
-    max-width: var(--nav-max);
-    margin-inline: auto;
     padding-top: 0;
     border: 1px solid var(--nav-edge);
     border-radius: var(--radius-xl);

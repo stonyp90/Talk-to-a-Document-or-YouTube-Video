@@ -36,7 +36,7 @@ export const french: Dictionary = {
 
   // Introduction
   Welcome: "Bienvenue",
-  "Ursly, in {seconds} seconds.": "Ursly, en {seconds} secondes.",
+  "In {seconds} seconds.": "En {seconds} secondes.",
   "A source, a question, and a conversation that stays grounded in what you brought.":
     "Une source, une question, et une conversation qui reste ancrée dans ce que vous avez apporté.",
   "Skip intro": "Passer l’intro",

@@ -1500,10 +1500,14 @@ h3 {
   height: var(--nav-h);
   padding-inline: var(--gutter);
 }
-.nav .brand {
+/* The menu and the introduction wear the wordmark at one size, at every
+   width, so the film hands over to a page that looks like the same product. */
+.nav .brand,
+.intro-gate .brand {
   font-size: 24px;
 }
-.nav .brand-mark {
+.nav .brand-mark,
+.intro-gate .brand-mark {
   width: 30px;
   height: 30px;
 }
@@ -1801,17 +1805,6 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-}
-.intro-gate-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-size: 22px;
-  font-weight: 720;
-  letter-spacing: -1.2px;
-}
-.intro-gate-brand img {
-  border-radius: var(--radius-md);
 }
 .intro-skip {
   display: inline-flex;
@@ -2505,9 +2498,13 @@ h3 {
   }
   .nav .brand {
     grid-area: brand;
+  }
+  .nav .brand,
+  .intro-gate .brand {
     font-size: 21px;
   }
-  .nav .brand-mark {
+  .nav .brand-mark,
+  .intro-gate .brand-mark {
     width: 26px;
     height: 26px;
     margin-right: var(--space-xs);

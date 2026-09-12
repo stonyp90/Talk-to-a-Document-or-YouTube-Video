@@ -150,9 +150,18 @@ export function IntroGate({
     >
       <div className="intro-gate-inner">
         <header className="intro-gate-bar">
-          <span className="intro-gate-brand">
+          {/* The same wordmark, at the same size, as the menu the visitor
+              lands on when the film ends: one brand, one scale, nothing
+              restyled between the introduction and the page it introduces. */}
+          <span className="brand">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/ursly-mark.svg" width="28" height="28" alt="" />
+            <img
+              className="brand-mark"
+              src="/brand/ursly-mark.svg"
+              width="32"
+              height="32"
+              alt=""
+            />
             ursly<span className="brand-dot">.</span>
           </span>
           <button

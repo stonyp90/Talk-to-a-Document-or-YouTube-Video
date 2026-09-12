@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
   type RefObject,
 } from "react";
 import { usePathname } from "next/navigation";
@@ -85,8 +86,20 @@ type StoryControls = {
   replayButton: RefObject<HTMLButtonElement | null>;
 };
 
+/**
+ * The introduction wears the same bar the site wears, from the same component:
+ * the same panel, the same glass, the same lockup at the same size. It carries
+ * none of the site's controls, because inside the film there is nowhere for
+ * them to go — only the one way out of it. Making this a variant rather than a
+ * second bar that resembles the first is the whole point: two bars drift, and
+ * a visitor who sees them drift is being told they are on two different
+ * products.
+ */
+type IntroChrome = { page: "intro"; trailing: ReactNode };
+
 type TopNavProps =
   | StoryControls
+  | IntroChrome
   | {
       page: "app";
       mode: EntryMode;
@@ -280,6 +293,19 @@ export function TopNav(props: TopNavProps) {
           short: "Story",
           className: "nav-link",
         };
+
+  // The film's bar: the same panel, and only the way out of it. Declared after
+  // every hook above, so the two variants run the same ones in the same order.
+  if (props.page === "intro")
+    return (
+      <nav className="nav" aria-label={t("Primary")} data-page="intro">
+        <div className="nav-inner">
+          <Brand />
+          <span aria-hidden="true" />
+          <div className="nav-actions">{props.trailing}</div>
+        </div>
+      </nav>
+    );
 
   return (
     <>

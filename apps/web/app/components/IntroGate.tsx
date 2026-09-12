@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Brand } from "./Brand";
 import { Icon } from "./Icon";
+import { TopNav } from "./TopNav";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   INTRO_DURATION_SECONDS,
@@ -170,25 +170,27 @@ export function IntroGate({
         {/* One wordmark on screen, and it is the film's. The bar used to set
             a second one directly above the product's own, at the same size,
             so a first visit met the name twice before meeting the argument. */}
-        <header className="intro-gate-bar">
-          {/* The same lockup the fixed menu carries, at the same size, from the
-              same component. A visitor should not be able to tell that the
-              film and the site are two surfaces. */}
-          <Brand />
-          {/* The dialog needs a name; it does not need a second Ursly on the
-              screen to say it. */}
-          <h2 id="intro-title" className="visually-hidden">
-            {t(INTRO_TITLE_KEY)}
-          </h2>
-          <button
-            type="button"
-            className="intro-skip"
-            autoFocus
-            onClick={finish}
-          >
-            {t("Skip intro")} <Icon name="close" />
-          </button>
-        </header>
+        {/* The site's own bar, from the site's own component, carrying only
+            the way out. Nothing about the chrome should tell a visitor that
+            the film and the page are two different surfaces. */}
+        <TopNav
+          page="intro"
+          trailing={
+            <button
+              type="button"
+              className="intro-skip"
+              autoFocus
+              onClick={finish}
+            >
+              {t("Skip intro")} <Icon name="close" />
+            </button>
+          }
+        />
+        {/* The dialog needs a name; it does not need a second Ursly on the
+            screen to say it. */}
+        <h2 id="intro-title" className="visually-hidden">
+          {t(INTRO_TITLE_KEY)}
+        </h2>
 
         <div className="intro-stage" data-reduced={reduced}>
           {/* The video exists only while the dialog is open, so a returning

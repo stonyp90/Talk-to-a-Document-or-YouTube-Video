@@ -1859,18 +1859,19 @@ h3 {
   height: 100%;
   max-width: 1180px;
   margin: 0 auto;
-  padding: calc(16px + var(--safe-top)) var(--measure)
+  padding: calc(var(--nav-float) + var(--safe-top)) var(--gutter)
     calc(16px + var(--safe-bottom));
 }
-/* The film sets its own headline on a margin five parts in a hundred from the
-   edge of the frame. The dialog's title stands on that same margin, so the
-   words above the film and the words burned into it share one left edge. */
-.intro-gate-bar {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2xl);
-  padding-inline: var(--film-inset);
+/* Inside the introduction the bar is not fixed to anything: the dialog is the
+   whole page, and there is nothing under the bar to scroll past it. It keeps
+   the panel, the glass and the lockup; it loses only the position. */
+.nav[data-page="intro"] {
+  position: static;
+  z-index: auto;
+  width: 100%;
+}
+.nav[data-page="intro"] .nav-inner {
+  padding-inline: var(--space-xl);
 }
 .intro-skip {
   display: inline-flex;
@@ -1888,17 +1889,7 @@ h3 {
   width: 14px;
   height: 14px;
 }
-/* The title of the film, at the film's own scale. It used to sit two sizes
-   under the headline burned into the first frame, which read as a caption
-   apologising for the thing behind it. */
-.intro-gate-bar h2 {
-  margin: 0;
-  font-family: var(--display);
-  font-size: clamp(30px, 4vw, 52px);
-  font-weight: 400;
-  letter-spacing: -0.028em;
-  line-height: 1.04;
-}
+
 .intro-stage {
   display: grid;
   position: relative;

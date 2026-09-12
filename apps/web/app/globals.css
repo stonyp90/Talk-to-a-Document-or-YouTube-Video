@@ -653,7 +653,8 @@ h3 {
   font-weight: 650;
 }
 .field input,
-.composer input {
+.composer input,
+.composer textarea {
   width: 100%;
   min-width: 0;
   padding: var(--space-md) var(--space-md);
@@ -664,7 +665,8 @@ h3 {
   font-size: 14px;
 }
 .field input:focus,
-.composer input:focus {
+.composer input:focus,
+.composer textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--focus-wash);
   outline: none;
@@ -1348,7 +1350,8 @@ h3 {
     min-height: 42px;
   }
   .field input,
-  .composer input {
+  .composer input,
+  .composer textarea {
     font-size: 16px;
   }
   .guide-grid {
@@ -2539,13 +2542,22 @@ h3 {
   .nav-section-short {
     display: inline;
   }
-  .nav-intro-label {
+  .nav-intro-label,
+  .nav-download-label {
     display: none;
   }
-  .nav-intro {
+  .nav-intro,
+  .nav-download {
     width: 36px;
     justify-content: center;
     padding: var(--space-xs);
+  }
+  /* A menu anchored to the right edge of a narrow screen must not push the
+     page sideways, so it spans the gutter instead of hanging off it. */
+  .nav-download-menu {
+    right: 0;
+    left: auto;
+    max-width: calc(100vw - var(--gutter) * 2);
   }
   .nav-languages {
     margin-left: var(--space-3xs);
@@ -2706,6 +2718,430 @@ h3 {
   line-height: 1.4;
 }
 
+/* ── A conversation, not a form ──────────────────────────────────────────── */
+
+/* An answer arrives as prose, lists and code. Rendering the marks instead of
+   printing them is the difference between reading and decoding. */
+.markdown > *:first-child {
+  margin-top: 0;
+}
+.markdown > *:last-child {
+  margin-bottom: 0;
+}
+.markdown p {
+  margin: 0 0 9px;
+}
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 14px 0 6px;
+  font-family: Georgia, serif;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.markdown ul,
+.markdown ol {
+  margin: 0 0 9px;
+  padding-left: 20px;
+}
+.markdown li {
+  margin-bottom: 4px;
+}
+.markdown li::marker {
+  color: var(--accent);
+}
+.markdown code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--surface-soft);
+  font-size: 0.92em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.markdown pre {
+  margin: 0 0 9px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+.markdown pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.markdown a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Markdown owns its own spacing, so the message must not also preserve the
+   newlines the parser has already read. */
+.message-text.rendered {
+  white-space: normal;
+}
+
+/* A caret while the words are still arriving: the answer is being written, not
+   stalled. It follows the last character rather than sitting on its own line. */
+.message[data-streaming="true"] .message-text::after {
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 2px;
+  transform: translateY(2px);
+  background: var(--accent);
+  content: "";
+  animation: caret 1s steps(2, start) infinite;
+}
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Message actions stay out of the way until the message is under the pointer
+   or holds focus, and stay permanently visible to a touch or keyboard reader. */
+.message-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity var(--motion-fast) ease;
+}
+.message:hover .message-actions,
+.message:focus-within .message-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .message-actions {
+    opacity: 1;
+  }
+}
+.message-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+.message-action:not(:disabled):hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.message-action .icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* Reading back through a conversation should not mean losing the live answer. */
+.chat-anchor {
+  position: relative;
+}
+.chat-jump {
+  display: inline-flex;
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+  box-shadow: 0 6px 20px var(--shadow-md);
+  animation: rise-in var(--motion-fast) var(--ease-out) both;
+}
+
+/* A question is often longer than one line. The box grows with it, and Enter
+   still sends, because a conversation is not a document. */
+.composer {
+  align-items: end;
+}
+.composer textarea {
+  min-height: 44px;
+  max-height: 168px;
+  padding: 11px 12px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+}
+.composer-buttons {
+  display: flex;
+  gap: 6px;
+}
+.composer-hint {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* ── Voice to action ─────────────────────────────────────────────────────── */
+
+/* Whatever has been dictated so far, before it is sent. Seeing the words land
+   is what makes speaking feel like typing rather than like guessing. */
+.voice-draft {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--accent-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.voice-draft-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.voice-draft-text {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.voice-draft-text em {
+  color: var(--muted);
+  font-style: normal;
+}
+.voice-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Armed is a state worth seeing from across the room. */
+.voice-commands[data-armed="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-wash);
+}
+.voice-commands[data-compact="true"] {
+  margin: 0 0 12px;
+  padding: 12px;
+}
+.voice-commands-status [data-hint] {
+  color: var(--muted);
+}
+.voice-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 11px;
+}
+
+/* Alternatives to a video found by voice. The first result is usually right;
+   when it is not, correcting it should cost one press, not a retyped search. */
+.video-choices {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.video-choices-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.video-choice {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  text-align: left;
+}
+.video-choice:not(:disabled):hover {
+  border-color: var(--accent-border);
+  background: var(--accent-wash-soft);
+}
+.video-choice strong {
+  color: var(--ink);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.video-choice span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* ── The apps, one press from the top menu ───────────────────────────────── */
+
+.nav-downloads {
+  position: relative;
+  display: inline-flex;
+}
+.nav-download .icon {
+  width: 14px;
+  height: 14px;
+}
+.nav-download[aria-expanded="true"] {
+  border-color: var(--accent-border);
+  background: var(--accent-wash-soft);
+  color: var(--accent);
+}
+.nav-download-menu {
+  display: grid;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  gap: 2px;
+  width: max-content;
+  min-width: 232px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 18px 44px var(--shadow-lg);
+  animation: rise-in var(--motion-fast) var(--ease-out) both;
+}
+.nav-download-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  text-decoration: none;
+}
+.nav-download-item:hover,
+.nav-download-more:hover {
+  background: var(--accent-wash-soft);
+}
+.nav-download-item .brand-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+.nav-download-item strong,
+.nav-download-item small {
+  display: block;
+}
+.nav-download-item strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+.nav-download-item small {
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.nav-download-more {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.nav-download-more .icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   Sign-in panel. The gate is the first thing a new reader meets, so it borrows
+   the workspace card rather than inventing a second visual language: the form
+   classes above do the work, and only the panel's own rhythm is set here.
+   --------------------------------------------------------------------------- */
+.sign-in {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+}
+.sign-in-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.sign-in-form {
+  display: grid;
+  gap: 10px;
+}
+.sign-in-form .actions {
+  margin-top: 2px;
+}
+/* The code is short and read back digit by digit; give it room to breathe. */
+.sign-in-form input[name="code"] {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.22em;
+}
+.sign-in-error {
+  margin: 0;
+}
+
+/* A conversation has to stay a conversation. Left unbounded, the log grows
+   until the page itself scrolls: the composer walks off the bottom of the
+   screen, following the newest words does nothing, and the reader has to hunt
+   for the box to type in. Bounding the log restores the shape every chat has —
+   the question stays under your hands and the answer scrolls above it. The
+   narrow-screen rule already does this and is left alone. */
+@media (min-width: 701px) {
+  .chat {
+    max-height: min(52vh, 560px);
+  }
+  /* The card no longer needs to reserve room it may not use. */
+  .conversation-card {
+    max-height: calc(100svh - var(--nav-h) - var(--safe-top) - var(--gutter));
+  }
+}
+
+/* Whoever is signed in, and the way back out. A reader who cannot sign out
+   cannot hand the machine to anyone else. */
+.footer-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.footer-signout {
+  min-height: 26px;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+}
+.footer-signout:hover {
+  border-color: var(--accent-border);
+}
 /* Small phones: two story anchors and the language pair do not fit beside the
    brand — in French the pair was pushed off the edge. The build loop yields
    first, because it opens the page anyway: a reader meets it by scrolling,
@@ -2723,5 +3159,20 @@ h3 {
 @media (max-width: 380px) {
   .nav-section-link {
     display: none;
+  }
+}
+
+/* The bar was measured before it carried an apps menu. Between the mode
+   switcher and the way in there is no room for one more word, so the menu
+   drops to its icon earlier than the other actions do — it is the newest
+   control on the bar, and the one whose name is least missed. */
+@media (max-width: 1180px) {
+  .nav-download-label {
+    display: none;
+  }
+  .nav-download {
+    width: 36px;
+    justify-content: center;
+    padding: var(--space-xs);
   }
 }

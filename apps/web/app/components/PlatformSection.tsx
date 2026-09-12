@@ -3,6 +3,7 @@
 import { Icon, type IconName } from "./Icon";
 import { useHydrated } from "./useHydrated";
 import { useLanguage } from "../i18n/LanguageProvider";
+import { INTRO_DURATION_SECONDS } from "../content/intro-video";
 
 const repository =
   "https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video";
@@ -139,7 +140,8 @@ export function PlatformSection({
           onClick={onReplayIntro}
           disabled={!hydrated}
         >
-          {t("Watch the intro again")} · 24 s
+          {t("Watch the intro again")} ·{" "}
+          {INTRO_DURATION_SECONDS} s
         </button>
       </div>
 

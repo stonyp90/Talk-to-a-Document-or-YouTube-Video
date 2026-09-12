@@ -9,6 +9,16 @@ x-object-store-image: &object-store-image
 x-app-environment: &app-environment
   PROVIDER_MODE: ${PROVIDER_MODE:-mock}
   YOUTUBE_TRANSCRIPT_MODE: live
+  # The local stack finds videos from spoken words without a YouTube key: the
+  # fixtures are deterministic, so the acceptance and browser suites can speak
+  # an artist and open a captioned result with no quota and no network.
+  YOUTUBE_SEARCH_MODE: ${YOUTUBE_SEARCH_MODE:-mock}
+  YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+  YOUTUBE_API_BASE_URL: ${YOUTUBE_API_BASE_URL:-https://www.googleapis.com}
+  YOUTUBE_SEARCH_TIMEOUT_MS: ${YOUTUBE_SEARCH_TIMEOUT_MS:-10000}
+  VIDEO_SEARCH_MAX_RESULTS: ${VIDEO_SEARCH_MAX_RESULTS:-5}
+  VIDEO_SEARCH_RATE_LIMIT: ${VIDEO_SEARCH_RATE_LIMIT:-20}
+  VIDEO_SEARCH_RATE_WINDOW_MS: ${VIDEO_SEARCH_RATE_WINDOW_MS:-60000}
   TRANSCRIPT_SERVICE_URL: http://transcript:3010
   OBJECT_STORE_ENDPOINT: http://object-store:9000
   OBJECT_STORE_PUBLIC_ENDPOINT: ${OBJECT_STORE_PUBLIC_ENDPOINT:-http://localhost:9002}
@@ -38,6 +48,41 @@ x-app-environment: &app-environment
   # more than the production budget of 20 ingests a minute from one address.
   # Production keeps the limiter; set RATE_LIMIT_DISABLED= to test it here.
   RATE_LIMIT_DISABLED: ${RATE_LIMIT_DISABLED:-true}
+  # The local stack runs open. Its acceptance suite drives every paid endpoint
+  # anonymously, on purpose, and there is no mailbox here to read a code from;
+  # a gated local stack would test the gate instead of the application. The
+  # production default is the opposite — an unset AUTH_MODE means "required" —
+  # so this line is the only thing opening it, and only here. Set
+  # AUTH_MODE=required to exercise the real gate locally, with EMAIL_MODE=log
+  # and the code read from `docker compose logs web`.
+  AUTH_MODE: ${AUTH_MODE:-disabled}
+  AUTH_COOKIE_NAME: ${AUTH_COOKIE_NAME:-ursly_session}
+  AUTH_SESSION_TTL_MS: ${AUTH_SESSION_TTL_MS:-1209600000}
+  AUTH_HASH_PEPPER: ${AUTH_HASH_PEPPER:-local-development-pepper}
+  AUTH_LOCAL_ACCOUNT_EMAIL: ${AUTH_LOCAL_ACCOUNT_EMAIL:-local@localhost}
+  SIGN_IN_CODE_LENGTH: ${SIGN_IN_CODE_LENGTH:-6}
+  SIGN_IN_CODE_TTL_MS: ${SIGN_IN_CODE_TTL_MS:-600000}
+  SIGN_IN_MAX_CODE_ATTEMPTS: ${SIGN_IN_MAX_CODE_ATTEMPTS:-5}
+  USAGE_LIMIT_UNITS: ${USAGE_LIMIT_UNITS:-300}
+  USAGE_WINDOW_MS: ${USAGE_WINDOW_MS:-86400000}
+  USAGE_UNITS_INGEST: ${USAGE_UNITS_INGEST:-10}
+  USAGE_UNITS_UPLOAD: ${USAGE_UNITS_UPLOAD:-1}
+  USAGE_UNITS_EXTRACT: ${USAGE_UNITS_EXTRACT:-10}
+  USAGE_UNITS_TEXT_CHAT: ${USAGE_UNITS_TEXT_CHAT:-5}
+  USAGE_UNITS_REALTIME: ${USAGE_UNITS_REALTIME:-50}
+  USAGE_UNITS_TURNS: ${USAGE_UNITS_TURNS:-1}
+  USAGE_UNITS_VIDEO_SEARCH: ${USAGE_UNITS_VIDEO_SEARCH:-2}
+  AUTH_REQUEST_CODE_RATE_LIMIT: ${AUTH_REQUEST_CODE_RATE_LIMIT:-5}
+  AUTH_REQUEST_CODE_RATE_WINDOW_MS: ${AUTH_REQUEST_CODE_RATE_WINDOW_MS:-900000}
+  AUTH_CONFIRM_RATE_LIMIT: ${AUTH_CONFIRM_RATE_LIMIT:-10}
+  AUTH_CONFIRM_RATE_WINDOW_MS: ${AUTH_CONFIRM_RATE_WINDOW_MS:-900000}
+  AUTH_SESSION_RATE_LIMIT: ${AUTH_SESSION_RATE_LIMIT:-60}
+  AUTH_SESSION_RATE_WINDOW_MS: ${AUTH_SESSION_RATE_WINDOW_MS:-60000}
+  # No mail from a laptop: the code is written to the web service log.
+  EMAIL_MODE: ${EMAIL_MODE:-log}
+  SES_REGION: ${SES_REGION:-}
+  SES_FROM_ADDRESS: ${SES_FROM_ADDRESS:-}
+  SES_CONFIGURATION_SET: ${SES_CONFIGURATION_SET:-}
 
 services:
   # Next.js owns both the frontend and API routes; there is no unused second API.

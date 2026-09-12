@@ -12,7 +12,7 @@ import { Language, TranslationKey } from "./i18n";
 import { palette as c, Touch, serif } from "./design";
 
 const transcript: TranslationKey =
-  "Ursly turns a document or a captioned video into a conversation. Bring a source, ask by voice or text, and explore what matters. Voice actions help you take the next step. Motion beta previews a future hands-free AR/VR layer without triggering actions from pointer clicks.";
+  "The next generation of internet: not a new website, but a new way to use one. Bring a document or a video and Ursly reads it, answering only from it. Say it, and Ursly does it. Motion to action is in beta, built for the headsets coming next. The keyboard still works; it is simply no longer the way in. And nothing ships until the loop closes: concept to production, tested in production, every cycle.";
 
 type Props = {
   motion: boolean;
@@ -29,13 +29,10 @@ const sources: Record<Language, number> = {
 export function IntroVideo({ motion, language, t }: Props) {
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
-  const player = useVideoPlayer(
-    sources[language],
-    (video) => {
-      video.loop = false;
-      video.muted = true;
-    },
-  );
+  const player = useVideoPlayer(sources[language], (video) => {
+    video.loop = false;
+    video.muted = true;
+  });
 
   useEffect(() => {
     if (open && !failed) player.play();
@@ -66,14 +63,14 @@ export function IntroVideo({ motion, language, t }: Props) {
     <>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t("Watch Ursly in 24 seconds")}
+        accessibilityLabel={t("Watch the Ursly introduction")}
         onPress={() => {
           setFailed(false);
           setOpen(true);
         }}
         style={s.trigger}
       >
-        <Text style={s.triggerText}>{t("Watch Ursly in 24 seconds")}</Text>
+        <Text style={s.triggerText}>{t("Watch the Ursly introduction")}</Text>
         <Text style={s.triggerArrow}>↗</Text>
       </Pressable>
       <Modal

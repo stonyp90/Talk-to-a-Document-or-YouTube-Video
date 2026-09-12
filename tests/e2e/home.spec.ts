@@ -366,7 +366,7 @@ test.describe("answers and the composer", () => {
     context,
   }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    await page.goto("/");
+    await page.goto(APP_PATH);
     await addSource(page);
     await page.route("**/api/text-chat/stream", (route) =>
       route.fulfill({
@@ -401,7 +401,7 @@ test.describe("answers and the composer", () => {
     page,
   }) => {
     await installAnswerStream(page);
-    await page.goto("/");
+    await page.goto(APP_PATH);
     await addSource(page);
     await ask(page, "Tell me about the rings");
 
@@ -436,7 +436,7 @@ test.describe("answers and the composer", () => {
   test("Enter sends, Shift+Enter starts a new line, and the box grows", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto(APP_PATH);
     await addSource(page);
     await page.route("**/api/text-chat/stream", (route) =>
       route.fulfill({
@@ -468,7 +468,7 @@ test.describe("answers and the composer", () => {
   test("Jump to latest appears once the log is scrolled away from the end", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto(APP_PATH);
     await addSource(page);
     await page.route("**/api/text-chat/stream", (route) =>
       route.fulfill({
@@ -496,7 +496,7 @@ test.describe("answers and the composer", () => {
   test("the top menu hands over the mobile builds and the release they came from", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto(APP_PATH);
     const menu = page.getByRole("navigation", { name: "Primary" });
     // The label is hidden below 960px and the icon is decorative, so at this
     // viewport the button has no accessible name to find it by.
@@ -550,7 +550,7 @@ test.describe("answers and the composer", () => {
         json: { error: "Sign in to continue.", code: "UNAUTHENTICATED" },
       }),
     );
-    await page.goto("/");
+    await page.goto(APP_PATH);
 
     await expect(
       page.getByRole("heading", { name: "Sign in to keep going" }),

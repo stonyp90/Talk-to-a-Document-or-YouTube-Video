@@ -104,6 +104,8 @@ export async function installSpeech(
         ? {
             speak: (utterance: { text: string }) => spoken.push(utterance.text),
             cancel: () => {},
+            // A real synthesiser offers a voice list, even an empty one.
+            getVoices: () => [],
           }
         : undefined,
     });

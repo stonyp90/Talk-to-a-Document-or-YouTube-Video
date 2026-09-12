@@ -231,7 +231,8 @@ export function VoiceActions({
   useEffect(() => {
     // Installed voices load lazily, and the list is empty until something asks
     // for it. Asking on mount means the first spoken reply already has one.
-    window.speechSynthesis?.getVoices();
+    // Not every environment that offers a synthesiser offers a voice list.
+    window.speechSynthesis?.getVoices?.();
   }, []);
 
   useEffect(() => {
@@ -256,7 +257,7 @@ export function VoiceActions({
     // often the small robotic one. Voices also arrive asynchronously, so an
     // empty list here simply means the default is used this once.
     const chosen = selectSpeechVoice(
-      window.speechSynthesis.getVoices(),
+      window.speechSynthesis.getVoices?.() ?? [],
       locale,
     );
     if (chosen) utterance.voice = chosen;

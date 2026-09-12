@@ -41,9 +41,10 @@ function useActiveSection(ids: readonly string[]): string | undefined {
 }
 
 /**
- * The fixed top menu: brand, the three control modes, the platform section,
- * the intro replay and the language. It never scrolls away, so a mode change
- * or a look at the platform story is one tap from anywhere on the page.
+ * The fixed top menu: brand, the control modes, the platform section, the
+ * intro replay and the language. It never scrolls away, so a mode change or a
+ * look at the platform story is one tap from anywhere on the page. The modes
+ * are the argument in miniature, which is why they sit in the middle of it.
  */
 export function TopNav({
   mode,

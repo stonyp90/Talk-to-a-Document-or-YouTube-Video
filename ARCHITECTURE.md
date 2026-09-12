@@ -64,3 +64,20 @@ the core never sees a locale. Presigned uploads go straight from the browser to
 the object store, so the Content Security Policy — fixed at build time in
 `next.config.ts` — must name the public store address the runtime hands out;
 Compose passes the same value as a build argument and as an environment variable.
+
+How the site describes itself is domain work too, for the same reason the source
+models are: it is a reading of what Ursly is, not a detail of how it is served.
+`packages/core/src/domain/discoverability.ts` turns a `SiteProfile` value into a
+schema.org graph, sitemap entries, a crawling policy and the plain text at
+`/llms.txt`. It touches no environment and no framework, so the architecture test
+that guards the core covers it unchanged. `apps/web/app/seo/profile.ts` is the
+only place that answers where this deployment lives and where its introduction is
+published; `app/robots.ts`, `app/sitemap.ts`, `app/llms.txt/route.ts` and the
+language layout are thin readings of the domain through it. Those values are read
+while the pages are prerendered, so they arrive as build arguments alongside the
+Content Security Policy, not as runtime settings.
+
+The introduction video is content, not markup. `apps/web/app/content/intro-video.ts`
+holds the four scenes it argues, and the dialog that plays it, the renderer that
+draws it, the captions and the structured data all read the same source, so the
+words burned into the frames and the words a crawler is given cannot drift.

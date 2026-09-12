@@ -11,15 +11,16 @@ export const french: Dictionary = {
   Primary: "Principale",
   "Ursly home": "Accueil Ursly",
   "Control mode": "Mode de contrôle",
-  "Voice to action": "Commande vocale",
-  "Keyboard to action": "Clavier",
-  "Motion to action": "Mouvement",
+  "Voice to action": "Voix vers action",
+  "Keyboard to action": "Clavier vers action",
+  "Motion to action": "Mouvement vers action",
   Voice: "Voix",
   Keyboard: "Clavier",
   Motion: "Mouvement",
   Beta: "Bêta",
-  "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.":
-    "Le mouvement n’est pas encore disponible. Nous y travaillons. La voix et le clavier sont prêts dès aujourd’hui.",
+  Legacy: "Ancien",
+  "Motion to action is what comes next: control by movement, built for VR and AR headsets. It is not available yet. Voice works today, and the keyboard is still there.":
+    "Le mouvement vers action, c’est la suite : commander par le geste, pensé pour les casques de réalité virtuelle et augmentée. Ce n’est pas encore disponible. La voix fonctionne aujourd’hui, et le clavier est toujours là.",
   Platform: "Plateforme",
   "Watch the intro": "Voir l’intro",
   Language: "Langue",
@@ -28,8 +29,8 @@ export const french: Dictionary = {
   // Introduction
   Welcome: "Bienvenue",
   "Ursly, in 24 seconds.": "Ursly, en 24 secondes.",
-  "A source, a question, and a conversation that stays grounded in what you brought.":
-    "Une source, une question, et une conversation qui reste ancrée dans ce que vous avez apporté.",
+  "The next generation of internet: a source, a question, and a conversation you never have to type.":
+    "La nouvelle génération d’internet : une source, une question, et une conversation que vous n’avez jamais à taper.",
   "Skip intro": "Passer l’intro",
   "Play the intro": "Lire l’intro",
   "Intro progress": "Progression de l’intro",
@@ -40,30 +41,32 @@ export const french: Dictionary = {
   "Read the intro instead": "Lire l’intro plutôt",
   "The intro is unavailable right now.":
     "L’intro n’est pas disponible pour le moment.",
-  "Ursly. A source. A conversation.": "Ursly. Une source. Une conversation.",
-  "Bring a document or a video. Ursly reads it for you.":
-    "Apportez un document ou une vidéo. Ursly le lit pour vous.",
-  "Ask by voice, by keyboard, and soon by movement.":
-    "Posez vos questions à la voix, au clavier et bientôt par le mouvement.",
-  "Source, question, understanding.": "Source, question, compréhension.",
+  "The next generation of internet. Internet without a keyboard and a mouse.":
+    "La nouvelle génération d’internet. Internet sans clavier ni souris.",
+  "Voice to action. Say it, and Ursly does it.":
+    "Voix vers action. Dites-le, Ursly le fait.",
+  "Motion to action. In beta, built for the headsets coming next.":
+    "Mouvement vers action. En bêta, pensé pour les casques qui arrivent.",
+  "The keyboard still works. It is simply no longer the way in.":
+    "Le clavier fonctionne toujours. Ce n’est simplement plus la porte d’entrée.",
 
   // Workspace heading
   "Less scrolling.": "Moins défiler.",
   "More understanding.": "Mieux comprendre.",
   "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.":
     "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis parlez-lui. Dites une commande, posez votre question à voix haute ou écrivez quand vous préférez.",
-  "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.":
-    "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis posez vos questions au clavier. La voix reste à un geste.",
+  "Add a PDF or a captioned YouTube video, then ask about it by typing. This is the old way in, and it still does everything. Voice is one tap away.":
+    "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis posez vos questions au clavier. C’est l’ancienne porte d’entrée, et elle fait encore tout. La voix est à un geste.",
   Progress: "Progression",
   "Add a source": "Ajouter une source",
   "Ask a question": "Poser une question",
   "You are offline. Ursly will reconnect when your network returns.":
     "Vous êtes hors ligne. Ursly se reconnectera au retour du réseau.",
   "Dismiss notification": "Fermer la notification",
-  "Voice to action: say a command, or use the controls as usual.":
-    "Commande vocale : dites une commande ou utilisez les contrôles comme d’habitude.",
-  "Keyboard to action: everything works by typing and clicking.":
-    "Clavier : tout fonctionne en écrivant et en cliquant.",
+  "Voice to action: the way in. Say a command, or use the controls as usual.":
+    "Voix vers action : c’est la porte d’entrée. Dites une commande ou utilisez les contrôles comme d’habitude.",
+  "Keyboard to action: the old way in, still complete. Everything works by typing and clicking.":
+    "Clavier vers action : l’ancienne porte d’entrée, toujours complète. Tout fonctionne en écrivant et en cliquant.",
 
   // Source card
   "1. Add a source": "1. Ajouter une source",
@@ -286,8 +289,8 @@ export const french: Dictionary = {
   // Platform section
   "Not a new website. A new way to use one.":
     "Pas un nouveau site Web. Une nouvelle façon de s’en servir.",
-  "Ursly sits between what you mean and what a screen does. You speak, move or type; it listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.":
-    "Ursly se place entre ce que vous voulez dire et ce que l’écran fait. Vous parlez, bougez ou écrivez; Ursly écoute, s’adapte à votre façon de parler et vous laisse, à vous et non au modèle, la maîtrise de la suite.",
+  "Ursly sits between what you mean and what a screen does. You speak; soon you will move; you can still type. It listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.":
+    "Ursly se place entre ce que vous voulez dire et ce que l’écran fait. Vous parlez; bientôt vous bougerez; vous pouvez encore écrire. Ursly écoute, s’adapte à votre façon de parler et vous laisse, à vous et non au modèle, la maîtrise de la suite.",
   "A human stays in the loop.": "Un humain garde la main.",
   "Every action Ursly takes is one you asked for, can see and can undo. When it is unsure, it asks instead of guessing.":
     "Chaque action qu’Ursly effectue est une action que vous avez demandée, que vous voyez et que vous pouvez annuler. En cas de doute, Ursly vous pose la question au lieu de deviner.",
@@ -295,9 +298,10 @@ export const french: Dictionary = {
     "Un modèle vocal qui apprend votre voix, avec votre permission.",
   "Ursly is built to tune itself to your accent, your pace and the words you actually use, so it understands you a little better each time. Your recordings stay yours: nothing is kept without your say, and everything can be deleted in one tap.":
     "Ursly est conçu pour se régler sur votre accent, votre débit et les mots que vous employez vraiment, pour vous comprendre un peu mieux à chaque échange. Vos enregistrements vous appartiennent : rien n’est conservé sans votre consentement et tout peut être supprimé d’un seul geste.",
-  "Speak. Move. Type.": "Parlez. Bougez. Écrivez.",
-  "Voice first, movement next, keyboard whenever you need it: three ways to do the same thing, so no one is left out. Choose what fits the moment, the room or the person; the request underneath stays the same.":
-    "La voix d’abord, le mouvement ensuite, le clavier chaque fois que vous en avez besoin : trois façons de faire la même chose, pour que personne ne soit laissé de côté. Choisissez ce qui convient au moment, au lieu ou à la personne; la demande, elle, ne change pas.",
+  "Voice now. Movement next. Keyboard still here.":
+    "La voix maintenant. Le mouvement ensuite. Le clavier toujours là.",
+  "Voice to action is how you use Ursly today. Motion to action comes next, in beta, built for VR and AR headsets. The keyboard is the old way in: it still does everything, we keep it and support it, and no one is left out. It is simply no longer where you start.":
+    "La commande vocale, c’est la façon d’utiliser Ursly aujourd’hui. Le mouvement vers action arrive ensuite, en version bêta, pensé pour les casques de réalité virtuelle et augmentée. Le clavier est l’ancienne porte d’entrée : il fait encore tout, nous le gardons et le prenons en charge, et personne n’est laissé de côté. Il n’est simplement plus le point de départ.",
   "A simple site today. Every surface tomorrow.":
     "Un site simple aujourd’hui. Toutes les surfaces demain.",
   "Talking to a document is the first surface. The same platform is designed to drive connected objects, 3D objects and interfaces that do not exist yet, without changing how you ask.":
@@ -307,10 +311,10 @@ export const french: Dictionary = {
   Today: "Aujourd’hui",
   Next: "Ensuite",
   Later: "Plus tard",
-  "Talk to a PDF or a captioned YouTube video. Say “upload”, “summarize” or “next” to drive the page. Keyboard everywhere.":
-    "Conversez avec un PDF ou une vidéo YouTube sous-titrée. Dites « téléverser », « résume » ou « suivant » pour piloter la page. Le clavier, partout.",
-  "Voice profiles that adapt to each speaker, with consent and one-tap deletion. Motion to action, in beta.":
-    "Des profils vocaux qui s’adaptent à chaque personne, avec consentement et suppression d’un seul geste. Le mouvement, en version bêta.",
+  "Talk to a PDF or a captioned YouTube video. Say “upload”, “summarize” or “next” to drive the page. The keyboard still does all of it, for whoever wants it.":
+    "Conversez avec un PDF ou une vidéo YouTube sous-titrée. Dites « téléverser », « résume » ou « suivant » pour piloter la page. Le clavier fait encore tout cela, pour qui le souhaite.",
+  "Voice profiles that adapt to each speaker, with consent and one-tap deletion. Motion to action in beta, for VR and AR headsets.":
+    "Des profils vocaux qui s’adaptent à chaque personne, avec consentement et suppression d’un seul geste. Le mouvement vers action en version bêta, pour les casques de réalité virtuelle et augmentée.",
   "Connected objects, 3D objects and other surfaces. Whole industries, not only websites.":
     "Objets connectés, objets 3D et autres surfaces. Des industries entières, pas seulement des sites Web.",
   "Try it above": "Essayez-le ci-dessus",
@@ -331,15 +335,15 @@ export const french: Dictionary = {
   "Choose a text-based PDF up to 25 MB or a captioned YouTube video, then check the extracted text in the preview.":
     "Choisissez un PDF avec du texte, jusqu’à 25 Mo, ou une vidéo YouTube sous-titrée, puis vérifiez le texte extrait dans l’aperçu.",
   "Start talking": "Commencez à parler",
-  "Select Start Voice Chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want; typing is always available.":
-    "Choisissez Démarrer la conversation vocale, autorisez le microphone et posez votre question à voix haute. Interrompez ou coupez le micro quand vous voulez; l’écriture reste toujours disponible.",
+  "Select Start Voice Chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want. The keyboard is still there, it is simply no longer the way in.":
+    "Choisissez Démarrer la conversation vocale, autorisez le microphone et posez votre question à voix haute. Interrompez ou coupez le micro quand vous voulez. Le clavier est toujours là, il n’est simplement plus la porte d’entrée.",
   "Go a little deeper": "Allez un peu plus loin",
   "Use a suggestion or ask a follow-up in your own words. Keep the source nearby to check important details.":
     "Utilisez une suggestion ou posez une question de suivi dans vos mots. Gardez la source à portée pour vérifier les détails importants.",
   "Having trouble with a source or your microphone?":
     "Un problème avec une source ou votre microphone?",
-  "Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, you can still type your questions about an extracted source.":
-    "Les PDF numérisés doivent contenir une couche de texte avant le téléversement. Les sous-titres YouTube doivent être disponibles, et certaines vidéos peuvent être bloquées par YouTube. Pour la voix, autorisez le microphone dans votre navigateur. Si la voix ne se connecte pas, vous pouvez toujours écrire vos questions sur une source extraite.",
+  "Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, the keyboard is right there and answers every question about an extracted source.":
+    "Les PDF numérisés doivent contenir une couche de texte avant le téléversement. Les sous-titres YouTube doivent être disponibles, et certaines vidéos peuvent être bloquées par YouTube. Pour la voix, autorisez le microphone dans votre navigateur. Si la voix ne se connecte pas, le clavier est juste là et répond à toutes vos questions sur une source extraite.",
 
   // Footer
   "Ursly · Made for your next “aha”.":

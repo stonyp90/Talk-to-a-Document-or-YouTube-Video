@@ -72,8 +72,9 @@ served under `/en` and `/fr`, prerendered with the right `<html lang>`. The root
 URL follows the browser (`Accept-Language`), and an explicit choice from the menu
 is remembered in a cookie. Interface copy is keyed by its English text in
 `apps/web/app/i18n/fr.ts`; a missing key falls back to English. The intro video
-exists once per language (`scripts/brand/intro-video.mjs` renders both from the
-original recording) because its text is burned into the frames.
+exists once per language (`scripts/brand/intro-video.mjs` draws both, and their
+captions, from committed inputs alone) because its text is burned into the
+frames.
 
 ### Being found and quoted
 
@@ -242,6 +243,7 @@ docker compose --env-file .env.local logs --tail=100 dev transcript
 
 - [Architecture](ARCHITECTURE.md) · [Terraform setup](infrastructure/terraform/README.md) · [Service setup](SERVICE-SETUP.md)
 - [Walkthrough script](WALKTHROUGH.md) · [Native client](apps/mobile/README.md) · [Expo EAS builds](apps/mobile/EAS.md)
+- [Publishing the introduction on YouTube](YOUTUBE.md)
 
 ## AI-assisted development
 

@@ -18,13 +18,13 @@ export const SITE_COPY: Record<Language, SiteCopy> = {
   en: {
     title: "Ursly — The joy of understanding",
     description:
-      "Your sources. Your questions. A real conversation. Explore PDFs and captioned YouTube videos with voice or text.",
-    social: "Explore your documents and videos through conversation.",
+      "The next generation of internet. Bring a PDF or a captioned YouTube video and ask your questions by voice, without a keyboard.",
+    social: "Explore your documents and videos by voice.",
   },
   fr: {
     title: "Ursly — Le plaisir de comprendre",
     description:
-      "Vos sources. Vos questions. Une vraie conversation. Explorez des PDF et des vidéos YouTube sous-titrées, à la voix ou au clavier.",
-    social: "Explorez vos documents et vos vidéos en conversant.",
+      "La nouvelle génération d'internet. Apportez un PDF ou une vidéo YouTube sous-titrée et posez vos questions à la voix, sans clavier.",
+    social: "Explorez vos documents et vos vidéos à la voix.",
   },
 };

@@ -63,7 +63,10 @@ export function registerDiscoverabilityChecks(step: Step) {
     function () {
       const video = nodeOfType(states.get(this)!.graph, "VideoObject");
       assert.equal(video?.duration, "PT24S");
-      assert.match(String(video?.transcript), /A source\. A conversation\./);
+      assert.match(
+        String(video?.transcript),
+        /Internet without a keyboard and a mouse\./,
+      );
       assert.ok(video?.uploadDate, "a video without an upload date is ignored");
     },
   );
@@ -86,7 +89,10 @@ export function registerDiscoverabilityChecks(step: Step) {
   step("the introduction is described in French", function () {
     const video = nodeOfType(states.get(this)!.graph, "VideoObject");
     assert.equal(video?.inLanguage, "fr");
-    assert.match(String(video?.transcript), /Une source\. Une conversation\./);
+    assert.match(
+      String(video?.transcript),
+      /Internet sans clavier ni souris\./,
+    );
   });
 
   step("the sitemap is built", function () {
@@ -135,8 +141,8 @@ export function registerDiscoverabilityChecks(step: Step) {
       const text = states.get(this)!.text;
       assert.match(text, /^# Ursly/);
       assert.match(text, /https:\/\/ursly\.io\/fr/);
-      assert.match(text, /Source, question, understanding\./);
-      assert.match(text, /Source, question, compréhension\./);
+      assert.match(text, /It is simply no longer the way in\./);
+      assert.match(text, /plus la porte d\u2019entrée\./);
     },
   );
 }

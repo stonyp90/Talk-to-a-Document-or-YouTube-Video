@@ -125,35 +125,57 @@ export function registerEntryChecks(step: Step, h: Helpers) {
       "no horizontal scrolling",
     );
   });
+  step(
+    "the control modes read voice first, motion next and keyboard last",
+    async function () {
+      const p = await h.page(this);
+      assert.deepEqual(
+        await modes(p)
+          .getByRole("radio")
+          .evaluateAll((items) =>
+            items.map((item) => item.getAttribute("aria-label")),
+          ),
+        ["Voice to action", "Motion to action", "Keyboard to action"],
+      );
+    },
+  );
   step("voice to action is the selected control mode", async function () {
     await expect(
       modes(await h.page(this)).getByRole("radio", { name: "Voice to action" }),
     ).toHaveAttribute("aria-checked", "true");
   });
-  step("keyboard to action can be selected", async function () {
-    const p = await h.page(this);
-    const keyboard = modes(p).getByRole("radio", {
-      name: "Keyboard to action",
-    });
-    await keyboard.click();
-    await expect(keyboard).toHaveAttribute("aria-checked", "true");
-    await expect(
-      modes(p).getByRole("radio", { name: "Voice to action" }),
-    ).toHaveAttribute("aria-checked", "false");
-  });
   step(
-    "motion to action is shown as a beta that is not yet available",
+    "motion to action is shown as the beta that comes next for headsets",
     async function () {
       const p = await h.page(this);
       const motion = modes(p).getByRole("radio", { name: /Motion to action/ });
       await expect(motion).toBeVisible();
+      await expect(motion).toContainText("Beta");
       await expect(motion).toHaveAttribute("aria-disabled", "true");
       await expect(motion).toHaveAccessibleDescription(/not available yet/i);
+      await expect(motion).toHaveAccessibleDescription(/VR and AR headsets/i);
       await motion.click({ force: true });
       await expect(motion).toHaveAttribute("aria-checked", "false");
+      // Reaching for the beta leaves the selection exactly where it was.
       await expect(
-        modes(p).getByRole("radio", { name: "Keyboard to action" }),
+        modes(p).getByRole("radio", { name: "Voice to action" }),
       ).toHaveAttribute("aria-checked", "true");
+    },
+  );
+  step(
+    "keyboard to action is marked legacy and can still be selected",
+    async function () {
+      const p = await h.page(this);
+      const keyboard = modes(p).getByRole("radio", {
+        name: "Keyboard to action",
+      });
+      await expect(keyboard).toContainText("Legacy");
+      await expect(keyboard).not.toHaveAttribute("aria-disabled", "true");
+      await keyboard.click();
+      await expect(keyboard).toHaveAttribute("aria-checked", "true");
+      await expect(
+        modes(p).getByRole("radio", { name: "Voice to action" }),
+      ).toHaveAttribute("aria-checked", "false");
     },
   );
   step("I choose Platform in the top menu", async function () {
@@ -161,13 +183,19 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     await nav(p).getByRole("link", { name: "Platform" }).click();
   });
   step(
-    "the platform section explains voice, movement and keyboard control",
+    "the platform section explains voice now, movement next and the keyboard as the old way",
     async function () {
       const p = await h.page(this);
       const section = p.locator("#platform");
       await expect(section).toBeVisible();
       await expect(section).toBeInViewport();
-      for (const word of [/voice/i, /movement/i, /keyboard/i])
+      for (const word of [
+        /voice/i,
+        /movement/i,
+        /keyboard/i,
+        /VR and AR headsets/i,
+        /old way/i,
+      ])
         await expect(section).toContainText(word);
     },
   );

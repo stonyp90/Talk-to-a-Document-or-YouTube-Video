@@ -649,8 +649,12 @@ export default function HomePage() {
     setError("");
     setVoiceActionNotice(
       mode === "voice"
-        ? t("Voice to action: say a command, or use the controls as usual.")
-        : t("Keyboard to action: everything works by typing and clicking."),
+        ? t(
+            "Voice to action: the way in. Say a command, or use the controls as usual.",
+          )
+        : t(
+            "Keyboard to action: the old way in, still complete. Everything works by typing and clicking.",
+          ),
     );
   }
 
@@ -785,7 +789,7 @@ export default function HomePage() {
                       "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.",
                     )
                   : t(
-                      "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.",
+                      "Add a PDF or a captioned YouTube video, then ask about it by typing. This is the old way in, and it still does everything. Voice is one tap away.",
                     )}
               </p>
             </div>

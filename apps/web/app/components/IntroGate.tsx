@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
+  INTRO_DESCRIPTION,
   INTRO_DURATION_SECONDS,
+  INTRO_TITLE,
   INTRO_TRANSCRIPT,
   introVideoPaths,
 } from "../content/intro-video";
@@ -157,12 +159,8 @@ export function IntroGate({
 
         <div className="intro-gate-copy">
           <span className="eyebrow">{t("Welcome")}</span>
-          <h2 id="intro-title">{t("Ursly, in 24 seconds.")}</h2>
-          <p id="intro-lede">
-            {t(
-              "A source, a question, and a conversation that stays grounded in what you brought.",
-            )}
-          </p>
+          <h2 id="intro-title">{t(INTRO_TITLE)}</h2>
+          <p id="intro-lede">{t(INTRO_DESCRIPTION)}</p>
         </div>
 
         <div className="intro-stage" data-reduced={reduced}>

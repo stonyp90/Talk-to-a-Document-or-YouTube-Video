@@ -9,7 +9,7 @@ const STEPS = [
   },
   {
     title: "Start talking",
-    text: "Select Start Voice Chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want; typing is always available.",
+    text: "Select Start Voice Chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want. The keyboard is still there, it is simply no longer the way in.",
   },
   {
     title: "Go a little deeper",
@@ -37,7 +37,7 @@ export function HowItWorks() {
       <details className="help-detail">
         <summary>{t("Having trouble with a source or your microphone?")}</summary>
         <p>
-          {t("Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, you can still type your questions about an extracted source.")}
+          {t("Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, the keyboard is right there and answers every question about an extracted source.")}
         </p>
       </details>
     </section>

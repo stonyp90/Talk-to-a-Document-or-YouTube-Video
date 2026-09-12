@@ -137,7 +137,10 @@ export function IntroGate({
     <dialog
       ref={dialog}
       className="intro-gate"
-      aria-labelledby="intro-title"
+      // The heading no longer says the name, so the dialog has to. A reader
+      // who cannot see the wordmark above it would otherwise be told only that
+      // something lasting thirty-six seconds had opened.
+      aria-label={t("Ursly introduction")}
       aria-describedby="intro-lede"
       onCancel={(event) => {
         event.preventDefault();
@@ -150,9 +153,18 @@ export function IntroGate({
     >
       <div className="intro-gate-inner">
         <header className="intro-gate-bar">
-          <span className="intro-gate-brand">
+          {/* The same wordmark, at the same size, as the menu the visitor
+              lands on when the film ends: one brand, one scale, nothing
+              restyled between the introduction and the page it introduces. */}
+          <span className="brand">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/ursly-mark.svg" width="28" height="28" alt="" />
+            <img
+              className="brand-mark"
+              src="/brand/ursly-mark.svg"
+              width="32"
+              height="32"
+              alt=""
+            />
             ursly<span className="brand-dot">.</span>
           </span>
           <button

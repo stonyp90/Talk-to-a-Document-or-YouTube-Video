@@ -81,6 +81,25 @@ describe("the title", () => {
     expect(french[INTRO_TITLE_KEY]).toContain("{seconds}");
   });
 
+  // The wordmark sits directly above this line. A title that says the name
+  // again introduces the brand twice in one breath, which is what made the
+  // introduction stop looking like the page it introduces.
+  it("leaves the name to the wordmark", () => {
+    for (const dictionary of [{}, french]) {
+      const t = createTranslator(dictionary);
+      expect(
+        t(INTRO_TITLE_KEY, { seconds: INTRO_DURATION_SECONDS }),
+      ).not.toMatch(/ursly/i);
+    }
+  });
+
+  // The dialog is still named for the product, in both languages, because a
+  // reader who cannot see the wordmark would otherwise be told only that
+  // something lasting half a minute had opened.
+  it("leaves the name to the wordmark and the dialog's own label", () => {
+    expect(french["Ursly introduction"]).toMatch(/Ursly/);
+  });
+
   it("carries the duration through substitution in both languages", () => {
     for (const dictionary of [{}, french]) {
       const t = createTranslator(dictionary);

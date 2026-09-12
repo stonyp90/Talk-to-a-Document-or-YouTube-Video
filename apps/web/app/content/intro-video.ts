@@ -70,9 +70,11 @@ export const INTRO_DURATION_SECONDS =
 
 /**
  * The title, as a translation key with the duration filled in, so the number
- * on the button and the number in the film can never disagree.
+ * on the button and the number in the film can never disagree. The name is not
+ * in it: the wordmark sits directly above the line, and a brand that introduces
+ * itself twice in one breath reads as a brand unsure it was heard.
  */
-export const INTRO_TITLE_KEY = "Ursly, in {seconds} seconds.";
+export const INTRO_TITLE_KEY = "In {seconds} seconds.";
 
 export const INTRO_DESCRIPTION =
   "The next generation of internet: a source, a question, and a conversation you never have to type — built in one loop that closes before anything ships.";

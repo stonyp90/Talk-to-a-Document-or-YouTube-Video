@@ -9,8 +9,6 @@ type Helpers = {
   baseURL: string;
 };
 
-const INTRO_STORAGE_KEY = "ursly-intro-v1";
-
 function intro(p: Page) {
   return p.getByRole("dialog", { name: /Ursly/ });
 }
@@ -33,45 +31,52 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     const p = await h.page(this);
     await p.goto(h.baseURL);
   });
-  step("the introduction video is playing in my language", async function () {
+  step(
+    "adding a source is the first thing in the workspace",
+    async function () {
+      const p = await h.page(this);
+      const picker = p.getByLabel("PDF file");
+      await expect(picker).toBeVisible();
+      // Nothing may sit between the workspace heading and the source card.
+      const first = await p.evaluate(() => {
+        const card = document.querySelector("#workspace > section");
+        return card?.querySelector("h2")?.textContent?.trim() ?? "";
+      });
+      assert.match(first, /Add a source|Ajouter une source/);
+      // The picker outranks the spoken-command panel inside that card.
+      const order = await p.evaluate(() => {
+        const card = document.querySelector("#workspace > section");
+        if (!card) return "missing";
+        const kids = [...card.children];
+        const pickerIndex = kids.findIndex((el) =>
+          el.querySelector("input#pdf-file"),
+        );
+        const actionsIndex = kids.findIndex((el) =>
+          el.matches(".voice-actions, [data-voice-actions]"),
+        );
+        return actionsIndex === -1 || pickerIndex < actionsIndex
+          ? "picker-first"
+          : "actions-first";
+      });
+      assert.equal(order, "picker-first");
+    },
+  );
+  step("the platform story is not on the workspace page", async function () {
     const p = await h.page(this);
-    await expect(intro(p)).toBeVisible();
-    const player = video(p);
-    await expect(player).toHaveAttribute("autoplay", "");
-    await expect(player).toHaveAttribute("muted", "");
-    const lang = await p.evaluate(() => document.documentElement.lang);
-    await expect
-      .poll(() => player.evaluate((v: HTMLVideoElement) => v.currentSrc))
-      .toMatch(new RegExp(`/brand/ursly-intro\\.${lang}\\.(webm|mp4)$`));
-    await expect
-      .poll(() =>
-        player.evaluate(
-          (v: HTMLVideoElement) => !v.paused && v.currentTime > 0,
-        ),
-      )
-      .toBe(true);
+    await expect(p.locator("#platform")).toHaveCount(0);
   });
-  step("I can skip the introduction at any time", async function () {
-    await expect(
-      intro(await h.page(this)).getByRole("button", { name: "Skip intro" }),
-    ).toBeEnabled();
-  });
-  step("the introduction ends", async function () {
-    const p = await h.page(this);
-    await video(p).evaluate((v: HTMLVideoElement) => {
-      v.currentTime = Math.max(0, v.duration - 0.2);
-    });
-  });
-  step("the workspace is ready and no introduction remains", async function () {
-    const p = await h.page(this);
-    await expect(intro(p)).toHaveCount(0);
-    await expect(p.locator("#workspace")).toBeVisible();
-    await expect(p.getByLabel("PDF file")).toBeVisible();
-    assert.equal(
-      await p.evaluate((key) => localStorage.getItem(key), INTRO_STORAGE_KEY),
-      "seen",
-    );
-  });
+  step(
+    "the source picker is reachable within the first screen",
+    async function () {
+      const p = await h.page(this);
+      await p.setViewportSize({ width: 390, height: 844 });
+      await expect(p.getByLabel("PDF file")).toBeVisible();
+      const top = await p
+        .locator("#workspace")
+        .evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+      assert.ok(top < 844, `workspace starts at ${top}px`);
+    },
+  );
   step("I have already seen the introduction", function () {
     // Every page starts as a returning visitor unless a step asks otherwise.
     this.firstVisit = false;
@@ -79,7 +84,7 @@ export function registerEntryChecks(step: Step, h: Helpers) {
   step("no introduction is shown", async function () {
     await expect(intro(await h.page(this))).toHaveCount(0);
   });
-  step("the introduction can be replayed from the top menu", async function () {
+  step("the introduction can be played from the top menu", async function () {
     const p = await h.page(this);
     await nav(p).getByRole("button", { name: "Watch the intro" }).click();
     await expect(intro(p)).toBeVisible();
@@ -96,13 +101,20 @@ export function registerEntryChecks(step: Step, h: Helpers) {
       nav(p).getByRole("radiogroup", { name: "Mode de contrôle" }),
     ).toBeVisible();
   });
-  step("the introduction video is the French version", async function () {
-    const p = await h.page(this);
-    await expect
-      .poll(() => video(p).evaluate((v: HTMLVideoElement) => v.currentSrc))
-      .toMatch(/\/brand\/ursly-intro\.fr\.(webm|mp4)$/);
-    await expect(video(p).locator("track")).toHaveAttribute("srclang", "fr");
-  });
+  step(
+    "the introduction played from the top menu is the French version",
+    async function () {
+      const p = await h.page(this);
+      await nav(p)
+        .getByRole("button", { name: /Voir l’intro|Watch the intro/ })
+        .click();
+      await expect(intro(p)).toBeVisible();
+      await expect
+        .poll(() => video(p).evaluate((v: HTMLVideoElement) => v.currentSrc))
+        .toMatch(/\/brand\/ursly-intro\.fr\.(webm|mp4)$/);
+      await expect(video(p).locator("track")).toHaveAttribute("srclang", "fr");
+    },
+  );
   step("the top menu stays fixed while I scroll", async function () {
     const p = await h.page(this);
     const bar = nav(p);
@@ -161,7 +173,7 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     await nav(p).getByRole("link", { name: "Platform" }).click();
   });
   step(
-    "the platform section explains voice, movement and keyboard control",
+    "the platform page explains voice, movement and keyboard control",
     async function () {
       const p = await h.page(this);
       const section = p.locator("#platform");
@@ -172,7 +184,7 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     },
   );
   step(
-    "the platform section explains connected objects, 3D objects and voice adaptation",
+    "the platform page explains connected objects, 3D objects and voice adaptation",
     async function () {
       const section = (await h.page(this)).locator("#platform");
       for (const phrase of [

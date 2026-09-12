@@ -11,13 +11,9 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { Applications } from "./Applications";
-import { HowItWorks } from "./HowItWorks";
 import { Icon } from "./Icon";
-import { IntroGate, hasSeenIntro } from "./IntroGate";
+import { IntroGate } from "./IntroGate";
 import type { EntryMode } from "./ModeSwitcher";
-import { PlatformSection } from "./PlatformSection";
-import { Process } from "./Process";
 import { TopNav } from "./TopNav";
 import { VoiceActions, type VoiceActionId } from "./VoiceActions";
 import { useLanguage } from "../i18n/LanguageProvider";
@@ -161,14 +157,10 @@ export default function HomePage() {
     () => navigator.onLine,
     () => true,
   );
-  // The server never shows the intro; a first visit opens it after hydration.
-  const firstVisit = useSyncExternalStore(
-    subscribeToStorage,
-    () => !hasSeenIntro(),
-    () => false,
-  );
+  // The introduction never gates the workspace: adding a source is the first
+  // thing on the page, and the intro is offered from the top menu instead.
   const [introOverride, setIntroOverride] = useState<boolean | null>(null);
-  const introOpen = introOverride ?? firstVisit;
+  const introOpen = introOverride ?? false;
   const introOrigin = useRef<"first" | "replay">("first");
   const replayButton = useRef<HTMLButtonElement>(null);
   const [state, dispatch] = useReducer(
@@ -857,14 +849,6 @@ export default function HomePage() {
                 </div>
               )}
 
-              {entryMode === "voice" && !source && (
-                <VoiceActions
-                  onAction={handleVoiceAction}
-                  canStartVoice={Boolean(source)}
-                  voiceBusy={sessionLive || busy}
-                />
-              )}
-
               <details
                 className="source-picker"
                 data-collapsible={Boolean(source)}
@@ -1033,6 +1017,14 @@ export default function HomePage() {
                   </form>
                 </div>
               </details>
+
+              {entryMode === "voice" && !source && (
+                <VoiceActions
+                  onAction={handleVoiceAction}
+                  canStartVoice={Boolean(source)}
+                  voiceBusy={sessionLive || busy}
+                />
+              )}
 
               {uploadProgress !== undefined && (
                 <div className="progress" role="status">
@@ -1366,15 +1358,10 @@ export default function HomePage() {
         </div>
 
         <div className="container">
-          <PlatformSection onReplayIntro={openIntro} />
-          <Process locale={language} />
-          <HowItWorks />
-          <Applications />
           <footer className="footer">
             <span>{t("Ursly · Made for your next “aha”.")}</span>
             <span className="footer-links">
-              <a href="#how-it-works">{t("How it works")} ↓</a>
-              <a href="#applications">{t("Applications & GitHub")} ↗</a>
+              <a href={`/${language}/platform`}>{t("How it works")} →</a>
             </span>
           </footer>
         </div>

@@ -7,10 +7,33 @@ const modes = (page: Page) =>
   nav(page).getByRole("radiogroup", { name: "Control mode" });
 
 test.describe("first visit", () => {
-  test("plays the intro once, can be skipped, and is remembered", async ({
+  test("lands on the source picker with no introduction in the way", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await expect(intro(page)).toHaveCount(0);
+    await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
+    // The first thing on the page is the thing a visitor came to do.
+    const picker = page.getByLabel("PDF file");
+    await expect(picker).toBeVisible();
+    const top = await page
+      .locator("#workspace")
+      .evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    expect(top).toBeLessThan(844);
+    // The story lives on its own page, so this one stays short.
+    await expect(page.locator("#platform")).toHaveCount(0);
+    const screens = await page.evaluate(
+      () => document.documentElement.scrollHeight / window.innerHeight,
+    );
+    expect(screens).toBeLessThan(4);
+  });
+
+  test("plays the intro from the top menu and gives focus back", async ({
     page,
   }) => {
     await page.goto("/");
+    await nav(page).getByRole("button", { name: "Watch the intro" }).click();
     await expect(intro(page)).toBeVisible();
     const video = intro(page).locator("video");
     await expect(video).toHaveAttribute("autoplay", "");
@@ -22,31 +45,21 @@ test.describe("first visit", () => {
         video.evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime > 0),
       )
       .toBe(true);
-    // Focus starts on the one control a visitor needs: skip.
     await expect(
       intro(page).getByRole("button", { name: "Skip intro" }),
     ).toBeFocused();
     await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
-    await page.getByRole("button", { name: "Skip intro" }).click();
-    await expect(intro(page)).toHaveCount(0);
-    await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
-    expect(await page.evaluate((key) => localStorage.getItem(key), INTRO_KEY))
-      .toBe("seen");
-    await page.reload();
-    await expect(intro(page)).toHaveCount(0);
-    await nav(page).getByRole("button", { name: "Watch the intro" }).click();
-    await expect(intro(page)).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(intro(page)).toHaveCount(0);
+    await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
     await expect(
       nav(page).getByRole("button", { name: "Watch the intro" }),
     ).toBeFocused();
   });
 
-  test("closes itself when the video ends and hands focus to the workspace", async ({
-    page,
-  }) => {
+  test("closes itself when the video ends", async ({ page }) => {
     await page.goto("/");
+    await nav(page).getByRole("button", { name: "Watch the intro" }).click();
     const video = intro(page).locator("video");
     await expect
       .poll(() => video.evaluate((v: HTMLVideoElement) => v.duration > 0))
@@ -56,10 +69,6 @@ test.describe("first visit", () => {
     });
     await expect(intro(page)).toHaveCount(0);
     await expect(page.getByLabel("PDF file")).toBeVisible();
-    const focused = await page.evaluate(
-      () => document.activeElement?.closest("#workspace") !== null,
-    );
-    expect(focused).toBe(true);
   });
 
   test("respects reduced motion: no autoplay, a play button and a transcript", async ({
@@ -67,6 +76,7 @@ test.describe("first visit", () => {
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
+    await nav(page).getByRole("button", { name: "Watch the intro" }).click();
     await expect(intro(page)).toBeVisible();
     const video = intro(page).locator("video");
     await expect(video).not.toHaveAttribute("autoplay", "");
@@ -91,7 +101,6 @@ test.describe("first visit", () => {
       };
     });
     await page.goto("/");
-    await page.getByRole("button", { name: "Skip intro" }).click();
     await expect(intro(page)).toHaveCount(0);
     await expect(page.getByLabel("PDF file")).toBeVisible();
   });
@@ -103,13 +112,14 @@ test.describe("french visitor", () => {
   test("gets the French page, intro and menu", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+    const menu = page.getByRole("navigation", { name: "Principale" });
+    await menu.getByRole("button", { name: "Voir l’intro" }).click();
     const video = intro(page).locator("video");
     await expect
       .poll(() => video.evaluate((v: HTMLVideoElement) => v.currentSrc))
       .toMatch(/ursly-intro\.fr\.(webm|mp4)$/);
     await page.getByRole("button", { name: "Passer l’intro" }).click();
     // Landmarks are named in the page language too.
-    const menu = page.getByRole("navigation", { name: "Principale" });
     await expect(
       menu.getByRole("radiogroup", { name: "Mode de contrôle" }),
     ).toBeVisible();
@@ -126,7 +136,10 @@ test.describe("french visitor", () => {
 
 test.describe("returning visitor", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((key) => localStorage.setItem(key, "seen"), INTRO_KEY);
+    await page.addInitScript(
+      (key) => localStorage.setItem(key, "seen"),
+      INTRO_KEY,
+    );
   });
 
   for (const width of [320, 390, 768, 1440]) {
@@ -138,7 +151,9 @@ test.describe("returning visitor", () => {
       expect(await bar.evaluate((el) => getComputedStyle(el).position)).toBe(
         "fixed",
       );
-      const height = await bar.evaluate((el) => el.getBoundingClientRect().height);
+      const height = await bar.evaluate(
+        (el) => el.getBoundingClientRect().height,
+      );
       expect(height).toBeLessThanOrEqual(width <= 960 ? 112 : 72);
       // The workspace is the first thing under the menu, not a billboard.
       const workspaceTop = await page
@@ -147,7 +162,9 @@ test.describe("returning visitor", () => {
       expect(workspaceTop).toBeLessThanOrEqual(width <= 960 ? 340 : 280);
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await page.waitForTimeout(150);
-      expect(await bar.evaluate((el) => el.getBoundingClientRect().top)).toBe(0);
+      expect(await bar.evaluate((el) => el.getBoundingClientRect().top)).toBe(
+        0,
+      );
       expect(await bar.getAttribute("data-scrolled")).toBe("true");
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
@@ -160,7 +177,9 @@ test.describe("returning visitor", () => {
   }) => {
     await page.goto("/");
     const voice = modes(page).getByRole("radio", { name: "Voice to action" });
-    const keyboard = modes(page).getByRole("radio", { name: "Keyboard to action" });
+    const keyboard = modes(page).getByRole("radio", {
+      name: "Keyboard to action",
+    });
     const motion = modes(page).getByRole("radio", { name: /Motion to action/ });
     await expect(voice).toHaveAttribute("aria-checked", "true");
     await expect(motion).toHaveAttribute("aria-disabled", "true");
@@ -191,10 +210,9 @@ test.describe("returning visitor", () => {
       nav(page).evaluate((el) => el.getBoundingClientRect().height),
     ]);
     expect(top).toBeGreaterThanOrEqual(barHeight - 1);
-    await expect(nav(page).getByRole("link", { name: "Platform" })).toHaveAttribute(
-      "aria-current",
-      "location",
-    );
+    await expect(
+      nav(page).getByRole("link", { name: "Platform" }),
+    ).toHaveAttribute("aria-current", "location");
   });
 
   test("keyboard mode keeps the picker in place; voice mode adds one listening button", async ({
@@ -205,7 +223,9 @@ test.describe("returning visitor", () => {
     await expect(
       page.getByRole("button", { name: "Speak a command" }),
     ).toBeVisible();
-    await modes(page).getByRole("radio", { name: "Keyboard to action" }).click();
+    await modes(page)
+      .getByRole("radio", { name: "Keyboard to action" })
+      .click();
     await expect(page.getByLabel("PDF file")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Speak a command" }),

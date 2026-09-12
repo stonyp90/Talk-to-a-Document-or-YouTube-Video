@@ -52,6 +52,7 @@ Feature: Provide a polished mobile-first conversation UI
 
   Scenario: Explain how Ursly is built and what it is for
     When I open the application
+    And I choose Platform in the top menu
     Then the build loop lists every stage from concept to training
     And the build loop names security, compliance and continuous delivery
     And the Ursly mission is stated in plain words

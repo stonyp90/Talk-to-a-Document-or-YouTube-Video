@@ -7,7 +7,10 @@ import { useLanguage } from "../i18n/LanguageProvider";
 import { LANGUAGES, type Language } from "../i18n/languages";
 
 /** Each language names itself, so a reader always recognises their own. */
-const LANGUAGE_NAMES: Record<Language, string> = { en: "English", fr: "Français" };
+const LANGUAGE_NAMES: Record<Language, string> = {
+  en: "English",
+  fr: "Français",
+};
 
 const SECTIONS = [{ id: "platform", label: "Platform" }] as const;
 
@@ -25,7 +28,10 @@ function useActiveSection(ids: readonly string[]): string | undefined {
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries)
-          visible.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0);
+          visible.set(
+            entry.target.id,
+            entry.isIntersecting ? entry.intersectionRatio : 0,
+          );
         const [best] = [...visible.entries()].sort((a, b) => b[1] - a[1]);
         setActive(best && best[1] > 0 ? best[0] : undefined);
       },
@@ -72,7 +78,13 @@ export function TopNav({
         <a className="brand" href={`/${language}`} aria-label={t("Ursly home")}>
           {/* A vector stays crisp at every screen density. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="brand-mark" src="/brand/ursly-mark.svg" width="32" height="32" alt="" />
+          <img
+            className="brand-mark"
+            src="/brand/ursly-mark.svg"
+            width="32"
+            height="32"
+            alt=""
+          />
           ursly<span className="brand-dot">.</span>
         </a>
 
@@ -85,7 +97,7 @@ export function TopNav({
             <a
               key={section.id}
               className="nav-link"
-              href={`#${section.id}`}
+              href={`/${language}/${section.id}`}
               aria-current={active === section.id ? "location" : undefined}
             >
               {t(section.label)}

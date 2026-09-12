@@ -23,6 +23,7 @@ export function SiteFooter({
       <span>{t("Ursly · Made for your next “aha”.")}</span>
       <span className="footer-links">
         <a href={`${prefix}#how-we-build`}>{t("How we build")} ↓</a>
+        <a href={`${prefix}#pricing`}>{t("Pricing")} ↓</a>
         <a href={`${prefix}#how-it-works`}>{t("How it works")} ↓</a>
         <a href={`${prefix}#applications`}>{t("Applications & GitHub")} ↗</a>
         {appHref && <a href={appHref}>{t("Open the app")} →</a>}

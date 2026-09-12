@@ -65,3 +65,10 @@ Feature: Provide a polished mobile-first conversation UI
     And the Ursly mission is stated in plain words
     And the build loop animation can be paused
     And the mission call to action opens the app
+
+  Scenario: Say what Ursly costs and what free costs you
+    When I open the landing page
+    Then the two ways to pay are stated side by side
+    And the free way says conversations help train the models
+    And the paid way says nothing of mine is used for training
+    And the build loop names paying for the work as one of its stages

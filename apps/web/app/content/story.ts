@@ -25,6 +25,9 @@ export type StorySection = {
 export const STORY_SECTIONS = [
   { id: "how-we-build", label: "How we build", short: "Build", inMenu: true },
   { id: "platform", label: "Platform", short: "Platform", inMenu: true },
+  // What it costs follows what it is, and before how to use it: a reader
+  // decides whether to pay, or to help train, before learning the gestures.
+  { id: "pricing", label: "Pricing", short: "Price", inMenu: true },
   {
     id: "how-it-works",
     label: "How it works",

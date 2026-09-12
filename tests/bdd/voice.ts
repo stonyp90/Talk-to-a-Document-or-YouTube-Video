@@ -11,11 +11,10 @@ import {
 } from "../../packages/adapters/src/voiceEnrollment";
 import {
   defaultTriggers,
-  matchTriggers,
-  spokenExamples,
+  matchCommands,
   type VoiceActionId,
-  type VoiceTrigger,
-} from "../../apps/web/src/lib/voiceCommands";
+  type VoiceLanguage,
+} from "../../packages/core/src/domain/voiceCommands";
 import type { Step, World } from "./steps";
 
 const source = {
@@ -30,8 +29,8 @@ type State = {
   spoken?: string;
   written?: string;
   environment: Record<string, string | undefined>;
-  triggers: VoiceTrigger[];
-  matched: VoiceTrigger[];
+  language: VoiceLanguage;
+  matched: VoiceActionId[];
   guidance?: string;
 };
 
@@ -40,12 +39,12 @@ export function registerVoiceChecks(step: Step) {
   const state = (world: World): State => {
     const existing = states.get(world);
     if (existing) return existing;
-    const created: State = { environment: {}, triggers: [], matched: [] };
+    const created: State = { environment: {}, language: "en", matched: [] };
     states.set(world, created);
     return created;
   };
   const triggered = (world: World, action: VoiceActionId) =>
-    state(world).matched.some((match) => match.action === action);
+    state(world).matched.includes(action);
 
   step("a custom voice has been provisioned", function () {
     state(this).environment.OPENAI_REALTIME_VOICE = "voice_enrolled123";
@@ -144,7 +143,7 @@ export function registerVoiceChecks(step: Step) {
       // Enrolment lives in an operator script that needs two files and the
       // server key: nothing the browser can reach creates a voice.
       const client = await readFile(
-        "apps/web/src/lib/voiceCommands.ts",
+        "packages/core/src/domain/voiceCommands.ts",
         "utf8",
       );
       assert.doesNotMatch(client, /voice_consents|audio\/voices/);
@@ -154,24 +153,21 @@ export function registerVoiceChecks(step: Step) {
   );
 
   step("the interface is in French", function () {
-    const current = state(this);
-    current.triggers = [
-      ...defaultTriggers("fr"),
-      ...spokenExamples("fr")
-        .filter((example) => example.action === "summarize")
-        .map((example) => ({
-          id: `example-${example.action}`,
-          phrase: example.phrase,
-          action: example.action,
-          aliases: example.aliases,
-        })),
-    ];
+    state(this).language = "fr";
   });
 
+  /**
+   * What the panel hears. The built-in wordings for both languages are always
+   * in play, so a bilingual caller who switches mid-sentence is still heard.
+   */
   const heard = (phrase: string) =>
     function (this: World) {
       const current = state(this);
-      current.matched = matchTriggers(phrase, current.triggers);
+      current.matched = matchCommands(
+        phrase,
+        defaultTriggers(current.language),
+        { language: current.language },
+      ).map((match) => match.trigger.action);
     };
   step(
     'I say "résume ceci s\'il te plaît"',

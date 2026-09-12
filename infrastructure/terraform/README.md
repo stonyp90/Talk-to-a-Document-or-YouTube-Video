@@ -103,17 +103,76 @@ Set these production environment **variables** (none contain secret values):
 | `AWS_ROLE_ARN`               | Bootstrap `github_role_arn` output                                |
 | `TF_STATE_BUCKET`            | Bootstrap `state_bucket` output                                   |
 | `OPENAI_SECRET_ARN`          | Exact pre-existing provider secret ARN                            |
+| `AUTH_PEPPER_SECRET_ARN`     | Exact pre-existing sign-in pepper secret ARN                      |
+| `SES_IDENTITY_ARN`           | `environments/email` `identity_arn` output                        |
+| `SES_CONFIGURATION_SET_NAME` | That root's `configuration_set_name` output                       |
+| `SES_FROM_ADDRESS`           | The single mailbox the api function may send as                   |
 | `APP_ORIGIN`                 | Optional additional browser origin; defaults to local development |
-| `SES_IDENTITY_ARN`           | Optional; `environments/email` `identity_arn` output              |
-| `SES_CONFIGURATION_SET_NAME` | Optional; that root's `configuration_set_name` output             |
-| `SES_FROM_ADDRESS`           | Optional; the single mailbox the api function may send as         |
 
-Leave the three `SES_` variables unset until the email root is applied and bootstrap
-has been re-applied with all three of the identity, the configuration set and the
-From address: the runtime permissions boundary pins that one sender and caps SES away
-otherwise, so an unset deployment carries no email permission and behaves as it does
-today. The three variables must match what bootstrap was applied with, or the send
-asks for a permission the boundary denies.
+`AUTH_PEPPER_SECRET_ARN` and all three `SES_` variables are checked by `test -n`
+before any AWS call, exactly as `OPENAI_SECRET_ARN` is. A deployment missing any
+of them fails as a red workflow and production keeps serving the previous image.
+
+The three `SES_` variables are set together or not at all, and must match what
+bootstrap was applied with: the runtime permissions boundary pins that one sender
+and caps SES away otherwise, so a mismatch asks for a permission the boundary
+denies. They are not optional for a production deployment — the gate is closed by
+default, so a reader who cannot be sent a code cannot sign in. The only deployment
+that may leave them unset is one that also sets `email_mode = "log"`, which writes
+sign-in codes to CloudWatch and is for a laptop, not for production; `modules/demo`
+refuses to plan with `email_mode = "ses"` and no identity.
+
+## Sign-in: what an operator must do by hand
+
+The application gate fails shut: an unset or unrecognised `AUTH_MODE` means
+`required`, and Terraform defaults it to `required` too. A deployment that comes
+up without these refuses every paid endpoint **and** cannot sign anybody in, so
+the four steps below are prerequisites, not follow-up work. Terraform performs
+none of them from CI: they are operator applies and console steps, and
+`environments/demo` only consumes their results.
+
+1. **Create the pepper secret.** In Secrets Manager, in the deployment account
+   and region, create a secret holding a high-entropy value — either the bare
+   value or a JSON document `{"AUTH_HASH_PEPPER": "…"}`. Never commit it, never
+   put it in a `.tfvars` file, never paste it into a workflow. Keep the ARN.
+   _If missing:_ the deploy workflow fails at the configuration check. Were it
+   ever to reach the task, the application refuses sign-in rather than generate
+   a per-process pepper, because a pepper that changes on every cold start
+   invalidates every outstanding code and reads as "your code is wrong".
+2. **Apply `environments/email` as the operator.** That root creates the domain
+   identity with 2048-bit Easy DKIM, the custom MAIL FROM subdomain and the
+   TLS-required configuration set, and publishes the DKIM, MAIL FROM and DMARC
+   records in the operator-owned zone. Nothing here is a console step any more:
+   verifying the identity and publishing its DNS is what this root is. Keep its
+   `identity_arn` and `configuration_set_name` outputs. See
+   [its README](environments/email/README.md). _If missing:_ SES answers 403 and
+   no code is ever delivered.
+3. **Leave the SES sandbox.** Request production access for the sending region.
+   This one is still a console request and a human decision; the account already
+   holds production access, and a new account would not. _If missing:_ SES accepts
+   only pre-verified recipients, so every reader who is not already verified asks
+   for a code that never arrives, with nothing in the application log to explain it.
+4. **Re-run bootstrap with the new variables.** The runtime permissions boundary
+   is operator-owned, and effective permissions are the intersection of the
+   boundary and the grant. Set `auth_pepper_secret_arn`, `ses_identity_arn`,
+   `ses_configuration_set_name` and `ses_from_address` in
+   `bootstrap/terraform.tfvars`, then plan and apply with the operator identity.
+   _If missing:_ this is the dangerous one. The deploy succeeds, the task comes
+   up, and the first sign-in fails with an AWS `AccessDenied` on the secret read
+   or the send — configuration that looks correct everywhere but in IAM.
+
+Do all four before setting the GitHub variables, and set the GitHub variables
+before the change merges.
+
+The identity is regional and the boundary derives its ARNs from the deployment
+region, so the sending identity lives in the deployment region; there is no
+separate SES region to configure.
+
+The gate, the allowance and the mail mode are Terraform variables with safe
+defaults (`auth_mode = "required"`, `usage_limit_units = 300`,
+`usage_window_ms = 86400000`, `email_mode = "ses"`) and are deliberately not
+wired to GitHub variables: opening the gate or silencing real mail in production
+takes a reviewed change, not an edit to a repository setting.
 
 The deploy workflow runs only after successful CI for a push to main in this
 repository. It checks out the exact tested SHA, exchanges GitHub OIDC for a

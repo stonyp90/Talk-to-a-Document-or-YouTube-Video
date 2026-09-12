@@ -6,10 +6,11 @@ mock_provider "aws" {
   mock_resource "aws_iam_openid_connect_provider" { defaults = { arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com" } }
 }
 variables {
-  region            = "us-east-1"
-  account_id        = "123456789012"
-  github_repository = "example/talk"
-  openai_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:fixture-abcdef"
+  region                 = "us-east-1"
+  account_id             = "123456789012"
+  github_repository      = "example/talk"
+  openai_secret_arn      = "arn:aws:secretsmanager:us-east-1:123456789012:secret:fixture-abcdef"
+  auth_pepper_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:fixture-pepper-abcdef"
 }
 run "identity_state_and_least_privilege" {
   command = plan
@@ -50,6 +51,33 @@ run "identity_state_and_least_privilege" {
   assert {
     condition     = alltrue([for statement in jsondecode(aws_iam_role_policy.deployment.policy).Statement : !contains(statement.Action, "iam:UpdateAssumeRolePolicy")])
     error_message = "CI must not rewrite a runtime role's trust policy: no condition can restrain that action, and it hands over the role itself."
+  }
+}
+run "reject_pepper_wildcard" {
+  command = plan
+  variables { auth_pepper_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:*" }
+  expect_failures = [var.auth_pepper_secret_arn]
+}
+run "boundary_permits_exactly_what_signing_in_needs" {
+  command = plan
+  variables {
+    ses_identity_arn           = "arn:aws:ses:us-east-1:123456789012:identity/fixture.example"
+    ses_configuration_set_name = "talk-to-a-document-transactional"
+    ses_from_address           = "no-reply@fixture.example"
+  }
+  assert {
+    condition = alltrue([
+      for statement in jsondecode(aws_iam_policy.runtime_boundary.policy).Statement :
+      !contains(statement.Action, "secretsmanager:GetSecretValue") || contains(statement.Resource, var.auth_pepper_secret_arn)
+    ])
+    error_message = "The boundary must let the task read the signing pepper, or the grant beneath it is dead."
+  }
+  assert {
+    condition = anytrue([
+      for statement in jsondecode(aws_iam_policy.runtime_boundary.policy).Statement :
+      contains(statement.Action, "ses:SendEmail") && !anytrue([for resource in statement.Resource : strcontains(resource, "*")])
+    ])
+    error_message = "The boundary must permit sending from the verified identity, and nothing wider."
   }
 }
 run "reject_repository_wildcard" {

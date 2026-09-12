@@ -381,6 +381,51 @@ export const french: Dictionary = {
   "Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, you can still type your questions about an extracted source.":
     "Les PDF numérisés doivent contenir une couche de texte avant le téléversement. Les sous-titres YouTube doivent être disponibles, et certaines vidéos peuvent être bloquées par YouTube. Pour la voix, autorisez le microphone dans votre navigateur. Si la voix ne se connecte pas, vous pouvez toujours écrire vos questions sur une source extraite.",
 
+  // Sign-in and the spending limit
+  "Sign in to keep going": "Connectez‑vous pour continuer",
+  "Reading a source and answering out loud runs on a paid model. Signing in ties that spending to an account, with a limit, instead of leaving it open to everyone.":
+    "Lire une source et répondre à voix haute repose sur un modèle payant. La connexion rattache cette dépense à un compte, avec une limite, plutôt que de la laisser ouverte à tous.",
+  "Email address": "Adresse courriel",
+  "you@example.com": "vous@exemple.com",
+  "We send a one-time code. There is no password to remember.":
+    "Nous envoyons un code à usage unique. Aucun mot de passe à retenir.",
+  "Send me a code": "Envoyez‑moi un code",
+  "Sending…": "Envoi…",
+  "Your code": "Votre code",
+  "Check {email} for the code. It expires shortly.":
+    "Le code vous attend à {email}. Il expire sous peu.",
+  "Sign in": "Se connecter",
+  "Checking…": "Vérification…",
+  "Use another address": "Utiliser une autre adresse",
+  "Sign out": "Se déconnecter",
+  "Something went wrong. Please try again.":
+    "Une erreur est survenue. Veuillez réessayer.",
+  // What the server answers, translated where the reader actually reads it.
+  "Sign in to continue. This feature runs on a paid model, so it is for signed-in readers.":
+    "Connectez‑vous pour continuer. Cette fonction repose sur un modèle payant ; elle est réservée aux personnes connectées.",
+  "You have reached your usage limit for now. It resets shortly.":
+    "Vous avez atteint votre limite d’utilisation pour l’instant. Elle se réinitialise sous peu.",
+  "Enter your email address.": "Saisissez votre adresse courriel.",
+  "Enter a valid email address.": "Saisissez une adresse courriel valide.",
+  "That email address is too long.": "Cette adresse courriel est trop longue.",
+  "An email address cannot contain spaces.":
+    "Une adresse courriel ne peut pas contenir d’espaces.",
+  "Enter the code exactly as it appears in the email.":
+    "Saisissez le code exactement comme il apparaît dans le courriel.",
+  "That code is not valid. Check it and try again.":
+    "Ce code n’est pas valide. Vérifiez‑le et réessayez.",
+  "That code is not valid. Ask for a new one.":
+    "Ce code n’est pas valide. Demandez‑en un nouveau.",
+  "That code has expired. Ask for a new one.":
+    "Ce code a expiré. Demandez‑en un nouveau.",
+  "Too many attempts. Ask for a new code.":
+    "Trop de tentatives. Demandez un nouveau code.",
+  "The code could not be sent. Please retry.":
+    "Le code n’a pas pu être envoyé. Veuillez réessayer.",
+  "The sign-in could not be completed.":
+    "La connexion n’a pas pu être menée à terme.",
+  "The sign-out could not be completed.":
+    "La déconnexion n’a pas pu être menée à terme.",
   // The story, and the invitation that closes it
   "The story first: how this was built, what it is, and how to use it. The app is one tap away from anywhere on this page.":
     "L’histoire d’abord : comment ceci a été bâti, ce que c’est et comment s’en servir. L’application est à un seul geste, depuis n’importe où sur cette page.",
@@ -397,4 +442,88 @@ export const french: Dictionary = {
     "Ursly · Conçu pour votre prochain déclic.",
   "How it works": "Comment ça marche",
   "Applications & GitHub": "Applications et GitHub",
+  // Voice to action: listening, dictation and spoken search
+  Speak: "Parler",
+  Heard: "Entendu",
+  "Send it": "Envoyer",
+  Clear: "Effacer",
+  "Press Speak, then ask your question out loud. Say “summarize this”, or just talk.":
+    "Appuyez sur Parler, puis posez votre question à voix haute. Dites « résume ça », ou parlez simplement.",
+  "Press Speak, then say a command such as “upload” or “YouTube”.":
+    "Appuyez sur Parler, puis dites une commande comme « téléverse » ou « YouTube ».",
+  "Heard “{spoken}” · {action}.": "Entendu « {spoken} » · {action}.",
+  "Add a PDF or YouTube source first, then say it again.":
+    "Ajoutez d’abord un PDF ou une vidéo YouTube, puis redites-le.",
+  "Stopped listening.": "Écoute arrêtée.",
+  "Cancelled. Nothing was sent.": "Annulé. Rien n’a été envoyé.",
+  "Listening stopped when this page was hidden.":
+    "L’écoute s’est arrêtée quand cette page a été masquée.",
+  "Voice needs microphone access. Allow it in your browser, then press Speak again.":
+    "La voix a besoin du microphone. Autorisez-le dans votre navigateur, puis appuyez de nouveau sur Parler.",
+  "This browser does not recognise speech. The buttons below do the same things.":
+    "Ce navigateur ne reconnaît pas la parole. Les boutons ci-dessous font la même chose.",
+  "The microphone dropped out. Press Speak to pick it back up.":
+    "Le microphone s’est interrompu. Appuyez sur Parler pour le reprendre.",
+  "Start live voice chat": "Démarrer la conversation vocale en direct",
+  "Send what I just said": "Envoyer ce que je viens de dire",
+  "Stop listening or stop the answer": "Arrêter l’écoute ou arrêter la réponse",
+  "Keep trigger phrases to {max} characters or fewer.":
+    "Limitez les phrases déclencheuses à {max} caractères.",
+  "“{phrase}” is already saved.": "« {phrase} » est déjà enregistrée.",
+  "You can save up to {max} voice triggers.":
+    "Vous pouvez enregistrer jusqu’à {max} déclencheurs vocaux.",
+  "Saved “{phrase}”. Press Speak and say it.":
+    "« {phrase} » est enregistrée. Appuyez sur Parler et dites-la.",
+  "No saved triggers. The built-in wordings still work.":
+    "Aucun déclencheur enregistré. Les formulations intégrées fonctionnent toujours.",
+  "The phrases stay on this device. Every action is configurable, and the built-in wordings keep working alongside yours.":
+    "Les phrases restent sur cet appareil. Chaque action est configurable, et les formulations intégrées continuent de fonctionner avec les vôtres.",
+  "Live speech recognition is not available in this browser. The example buttons still run every action.":
+    "La reconnaissance vocale en direct n’est pas offerte dans ce navigateur. Les boutons d’exemple exécutent quand même chaque action.",
+
+  // Voice to action: finding a video without spelling a link
+  "YouTube is ready — say the artist or title, or paste a link.":
+    "YouTube est prêt — dites l’artiste ou le titre, ou collez un lien.",
+  "Say the artist or the title, or paste a link. Watch pages, Shorts, share links and embeds all work.":
+    "Dites l’artiste ou le titre, ou collez un lien. Les pages de visionnement, les Shorts, les liens de partage et les intégrations fonctionnent tous.",
+  "Searching for “{query}”…": "Recherche de « {query} »…",
+  "Opening “{title}”.": "Ouverture de « {title} ».",
+  "Nothing captioned found for “{query}”. Try other words.":
+    "Aucune vidéo sous-titrée trouvée pour « {query} ». Essayez d’autres mots.",
+  "Not the one? Also found": "Ce n’est pas la bonne ? Aussi trouvé",
+  "The video search timed out. Try again, or paste a link.":
+    "La recherche de vidéos a expiré. Réessayez, ou collez un lien.",
+  "The video search failed. Paste a link instead.":
+    "La recherche de vidéos a échoué. Collez plutôt un lien.",
+
+  // Conversation: reading, stopping and reusing an answer
+  Copy: "Copier",
+  Copied: "Copié",
+  "Try again": "Réessayer",
+  "Jump to latest": "Aller au plus récent",
+  "Enter sends · Shift + Enter starts a new line":
+    "Entrée envoie · Maj + Entrée insère un saut de ligne",
+  "Copying is blocked in this browser. Select the text instead.":
+    "La copie est bloquée dans ce navigateur. Sélectionnez plutôt le texte.",
+  "Summarizing the key ideas.": "Résumé des idées clés en cours.",
+  "Say your question first, then say “send it”.":
+    "Dites d’abord votre question, puis dites « envoie ».",
+  "Stopped.": "Arrêté.",
+  // The apps, offered from the top menu
+  "Get the app": "Obtenir l’appli",
+  "Android APK": "APK Android",
+  "Android 7.0 or later": "Android 7.0 ou plus récent",
+  "iOS Simulator build": "Version pour le simulateur iOS",
+  "Xcode Simulator, Apple silicon": "Simulateur Xcode, puce Apple",
+  "All builds and instructions": "Toutes les versions et les instructions",
+  "Release notes": "Notes de version",
+  "Ask your question out loud, or say a command. It sends when you pause.":
+    "Posez votre question à voix haute, ou dites une commande. L’envoi se fait quand vous marquez une pause.",
+  "Say “upload”, or say “YouTube” and the artist or title you want.":
+    "Dites « téléverse », ou dites « YouTube » suivi de l’artiste ou du titre voulu.",
+  "Signed in as {email}": "Connecté en tant que {email}",
+  "Your session has ended. Sign in again to pick up where you left off.":
+    "Votre session est terminée. Connectez-vous de nouveau pour reprendre où vous étiez.",
+  "You have used this account's allowance for now. It reopens shortly.":
+    "Vous avez utilisé l’allocation de ce compte pour l’instant. Elle se rouvrira sous peu.",
 };

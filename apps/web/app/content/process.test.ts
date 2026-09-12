@@ -26,11 +26,16 @@ function strings(value: unknown, path: string[] = []): Array<[string, string]> {
 describe("process copy", () => {
   it("walks the loop in one canonical order for every locale", () => {
     expect(PROCESS_STEP_IDS).toEqual([
+      "concept",
       "plan",
-      "build",
+      "tools",
+      "local",
       "test",
-      "ship",
-      "learn",
+      "secure",
+      "deliver",
+      "production",
+      "listen",
+      "train",
     ]);
     expect(PROCESS_STEP_IDS).toContain(INNER_LOOP_STEP);
     for (const locale of locales)
@@ -63,13 +68,15 @@ describe("process copy", () => {
   it("says out loud what the law and the pipeline require", () => {
     const step = (copy: ProcessCopy, id: string) =>
       copy.steps.find((candidate) => candidate.id === id)!.summary;
-    expect(step(processCopy.en, "test")).toMatch(/security and compliance/i);
-    expect(step(processCopy.en, "test")).toMatch(/law/i);
-    expect(step(processCopy.en, "ship")).toMatch(
+    expect(step(processCopy.en, "secure")).toMatch(/security and compliance/i);
+    expect(step(processCopy.en, "secure")).toMatch(/law/i);
+    expect(step(processCopy.en, "deliver")).toMatch(
       /continuous integration and delivery/i,
     );
-    expect(step(processCopy.fr, "test")).toMatch(/sécurité et la conformité/i);
-    expect(step(processCopy.fr, "ship")).toMatch(/livraison continues?/i);
+    expect(step(processCopy.fr, "secure")).toMatch(
+      /sécurité et la conformité/i,
+    );
+    expect(step(processCopy.fr, "deliver")).toMatch(/livraison continues?/i);
   });
 
   it("states the mission as a bridge between today's and tomorrow's internet", () => {

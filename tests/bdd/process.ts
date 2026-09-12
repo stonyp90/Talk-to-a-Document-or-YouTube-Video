@@ -17,7 +17,7 @@ export function registerProcessChecks(step: Step, h: Helpers) {
       .getByRole("listitem");
 
   step(
-    "the build loop lists every stage from plan to learning",
+    "the build loop lists every stage from concept to training",
     async function () {
       const p = await h.page(this);
       await expect(stages(p)).toHaveCount(PROCESS_STEP_IDS.length);
@@ -65,9 +65,9 @@ export function registerProcessChecks(step: Step, h: Helpers) {
     await expect(
       section(p).getByRole("button", { name: copy.controls.play }),
     ).toBeVisible();
-    const test = PROCESS_STEP_IDS.indexOf("test");
-    await stages(p).nth(test).getByRole("button").click();
-    await expect(stages(p).nth(test).getByRole("button")).toHaveAttribute(
+    const secure = PROCESS_STEP_IDS.indexOf("secure");
+    await stages(p).nth(secure).getByRole("button").click();
+    await expect(stages(p).nth(secure).getByRole("button")).toHaveAttribute(
       "aria-current",
       "step",
     );

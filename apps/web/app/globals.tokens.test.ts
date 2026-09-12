@@ -54,4 +54,107 @@ describe("design tokens", () => {
       /font-family:\s*var\(--font-serif\)/,
     );
   });
+
+  /**
+   * The wordmark is the loudest thing on the page: bigger than the first
+   * heading of either page, at every width. Both sides are `clamp(min, vw,
+   * max)`, so comparing the three parts proves it for every viewport rather
+   * than for the handful a rendered test could sample.
+   */
+  it("draws the wordmark larger than either page's first heading", () => {
+    const px = (value: string) =>
+      value.endsWith("rem") ? parseFloat(value) * 16 : parseFloat(value);
+    const clampOf = (selector: string, property = "font-size") => {
+      const at = globals.indexOf(selector);
+      expect(at, selector).toBeGreaterThan(-1);
+      const rule = globals.slice(at, globals.indexOf("}", at));
+      const found = rule.match(
+        new RegExp(`${property}:\\s*clamp\\(([^,]+),([^,]+),([^)]+)\\)`),
+      );
+      expect(found, `${selector} ${property} should be a clamp`).not.toBeNull();
+      const [min, preferred, max] = found!.slice(1).map((part) => part.trim());
+      return { min: px(min), vw: parseFloat(preferred), max: px(max) };
+    };
+
+    const brand = clampOf(":root {", "--brand-size");
+    for (const heading of [".hero h1 {", ".workspace-heading h1 {"]) {
+      const title = clampOf(heading);
+      expect(brand.min, `${heading} floor`).toBeGreaterThan(title.min);
+      expect(brand.vw, `${heading} slope`).toBeGreaterThan(title.vw);
+      expect(brand.max, `${heading} ceiling`).toBeGreaterThan(title.max);
+    }
+  });
+
+  it("gives the fixed bar room for a wordmark that size", () => {
+    const ceiling = (name: string) => {
+      const found = globals.match(
+        new RegExp(`${name}:\\s*clamp\\([^,]+,[^,]+,([^)]+)\\)`),
+      );
+      expect(found, name).not.toBeNull();
+      return parseFloat(found![1]);
+    };
+    // The mark is 1.25em tall, so the row must clear the tallest wordmark.
+    expect(ceiling("--nav-h")).toBeGreaterThan(ceiling("--brand-size") * 1.25);
+    expect(ceiling("--nav-row")).toBeGreaterThan(
+      ceiling("--brand-size") * 1.25,
+    );
+  });
+
+  it("sizes the wordmark from the token and nowhere else", () => {
+    // Three separate rules used to shrink it back down at narrow widths,
+    // which is exactly where a small wordmark is least wanted.
+    const sizes = [
+      ...globals.matchAll(/\.brand\s*\{[^}]*?font-size:\s*([^;]+);/g),
+    ];
+    expect(sizes.map((match) => match[1].trim())).toEqual([
+      "var(--brand-size)",
+    ]);
+    const marks = [
+      ...globals.matchAll(/\.brand-mark\s*\{[^}]*?width:\s*([^;]+);/g),
+    ];
+    expect(marks.map((match) => match[1].trim())).toEqual(["1.25em"]);
+  });
+
+  /**
+   * Nothing on either page may out-shout the wordmark. Every scaling type
+   * size is a clamp, so comparing all three parts settles it for every
+   * viewport at once.
+   */
+  it("keeps every heading below the wordmark at every width", () => {
+    const px = (value: string) =>
+      value.endsWith("rem") ? parseFloat(value) * 16 : parseFloat(value);
+    const clamps = (sheet: string) =>
+      [...sheet.matchAll(/font-size:\s*clamp\(([^,]+),([^,]+),([^)]+)\)/g)].map(
+        (match) => ({
+          min: px(match[1].trim()),
+          vw: parseFloat(match[2]),
+          max: px(match[3].trim()),
+          text: match[0],
+        }),
+      );
+    const brandMatch = globals.match(
+      /--brand-size:\s*clamp\(([^,]+),([^,]+),([^)]+)\)/,
+    );
+    expect(brandMatch).not.toBeNull();
+    const brand = {
+      min: px(brandMatch![1].trim()),
+      vw: parseFloat(brandMatch![2]),
+      max: px(brandMatch![3].trim()),
+    };
+    const sheets = { "globals.css": globals, ...modules };
+    for (const [name, sheet] of Object.entries(sheets))
+      for (const size of clamps(sheet)) {
+        expect(size.min, `${name}: ${size.text}`).toBeLessThan(brand.min);
+        expect(size.vw, `${name}: ${size.text}`).toBeLessThan(brand.vw);
+        expect(size.max, `${name}: ${size.text}`).toBeLessThan(brand.max);
+      }
+  });
+
+  it("leaves no flat heading size to escape that ceiling", () => {
+    for (const selector of [".guide-heading h2 {", ".hero h1 {"]) {
+      const at = globals.indexOf(selector);
+      const rule = globals.slice(at, globals.indexOf("}", at));
+      expect(rule, selector).toMatch(/font-size:\s*clamp\(/);
+    }
+  });
 });

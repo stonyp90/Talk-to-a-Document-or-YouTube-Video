@@ -11,9 +11,11 @@ const read = (relative: string) =>
  * pull-quote loses its bar. Neither the type checker nor the browser complains,
  * so assert it here.
  */
+const MODULES = ["./Process.module.css", "./LoopDiagram.module.css"];
+
 describe("Process design tokens", () => {
   it("only uses custom properties the stylesheet declares", () => {
-    const stylesheet = read("./Process.module.css");
+    const stylesheet = MODULES.map(read).join("\n");
     const globals = read("../globals.css");
     const declared = new Set(
       Array.from(globals.matchAll(/(--[a-z0-9-]+)\s*:/g), (m) => m[1]),
@@ -28,12 +30,13 @@ describe("Process design tokens", () => {
     );
     expect(undeclared).toEqual([]);
     for (const token of supplied)
-      expect(read("./Process.tsx")).toContain(token);
+      expect(read("./LoopDiagram.tsx")).toContain(token);
   });
 
-  it("writes no literal colour into the module", () => {
-    expect(read("./Process.module.css")).not.toMatch(
-      /#[0-9a-f]{3,8}\b|\brgba?\(|\bhsla?\(/i,
-    );
+  it("writes no literal colour into either module", () => {
+    for (const sheet of MODULES)
+      expect(read(sheet), sheet).not.toMatch(
+        /#[0-9a-f]{3,8}\b|\brgba?\(|\bhsla?\(/i,
+      );
   });
 });

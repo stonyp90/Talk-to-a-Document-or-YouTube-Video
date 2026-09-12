@@ -10,13 +10,16 @@ import { Applications } from "./Applications";
 import { HowItWorks } from "./HowItWorks";
 import { Icon } from "./Icon";
 import { IntroGate, hasSeenIntro } from "./IntroGate";
+import { LoopDiagram } from "./LoopDiagram";
 import { PlatformSection } from "./PlatformSection";
 import { Process } from "./Process";
+import { useLoopWalk, type Loop } from "./useLoopWalk";
 import { SiteFooter } from "./SiteFooter";
 import { TopNav } from "./TopNav";
 import { useHydrated } from "./useHydrated";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { INTRO_DURATION_SECONDS } from "../content/intro-video";
+import { PROCESS_STEP_IDS } from "../content/process";
 import {
   STORY_SECTIONS,
   appHref as appHrefFor,
@@ -33,6 +36,8 @@ type StoryContext = {
   language: string;
   appHref: string;
   onReplayIntro: () => void;
+  /** The one walk around the build loop, drawn at the top of the page. */
+  loop: Loop;
 };
 
 /**
@@ -41,8 +46,8 @@ type StoryContext = {
  * a section can never be rendered twice or forgotten.
  */
 const STORY_VIEWS: Record<StorySectionId, ComponentType<StoryContext>> = {
-  "how-we-build": ({ language, appHref }) => (
-    <Process locale={language} appHref={appHref} />
+  "how-we-build": ({ language, appHref, loop }) => (
+    <Process locale={language} appHref={appHref} loop={loop} />
   ),
   platform: ({ appHref, onReplayIntro }) => (
     <PlatformSection appHref={appHref} onReplayIntro={onReplayIntro} />
@@ -63,6 +68,7 @@ export default function LandingPage() {
   const { t, language } = useLanguage();
   const appHref = appHrefFor(language);
   const hydrated = useHydrated();
+  const loop = useLoopWalk();
   // The server never shows the intro; a first visit opens it after hydration.
   const firstVisit = useSyncExternalStore(
     subscribeToStorage,
@@ -95,7 +101,12 @@ export default function LandingPage() {
     (heroCta.current ?? document.getElementById("main"))?.focus();
   }
 
-  const story: StoryContext = { language, appHref, onReplayIntro: openIntro };
+  const story: StoryContext = {
+    language,
+    appHref,
+    onReplayIntro: openIntro,
+    loop,
+  };
 
   return (
     <>
@@ -115,35 +126,46 @@ export default function LandingPage() {
 
       <main className="shell" id="main" tabIndex={-1}>
         <div className="container">
+          {/* The loop opens the page: how this is built is the argument, and
+              what it builds is one line under it. */}
           <section className="hero landing-hero" aria-labelledby="hero-heading">
-            <span className="eyebrow">{t("Voice first")}</span>
-            <h1 id="hero-heading">
-              {t("Less scrolling.")} <span>{t("More understanding.")}</span>
-            </h1>
-            <p className="lede">
-              {t(
-                "Bring a PDF or a captioned YouTube video, ask by voice or keyboard, and get answers that stay anchored to your source.",
-              )}
-            </p>
-            <div className="hero-actions">
-              <a ref={heroCta} className="primary" href={appHref}>
-                <Icon name="arrow" /> {t("Open the app")}
-              </a>
-              <button
-                type="button"
-                className="secondary"
-                onClick={openIntro}
-                disabled={!hydrated}
-              >
-                <Icon name="play" /> {t("Watch the intro")} ·{" "}
-                {INTRO_DURATION_SECONDS} s
-              </button>
+            <div className="landing-hero-copy">
+              <span className="eyebrow">
+                {t("The software development lifecycle")}
+              </span>
+              <h1 id="hero-heading">
+                {t("A new way to build software.")}{" "}
+                <span>{t("For tomorrow’s internet.")}</span>
+              </h1>
+              <p className="lede">
+                {t(
+                  "One loop of {count} stages, walked in full before anything ships: concept, tools, tests, security, delivery, production, then what people tell us, and what the models learn from it.",
+                  { count: PROCESS_STEP_IDS.length },
+                )}
+              </p>
+              <div className="hero-actions">
+                <a ref={heroCta} className="primary" href={appHref}>
+                  <Icon name="arrow" /> {t("Open the app")}
+                </a>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={openIntro}
+                  disabled={!hydrated}
+                >
+                  <Icon name="play" /> {t("Watch the intro")} ·{" "}
+                  {INTRO_DURATION_SECONDS} s
+                </button>
+              </div>
+              <p className="hero-note">
+                {t(
+                  "What it does today: bring a PDF or a captioned YouTube video and talk to it. How it is built is the rest of this page.",
+                )}
+              </p>
             </div>
-            <p className="hero-note">
-              {t(
-                "The story first: how this was built, what it is, and how to use it. The app is one tap away from anywhere on this page.",
-              )}
-            </p>
+            <div className="landing-hero-loop">
+              <LoopDiagram locale={language} loop={loop} />
+            </div>
           </section>
 
           {STORY_SECTIONS.map((section) => {

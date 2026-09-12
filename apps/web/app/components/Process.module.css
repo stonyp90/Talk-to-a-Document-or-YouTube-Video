@@ -8,7 +8,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
   gap: var(--space-3xl) var(--space-4xl);
-  align-items: center;
+  align-items: start;
 }
 .copy {
   min-width: 0;
@@ -41,167 +41,8 @@
   line-height: 1.35;
 }
 
-/* The picture ---------------------------------------------------------- */
-.stage {
-  display: grid;
-  gap: var(--space-md);
-  justify-items: center;
-  min-width: 0;
-}
-.diagram {
-  display: block;
-  width: 100%;
-  max-width: 560px;
-  height: auto;
-  overflow: visible;
-}
-.ring {
-  fill: none;
-  stroke: var(--line-strong);
-  stroke-width: 1.2;
-}
-.disc {
-  fill: var(--surface);
-  stroke: var(--line);
-  stroke-width: 1;
-}
-.discHalo {
-  fill: none;
-  stroke: var(--line);
-  stroke-dasharray: 2 5;
-}
-.discEyebrow,
-.discNote {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-.discEyebrow {
-  fill: var(--muted);
-}
-.discNote {
-  font-size: 8.5px;
-  fill: var(--accent);
-}
-.discStatement {
-  font-family: Georgia, serif;
-  font-size: 18px;
-  fill: var(--ink);
-}
-.traveller,
-.satellite {
-  transform-box: view-box;
-  transform-origin: 300px 260px;
-  transition: transform var(--loop-travel) linear;
-}
-.satellite {
-  transition-duration: var(--loop-inner);
-}
-.comet {
-  fill: var(--accent-glow);
-}
-.node {
-  cursor: pointer;
-}
-.node circle {
-  fill: var(--surface);
-  stroke: var(--line-strong);
-  stroke-width: 1.2;
-  transition:
-    fill 260ms var(--ease-out),
-    stroke 260ms var(--ease-out);
-}
-.node svg {
-  color: var(--muted);
-  transition: color 260ms var(--ease-out);
-}
-.node:hover circle {
-  stroke: var(--accent-border);
-}
-.node[data-active="true"] circle {
-  fill: var(--accent);
-  stroke: var(--accent);
-}
-.node[data-active="true"] svg {
-  color: var(--paper);
-}
-.label {
-  font-family: Georgia, serif;
-  font-size: 14px;
-  font-weight: 700;
-  fill: var(--muted);
-  transition: fill 260ms var(--ease-out);
-}
-.node[data-active="true"] .label {
-  fill: var(--ink);
-}
-.satelliteRing {
-  fill: none;
-  stroke: var(--accent-border);
-  stroke-dasharray: 3 4;
-  transition: stroke 260ms var(--ease-out);
-}
-.satelliteDot {
-  fill: var(--accent);
-}
-.diagram[data-inner-loop="active"] .satelliteRing {
-  stroke: var(--accent);
-}
-.providerDot {
-  fill: var(--surface);
-  stroke: var(--accent-border);
-  stroke-width: 1.2;
-}
-.diagram[data-inner-loop="active"] .providerDot {
-  animation: provider-pass calc(var(--loop-inner) / 3) linear 1 normal none;
-}
-@keyframes provider-pass {
-  0% {
-    fill: var(--accent);
-    stroke: var(--accent);
-  }
-  70% {
-    fill: var(--accent-wash);
-    stroke: var(--accent-border);
-  }
-  100% {
-    fill: var(--surface);
-    stroke: var(--accent-border);
-  }
-}
-.caption {
-  min-height: 3.4em;
-  max-width: 520px;
-  margin: 0;
-  text-align: center;
-  font-size: 14px;
-  line-height: 1.6;
-  animation: arrive 480ms var(--ease-out) both;
-}
-.captionNumber {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: var(--accent);
-  font-size: 12px;
-}
-.caption i {
-  font-family: Georgia, serif;
-  color: var(--muted);
-}
-.controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  max-width: 560px;
-}
-.toggle {
-  flex-shrink: 0;
-  min-height: 38px;
-  font-size: 12px;
-}
 .innerLoopNote {
-  margin: 0;
+  margin: var(--space-2xl) 0 0;
   color: var(--muted);
   font-size: 12px;
   line-height: 1.55;
@@ -210,8 +51,7 @@
 /* The words ------------------------------------------------------------ */
 .steps {
   display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2xs) var(--space-xl);
   margin: var(--space-sm) 0 0;
   padding: 0;
@@ -302,9 +142,6 @@
     grid-template-columns: 1fr;
     gap: var(--space-2xl);
   }
-  .steps {
-    grid-template-columns: 1fr;
-  }
   .mission {
     grid-template-columns: 1fr;
     padding: var(--space-2xl);
@@ -314,14 +151,6 @@
   }
 }
 @media (max-width: 700px) {
-  .label {
-    display: none;
-  }
-  .controls {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-  }
   .quote {
     font-size: 18px;
   }

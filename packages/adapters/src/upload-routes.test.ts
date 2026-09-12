@@ -1,4 +1,4 @@
-import { expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { InputValidationError } from "../../core/src/domain/ingestion";
 vi.mock("../../../apps/web/src/composition", () => ({
   openSource: vi.fn(),
@@ -21,6 +21,14 @@ vi.mock("../../../apps/web/src/composition", () => ({
 }));
 import { POST as prepare } from "../../../apps/web/app/api/uploads/route";
 import { POST as extract } from "../../../apps/web/app/api/uploads/extract/route";
+
+// These cases are about upload validation, not the gate; the gate has its own suite.
+beforeEach(() => {
+  vi.stubEnv("AUTH_MODE", "disabled");
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 it("preserves actionable size errors from upload validation", async () => {
   const response = await prepare(
     new Request("http://localhost/api/uploads", {

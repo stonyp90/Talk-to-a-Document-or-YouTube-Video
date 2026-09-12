@@ -16,10 +16,11 @@ vi.mock("./realtimeClient", () => ({
     stop = vi.fn();
   },
 }));
-import HomePage from "../../app/components/HomePage";
+import Workspace from "../../app/components/Workspace";
 
 beforeEach(() => {
-  // These cases exercise the workspace, not the first-visit introduction.
+  // The app route carries no introduction; the key is set only because the
+  // mode switcher and the workspace share this browser with the landing page.
   localStorage.setItem("ursly-intro-v1", "seen");
 });
 
@@ -42,7 +43,7 @@ const envelope = {
 
 async function ingestFixture(request: ReturnType<typeof vi.fn>): Promise<void> {
   vi.stubGlobal("fetch", request);
-  render(<HomePage />);
+  render(<Workspace />);
   // The picker is on screen from the start: no disclosure to open first.
   fireEvent.click(screen.getByRole("tab", { name: "YouTube video" }));
   fireEvent.change(screen.getByLabelText("YouTube URL"), {
@@ -56,6 +57,8 @@ async function ingestFixture(request: ReturnType<typeof vi.fn>): Promise<void> {
 it("offers voice without hiding it behind a disclosure", async () => {
   await ingestFixture(
     vi.fn(async (url: string) => {
+      if (url === "/api/auth/session")
+        return Response.json({ email: "reader@example.com" });
       if (url === "/api/health") return Response.json({ directUpload: false });
       if (url === "/api/ingest") return Response.json(envelope);
       throw new Error(`Unexpected request ${url}`);
@@ -72,6 +75,8 @@ it("unmount aborts session setup and ignores its eventual response", async () =>
   let resolveSession!: (response: Response) => void;
   let sessionSignal: AbortSignal | undefined;
   const request = vi.fn(async (url: string, options?: RequestInit) => {
+    if (url === "/api/auth/session")
+      return Response.json({ email: "reader@example.com" });
     if (url === "/api/health") return Response.json({ directUpload: false });
     if (url === "/api/ingest") return Response.json(envelope);
     if (url === "/api/realtime/session") {
@@ -83,7 +88,7 @@ it("unmount aborts session setup and ignores its eventual response", async () =>
     throw new Error(`Unexpected request ${url}`);
   });
   vi.stubGlobal("fetch", request);
-  const view = render(<HomePage />);
+  const view = render(<Workspace />);
   fireEvent.click(screen.getByRole("tab", { name: "YouTube video" }));
   fireEvent.change(screen.getByLabelText("YouTube URL"), {
     target: { value: "https://youtu.be/dQw4w9WgXcQ" },

@@ -15,23 +15,33 @@ locals {
     api        = { memory = 1024, timeout = 28, concurrency = 20, role = "${local.name}-runtime" }
     transcript = { memory = 256, timeout = 20, concurrency = 2, role = "${local.name}-transcript-runtime" }
   }
+  # Transactional email is operator-owned: environments/email verifies the domain
+  # identity and creates the configuration set, and this module only consumes
+  # them. Sending is all the api task may ever do -- from one address, on one
+  # identity. It may not verify an identity, read a quota, or change SES at all.
+  #
   # SendEmail is authorized against the identity and, when the call names one,
   # the configuration set, so both ARNs are listed. The FromAddress condition is
   # what stops a compromised function sending as any other mailbox on the domain;
   # a bare identity grant would hand it the whole domain. The configuration set
   # is also attached to the identity itself, so bounce and complaint events are
   # published even if a caller omits the parameter.
-  ses_statements = var.ses_identity_arn == "" ? [] : [{
+  ses_sending = var.email_mode == "ses" && var.ses_identity_arn != ""
+  ses_statements = local.ses_sending ? [{
     Effect    = "Allow"
     Action    = ["ses:SendEmail"]
     Resource  = [var.ses_identity_arn, "arn:aws:ses:${var.region}:${var.account_id}:configuration-set/${var.ses_configuration_set_name}"]
     Condition = { StringEquals = { "ses:FromAddress" = var.ses_from_address } }
-  }]
-  ses_environment = var.ses_identity_arn == "" ? {} : {
-    SES_IDENTITY_ARN           = var.ses_identity_arn
-    SES_CONFIGURATION_SET_NAME = var.ses_configuration_set_name
-    SES_FROM_ADDRESS           = var.ses_from_address
-  }
+  }] : []
+  # These are the names the application itself reads (packages/adapters/src/
+  # accounts.ts): SES_CONFIGURATION_SET, not the Terraform variable's spelling.
+  # The identity ARN is not passed: the task never names the identity, it sends
+  # from the address, and the grant above is what ties the two together.
+  ses_environment = local.ses_sending ? {
+    SES_REGION            = var.region
+    SES_FROM_ADDRESS      = var.ses_from_address
+    SES_CONFIGURATION_SET = var.ses_configuration_set_name
+  } : {}
   paid_routes = toset(["POST /api/realtime/session", "POST /api/realtime/connect", "POST /api/text-chat", "POST /api/uploads", "POST /api/uploads/extract"])
   routes = merge(
     { "ANY /" = "api", "ANY /{proxy+}" = "api", "GET /transcript/{videoId}" = "transcript" },
@@ -129,7 +139,8 @@ resource "aws_iam_role_policy" "runtime" {
       [{ Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = ["${aws_cloudwatch_log_group.runtime[each.key].arn}:*"] }],
       each.key == "api" ? [
         { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = ["${aws_s3_bucket.uploads.arn}/uploads/*"] },
-        { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn] }
+        # Two exact ARNs, no wildcard: the provider key and the signing pepper.
+        { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn, var.auth_pepper_secret_arn] }
       ] : [],
       each.key == "api" ? local.ses_statements : []
     )
@@ -156,6 +167,15 @@ resource "aws_lambda_function" "runtime" {
       OPENAI_BASE_URL          = "https://api.openai.com"
       OPENAI_REALTIME_MODEL    = "gpt-realtime", OPENAI_TEXT_MODEL = "gpt-4.1-mini"
       CONTEXT_CHARACTER_BUDGET = tostring(var.context_character_budget)
+      # The gate, the allowance, and the two things without which nobody can
+      # sign in. The pepper arrives as an ARN and is read at runtime, exactly
+      # like the provider key beside it; its value is never in this file. The
+      # SES names arrive only once the operator has applied environments/email.
+      AUTH_MODE              = var.auth_mode
+      AUTH_PEPPER_SECRET_ARN = var.auth_pepper_secret_arn
+      USAGE_LIMIT_UNITS      = tostring(var.usage_limit_units)
+      USAGE_WINDOW_MS        = tostring(var.usage_window_ms)
+      EMAIL_MODE             = var.email_mode
       }, local.ses_environment) : merge(
       { PORT = "3010", TRANSCRIPT_MODE = "live", UPSTREAM_TIMEOUT_SECONDS = "10" },
       var.transcript_proxy_url == "" ? {} : { TRANSCRIPT_PROXY_URL = var.transcript_proxy_url }

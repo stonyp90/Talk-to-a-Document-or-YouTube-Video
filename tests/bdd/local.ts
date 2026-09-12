@@ -16,7 +16,8 @@ const exec = promisify(execFile);
 type Action = (this: World) => Promise<void>;
 type Helpers = {
   page: (w: World) => Promise<Page>;
-  open: Action;
+  openApp: Action;
+  openLanding: Action;
   ready: Action;
   youtube: Action;
   send: Action;
@@ -99,7 +100,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     },
   );
   step("the web service starts", async function () {
-    await h.open.call(this);
+    await h.openLanding.call(this);
     await expect(
       (await h.page(this)).getByRole("heading", {
         name: "Less scrolling. More understanding.",
@@ -144,7 +145,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
     async function () {
       const p = await h.page(this);
       assert.deepEqual(await p.context().cookies(), []);
-      await h.open.call(this);
+      await h.openApp.call(this);
       assert.equal(
         await p.evaluate(() =>
           Object.keys(localStorage).some((key) =>
@@ -172,7 +173,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   );
   step("`PROVIDER_MODE=mock`", async function () {
     assert.equal((await json(`${h.baseURL}/api/health`)).mode, "mock");
-    await h.open.call(this);
+    await h.openApp.call(this);
   });
   step(
     "I upload the deterministic fixture PDF through the local web app",
@@ -238,7 +239,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   });
   step(
     ["I open the web app", "the developer can run the web application locally"],
-    h.open,
+    h.openApp,
   );
   step(
     "the web client reaches the API over the Compose network",
@@ -513,21 +514,31 @@ export function registerLocalChecks(step: Step, h: Helpers) {
       "--test",
       "infrastructure/tests/client-secrets.test.cjs",
     ]);
+    // The site now ships two pages, so the chunk scan must see both: a secret
+    // leaked into only the landing bundle would otherwise pass unnoticed.
+    const markup: string[] = [];
+    const chunks: string[] = [];
+    for (const openPage of [h.openLanding, h.openApp]) {
+      await openPage.call(w);
+      const page = await h.page(w);
+      const scripts = await page
+        .locator('script[src*="/_next/static/"]')
+        .evaluateAll((nodes) => nodes.map((n) => (n as HTMLScriptElement).src));
+      assert.ok(scripts.length > 0, "Expected production client chunks");
+      chunks.push(
+        ...(await Promise.all(
+          scripts.map(async (url) => {
+            const r = await fetch(url);
+            assert.equal(r.status, 200);
+            return r.text();
+          }),
+        )),
+      );
+      markup.push(await page.content());
+    }
+    state(w).assets = chunks.join("\n");
     await h.ready.call(w);
     const p = await h.page(w);
-    const scripts = await p
-      .locator('script[src*="/_next/static/"]')
-      .evaluateAll((nodes) => nodes.map((n) => (n as HTMLScriptElement).src));
-    assert.ok(scripts.length > 0, "Expected production client chunks");
-    state(w).assets = (
-      await Promise.all(
-        scripts.map(async (url) => {
-          const r = await fetch(url);
-          assert.equal(r.status, 200);
-          return r.text();
-        }),
-      )
-    ).join("\n");
     await h.session.call(w);
     const sessionBody = JSON.stringify(w.body);
     await h.send.call(w);
@@ -535,6 +546,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
       sessionBody,
       JSON.stringify(w.requestBody),
       await p.content(),
+      ...markup,
       JSON.stringify(await json(`${h.baseURL}/api/health`)),
     ].join("\n");
     // Scan every production chunk against actual configured secrets in-container.
@@ -656,7 +668,8 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   });
   step("the repository is reviewed", async function () {
     for (const path of [
-      "apps/web/app/components/HomePage.tsx",
+      "apps/web/app/components/LandingPage.tsx",
+      "apps/web/app/components/Workspace.tsx",
       "packages/core/src/domain/ingestion.ts",
       "packages/adapters/src/providers.ts",
       "tests/bdd/steps.ts",
@@ -667,12 +680,16 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   step(
     "frontend, domain, provider, test, and infrastructure boundaries are identifiable",
     async function () {
-      const client = await readFile(
-        "apps/web/app/components/HomePage.tsx",
-        "utf8",
-      );
-      assert.match(client, /use client/);
-      assert.doesNotMatch(client, /from ["'][^"']*server\//);
+      // Two client entry points since the story and the application split:
+      // both are browser code, and neither reaches for a server module.
+      for (const path of [
+        "apps/web/app/components/LandingPage.tsx",
+        "apps/web/app/components/Workspace.tsx",
+      ]) {
+        const client = await readFile(path, "utf8");
+        assert.match(client, /use client/, path);
+        assert.doesNotMatch(client, /from ["'][^"']*server\//, path);
+      }
     },
   );
   step("the backend can be packaged as a Docker image", async function () {

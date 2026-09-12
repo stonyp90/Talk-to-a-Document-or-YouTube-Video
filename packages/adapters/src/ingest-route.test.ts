@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { InputValidationError } from "../../core/src/domain/ingestion";
 vi.mock("../../../apps/web/src/composition", () => ({
   ingestFormData: vi.fn(),
@@ -19,8 +19,13 @@ const post = (body: BodyInit, headers: Record<string, string> = {}) =>
 
 beforeEach(() => {
   resetRateLimits();
+  // These cases are about the route, not the gate; the gate has its own suite.
+  vi.stubEnv("AUTH_MODE", "disabled");
   vi.mocked(ingestFormData).mockReset();
   vi.mocked(openSource).mockReset();
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 /**

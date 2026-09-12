@@ -5,6 +5,7 @@ import {
   multipartFormData,
   rateLimit,
 } from "@/apps/web/src/http";
+import { guard, unitsFor } from "@/apps/web/src/auth";
 
 export async function POST(request: Request) {
   const limited = rateLimit(request, {
@@ -13,6 +14,8 @@ export async function POST(request: Request) {
     windowMs: 60_000,
   });
   if (limited) return limited;
+  const account = await guard(request, { units: unitsFor("ingest") });
+  if (account instanceof Response) return account;
   try {
     const form = await multipartFormData(request);
     return json(await openSource(await ingestFormData(form)));

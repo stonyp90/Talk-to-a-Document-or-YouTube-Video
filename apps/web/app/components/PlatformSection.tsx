@@ -1,7 +1,9 @@
 "use client";
 
 import { Icon, type IconName } from "./Icon";
+import { useHydrated } from "./useHydrated";
 import { useLanguage } from "../i18n/LanguageProvider";
+import { INTRO_DURATION_SECONDS } from "../content/intro-video";
 
 const repository =
   "https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video";
@@ -52,11 +54,15 @@ const ROADMAP = [
  * reachable from the fixed menu and reads in one scroll.
  */
 export function PlatformSection({
+  appHref,
   onReplayIntro,
 }: {
+  /** Where the ways in lead. Injected so this section knows no routes. */
+  appHref: string;
   onReplayIntro: () => void;
 }) {
   const { t } = useLanguage();
+  const hydrated = useHydrated();
   return (
     <section
       className="platform"
@@ -104,8 +110,8 @@ export function PlatformSection({
             </span>
             <p>{t(item.text)}</p>
             {index === 0 && (
-              <a className="roadmap-link" href="#workspace">
-                {t("Try it above")} <Icon name="arrow" />
+              <a className="roadmap-link" href={appHref}>
+                {t("Try it now")} <Icon name="arrow" />
               </a>
             )}
           </li>
@@ -118,6 +124,9 @@ export function PlatformSection({
       </p>
 
       <div className="platform-proof">
+        <a className="platform-way-in" href={appHref}>
+          {t("Open the app")} <Icon name="arrow" />
+        </a>
         <a href={repository}>{t("Open source")}</a>
         <a href={`${repository}/actions`}>
           {t("Tests and CI on every change")}
@@ -125,8 +134,14 @@ export function PlatformSection({
         <a href={`${repository}/releases`}>
           {t("Signed builds and release notes")}
         </a>
-        <button type="button" className="link-button" onClick={onReplayIntro}>
-          {t("Watch the intro again")} · 24 s
+        <button
+          type="button"
+          className="link-button"
+          onClick={onReplayIntro}
+          disabled={!hydrated}
+        >
+          {t("Watch the intro again")} ·{" "}
+          {INTRO_DURATION_SECONDS} s
         </button>
       </div>
 

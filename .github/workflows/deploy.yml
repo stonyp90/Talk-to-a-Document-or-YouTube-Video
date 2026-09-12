@@ -26,6 +26,7 @@ jobs:
       TF_VAR_region: ${{ vars.AWS_REGION }}
       TF_VAR_image_tag: ${{ github.event.workflow_run.head_sha }}
       TF_VAR_openai_secret_arn: ${{ vars.OPENAI_SECRET_ARN }}
+      TF_VAR_auth_pepper_secret_arn: ${{ vars.AUTH_PEPPER_SECRET_ARN }}
       # The origin the public reaches this deployment on, which CORS allows and
       # the published OpenAPI document names as its server. Unset, the
       # deployment names the gateway's own endpoint; a localhost default here
@@ -35,6 +36,10 @@ jobs:
       TF_VAR_ses_configuration_set_name: ${{ vars.SES_CONFIGURATION_SET_NAME }}
       TF_VAR_ses_from_address: ${{ vars.SES_FROM_ADDRESS }}
       OPENAI_SECRET_ARN: ${{ vars.OPENAI_SECRET_ARN }}
+      AUTH_PEPPER_SECRET_ARN: ${{ vars.AUTH_PEPPER_SECRET_ARN }}
+      SES_IDENTITY_ARN: ${{ vars.SES_IDENTITY_ARN }}
+      SES_CONFIGURATION_SET_NAME: ${{ vars.SES_CONFIGURATION_SET_NAME }}
+      SES_FROM_ADDRESS: ${{ vars.SES_FROM_ADDRESS }}
       APP_ORIGIN: ${{ vars.APP_ORIGIN }}
       ECR_REPOSITORY: talk-to-a-document-api
     steps:
@@ -50,6 +55,17 @@ jobs:
           test "$(git rev-parse HEAD)" = "$TESTED_SHA"
           test -n "$AWS_REGION" && test -n "$AWS_ROLE_ARN" && test -n "$TF_STATE_BUCKET" && test -n "$TF_VAR_account_id"
           test -n "$OPENAI_SECRET_ARN"
+          # The sign-in gate fails shut, so a deployment missing any of these
+          # comes up refusing every paid endpoint with no way for a reader to
+          # get in. Fail here, where it is a red workflow, not there, where it
+          # is an outage. The identity and its configuration set come from the
+          # operator-owned environments/email root, and modules/demo refuses to
+          # plan with EMAIL_MODE=ses unless all three are set, so check all
+          # three here. Only the names are checked; no value is ever printed.
+          test -n "$AUTH_PEPPER_SECRET_ARN"
+          test -n "$SES_IDENTITY_ARN"
+          test -n "$SES_CONFIGURATION_SET_NAME"
+          test -n "$SES_FROM_ADDRESS"
       - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}

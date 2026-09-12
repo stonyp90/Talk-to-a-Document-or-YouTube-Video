@@ -49,12 +49,19 @@ test("duplicate starts and stops are idempotent", async () => {
 });
 test("stopping during session setup never reconnects after the request resolves", async () => {
   let resolve!: (response: Response) => void;
+  let inFlight!: () => void;
+  // The client reads the stored session before it calls out, so the request is
+  // in flight a tick later: wait for it rather than assuming it is immediate.
+  const requested = new Promise<void>((ready) => {
+    inFlight = ready;
+  });
   const statuses: string[] = [];
   const api = new ApiClient(
     "http://localhost",
     () =>
       new Promise((done) => {
         resolve = done;
+        inFlight();
       }),
   );
   const voice = new NativeVoice(
@@ -65,6 +72,7 @@ test("stopping during session setup never reconnects after the request resolves"
     assert.fail,
   );
   const starting = voice.start();
+  await requested;
   voice.stop();
   resolve(new Response(JSON.stringify({ mode: "mock" })));
   await starting;

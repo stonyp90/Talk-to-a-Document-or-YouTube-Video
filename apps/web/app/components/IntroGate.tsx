@@ -6,9 +6,20 @@ import { useLanguage } from "../i18n/LanguageProvider";
 import {
   INTRO_DURATION_SECONDS,
   INTRO_SCENES,
+  INTRO_SCENE_SECONDS,
   INTRO_TITLE_KEY,
   introVideoPaths,
 } from "../content/intro-video";
+
+/**
+ * Which scene the film is on, `seconds` in. Every scene runs the same length,
+ * so the answer is a division rather than a table of boundaries, and a player
+ * that reports a time past the end still names the last scene.
+ */
+export function sceneAt(seconds: number): number {
+  const index = Math.floor(Math.max(0, seconds) / INTRO_SCENE_SECONDS);
+  return Math.min(INTRO_SCENES.length - 1, index);
+}
 
 export const INTRO_STORAGE_KEY = "ursly-intro-v1";
 
@@ -70,6 +81,10 @@ export function IntroGate({
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
   const [progress, setProgress] = useState(0);
+  // Which scene is on screen. A phone shows the film at a third of the width
+  // it was drawn for, where its own type is no longer readable, so the words
+  // are repeated beside it at page size.
+  const [scene, setScene] = useState(0);
 
   // The hand-off runs from the dialog's own close event: closing a modal
   // dialog restores focus to whatever had it before, so anything focused
@@ -88,6 +103,7 @@ export function IntroGate({
       setAutoplayBlocked(false);
       setFailed(false);
       setProgress(0);
+      setScene(0);
       // A test DOM may lack the dialog API; the attribute still shows it.
       if (typeof element.showModal === "function") element.showModal();
       else element.setAttribute("open", "");
@@ -206,6 +222,7 @@ export function IntroGate({
                 const player = event.currentTarget;
                 if (player.duration)
                   setProgress(player.currentTime / player.duration);
+                setScene(sceneAt(player.currentTime));
               }}
               onPlaying={() => setAutoplayBlocked(false)}
               onEnded={finish}
@@ -244,6 +261,24 @@ export function IntroGate({
             </button>
           )}
         </div>
+
+        {/* The film's argument, at a size a phone can read. It is the same
+            sentence the frame carries, so it is hidden from assistive
+            technology: the transcript below states the whole film once. */}
+        {!failed && open ? (
+          <p
+            className="intro-scene"
+            aria-hidden="true"
+            data-testid="intro-scene"
+          >
+            <strong key={INTRO_SCENES[scene].id}>
+              {t(INTRO_SCENES[scene].headline)}
+            </strong>
+            <span key={`${INTRO_SCENES[scene].id}-lede`}>
+              {t(INTRO_SCENES[scene].lede)}
+            </span>
+          </p>
+        ) : null}
 
         <div className="intro-gate-footer">
           <div

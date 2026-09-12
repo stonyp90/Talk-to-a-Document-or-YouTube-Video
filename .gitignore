@@ -1,5 +1,6 @@
 node_modules
 .next
+.vitest
 coverage
 playwright-report
 test-results
@@ -41,3 +42,6 @@ secrets.json
 # Local Python bytecode from running the caption service tests
 __pycache__/
 *.pyc
+
+# Local Claude Code scratch configuration, never part of the repository.
+.claude/

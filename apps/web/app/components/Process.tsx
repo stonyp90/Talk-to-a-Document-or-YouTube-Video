@@ -72,6 +72,12 @@ const ICONS: Record<ProcessStepId, string[]> = {
     "M18.2 8.2a3.8 3.8 0 1 1 0 7.6c-3.8 0-8.6-7.6-12.4-7.6a3.8 3.8 0 1 0 0 7.6c3.8 0 8.6-7.6 12.4-7.6Z",
   ],
   production: ["M7 17 17 7", "M8 7h9v9"],
+  sustain: [
+    "M3 7h18v10H3z",
+    "M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z",
+    "M6 10h.01",
+    "M18 14h.01",
+  ],
   listen: ["M4 5h16v11H9l-5 4V5Z"],
   train: [
     "M4 12a8 8 0 0 1 14-5.3",
@@ -205,9 +211,12 @@ function readsReducedMotion() {
 
 export function Process({
   locale,
+  appHref,
   timing = LOOP_TIMING,
 }: {
   locale?: string;
+  /** Where the mission CTA leads. Injected so this section knows no routes. */
+  appHref: string;
   timing?: LoopTiming;
 }) {
   const copy = resolveProcessCopy(locale);
@@ -479,7 +488,7 @@ export function Process({
           <p>{copy.mission.body}</p>
         </div>
         <div className={styles.missionActions}>
-          <a className={`primary ${styles.missionAction}`} href="#workspace">
+          <a className={`primary ${styles.missionAction}`} href={appHref}>
             {copy.mission.primary}
           </a>
           <a

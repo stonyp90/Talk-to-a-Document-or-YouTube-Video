@@ -41,3 +41,8 @@ Feature: Document how to use and operate the project
     When I read the mobile development documentation
     Then iOS simulator setup is documented
     And Android SDK, emulator, host gateway, and port forwarding setup are documented
+
+  Scenario: Find how the product is paid for
+    When I read the project documentation
+    Then the free and paid ways to use Ursly are documented
+    And the training condition attached to the free way is stated

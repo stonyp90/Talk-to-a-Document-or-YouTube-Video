@@ -46,7 +46,7 @@ afterEach(() => {
 
 describe("Process", () => {
   it("names the section and lists every stage of the loop in order", () => {
-    render(<Process />);
+    render(<Process appHref="/en/app" />);
     // jsdom gives the accent span no display, so the name computation pads
     // it as a block; browsers read the heading as one sentence.
     const sentence = `${copy.heading.lead}${copy.heading.accent}${copy.heading.trail}`;
@@ -68,7 +68,7 @@ describe("Process", () => {
   });
 
   it("walks to the next stage once the traveller has arrived", () => {
-    render(<Process timing={timing} />);
+    render(<Process appHref="/en/app" timing={timing} />);
     advance(timing.holdMs - 1);
     expect(current()).toBe(0);
     advance(1);
@@ -82,7 +82,7 @@ describe("Process", () => {
   });
 
   it("lets a reader pick a stage, which pauses the walk", () => {
-    render(<Process timing={timing} />);
+    render(<Process appHref="/en/app" timing={timing} />);
     const secure = PROCESS_STEP_IDS.indexOf("secure");
     fireEvent.click(within(stepItems()[secure]).getByRole("button"));
     expect(current()).toBe(secure);
@@ -97,7 +97,7 @@ describe("Process", () => {
   });
 
   it("waits for the inner loop before leaving the training stage", () => {
-    render(<Process timing={timing} />);
+    render(<Process appHref="/en/app" timing={timing} />);
     const train = PROCESS_STEP_IDS.indexOf(INNER_LOOP_STEP);
     const listen = train - 1;
     fireEvent.click(within(stepItems()[listen]).getByRole("button"));
@@ -115,7 +115,7 @@ describe("Process", () => {
   });
 
   it("never rotates backwards when the loop wraps around", () => {
-    render(<Process timing={timing} />);
+    render(<Process appHref="/en/app" timing={timing} />);
     const diagram = screen.getByTestId("loop-diagram");
     const angle = () => Number(diagram.getAttribute("data-angle"));
     const last = PROCESS_STEP_IDS.length - 1;
@@ -140,7 +140,7 @@ describe("Process", () => {
         dispatchEvent: vi.fn(),
       })),
     );
-    render(<Process timing={timing} />);
+    render(<Process appHref="/en/app" timing={timing} />);
     walk();
     walk();
     expect(current()).toBe(0);
@@ -152,21 +152,21 @@ describe("Process", () => {
   });
 
   it("speaks French when asked, and English for anything else", () => {
-    render(<Process locale="fr-CA" />);
+    render(<Process appHref="/fr/app" locale="fr-CA" />);
     expect(
       screen.getByRole("heading", {
         name: resolveProcessCopy("fr").mission.heading,
       }),
     ).toBeInTheDocument();
     cleanup();
-    render(<Process locale="de" />);
+    render(<Process appHref="/en/app" locale="de" />);
     expect(
       screen.getByRole("heading", { name: copy.mission.heading }),
     ).toBeInTheDocument();
   });
 
   it("shows each model provider's turn on the training loop", () => {
-    render(<Process timing={timing} />);
+    render(<Process appHref="/en/app" timing={timing} />);
     const diagram = screen.getByTestId("loop-diagram");
     const providers = diagram.querySelectorAll("[data-provider]");
     expect(PROVIDER_TURNS).toBeGreaterThanOrEqual(2);

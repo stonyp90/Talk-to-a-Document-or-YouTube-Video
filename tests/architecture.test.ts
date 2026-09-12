@@ -49,3 +49,49 @@ it("keeps outbound adapters independent of application entry points", () => {
     );
   }
 });
+
+/**
+ * The landing page and the application are two halves of one site, and the
+ * whole point of separating them is that neither reaches into the other. A
+ * marketing page that imports the conversation domain has not been split from
+ * the application, it has merely been moved, and the next change will quietly
+ * couple them again.
+ */
+it("keeps the landing page free of the application's machinery", () => {
+  const code = readFileSync("apps/web/app/components/LandingPage.tsx", "utf8");
+  for (const forbidden of [
+    "src/lib/api",
+    "src/lib/realtimeClient",
+    "domain/conversation",
+    "domain/ingestion",
+    "./VoiceActions",
+    "./Workspace",
+  ])
+    expect(code, `LandingPage must not import ${forbidden}`).not.toContain(
+      forbidden,
+    );
+});
+
+it("keeps the application free of the story it is not telling", () => {
+  const code = readFileSync("apps/web/app/components/Workspace.tsx", "utf8");
+  for (const forbidden of [
+    "./IntroGate",
+    "./PlatformSection",
+    "./Process",
+    "./HowItWorks",
+    "./Applications",
+    "./LandingPage",
+  ])
+    expect(code, `Workspace must not import ${forbidden}`).not.toContain(
+      forbidden,
+    );
+});
+
+it("gives each page its own route and its own component", () => {
+  expect(readFileSync("apps/web/app/[lang]/page.tsx", "utf8")).toContain(
+    "LandingPage",
+  );
+  expect(readFileSync("apps/web/app/[lang]/app/page.tsx", "utf8")).toContain(
+    "Workspace",
+  );
+});

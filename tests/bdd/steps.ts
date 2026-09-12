@@ -18,9 +18,14 @@ import { fixturePdf } from "./fixtures";
 import { registerLocalChecks } from "./local";
 import { registerResilienceChecks } from "./resilience";
 import { registerArchitectureChecks } from "./architecture";
+import { registerAuthChecks } from "./auth";
 import { registerEntryChecks } from "./entry";
+import { registerPricingChecks } from "./pricing";
 import { registerProcessChecks } from "./process";
+import { registerVideoSearchChecks } from "./videoSearch";
+import { registerConversationChecks } from "./conversation";
 import { registerVoiceChecks } from "./voice";
+import { APP_PATH } from "../routes";
 
 setDefaultTimeout(120_000);
 const baseURL = process.env.BDD_BASE_URL ?? "http://localhost:3000";
@@ -88,7 +93,11 @@ After(async function (this: World) {
 AfterAll(async () => {
   await browser?.close();
 });
-async function open(this: World) {
+async function openApp(this: World) {
+  const p = await page(this);
+  await p.goto(`${baseURL}${APP_PATH}`);
+}
+async function openLanding(this: World) {
   const p = await page(this);
   await p.goto(baseURL);
 }
@@ -135,7 +144,7 @@ async function youtube(this: World, url = "https://youtu.be/dQw4w9WgXcQ") {
   await result(this, await response);
 }
 async function ready(this: World) {
-  await open.call(this);
+  await openApp.call(this);
   await youtube.call(this);
   assert.equal(this.status, 200);
   assert.ok(this.source.text);
@@ -158,13 +167,17 @@ async function session(this: World) {
 async function send(this: World) {
   const p = await page(this);
   this.question = "What is this source about?";
-  const request = p.waitForRequest((r) => r.url().endsWith("/api/text-chat"));
+  // The answer streams now, and only falls back to the blocking route when the
+  // connection cannot carry an event stream. Either one is a question asked.
+  const request = p.waitForRequest((r) =>
+    /\/api\/text-chat(\/stream)?$/.test(new URL(r.url()).pathname),
+  );
   await p.getByLabel("Ask a question", { exact: true }).fill(this.question);
   await p.getByRole("button", { name: "Send", exact: true }).click();
   this.requestBody = (await request).postDataJSON();
   await expect(p.locator(".message.assistant").last()).toBeVisible();
 }
-step("the source selection screen is displayed", open);
+step("the source selection screen is displayed", openApp);
 step("I upload a valid PDF that is no larger than 25 MB", async function () {
   await upload.call(this, fixturePdf(["First page evidence."]));
 });
@@ -315,7 +328,7 @@ step(
   ready,
 );
 step("a PDF has been ingested successfully", async function () {
-  await open.call(this);
+  await openApp.call(this);
   await upload.call(
     this,
     fixturePdf(["Context evidence one.", "Context evidence two."]),
@@ -542,8 +555,9 @@ step(
     "I open the application",
     "I open the application without selecting a source",
   ],
-  open,
+  openApp,
 );
+step("I open the landing page", openLanding);
 step("the short Ursly intro is available", async function () {
   const p = await page(this);
   await p
@@ -672,7 +686,7 @@ step("the backend rejects it before invoking the extractor", function () {
   assert.equal(this.attempts, 0);
 });
 step("a YouTube transcript is requested", async function () {
-  await open.call(this);
+  await openApp.call(this);
   const p = await page(this);
   const request = p.waitForRequest((r) => r.url().endsWith("/api/ingest"));
   await youtube.call(this);
@@ -699,7 +713,7 @@ step(
 );
 
 async function transientFailure(this: World) {
-  await open.call(this);
+  await openApp.call(this);
   this.attempts = 0;
   const p = await page(this);
   await p.route("**/api/ingest", async (route) => {
@@ -779,7 +793,7 @@ step("a retry action is available when retrying is safe", async function () {
   ).toBeEnabled();
 });
 step("I have submitted a source", async function () {
-  await open.call(this);
+  await openApp.call(this);
   const p = await page(this);
   const blocked = new Promise<void>((resolve) => {
     this.release = resolve;
@@ -937,7 +951,8 @@ step("the text endpoint rejects the incomplete question request", function () {
 
 registerLocalChecks(step, {
   page,
-  open,
+  openApp,
+  openLanding,
   ready,
   upload,
   youtube,
@@ -945,11 +960,15 @@ registerLocalChecks(step, {
   session,
   baseURL,
 });
-registerResilienceChecks(step, { page, open, ready, baseURL });
+registerResilienceChecks(step, { page, openApp, ready, baseURL });
 registerArchitectureChecks(step);
-registerEntryChecks(step, { page, open, baseURL });
+registerAuthChecks(step);
+registerEntryChecks(step, { page, baseURL });
 registerProcessChecks(step, { page });
+registerVideoSearchChecks(step);
+registerConversationChecks(step);
 registerVoiceChecks(step);
+registerPricingChecks(step, { page });
 
 // Static inventory: unsupported steps are PENDING, never successful. Newly added
 // phrases without implementations remain undefined and fail the default gate.

@@ -5,10 +5,12 @@ export const INTRO_STORAGE_KEY = "ursly-intro-v1";
 
 /**
  * Every journey that is not about the introduction starts as a returning
- * visitor. The intro is a modal dialog, so nothing else on the page can be
- * used while it is open; marking it as seen before navigation keeps the
- * workspace reachable. Specs that exercise the first visit import the plain
- * `test` from @playwright/test instead.
+ * visitor. The intro is a modal dialog on the landing page, so nothing else
+ * there can be used while it is open; marking it as seen before navigation
+ * keeps the story reachable. The application route never opens it, but the
+ * seeding is kept for both: it costs nothing and guards the day one is added.
+ * Specs that exercise the first visit import the plain `test` from
+ * @playwright/test instead.
  */
 export const test = base.extend({
   page: async ({ page }, provide) => {

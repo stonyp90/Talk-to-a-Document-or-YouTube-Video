@@ -1749,8 +1749,8 @@ const s = StyleSheet.create({
   readingHint: { color: c.muted, fontSize: 13, lineHeight: 20 },
   sourceText: { color: c.ink, fontSize: 16, lineHeight: 28 },
   outline: { borderWidth: 1, borderColor: c.line, borderRadius: 15 },
-  modalRoot: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-end" },
-  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: c.scrim },
+  modalRoot: { ...StyleSheet.absoluteFill, justifyContent: "flex-end" },
+  scrim: { ...StyleSheet.absoluteFill, backgroundColor: c.scrim },
   sheet: {
     padding: 24,
     gap: 18,

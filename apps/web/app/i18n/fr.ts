@@ -183,6 +183,11 @@ export const french: Dictionary = {
   "Open the YouTube source tab": "Ouvrir l’onglet source YouTube",
   "Open the PDF upload picker": "Ouvrir le sélecteur de PDF",
   "Start voice chat": "Démarrer la conversation vocale",
+  "Listening for {phrases}.": "À l’écoute de {phrases}.",
+  "YouTube link ready — say “next” to read it.":
+    "Lien YouTube prêt — dites « suivant » pour le lire.",
+  "Searching YouTube by name is not available yet. Paste a link.":
+    "La recherche YouTube par nom n’est pas encore disponible. Collez un lien.",
   "Ask for a key-ideas summary": "Demander un résumé des idées clés",
   "Go back or undo the last step":
     "Revenir en arrière ou annuler la dernière étape",

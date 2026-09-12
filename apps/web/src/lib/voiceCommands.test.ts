@@ -19,11 +19,19 @@ describe("spoken command normalization", () => {
 describe("default triggers", () => {
   it("speaks the interface language", () => {
     expect(defaultTriggers("fr").map((trigger) => trigger.phrase)).toEqual([
+      "YouTube",
+      "Téléverse",
+      "Parlons-en",
+      "Résume ceci",
       "retour",
       "suivant",
       "annule",
     ]);
     expect(defaultTriggers("en").map((trigger) => trigger.phrase)).toEqual([
+      "YouTube",
+      "Upload",
+      "Let’s talk",
+      "Summarize this",
       "back",
       "next",
       "cancel",
@@ -31,8 +39,10 @@ describe("default triggers", () => {
   });
 
   it("still answers the other language, because a caller may switch mid-sentence", () => {
-    const [back] = defaultTriggers("fr");
-    expect(matchTriggers("go back please", [back])).toEqual([back]);
+    const back = defaultTriggers("fr").find((t) => t.action === "back")!;
+    expect(matchTriggers("go back please", [back])).toEqual([
+      { ...back, argument: "please" },
+    ]);
   });
 
   it("covers every action with at least one phrase per language", () => {
@@ -56,9 +66,12 @@ describe("matching what was heard", () => {
     aliases: upload?.aliases,
   };
 
+  const byAction = (action: string) =>
+    triggers.find((trigger) => trigger.action === action)!;
+
   it("finds a trigger inside a whole sentence", () => {
     expect(matchTriggers("okay, next one please", triggers)).toEqual([
-      triggers[1],
+      { ...byAction("next"), argument: "one please" },
     ]);
   });
 
@@ -73,12 +86,14 @@ describe("matching what was heard", () => {
       aliases: summarize?.aliases,
     };
     expect(matchTriggers("resume ceci s'il te plait", [trigger])).toEqual([
-      trigger,
+      { ...trigger, argument: "s'il te plait" },
     ]);
   });
 
   it("forgives a one-letter recognition slip on a long phrase", () => {
-    expect(matchTriggers("uploud", [uploadTrigger])).toEqual([uploadTrigger]);
+    expect(matchTriggers("uploud", [uploadTrigger])).toEqual([
+      { ...uploadTrigger, argument: "" },
+    ]);
   });
 
   it("does not forgive a slip on a short word, where everything sounds alike", () => {
@@ -91,14 +106,14 @@ describe("matching what was heard", () => {
 
   it("returns several triggers in the order they were spoken", () => {
     expect(matchTriggers("cancel, then next", triggers)).toEqual([
-      triggers[2],
-      triggers[1],
+      { ...byAction("cancel"), argument: "then next" },
+      { ...byAction("next"), argument: "" },
     ]);
   });
 
   it("matches an alias without the saved phrase being spoken", () => {
     expect(matchTriggers("open the pdf", [uploadTrigger])).toEqual([
-      uploadTrigger,
+      { ...uploadTrigger, argument: "" },
     ]);
   });
 
@@ -115,5 +130,53 @@ describe("action copy", () => {
       expect(actionLabel(action)).toMatch(/\w/);
       expect(actionReply(action)).toMatch(/\w/);
     }
+  });
+});
+
+describe("the vocabulary the interface advertises", () => {
+  /**
+   * The defect the owner hit: the panel offered “YouTube”, “Upload”,
+   * “Let’s talk” and “Summarize this”, and the microphone was armed for
+   * “back”, “next” and “cancel”. Saying an advertised word matched nothing.
+   * One list must govern both, in both languages.
+   */
+  for (const language of ["en", "fr"] as const)
+    it(`arms every phrase it offers in ${language}`, () => {
+      const armed = defaultTriggers(language);
+      for (const example of spokenExamples(language)) {
+        const hit = matchTriggers(example.phrase, armed);
+        expect(
+          hit.map((t) => t.action),
+          example.phrase,
+        ).toContain(example.action);
+      }
+      expect(armed.map((t) => t.action).sort()).toEqual(
+        [...VOICE_ACTION_IDS].sort(),
+      );
+    });
+
+  it("carries the words after the keyword as the argument", () => {
+    const armed = defaultTriggers("en");
+    const [match] = matchTriggers("YouTube Pennywise", armed);
+    expect(match.action).toBe("youtube");
+    expect(match.argument).toBe("Pennywise");
+  });
+
+  it("keeps the argument verbatim, accents and capitals included", () => {
+    const [match] = matchTriggers("YouTube Édith Piaf", defaultTriggers("fr"));
+    expect(match.argument).toBe("Édith Piaf");
+  });
+
+  it("leaves the argument empty when only the keyword was said", () => {
+    const [match] = matchTriggers("YouTube", defaultTriggers("en"));
+    expect(match.argument).toBe("");
+  });
+
+  it("does not open the picker because a sentence mentions a pdf", () => {
+    const armed = defaultTriggers("en");
+    expect(matchTriggers("I'll send you the pdf later", armed)).toEqual([]);
+    expect(matchTriggers("je t'envoie le pdf", defaultTriggers("fr"))).toEqual(
+      [],
+    );
   });
 });

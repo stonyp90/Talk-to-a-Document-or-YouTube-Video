@@ -636,11 +636,20 @@ export default function Workspace() {
     voicePickerInput.current?.click();
   }
 
-  function handleVoiceAction(action: VoiceActionId) {
+  function handleVoiceAction(action: VoiceActionId, argument = "") {
     if (action === "youtube") {
       focusSourceControl("youtube");
+      // "YouTube <link>" goes straight in. "YouTube Pennywise" cannot yet:
+      // nothing in this application can search YouTube for a name.
+      if (argument && /^https?:\/\/|youtu/i.test(argument)) {
+        setUrl(argument);
+        setVoiceActionNotice(t("YouTube link ready — say “next” to read it."));
+        return;
+      }
       setVoiceActionNotice(
-        t("YouTube is ready — dictate or paste a video link next."),
+        argument
+          ? t("Searching YouTube by name is not available yet. Paste a link.")
+          : t("YouTube is ready — dictate or paste a video link next."),
       );
       return;
     }
@@ -823,7 +832,10 @@ export default function Workspace() {
                 </div>
               )}
 
-              {entryMode === "voice" && !source && (
+              {/* The panel used to unmount the moment a source arrived, so
+                  "Let's talk" and "Summarize this" — the two actions that need
+                  a source — were unreachable by voice in every state. */}
+              {entryMode === "voice" && (
                 <VoiceActions
                   onAction={handleVoiceAction}
                   canStartVoice={Boolean(source)}

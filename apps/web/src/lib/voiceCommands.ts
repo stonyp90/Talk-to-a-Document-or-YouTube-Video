@@ -66,7 +66,7 @@ const HINTS: Record<VoiceActionId, string> = {
 const PHRASES: Record<Language, Record<VoiceActionId, readonly string[]>> = {
   en: {
     youtube: ["YouTube", "you tube", "youtube link", "use a video"],
-    upload: ["Upload", "upload a pdf", "open the pdf", "choose a file", "pdf"],
+    upload: ["Upload", "upload a pdf", "open the pdf", "choose a file"],
     voice: [
       "Let’s talk",
       "lets talk",
@@ -87,7 +87,6 @@ const PHRASES: Record<Language, Record<VoiceActionId, readonly string[]>> = {
       "télécharge",
       "ouvre le pdf",
       "choisis un fichier",
-      "pdf",
     ],
     voice: ["Parlons-en", "parlons", "on se parle", "discussion vocale"],
     summarize: ["Résume ceci", "résume", "résumé", "idées clés"],
@@ -97,19 +96,13 @@ const PHRASES: Record<Language, Record<VoiceActionId, readonly string[]>> = {
   },
 };
 
-/** The actions offered as default triggers, in the order they are listed. */
-const DEFAULT_ACTIONS: readonly VoiceActionId[] = ["back", "next", "cancel"];
-
-/** The actions shown as examples the caller can say straight away. */
-export const EXAMPLE_ACTIONS: readonly VoiceActionId[] = [
-  "youtube",
-  "upload",
-  "voice",
-  "summarize",
-  "back",
-  "next",
-  "cancel",
-];
+/**
+ * The actions, in the order they are offered. ONE list: what the interface
+ * advertises and what the microphone is armed for are the same set, so the
+ * panel can never again quote a word nothing is listening for.
+ */
+export const EXAMPLE_ACTIONS: readonly VoiceActionId[] = VOICE_ACTION_IDS;
+const DEFAULT_ACTIONS: readonly VoiceActionId[] = VOICE_ACTION_IDS;
 
 /** A phrase long enough that one wrong letter cannot be a different word. */
 const FUZZY_FROM_LENGTH = 6;
@@ -203,35 +196,65 @@ function slipsAllowed(candidate: string): number {
   return candidate.length >= FUZZY_FROM_LENGTH ? 1 : 0;
 }
 
-type Word = { text: string; at: number };
+/**
+ * One normalized word, and where in the ORIGINAL speech it came from. The
+ * argument after a keyword has to be handed back exactly as it was spoken —
+ * "Édith Piaf", not "edith piaf" — so matching happens on the normalized
+ * form while the raw offsets travel alongside it.
+ */
+type Word = { text: string; from: number; to: number };
 
-function words(normalized: string): Word[] {
+function words(spoken: string): Word[] {
   const found: Word[] = [];
   const pattern = /\S+/g;
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(normalized)) !== null)
-    found.push({ text: match[0], at: match.index });
+  let token: RegExpExecArray | null;
+  while ((token = pattern.exec(spoken)) !== null) {
+    // One raw token can normalize to several words ("P.D.F." → "p d f") or
+    // to none at all (a lone dash), so each keeps the same raw span.
+    for (const text of normalizeSpoken(token[0]).split(" ").filter(Boolean))
+      found.push({
+        text,
+        from: token.index,
+        to: token.index + token[0].length,
+      });
+  }
   return found;
 }
 
-/** Where a wording occurs in the speech, or -1 when it does not. */
-function positionOf(spoken: Word[], candidate: string): number {
+/** The window a wording occupies in the speech, or undefined when absent. */
+function windowOf(
+  spoken: Word[],
+  candidate: string,
+): { first: Word; last: Word } | undefined {
   const wanted = candidate.split(" ").filter(Boolean);
-  if (wanted.length === 0) return -1;
+  if (wanted.length === 0) return undefined;
+  const at = (start: number) => ({
+    first: spoken[start],
+    last: spoken[start + wanted.length - 1],
+  });
   for (let start = 0; start + wanted.length <= spoken.length; start += 1) {
     const window = spoken.slice(start, start + wanted.length);
     if (window.every((word, index) => word.text === wanted[index]))
-      return window[0].at;
+      return at(start);
   }
   const limit = slipsAllowed(candidate);
-  if (limit === 0) return -1;
+  if (limit === 0) return undefined;
   for (let start = 0; start + wanted.length <= spoken.length; start += 1) {
-    const window = spoken.slice(start, start + wanted.length);
-    const heard = window.map((word) => word.text).join(" ");
-    if (distanceWithin(heard, candidate, limit)) return window[0].at;
+    const heard = spoken
+      .slice(start, start + wanted.length)
+      .map((word) => word.text)
+      .join(" ");
+    if (distanceWithin(heard, candidate, limit)) return at(start);
   }
-  return -1;
+  return undefined;
 }
+
+/**
+ * A trigger that was heard, plus whatever was said after it. "YouTube
+ * Pennywise" is the youtube action carrying the argument "Pennywise"; the
+ * argument is empty when the caller said the keyword on its own.
+ */
+export type VoiceMatch = VoiceTrigger & { argument: string };
 
 /**
  * The triggers present in a piece of speech, in the order they were spoken, so
@@ -240,22 +263,29 @@ function positionOf(spoken: Word[], candidate: string): number {
 export function matchTriggers(
   transcript: string,
   triggers: readonly VoiceTrigger[],
-): VoiceTrigger[] {
-  const spoken = words(normalizeSpoken(transcript));
+): VoiceMatch[] {
+  const spoken = words(transcript);
   if (spoken.length === 0) return [];
   return triggers
     .map((trigger, index) => {
-      const positions = [trigger.phrase, ...(trigger.aliases ?? [])]
-        .map((wording) => positionOf(spoken, normalizeSpoken(wording)))
-        .filter((position) => position >= 0);
-      return positions.length > 0
-        ? { trigger, index, position: Math.min(...positions) }
-        : undefined;
+      const windows = [trigger.phrase, ...(trigger.aliases ?? [])]
+        .map((wording) => windowOf(spoken, normalizeSpoken(wording)))
+        .filter((found): found is NonNullable<typeof found> => Boolean(found));
+      if (windows.length === 0) return undefined;
+      // The earliest wording wins, and the argument is what follows it.
+      const [best] = windows.sort((a, b) => a.first.from - b.first.from);
+      return { trigger, index, position: best.first.from, after: best.last.to };
     })
     .filter((found): found is NonNullable<typeof found> => found !== undefined)
     .sort(
       (left, right) =>
         left.position - right.position || left.index - right.index,
     )
-    .map(({ trigger }) => trigger);
+    .map(({ trigger, after }) => ({
+      ...trigger,
+      argument: transcript
+        .slice(after)
+        .replace(/^[\s,.;:!?—–-]+/, "")
+        .trim(),
+    }));
 }

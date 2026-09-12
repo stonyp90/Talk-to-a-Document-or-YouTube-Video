@@ -72,7 +72,8 @@ type SpeechWindow = Window & {
 };
 
 type VoiceActionsProps = {
-  onAction: (action: VoiceActionId) => void;
+  /** The words spoken after the keyword, if any: “YouTube Pennywise”. */
+  onAction: (action: VoiceActionId, argument?: string) => void;
   canStartVoice: boolean;
   voiceBusy: boolean;
 };
@@ -100,34 +101,50 @@ function defaults(language: Language): VoiceTrigger[] {
   return built;
 }
 
-function parseSavedTriggers(
+/**
+ * Stored triggers are the caller's customisations, not the whole vocabulary.
+ * They used to REPLACE the defaults, so anyone who had ever opened the editor
+ * was frozen with whatever was armed that day — and a corrupt or emptied value
+ * disarmed the microphone permanently. Every action without a stored wording
+ * now keeps its default, and an unreadable value falls back to all of them.
+ */
+export function parseSavedTriggers(
   stored: string | null,
   language: Language,
 ): VoiceTrigger[] {
+  const withDefaults = (saved: VoiceTrigger[]) => {
+    const claimed = new Set(saved.map((trigger) => trigger.action));
+    return [
+      ...saved,
+      ...defaults(language).filter((trigger) => !claimed.has(trigger.action)),
+    ];
+  };
   try {
     if (stored === null) return defaults(language);
     const saved = JSON.parse(stored) as unknown;
-    if (!Array.isArray(saved)) return [];
-    return saved
-      .filter((item): item is VoiceTrigger =>
-        Boolean(
-          item &&
-            typeof item === "object" &&
-            "id" in item &&
-            "phrase" in item &&
-            "action" in item &&
-            typeof item.id === "string" &&
-            typeof item.phrase === "string" &&
-            item.phrase.trim() &&
-            typeof item.action === "string" &&
-            normalizeSpoken(item.phrase) &&
-            (VOICE_ACTION_IDS as readonly string[]).includes(item.action),
-        ),
-      )
-      .filter((item) => item.phrase.length <= MAX_TRIGGER_LENGTH)
-      .slice(0, MAX_SAVED_TRIGGERS);
+    if (!Array.isArray(saved)) return defaults(language);
+    return withDefaults(
+      saved
+        .filter((item): item is VoiceTrigger =>
+          Boolean(
+            item &&
+              typeof item === "object" &&
+              "id" in item &&
+              "phrase" in item &&
+              "action" in item &&
+              typeof item.id === "string" &&
+              typeof item.phrase === "string" &&
+              item.phrase.trim() &&
+              typeof item.action === "string" &&
+              normalizeSpoken(item.phrase) &&
+              (VOICE_ACTION_IDS as readonly string[]).includes(item.action),
+          ),
+        )
+        .filter((item) => item.phrase.length <= MAX_TRIGGER_LENGTH)
+        .slice(0, MAX_SAVED_TRIGGERS),
+    );
   } catch {
-    return [];
+    return defaults(language);
   }
 }
 
@@ -362,7 +379,7 @@ export function VoiceActions({
       document.removeEventListener("visibilitychange", stopWhenHidden);
   }, []);
 
-  function runAction(trigger: VoiceTrigger, transcript = trigger.phrase) {
+  function runAction(trigger: VoiceTrigger, argument = "") {
     if (voiceBusy) {
       stopListening(
         "Voice actions paused while Ursly is busy with another action.",
@@ -415,7 +432,7 @@ export function VoiceActions({
       resumeAfterSpeech.current = false;
       startListening();
     }
-    onActionRef.current(trigger.action);
+    onActionRef.current(trigger.action, argument);
   }
 
   function runExample(example: SpokenExample) {
@@ -527,8 +544,15 @@ export function VoiceActions({
       startingRef.current = false;
       handledTriggers.current.clear();
       setArmed(true);
+      // Built with t() rather than a template literal: this is the one line
+      // shown at the instant the microphone opens, and it was reaching French
+      // callers in English.
       setNotice(
-        `Listening for ${triggersRef.current.map((item) => `“${item.phrase}”`).join(", ")}.`,
+        t("Listening for {phrases}.", {
+          phrases: triggersRef.current
+            .map((item) => `“${item.phrase}”`)
+            .join(", "),
+        }),
       );
       resetSilenceTimer(epoch);
     };
@@ -548,7 +572,7 @@ export function VoiceActions({
       for (const match of matchTriggers(transcript, triggersRef.current)) {
         if (handledTriggers.current.has(match.id)) continue;
         handledTriggers.current.add(match.id);
-        runAction(match, transcript);
+        runAction(match, match.argument);
         if (!armedRef.current) break;
       }
     };

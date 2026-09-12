@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React, { createRef } from "react";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TopNav } from "./TopNav";
 import { LanguageProvider } from "../i18n/LanguageProvider";
 import { MENU_SECTIONS } from "../content/story";
+import { appDownloads } from "../content/downloads";
+import { dictionaryFor } from "../i18n/dictionaries";
+import { french } from "../i18n/fr";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/en" }));
 
@@ -24,6 +27,18 @@ const landing = () =>
       onReplayIntro={() => {}}
       replayButton={createRef<HTMLButtonElement>()}
     />,
+  );
+
+/** The same bar, read by someone whose page is in French. */
+const landingInFrench = () =>
+  render(
+    <LanguageProvider language="fr" dictionary={dictionaryFor("fr")}>
+      <TopNav
+        page="landing"
+        onReplayIntro={() => {}}
+        replayButton={createRef<HTMLButtonElement>()}
+      />
+    </LanguageProvider>,
   );
 
 const navigation = () => screen.getByRole("navigation", { name: "Primary" });
@@ -78,5 +93,50 @@ describe("the fixed top menu", () => {
     expect(
       screen.getByRole("link", { name: "Back to the story" }),
     ).toHaveAttribute("href", "/en");
+  });
+
+  /**
+   * Two ways in, and they are not the same way: "Open the app" opens the web
+   * application, "Get the app" descends to the builds you install. A reader
+   * who wants the APK must not have to guess which one carries it, so the
+   * downloads control is a plain in-page anchor to the applications section
+   * rather than something that only reveals itself once pressed.
+   */
+  it("carries a 'Get the app' that descends to the downloads", () => {
+    landing();
+    const get = screen.getByRole("link", { name: "Get the app" });
+    expect(get).toHaveAttribute("href", "#applications");
+    expect(get.querySelector(".icon-download")).toBeInTheDocument();
+    // Distinct from the way into the web application, not a second name for it.
+    expect(screen.getByRole("link", { name: "Open the app" })).not.toBe(get);
+  });
+
+  it("offers the builds themselves once the control is reached", () => {
+    landing();
+    const get = screen.getByRole("link", { name: "Get the app" });
+    expect(screen.queryByRole("link", { name: /Android APK/ })).toBeNull();
+    act(() => {
+      fireEvent.focus(get);
+    });
+    for (const build of appDownloads)
+      expect(
+        screen.getByRole("link", { name: new RegExp(build.label) }),
+      ).toHaveAttribute("href", build.url);
+  });
+
+  /** From the application the section is a page away, not a scroll away. */
+  it("keeps the downloads reachable from the application page", () => {
+    mount(<TopNav page="app" mode="voice" onModeChange={() => {}} />);
+    expect(screen.getByRole("link", { name: "Get the app" })).toHaveAttribute(
+      "href",
+      "/en#applications",
+    );
+  });
+
+  it("names the downloads control in French", () => {
+    landingInFrench();
+    expect(
+      screen.getByRole("link", { name: french["Get the app"] }),
+    ).toHaveAttribute("href", "#applications");
   });
 });

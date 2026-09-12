@@ -4,13 +4,27 @@ import { Fragment, type ReactNode } from "react";
 import styles from "./Applications.module.css";
 import { BrandIcon, type BrandIconName } from "./BrandIcon";
 import { useLanguage } from "../i18n/LanguageProvider";
+import {
+  appDownloads,
+  checksumsUrl,
+  releaseNotesUrl,
+  releaseTag,
+  repositoryUrl,
+} from "../content/downloads";
 
-const repository =
-  "https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video";
-/** The published evaluation builds every link in this section points at. */
-export const PREVIEW_VERSION = "v0.1.0-demo.2";
-const release = `${repository}/releases/tag/${PREVIEW_VERSION}`;
-const download = `${repository}/releases/download/${PREVIEW_VERSION}`;
+/**
+ * The release is named once, in `content/downloads`, because the top menu
+ * hands over the same files: a version written in two places is a version
+ * that will one day disagree with itself.
+ */
+export const PREVIEW_VERSION = releaseTag;
+
+/** The published file for a platform, so no filename is spelled twice. */
+const buildUrl = (id: (typeof appDownloads)[number]["id"]): string => {
+  const build = appDownloads.find((candidate) => candidate.id === id);
+  if (!build) throw new Error(`No published build for ${id}`);
+  return build.url;
+};
 
 /**
  * English is the source language, so every string below is also its own
@@ -47,7 +61,7 @@ const CARDS: readonly Card[] = [
     title: "Take Ursly with you.",
     body: "Download the signed APK for Android 7.0 or later. Installation requires allowing apps from your browser.",
     action: "Download Android APK",
-    href: `${download}/ursly-${PREVIEW_VERSION}-android.apk`,
+    href: buildUrl("android"),
     note: "Preview {version} · APK",
   },
   {
@@ -58,7 +72,7 @@ const CARDS: readonly Card[] = [
     title: "Explore the iOS experience.",
     body: "For the iOS Simulator in Xcode on an Apple silicon Mac. This archive cannot be installed on an iPhone.",
     action: "Download iOS Simulator build",
-    href: `${download}/ursly-${PREVIEW_VERSION}-ios-simulator-arm64.tar.gz`,
+    href: buildUrl("ios"),
     note: "Preview {version} · ARM64 archive",
   },
   {
@@ -69,7 +83,7 @@ const CARDS: readonly Card[] = [
     title: "See how it’s made.",
     body: "Explore the source, architecture, development setup, and tests. Contributions and thoughtful feedback are welcome.",
     action: "View on GitHub",
-    href: repository,
+    href: repositoryUrl,
     note: "Next.js · Expo · TypeScript",
   },
 ];
@@ -129,7 +143,7 @@ export function Applications() {
           <h2 id="applications-heading">{t(HEADING.title)}</h2>
           <p>{t(HEADING.lede)}</p>
         </div>
-        <a className={styles.releaseLink} href={release}>
+        <a className={styles.releaseLink} href={releaseNotesUrl}>
           <BrandIcon name="github" />
           {t(HEADING.release)}
         </a>
@@ -156,8 +170,8 @@ export function Applications() {
       </div>
       <p className={styles.disclosure}>
         {withLinks(t(DISCLOSURE), {
-          limitations: <a href={release}>{t(LIMITATIONS)}</a>,
-          checksums: <a href={`${download}/SHA256SUMS.txt`}>{t(CHECKSUMS)}</a>,
+          limitations: <a href={releaseNotesUrl}>{t(LIMITATIONS)}</a>,
+          checksums: <a href={checksumsUrl}>{t(CHECKSUMS)}</a>,
         })}
       </p>
     </section>

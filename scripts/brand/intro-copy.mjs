@@ -20,6 +20,16 @@ export const introCopy = {
     rail: "SOURCE  →  QUESTION  →  UNDERSTANDING",
     beta: "BETA",
     modes: { voice: "Voice", motion: "Motion", keyboard: "Keyboard" },
+    // The three letter rows of the keyboard the fifth scene draws. The
+    // keyboard a reader recognises is the one their own hands know, so English
+    // gets QWERTY and French gets AZERTY. These are never spoken and never
+    // appear on the page, so nothing checks them against the dictionary: they
+    // are the shape of an object, not a sentence.
+    keys: [
+      ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+      ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+      ["Z", "X", "C", "V", "B", "N", "M"],
+    ],
     site: "ursly.io",
     loop: {
       centre: ["The bridge to", "tomorrow’s internet."],
@@ -74,6 +84,11 @@ export const introCopy = {
     rail: "SOURCE  →  QUESTION  →  COMPRÉHENSION",
     beta: "BÊTA",
     modes: { voice: "Voix", motion: "Mouvement", keyboard: "Clavier" },
+    keys: [
+      ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],
+      ["Q", "S", "D", "F", "G", "H", "J", "K", "L", "M"],
+      ["W", "X", "C", "V", "B", "N"],
+    ],
     site: "ursly.io",
     loop: {
       centre: ["Le pont vers", "l’Internet de demain."],

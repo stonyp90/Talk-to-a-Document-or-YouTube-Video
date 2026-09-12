@@ -12,6 +12,7 @@ import { LanguageProvider } from "../i18n/LanguageProvider";
 import { dictionaryFor } from "../i18n/dictionaries";
 import { IDENTICAL_IN_BOTH, french } from "../i18n/fr";
 import type { Language } from "../i18n/languages";
+import { appDownloads, releaseTag } from "../content/downloads";
 
 const inLanguage = (language: Language) => (
   <LanguageProvider language={language} dictionary={dictionaryFor(language)}>
@@ -122,5 +123,16 @@ describe("Applications section", () => {
       expect(shown).toContain(card.action);
       expect(shown).toContain(card.note.replace("{version}", PREVIEW_VERSION));
     }
+  });
+
+  /**
+   * The menu in the bar and the cards here hand over the same files. A version
+   * written twice is a version that will one day disagree with itself, so the
+   * section reads the published release rather than restating it.
+   */
+  it("takes its builds from the one place the release is named", () => {
+    expect(PREVIEW_VERSION).toBe(releaseTag);
+    for (const build of appDownloads)
+      expect(APPLICATION_CARDS.map((card) => card.href)).toContain(build.url);
   });
 });

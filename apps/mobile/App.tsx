@@ -27,9 +27,13 @@ import {
   ApiClient,
   apiOrigin,
   IngestedSource,
+  isSignInRequired,
+  isUsageLimit,
   Turn,
   updateTranscript,
 } from "./src/client";
+import { deviceSessionStore } from "./src/session";
+import { MobileSignIn } from "./src/SignIn";
 import { NativeVoice, VoiceStatus } from "./src/voice";
 import {
   Bell,
@@ -49,6 +53,10 @@ import { MobileBottomNav, type MobileDestination } from "./src/BottomNav";
 
 const api = new ApiClient(
   apiOrigin(Platform.OS, process.env.EXPO_PUBLIC_API_URL),
+  fetch,
+  // The session outlives the process: the token the device kept is read back at
+  // launch, so a signed-in reader is not asked again every time they return.
+  deviceSessionStore(),
 );
 function messageOf(error: string, t: (key: TranslationKey) => string) {
   const message = error;
@@ -108,6 +116,9 @@ export default function App() {
   const [status, setStatus] = useState<VoiceStatus>("ended");
   const [muted, setMuted] = useState(false);
   const [mode, setMode] = useState<"mock" | "live" | "unknown">("unknown");
+  // Who is reading. Everything that spends provider credit waits for this.
+  const [account, setAccount] = useState<{ email: string } | null>(null);
+  const [signInOpen, setSignInOpen] = useState(false);
   const voice = useRef<NativeVoice | null>(null);
   const operation = useRef(0);
   const sequence = useRef(0);
@@ -138,6 +149,14 @@ export default function App() {
           setMode(health.mode);
       })
       .catch(() => {});
+    // The session the device kept, checked once at launch. A stale token is
+    // dropped by the client itself, so this simply comes back empty.
+    void api
+      .readSession()
+      .then((session) => {
+        if (mounted) setAccount(session);
+      })
+      .catch(() => {});
     const listener = AppState.addEventListener("change", (state) => {
       if (state !== "active") {
         voice.current?.stop();
@@ -157,6 +176,38 @@ export default function App() {
     voice.current = null;
     setMuted(false);
   }
+  /**
+   * The gate, in front of everything that spends provider credit: ingestion,
+   * extraction, a typed question and a spoken session. Reading, the sample text
+   * and the tour stay open, because none of them costs anything.
+   */
+  function needsSignIn(): boolean {
+    if (account) return false;
+    setError("");
+    setSignInOpen(true);
+    return true;
+  }
+  /** A refusal the reader can act on: sign in again, or come back later. */
+  function fail(caught: unknown) {
+    if (isSignInRequired(caught)) {
+      setAccount(null);
+      setError(t("Your session ended. Sign in again to continue."));
+      setSignInOpen(true);
+      return;
+    }
+    if (isUsageLimit(caught)) {
+      setError(t("You have reached your limit for now. It reopens shortly."));
+      return;
+    }
+    setError(caught instanceof Error ? caught.message : "unknown");
+  }
+  async function signOut() {
+    await api.signOut();
+    setAccount(null);
+    stop();
+    setSheet(null);
+    showToast(t("You are signed out."));
+  }
   function installSource(result: IngestedSource) {
     stop();
     setSource(result);
@@ -171,6 +222,7 @@ export default function App() {
   }
   async function ingest(kind: "pdf" | "youtube") {
     if (busy) return;
+    if (needsSignIn()) return;
     const current = ++operation.current;
     setBusy(kind);
     setError("");
@@ -189,14 +241,14 @@ export default function App() {
       } else result = await api.youtube(url);
       if (current === operation.current) installSource(result);
     } catch (caught) {
-      if (current === operation.current)
-        setError(caught instanceof Error ? caught.message : "unknown");
+      if (current === operation.current) fail(caught);
     } finally {
       if (current === operation.current) setBusy(null);
     }
   }
   async function ask() {
     if (!source || !question.trim() || busy) return;
+    if (needsSignIn()) return;
     const current = operation.current;
     const submitted = question.trim();
     setBusy("chat");
@@ -214,14 +266,14 @@ export default function App() {
       setQuestion("");
       showToast(t("Answer ready"));
     } catch (caught) {
-      if (current === operation.current)
-        setError(caught instanceof Error ? caught.message : "unknown");
+      if (current === operation.current) fail(caught);
     } finally {
       if (current === operation.current) setBusy(null);
     }
   }
   function startVoice() {
     if (!source || busy) return;
+    if (needsSignIn()) return;
     stop();
     setError("");
     Keyboard.dismiss();
@@ -233,7 +285,18 @@ export default function App() {
         if (event.type === "mock.ready") setMode("mock");
         else setTurns((previous) => updateTranscript(previous, event));
       },
-      (caught) => setError(caught),
+      (caught) => {
+        // A spoken session reports failures as text, so the object is gone by
+        // the time it arrives here. A refused session clears the stored token,
+        // and that is the tell: the reader is signed out, not disconnected.
+        if (!api.signedIn) {
+          setAccount(null);
+          setError(t("Your session ended. Sign in again to continue."));
+          setSignInOpen(true);
+          return;
+        }
+        setError(caught);
+      },
     );
     void voice.current.start();
   }
@@ -999,6 +1062,38 @@ export default function App() {
                 </View>
                 {sheet === "about" && (
                   <View style={{ gap: 10 }}>
+                    <Text style={s.aboutTitle}>{t("Your account")}</Text>
+                    {account ? (
+                      <>
+                        <Text style={s.caption}>
+                          {t("Signed in as")} {account.email}
+                        </Text>
+                        <Touch
+                          label={t("Sign out")}
+                          motion={motion}
+                          onPress={() => void signOut()}
+                          style={[s.tab, { backgroundColor: c.white }]}
+                        >
+                          <Text style={s.tabLabel}>{t("Sign out")}</Text>
+                        </Touch>
+                      </>
+                    ) : (
+                      <Touch
+                        label={t("Sign in to continue")}
+                        motion={motion}
+                        onPress={() => {
+                          setSheet(null);
+                          setSignInOpen(true);
+                        }}
+                        style={[s.tab, { backgroundColor: c.lavender }]}
+                      >
+                        <Text style={s.tabLabel}>{t("Sign in")}</Text>
+                      </Touch>
+                    )}
+                  </View>
+                )}
+                {sheet === "about" && (
+                  <View style={{ gap: 10 }}>
                     <Text style={s.aboutTitle}>{t("App language")}</Text>
                     <View style={{ flexDirection: "row", gap: 8 }}>
                       {(["en", "fr"] as const).map((value) => (
@@ -1103,6 +1198,19 @@ export default function App() {
             </SafeAreaView>
           </KeyboardAvoidingView>
         </Modal>
+        {signInOpen && (
+          <MobileSignIn
+            motion={motion}
+            t={t}
+            onRequestCode={(email) => api.requestSignInCode(email)}
+            onConfirm={async (email, code) => {
+              setAccount(await api.confirmSignInCode(email, code));
+              setSignInOpen(false);
+              setError("");
+            }}
+            onClose={() => setSignInOpen(false)}
+          />
+        )}
       </SafeAreaView>
     </SafeAreaProvider>
   );

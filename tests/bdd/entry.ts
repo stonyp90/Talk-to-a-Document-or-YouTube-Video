@@ -5,7 +5,6 @@ import { fixturePdf } from "./fixtures";
 
 type Helpers = {
   page: (w: World) => Promise<Page>;
-  open: (this: World) => Promise<void>;
   baseURL: string;
 };
 
@@ -24,10 +23,45 @@ function nav(p: Page) {
 function modes(p: Page) {
   return nav(p).getByRole("radiogroup", { name: "Control mode" });
 }
+/** The one control that carries a visitor from the story into the tool. */
+function openTheApp(p: Page) {
+  return nav(p).getByRole("link", { name: "Open the app" });
+}
+
+/** The story, in the order it is meant to be read: the build loop leads. */
+const STORY_IDS = [
+  "how-we-build",
+  "platform",
+  "how-it-works",
+  "applications",
+] as const;
+
+/** The sections as the page actually stacks them, top to bottom. */
+function storyOrder(p: Page) {
+  return p.evaluate(
+    (ids) =>
+      ids
+        .map(
+          (id) =>
+            [
+              id,
+              document.getElementById(id)?.getBoundingClientRect().top ?? 0,
+            ] as const,
+        )
+        .sort((a, b) => a[1] - b[1])
+        .map(([id]) => id),
+    [...STORY_IDS],
+  );
+}
+
+/** Anything that leads into the application, wherever it sits on the page. */
+function waysIn(p: Page, selector: string) {
+  return p.locator(`${selector} a[href$="/app"]`);
+}
 
 /** Entry experience: introduction, fixed top menu, control modes, platform. */
 export function registerEntryChecks(step: Step, h: Helpers) {
-  step("I open the application for the first time", async function () {
+  step("I open the landing page for the first time", async function () {
     // Must be set before the page exists: a returning visitor is the default.
     this.firstVisit = true;
     const p = await h.page(this);
@@ -62,15 +96,29 @@ export function registerEntryChecks(step: Step, h: Helpers) {
       v.currentTime = Math.max(0, v.duration - 0.2);
     });
   });
-  step("the workspace is ready and no introduction remains", async function () {
+  step(
+    "the landing page is ready and no introduction remains",
+    async function () {
+      const p = await h.page(this);
+      await expect(intro(p)).toHaveCount(0);
+      // No workspace here: the story is the front door, the tool is a tap away.
+      await expect(p.locator("#workspace")).toHaveCount(0);
+      await expect(p.getByRole("heading", { level: 1 })).toBeVisible();
+      // The introduction hands focus to the way in, so the keyboard is ready.
+      const cta = p.locator("#main .hero-actions a.primary");
+      await expect(cta).toBeVisible();
+      await expect(cta).toBeFocused();
+      assert.equal(
+        await p.evaluate((key) => localStorage.getItem(key), INTRO_STORAGE_KEY),
+        "seen",
+      );
+    },
+  );
+  step("the workspace is ready for a source", async function () {
     const p = await h.page(this);
     await expect(intro(p)).toHaveCount(0);
     await expect(p.locator("#workspace")).toBeVisible();
     await expect(p.getByLabel("PDF file")).toBeVisible();
-    assert.equal(
-      await p.evaluate((key) => localStorage.getItem(key), INTRO_STORAGE_KEY),
-      "seen",
-    );
   });
   step("I have already seen the introduction", function () {
     // Every page starts as a returning visitor unless a step asks otherwise.
@@ -92,9 +140,20 @@ export function registerEntryChecks(step: Step, h: Helpers) {
   step("the page language is French", async function () {
     const p = await h.page(this);
     await expect(p.locator("html")).toHaveAttribute("lang", "fr");
+    // Landmarks and the primary action are named in the page language.
+    await expect(nav(p)).toBeVisible();
+    await expect(
+      nav(p).getByRole("link", { name: "Ouvrir l’application" }),
+    ).toBeVisible();
+  });
+  step("the control modes are named in French", async function () {
+    const p = await h.page(this);
     await expect(
       nav(p).getByRole("radiogroup", { name: "Mode de contrôle" }),
     ).toBeVisible();
+    await expect(
+      nav(p).getByRole("radio", { name: "Commande vocale" }),
+    ).toHaveAttribute("aria-checked", "true");
   });
   step("the introduction video is the French version", async function () {
     const p = await h.page(this);
@@ -156,9 +215,97 @@ export function registerEntryChecks(step: Step, h: Helpers) {
       ).toHaveAttribute("aria-checked", "true");
     },
   );
+  step("how we build is the first section of the story", async function () {
+    const p = await h.page(this);
+    const [first] = await storyOrder(p);
+    assert.equal(first, "how-we-build");
+    // Nothing of the tool is above it: the story explains before it asks.
+    await expect(p.locator("#workspace")).toHaveCount(0);
+    const build = await p
+      .locator("#how-we-build")
+      .evaluate((el) => el.getBoundingClientRect().top);
+    const platform = await p
+      .locator("#platform")
+      .evaluate((el) => el.getBoundingClientRect().top);
+    assert.ok(build < platform, "the build loop is read before the platform");
+  });
+  step(
+    "every part of the story offers a way into the application",
+    async function () {
+      const p = await h.page(this);
+      for (const selector of [
+        ".nav",
+        ".landing-hero",
+        "#how-we-build",
+        "#platform",
+        "#how-it-works",
+        ".invitation",
+        ".footer",
+      ])
+        assert.ok(
+          (await waysIn(p, selector).count()) > 0,
+          `a way into the application in ${selector}`,
+        );
+      // Every one of them points at the application in the page language.
+      const lang = await p.evaluate(() => document.documentElement.lang);
+      for (const href of await p
+        .locator('a[href$="/app"]')
+        .evaluateAll((links) => links.map((link) => link.getAttribute("href"))))
+        assert.equal(href, `/${lang}/app`);
+    },
+  );
   step("I choose Platform in the top menu", async function () {
     const p = await h.page(this);
     await nav(p).getByRole("link", { name: "Platform" }).click();
+  });
+  step("the application is one tap from the landing page", async function () {
+    const p = await h.page(this);
+    // Exactly one: the promise is a hop, not a hunt.
+    const cta = openTheApp(p);
+    await expect(cta).toBeVisible();
+    await cta.click();
+    assert.match(new URL(p.url()).pathname, /^\/(en|fr)\/app$/);
+    await expect(p.locator("#workspace")).toBeVisible();
+    await expect(p.getByLabel("PDF file")).toBeVisible();
+  });
+  step(
+    "the landing page tells the story without the workspace",
+    async function () {
+      const p = await h.page(this);
+      await expect(p.locator("#workspace")).toHaveCount(0);
+      await expect(p.getByLabel("PDF file")).toHaveCount(0);
+      await expect(p.getByLabel("Ask a question", { exact: true })).toHaveCount(
+        0,
+      );
+      // The story the founder asked for, in the order he named it.
+      for (const id of STORY_IDS)
+        await expect(p.locator(`#${id}`)).toHaveCount(1);
+      assert.deepEqual(await storyOrder(p), [...STORY_IDS]);
+    },
+  );
+  step("I return to the story from the application", async function () {
+    const p = await h.page(this);
+    const back = nav(p).getByRole("link", { name: "Back to the story" });
+    await expect(back).toBeVisible();
+    await back.click();
+    assert.match(new URL(p.url()).pathname, /^\/(en|fr)$/);
+    await expect(p.locator("#platform")).toHaveCount(1);
+    await expect(p.locator("#workspace")).toHaveCount(0);
+  });
+  step("switching language keeps me in the application", async function () {
+    const p = await h.page(this);
+    const before = new URL(p.url()).pathname;
+    const current = await p.locator("html").getAttribute("lang");
+    const other = current === "fr" ? "English" : "Français";
+    await nav(p).getByRole("link", { name: other }).click();
+    await expect(p.locator("html")).toHaveAttribute(
+      "lang",
+      current === "fr" ? "en" : "fr",
+    );
+    const after = new URL(p.url()).pathname;
+    assert.match(after, /^\/(en|fr)\/app$/);
+    assert.notEqual(after, before);
+    await expect(p.locator("#workspace")).toBeVisible();
   });
   step(
     "the platform section explains voice, movement and keyboard control",

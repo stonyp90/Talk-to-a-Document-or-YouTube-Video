@@ -5,9 +5,10 @@ export const INTRO_STORAGE_KEY = "ursly-intro-v1";
 
 /**
  * Production checks that are not about the introduction run as a returning
- * visitor: the intro is a modal dialog, so it must be marked as seen before
- * navigation for the workspace to be reachable. The check that exercises the
- * real first visit imports the plain `test` from @playwright/test instead.
+ * visitor: the intro is a modal dialog on the landing page, so it must be
+ * marked as seen before navigation for the story to be usable. The check that
+ * exercises the real first visit — and the crossing from the landing page
+ * into the application — imports the plain `test` from @playwright/test.
  */
 export const test = base.extend({
   page: async ({ page }, provide) => {

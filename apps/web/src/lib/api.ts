@@ -74,6 +74,9 @@ export async function requestJson<T>(
       );
     try {
       const response = await fetch(input, request);
+      // An endpoint that deliberately answers nothing, such as a request for a
+      // sign-in code, still succeeded. Parsing its empty body would not.
+      if (response.status === 204) return undefined as T;
       if (response.ok) return (await response.json()) as T;
 
       const payload = (await response.json().catch(() => ({}))) as {

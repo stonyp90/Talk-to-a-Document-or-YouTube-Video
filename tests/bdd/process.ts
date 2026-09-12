@@ -40,9 +40,20 @@ export function registerProcessChecks(step: Step, h: Helpers) {
     await expect(
       section(p).getByRole("heading", { name: copy.mission.heading }),
     ).toBeVisible();
+    // The mission used to point at a workspace on the same page. It now
+    // crosses to the application, so assert the shape of the route rather
+    // than a fragment that no longer exists here.
     await expect(
       section(p).getByRole("link", { name: copy.mission.primary }),
-    ).toHaveAttribute("href", "#workspace");
+    ).toHaveAttribute("href", /^\/(en|fr)\/app$/);
+  });
+  step("the mission call to action opens the app", async function () {
+    const p = await h.page(this);
+    // Stronger than the old href string: the link is followed and the
+    // application is proven to be on the other side of it.
+    await section(p).getByRole("link", { name: copy.mission.primary }).click();
+    expect(new URL(p.url()).pathname).toMatch(/^\/(en|fr)\/app$/);
+    await expect(p.locator("#workspace")).toBeVisible();
   });
   step("the build loop animation can be paused", async function () {
     const p = await h.page(this);

@@ -3,8 +3,14 @@ FROM public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 AS lambda-adapter
 # One image family is used locally and as the Lambda container base.
 FROM node:22-bookworm-slim AS dependencies
 ARG OBJECT_STORE_PUBLIC_ENDPOINT
+# What the paid plan costs and where it is bought. Public values, inlined into
+# the browser bundle at build time; empty means billing is not open yet.
+ARG NEXT_PUBLIC_PAID_PLAN_PRICE
+ARG NEXT_PUBLIC_PAID_PLAN_URL
 ENV NODE_ENV=production
 ENV OBJECT_STORE_PUBLIC_ENDPOINT=${OBJECT_STORE_PUBLIC_ENDPOINT}
+ENV NEXT_PUBLIC_PAID_PLAN_PRICE=${NEXT_PUBLIC_PAID_PLAN_PRICE}
+ENV NEXT_PUBLIC_PAID_PLAN_URL=${NEXT_PUBLIC_PAID_PLAN_URL}
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/

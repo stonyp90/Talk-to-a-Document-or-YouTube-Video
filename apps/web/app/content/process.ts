@@ -15,6 +15,7 @@ export const PROCESS_STEP_IDS = [
   "secure",
   "deliver",
   "production",
+  "sustain",
   "listen",
   "train",
 ] as const;
@@ -123,6 +124,12 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
         summary: "Go live, then test it in production too.",
       },
       {
+        id: "sustain",
+        title: "Sustain",
+        summary:
+          "Nobody builds software for free, so every cycle has to pay for itself: free if your conversations help train the models, paid if you would rather they did not.",
+      },
+      {
         id: "listen",
         title: "Listen",
         summary:
@@ -132,7 +139,7 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
         id: "train",
         title: "Train",
         summary:
-          "What the loop learns trains the models, and every model provider gets its turn.",
+          "What the free plan agreed to share trains the models, paid work never does, and every model provider gets its turn.",
       },
     ],
     mission: {
@@ -213,6 +220,12 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
         summary: "Mettre en ligne, puis tester en production aussi.",
       },
       {
+        id: "sustain",
+        title: "Financement",
+        summary:
+          "Personne ne bâtit un logiciel gratuitement : chaque cycle doit donc se payer lui-même. C’est gratuit si vos conversations aident à entraîner les modèles, payant si vous préférez qu’elles n’y servent pas.",
+      },
+      {
         id: "listen",
         title: "Écoute",
         summary:
@@ -222,7 +235,7 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
         id: "train",
         title: "Entraînement",
         summary:
-          "Ce que la boucle apprend entraîne les modèles, et chaque fournisseur de modèles a son tour.",
+          "Ce que le forfait gratuit accepte de partager entraîne les modèles, le payant n’y sert jamais, et chaque fournisseur de modèles a son tour.",
       },
     ],
     mission: {

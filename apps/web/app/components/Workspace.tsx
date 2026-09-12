@@ -11,15 +11,14 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { Applications } from "./Applications";
-import { HowItWorks } from "./HowItWorks";
 import { Icon } from "./Icon";
-import { IntroGate, hasSeenIntro } from "./IntroGate";
 import type { EntryMode } from "./ModeSwitcher";
-import { PlatformSection } from "./PlatformSection";
-import { Process } from "./Process";
+import { SignInPanel } from "./SignInPanel";
+import { SiteFooter } from "./SiteFooter";
 import { TopNav } from "./TopNav";
+import { Markdown } from "./Markdown";
 import { VoiceActions, type VoiceActionId } from "./VoiceActions";
+import { defaultPhrases } from "@/packages/core/src/domain/voiceCommands";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   conversationReducer,
@@ -39,6 +38,8 @@ import {
   type RealtimeCredential,
   type SourceEnvelope,
 } from "@/apps/web/src/lib/api";
+import { streamAnswer } from "@/apps/web/src/lib/streamAnswer";
+import { readSession, signOut } from "@/apps/web/src/lib/account";
 
 type SourceTab = "pdf" | "youtube";
 
@@ -47,6 +48,18 @@ const SESSION_DEADLINE_MS = 25000;
 const ANSWER_DEADLINE_MS = 25000;
 
 const LIVE_STATUSES = ["preparing", "connecting", "connected", "reconnecting"];
+const SEARCH_DEADLINE_MS = 15000;
+/** A found video the reader can open, or swap for one of the alternatives. */
+type VideoResult = {
+  videoId: string;
+  title: string;
+  channel?: string;
+  url: string;
+};
+/** A streamed answer is allowed to take longer, because it is already arriving. */
+const STREAM_DEADLINE_MS = 120000;
+/** Below this distance from the end, the log keeps following the latest words. */
+const FOLLOW_THRESHOLD_PX = 64;
 
 async function withDeadline<T>(
   controller: AbortController,
@@ -80,6 +93,10 @@ function readable(caught: unknown, fallback: string): string {
       return "YouTube is not sharing captions for this video right now. Try another captioned video, or use a PDF instead.";
     if (caught.code === "RATE_LIMITED")
       return "That is a lot of requests at once. Wait a moment and try again.";
+    if (caught.code === "UNAUTHENTICATED")
+      return "Your session has ended. Sign in again to pick up where you left off.";
+    if (caught.code === "USAGE_LIMIT")
+      return "You have used this account's allowance for now. It reopens shortly.";
     return caught.message;
   }
   if (caught instanceof Error) return caught.message;
@@ -125,8 +142,17 @@ function readSavedMode(): EntryMode {
   }
 }
 
-export default function HomePage() {
+/**
+ * The application itself, at `/<lang>/app`: add a source, then ask about it.
+ * It holds every piece of conversation state and nothing about the story —
+ * the pitch, the introduction and the platform sections live on the landing
+ * page, one tap away through the menu.
+ */
+export default function Workspace() {
   const { t, language } = useLanguage();
+  /** The wording this language listens for, so a notice never quotes another. */
+  const spokenPhrase = (action: VoiceActionId) =>
+    defaultPhrases(language)[action][0] ?? "";
   // The chosen mode is remembered per browser. The server snapshot is voice,
   // so hydration has nothing to reconcile; a choice made here wins over it.
   const savedMode = useSyncExternalStore(
@@ -151,6 +177,18 @@ export default function HomePage() {
   const [sourcePickerOpen, setSourcePickerOpen] = useState(true);
   const [dragging, setDragging] = useState(false);
   const [voiceActionNotice, setVoiceActionNotice] = useState("");
+  const [streamingId, setStreamingId] = useState<string | null>(null);
+  const [atLatest, setAtLatest] = useState(true);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  /** The last question asked, so "Try again" can ask it once more. */
+  const [lastAsked, setLastAsked] = useState("");
+  // Undefined until the first answer comes back, so the workspace is not
+  // flashed at a reader who is about to be asked to sign in, and the sign-in is
+  // not flashed at one who is already signed in.
+  const [account, setAccount] = useState<string | null | undefined>(undefined);
+  const [videoQuery, setVideoQuery] = useState("");
+  const [videoChoices, setVideoChoices] = useState<VideoResult[]>([]);
+  const [searchingVideos, setSearchingVideos] = useState(false);
   const micSupported = useSyncExternalStore(
     NO_CHANGE,
     readMicrophoneSupport,
@@ -161,16 +199,6 @@ export default function HomePage() {
     () => navigator.onLine,
     () => true,
   );
-  // The server never shows the intro; a first visit opens it after hydration.
-  const firstVisit = useSyncExternalStore(
-    subscribeToStorage,
-    () => !hasSeenIntro(),
-    () => false,
-  );
-  const [introOverride, setIntroOverride] = useState<boolean | null>(null);
-  const introOpen = introOverride ?? firstVisit;
-  const introOrigin = useRef<"first" | "replay">("first");
-  const replayButton = useRef<HTMLButtonElement>(null);
   const [state, dispatch] = useReducer(
     conversationReducer,
     initialConversationState,
@@ -191,7 +219,7 @@ export default function HomePage() {
     speaking: t("Answering — speak to interrupt"),
   };
 
-  const questionInput = useRef<HTMLInputElement>(null);
+  const questionInput = useRef<HTMLTextAreaElement>(null);
   const chatLog = useRef<HTMLDivElement>(null);
   const followMessages = useRef(true);
   const realtime = useRef<RealtimeClient | null>(null);
@@ -200,6 +228,13 @@ export default function HomePage() {
   const voiceVersion = useRef(0);
   const sessionRequest = useRef<AbortController | null>(null);
   const textRequests = useRef(new Set<AbortController>());
+  const answerRequest = useRef<AbortController | null>(null);
+  // What the realtime session has said so far, so a finished turn can be handed
+  // to the server. The reducer holds the same text for display; this copy exists
+  // because the event handler has to act the moment a turn completes.
+  const spokenTurns = useRef(
+    new Map<string, { role: "user" | "assistant"; text: string }>(),
+  );
   const uploadRequest = useRef<AbortController | null>(null);
   const voiceActive = useRef(false);
   const sourceIdRef = useRef<string | undefined>(undefined);
@@ -210,6 +245,46 @@ export default function HomePage() {
     if (followMessages.current && chatLog.current)
       chatLog.current.scrollTop = chatLog.current.scrollHeight;
   }, [state.messages]);
+
+  // A reader can choose a PDF before this page's script has run, and the
+  // change event is lost because React was not listening yet: the picker
+  // holds a file the page does not know about, and the way forward stays
+  // disabled. Adopt whatever is already there the moment we can see it.
+  useEffect(() => {
+    const chosen = fileInput.current?.files?.[0];
+    if (chosen) setFile((current) => current ?? chosen);
+  }, []);
+
+  useEffect(() => {
+    let current = true;
+    void readSession()
+      .then((session) => {
+        if (current) setAccount(session?.email ?? null);
+      })
+      .catch(() => {
+        // The gate answers for itself on the next request; a reader is not
+        // locked out of the page because one status call did not land.
+        if (current) setAccount(null);
+      });
+    return () => {
+      current = false;
+    };
+  }, []);
+
+  // The box is as tall as what has been written, up to the height the stylesheet
+  // allows, so a long question is visible instead of scrolling inside one line.
+  // An empty box is left to the stylesheet: measuring one before the first paint
+  // reads a height it will never have again, and the first keystroke shrinks it.
+  useEffect(() => {
+    const box = questionInput.current;
+    if (!box) return;
+    if (!question) {
+      box.style.height = "";
+      return;
+    }
+    box.style.height = "auto";
+    box.style.height = `${box.scrollHeight}px`;
+  }, [question]);
 
   useEffect(() => {
     mounted.current = true;
@@ -234,9 +309,13 @@ export default function HomePage() {
     if (source) questionInput.current?.focus();
   }, [source]);
 
-  // The tab title carries the live voice state, visible from any other tab.
+  // The tab title carries the live voice state, visible from any other tab. The
+  // page's own title is read once and kept: deriving it from whatever the title
+  // currently says would eat a word of the real title on every pass.
+  const pageTitle = useRef("");
   useEffect(() => {
-    const base = document.title.replace(/^[^—]*— /, "");
+    if (!pageTitle.current) pageTitle.current = document.title;
+    const base = pageTitle.current;
     if (state.status !== "connected") {
       document.title = base;
       return;
@@ -261,6 +340,7 @@ export default function HomePage() {
 
   const invalidateVoice = useCallback(() => {
     voiceVersion.current++;
+    spokenTurns.current.clear();
     sessionRequest.current?.abort();
     sessionRequest.current = null;
     voiceActive.current = false;
@@ -274,29 +354,6 @@ export default function HomePage() {
     [file, tab, url],
   );
   const sessionLive = LIVE_STATUSES.includes(state.status);
-
-  function openIntro() {
-    introOrigin.current = "replay";
-    setIntroOverride(true);
-  }
-
-  function closeIntro() {
-    setIntroOverride(false);
-  }
-
-  // Land where the work is: the workspace on a first visit, the menu button
-  // that opened the replay otherwise. Runs once the dialog has closed, after
-  // the browser has restored focus to whatever had it before.
-  function focusAfterIntro() {
-    if (introOrigin.current === "replay") {
-      replayButton.current?.focus();
-      return;
-    }
-    const first =
-      document.querySelector<HTMLElement>("#workspace .voice-mic") ??
-      fileInput.current;
-    (first ?? document.getElementById("workspace"))?.focus();
-  }
 
   /**
    * Calls an endpoint with the opaque session id, and resends the whole source
@@ -318,8 +375,18 @@ export default function HomePage() {
     return call({ source, ...extra });
   }
 
-  async function ingest(event: FormEvent) {
+  function ingest(event: FormEvent) {
     event.preventDefault();
+    void startIngest();
+  }
+
+  /**
+   * Reads a source. The caller may name the video, because a link found by
+   * voice search is never in the field the reader would have typed it into.
+   */
+  async function startIngest(chosen?: { url?: string }) {
+    const wanted = chosen?.url ?? url;
+    const kind: SourceTab = chosen?.url ? "youtube" : tab;
     const version = ++sourceVersion.current;
     const current = () => mounted.current && sourceVersion.current === version;
     invalidateVoice();
@@ -352,7 +419,7 @@ export default function HomePage() {
           });
           if (current()) setProviderMode(health.mode ?? "");
 
-          if (tab === "pdf" && file && health.directUpload) {
+          if (kind === "pdf" && file && health.directUpload) {
             try {
               const prepared = await requestJson<{
                 url: string;
@@ -402,8 +469,8 @@ export default function HomePage() {
           }
 
           const form = new FormData();
-          if (tab === "pdf" && file) form.append("file", file);
-          if (tab === "youtube") form.append("url", url);
+          if (kind === "pdf" && file) form.append("file", file);
+          if (kind === "youtube") form.append("url", wanted);
           return requestJson<SourceEnvelope>("/api/ingest", {
             method: "POST",
             body: form,
@@ -419,6 +486,7 @@ export default function HomePage() {
       setContext(envelope.context);
       dispatch({ type: "CLEAR_ERROR" });
     } catch (caught) {
+      noteSignedOut(caught);
       if (current())
         setError(
           t(
@@ -491,26 +559,43 @@ export default function HomePage() {
               message: event.error ?? "Realtime error",
             });
           }
-          if (event.type === "message-started" && event.message)
+          if (event.type === "message-started" && event.message) {
+            if (event.message.role !== "system")
+              spokenTurns.current.set(event.message.id, {
+                role: event.message.role,
+                text: event.message.text,
+              });
             dispatch({ type: "MESSAGE_STARTED", message: event.message });
-          if (event.type === "message-delta" && event.id)
+          }
+          if (event.type === "message-delta" && event.id) {
+            const turn = spokenTurns.current.get(event.id);
+            if (turn) turn.text += event.text ?? "";
             dispatch({
               type: "MESSAGE_DELTA",
               id: event.id,
               text: event.text ?? "",
             });
-          if (event.type === "message-completed" && event.id)
+          }
+          if (event.type === "message-completed" && event.id) {
+            const turn = spokenTurns.current.get(event.id);
+            if (turn) {
+              spokenTurns.current.delete(event.id);
+              const text = (event.text ?? turn.text).trim();
+              if (text) recordSpokenTurns([{ role: turn.role, text }]);
+            }
             dispatch({
               type: "MESSAGE_COMPLETED",
               id: event.id,
               text: event.text,
             });
+          }
         },
         session.mode,
         session.clientSecret,
       );
       await realtime.current.connect();
     } catch (caught) {
+      noteSignedOut(caught);
       if (!current()) return;
       invalidateVoice();
       const message = t(
@@ -537,13 +622,100 @@ export default function HomePage() {
     dispatch({ type: "MUTE_CHANGED", muted });
   }
 
-  async function sendText(event: FormEvent) {
-    event.preventDefault();
-    const trimmed = question.trim();
+  /**
+   * Keeps one thread of memory. A spoken exchange happens entirely inside the
+   * browser's realtime session, so the server would otherwise never learn what
+   * was said, and a typed follow-up would answer as if the talk never happened.
+   */
+  const recordSpokenTurns = useCallback(
+    (turns: Array<{ role: "user" | "assistant"; text: string }>) => {
+      const id = sourceIdRef.current;
+      if (!id || turns.length === 0) return;
+      void requestJson("/api/conversation/turns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceId: id, turns }),
+        retries: 1,
+      }).catch(() => {
+        /* A lost turn costs context, never the conversation in front of you. */
+      });
+    },
+    [],
+  );
+
+  /**
+   * Finds a video from what was said. Nobody is going to read an address out
+   * loud, so "YouTube, Miles Davis Kind of Blue" has to end with that video
+   * open — the top captioned result is taken, and the alternatives stay on
+   * screen because the first answer is not always the intended one.
+   */
+  async function findVideo(query: string) {
+    const controller = new AbortController();
+    setSearchingVideos(true);
+    setVideoQuery(query);
+    setVideoChoices([]);
+    setError("");
+    try {
+      const found = await withDeadline(
+        controller,
+        SEARCH_DEADLINE_MS,
+        t("The video search timed out. Try again, or paste a link."),
+        () =>
+          requestJson<{ results: VideoResult[] }>("/api/videos/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query }),
+            signal: controller.signal,
+          }),
+      );
+      if (!mounted.current) return;
+      const [best, ...rest] = found.results;
+      if (!best) {
+        setVideoChoices([]);
+        setVoiceActionNotice(
+          t("Nothing captioned found for “{query}”. Try other words.", {
+            query,
+          }),
+        );
+        return;
+      }
+      setTab("youtube");
+      setUrl(best.url);
+      setVideoChoices(rest);
+      setVoiceActionNotice(t("Opening “{title}”.", { title: best.title }));
+      await startIngest({ url: best.url });
+    } catch (caught) {
+      noteSignedOut(caught);
+      if (!mounted.current) return;
+      setError(
+        t(readable(caught, "The video search failed. Paste a link instead.")),
+      );
+    } finally {
+      if (mounted.current) setSearchingVideos(false);
+    }
+  }
+
+  /**
+   * A session can end while someone is mid-question. Putting the sign-in back
+   * on screen is the only honest response; leaving the workspace up would let
+   * them keep typing into something that will refuse every request.
+   */
+  function noteSignedOut(caught: unknown): void {
+    if (caught instanceof ApiError && caught.code === "UNAUTHENTICATED")
+      setAccount(null);
+  }
+
+  function stopAnswer() {
+    answerRequest.current?.abort();
+    answerRequest.current = null;
+  }
+
+  async function askQuestion(text: string) {
+    const trimmed = text.trim();
     if (!source || !trimmed) return;
     setError("");
     dispatch({ type: "CLEAR_ERROR" });
-    setQuestion("");
+    followMessages.current = true;
 
     // A live voice session already carries typed turns, so they stay in one thread.
     if (state.status === "connected" && realtime.current) {
@@ -567,7 +739,10 @@ export default function HomePage() {
     const version = sourceVersion.current;
     const current = () => mounted.current && sourceVersion.current === version;
     const controller = new AbortController();
+    answerRequest.current?.abort();
+    answerRequest.current = controller;
     textRequests.current.add(controller);
+    setLastAsked(trimmed);
     setPendingAnswers((count) => count + 1);
     dispatch({
       type: "MESSAGE_STARTED",
@@ -579,47 +754,122 @@ export default function HomePage() {
       },
     });
 
+    const answerId = crypto.randomUUID();
+    let opened = false;
+    const openAnswer = () => {
+      if (opened) return;
+      opened = true;
+      setStreamingId(answerId);
+      dispatch({
+        type: "MESSAGE_STARTED",
+        message: {
+          id: answerId,
+          role: "assistant",
+          text: "",
+          status: "partial",
+        },
+      });
+    };
+
     try {
       const reply = await withDeadline(
         controller,
-        ANSWER_DEADLINE_MS,
+        STREAM_DEADLINE_MS,
         t(
           "The answer timed out. Check your connection and retry your question.",
         ),
         () =>
           withSession(
-            (body) =>
-              requestJson<{ answer: string; sourceId: string }>(
-                "/api/text-chat",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(body),
-                  signal: controller.signal,
-                },
-              ),
+            async (body) => {
+              try {
+                return await streamAnswer(
+                  "/api/text-chat/stream",
+                  body,
+                  (delta) => {
+                    if (!current()) return;
+                    openAnswer();
+                    dispatch({
+                      type: "MESSAGE_DELTA",
+                      id: answerId,
+                      text: delta,
+                    });
+                  },
+                  controller.signal,
+                );
+              } catch (caught) {
+                // A runtime or proxy that cannot stream is not a failed answer.
+                if (
+                  caught instanceof ApiError &&
+                  caught.code === "STREAM_UNSUPPORTED"
+                )
+                  return requestJson<{ answer: string; sourceId: string }>(
+                    "/api/text-chat",
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(body),
+                      signal: controller.signal,
+                    },
+                  );
+                throw caught;
+              }
+            },
             { question: trimmed },
           ),
       );
       if (!current()) return;
       sourceIdRef.current = reply.sourceId ?? sourceIdRef.current;
+      openAnswer();
       dispatch({
-        type: "MESSAGE_STARTED",
-        message: {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          text: reply.answer,
-          status: "complete",
-        },
+        type: "MESSAGE_COMPLETED",
+        id: answerId,
+        text: reply.answer,
       });
     } catch (caught) {
-      if (current()) {
-        setError(t(readable(caught, "The answer could not be produced.")));
-        setQuestion((draft) => draft || trimmed);
+      if (!current()) return;
+      // A stop is the reader's decision: keep the words that did arrive.
+      if (caught instanceof DOMException && caught.name === "AbortError") {
+        if (opened) dispatch({ type: "MESSAGE_COMPLETED", id: answerId });
+        return;
       }
+      if (opened) dispatch({ type: "MESSAGE_COMPLETED", id: answerId });
+      noteSignedOut(caught);
+      setError(t(readable(caught, "The answer could not be produced.")));
+      setQuestion((draft) => draft || trimmed);
     } finally {
       textRequests.current.delete(controller);
-      if (current()) setPendingAnswers((count) => Math.max(0, count - 1));
+      if (answerRequest.current === controller) answerRequest.current = null;
+      if (current()) {
+        setStreamingId((id) => (id === answerId ? null : id));
+        setPendingAnswers((count) => Math.max(0, count - 1));
+      }
+    }
+  }
+
+  function sendText(event: FormEvent) {
+    event.preventDefault();
+    const asked = question;
+    setQuestion("");
+    void askQuestion(asked);
+  }
+
+  function regenerate() {
+    if (!lastAsked) return;
+    void askQuestion(lastAsked);
+  }
+
+  async function copyMessage(id: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      window.setTimeout(
+        () => setCopiedId((current) => (current === id ? null : current)),
+        1600,
+      );
+    } catch {
+      setError(
+        t("Copying is blocked in this browser. Select the text instead."),
+      );
     }
   }
 
@@ -662,11 +912,16 @@ export default function HomePage() {
     voicePickerInput.current?.click();
   }
 
-  function handleVoiceAction(action: VoiceActionId) {
+  function handleVoiceAction(action: VoiceActionId, argument?: string) {
     if (action === "youtube") {
+      const query = argument?.trim();
+      if (query) {
+        void findVideo(query);
+        return;
+      }
       focusSourceControl("youtube");
       setVoiceActionNotice(
-        t("YouTube is ready — dictate or paste a video link next."),
+        t("YouTube is ready — say the artist or title, or paste a link."),
       );
       return;
     }
@@ -677,7 +932,9 @@ export default function HomePage() {
     if (action === "voice") {
       if (!source) {
         setVoiceActionNotice(
-          t("Add a PDF or YouTube source first, then say “let’s talk” again."),
+          t("Add a PDF or YouTube source first, then say “{phrase}” again.", {
+            phrase: spokenPhrase("voice"),
+          }),
         );
         return;
       }
@@ -687,17 +944,33 @@ export default function HomePage() {
     if (action === "summarize") {
       if (!source) {
         setVoiceActionNotice(
-          t(
-            "Add a PDF or YouTube source first, then say “summarize this” again.",
-          ),
+          t("Add a PDF or YouTube source first, then say “{phrase}” again.", {
+            phrase: spokenPhrase("summarize"),
+          }),
         );
         return;
       }
-      setQuestion(t("Summarize the key ideas"));
-      setVoiceActionNotice(
-        t("Your summary request is ready in the question box."),
-      );
-      window.requestAnimationFrame(() => questionInput.current?.focus());
+      // Saying "summarize this" and then being handed a filled-in text box is
+      // not an answer. The point of speaking is not having to press anything.
+      setQuestion("");
+      setVoiceActionNotice(t("Summarizing the key ideas."));
+      void askQuestion(t("Summarize the key ideas"));
+      return;
+    }
+    if (action === "ask") {
+      const pending = question.trim();
+      if (!pending) {
+        setVoiceActionNotice(t("Say your question first, then say “send it”."));
+        return;
+      }
+      setQuestion("");
+      void askQuestion(pending);
+      return;
+    }
+    if (action === "stop") {
+      if (streamingId) stopAnswer();
+      else if (sessionLive) stopVoice();
+      setVoiceActionNotice(t("Stopped."));
       return;
     }
     if (action === "back") {
@@ -738,6 +1011,31 @@ export default function HomePage() {
     t("What should I remember?"),
   ];
 
+  /**
+   * One panel for the whole workspace. It serves both halves of the task —
+   * before a source it opens one, after a source it carries the question — and
+   * it sits above both cards so that finding a source never unmounts it and
+   * takes the microphone away in the middle of a sentence. Hiding it once a
+   * source arrived was the reason speaking stopped working exactly when it
+   * started to matter.
+   */
+  const voiceActions =
+    entryMode === "voice" ? (
+      <VoiceActions
+        onAction={handleVoiceAction}
+        onDictate={(spoken) => {
+          setQuestion("");
+          void askQuestion(spoken);
+        }}
+        onDraft={setQuestion}
+        canStartVoice={Boolean(source)}
+        // Reading a source does not use the microphone, so listening continues
+        // through it; only a live voice session has to own the device alone.
+        voiceBusy={state.status === "connected"}
+        compact={Boolean(source)}
+      />
+    ) : null;
+
   return (
     <>
       <input
@@ -752,17 +1050,7 @@ export default function HomePage() {
       <a className="skip-link" href="#workspace">
         {t("Skip to workspace")}
       </a>
-      <TopNav
-        mode={entryMode}
-        onModeChange={switchEntryMode}
-        onReplayIntro={openIntro}
-        replayButton={replayButton}
-      />
-      <IntroGate
-        open={introOpen}
-        onClose={closeIntro}
-        onClosed={focusAfterIntro}
-      />
+      <TopNav page="app" mode={entryMode} onModeChange={switchEntryMode} />
 
       <main className="shell">
         <div className="container app-frame">
@@ -777,7 +1065,7 @@ export default function HomePage() {
           <div className="workspace-heading">
             <div className="workspace-heading-copy">
               <h1>
-                {t("Less scrolling.")} <span>{t("More understanding.")}</span>
+                {t("Your source.")} <span>{t("Your questions.")}</span>
               </h1>
               <p className="lede">
                 {entryMode === "voice"
@@ -816,10 +1104,23 @@ export default function HomePage() {
             </div>
           )}
 
+          {/*
+            The workspace spends money on every source and every answer, so it
+            opens for a signed-in reader only. The gate is the same one the API
+            applies; showing it here means a refusal is something the reader can
+            act on rather than an error they meet halfway through a question.
+          */}
+          {account === null && (
+            <SignInPanel onSignedIn={(email) => setAccount(email)} />
+          )}
+
+          {account !== null && voiceActions}
+
           <div
             className="workspace"
             id="workspace"
             tabIndex={-1}
+            hidden={account === null}
             data-mode={entryMode}
           >
             <section
@@ -855,14 +1156,6 @@ export default function HomePage() {
                     </span>
                   </div>
                 </div>
-              )}
-
-              {entryMode === "voice" && !source && (
-                <VoiceActions
-                  onAction={handleVoiceAction}
-                  canStartVoice={Boolean(source)}
-                  voiceBusy={sessionLive || busy}
-                />
               )}
 
               <details
@@ -1009,9 +1302,46 @@ export default function HomePage() {
                         />
                         <p id="youtube-hint" className="hint">
                           {t(
-                            "Paste a link to a captioned video. Watch pages, Shorts, share links and embeds all work.",
+                            "Say the artist or the title, or paste a link. Watch pages, Shorts, share links and embeds all work.",
                           )}
                         </p>
+                        {searchingVideos && (
+                          <p className="hint" role="status">
+                            <span className="spinner" aria-hidden="true" />{" "}
+                            {t("Searching for “{query}”…", {
+                              query: videoQuery,
+                            })}
+                          </p>
+                        )}
+                        {videoChoices.length > 0 && (
+                          <div className="video-choices">
+                            <span className="video-choices-label">
+                              {t("Not the one? Also found")}
+                            </span>
+                            {videoChoices.map((choice) => (
+                              <button
+                                type="button"
+                                className="video-choice"
+                                key={choice.videoId}
+                                disabled={busy}
+                                onClick={() => {
+                                  setUrl(choice.url);
+                                  setVideoChoices((current) =>
+                                    current.filter(
+                                      (item) => item.videoId !== choice.videoId,
+                                    ),
+                                  );
+                                  void startIngest({ url: choice.url });
+                                }}
+                              >
+                                <strong>{choice.title}</strong>
+                                {choice.channel && (
+                                  <span>{choice.channel}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="actions full">
@@ -1142,7 +1472,7 @@ export default function HomePage() {
                 one tap from the consent story.
               */}
               {sessionLive && state.status === "connected" && (
-                <a className="voice-learning" href="#platform">
+                <a className="voice-learning" href={`/${language}#platform`}>
                   <span className="voice-learning-dot" aria-hidden="true" />
                   <span>
                     <strong>{t("Adapting to your voice")}</strong>
@@ -1228,90 +1558,151 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <div
-                className="chat"
-                ref={chatLog}
-                tabIndex={0}
-                onScroll={(event) => {
-                  const log = event.currentTarget;
-                  followMessages.current =
-                    log.scrollHeight - log.scrollTop - log.clientHeight < 64;
-                }}
-                role="log"
-                aria-label={t("Conversation")}
-                aria-live="polite"
-              >
-                {state.messages.length === 0 ? (
-                  <div className="empty-chat" data-mode={entryMode}>
-                    <div
-                      className={`voice-orbit mode-orbit mode-orbit-${entryMode}`}
-                      data-activity={sessionLive ? activity : "off"}
-                      aria-hidden="true"
-                    >
-                      <span className="voice-orbit-ring" />
-                      <span className="voice-orbit-ring" />
-                      <Icon
-                        name={entryMode === "text" ? "document" : "voice"}
-                      />
-                    </div>
-                    <h3>
-                      {source
-                        ? t("What are you curious about?")
-                        : entryMode === "voice"
-                          ? t("Your voice is the shortcut.")
-                          : t("Good questions start here.")}
-                    </h3>
-                    <p className="hint">
-                      {source
-                        ? t(
-                            "Start voice chat and speak, type your question below, or choose an idea.",
-                          )
-                        : entryMode === "voice"
-                          ? t(
-                              "Bring a source in with a word, then ask out loud. Nothing starts without your word, and typing always works.",
-                            )
-                          : t(
-                              "Add a source, then explore the ideas inside it.",
-                            )}
-                    </p>
-                    {source && (
-                      <div className="suggestions">
-                        {suggestions.map((prompt) => (
-                          <button
-                            type="button"
-                            className="suggestion"
-                            key={prompt}
-                            onClick={() => {
-                              setQuestion(prompt);
-                              questionInput.current?.focus();
-                            }}
-                          >
-                            {prompt}
-                            <span aria-hidden="true">↗</span>
-                          </button>
-                        ))}
+              <div className="chat-anchor">
+                <div
+                  className="chat"
+                  ref={chatLog}
+                  tabIndex={0}
+                  onScroll={(event) => {
+                    const log = event.currentTarget;
+                    const following =
+                      log.scrollHeight - log.scrollTop - log.clientHeight <
+                      FOLLOW_THRESHOLD_PX;
+                    followMessages.current = following;
+                    setAtLatest(following);
+                  }}
+                  role="log"
+                  aria-label={t("Conversation")}
+                  aria-live="polite"
+                >
+                  {state.messages.length === 0 ? (
+                    <div className="empty-chat" data-mode={entryMode}>
+                      <div
+                        className={`voice-orbit mode-orbit mode-orbit-${entryMode}`}
+                        data-activity={sessionLive ? activity : "off"}
+                        aria-hidden="true"
+                      >
+                        <span className="voice-orbit-ring" />
+                        <span className="voice-orbit-ring" />
+                        <Icon
+                          name={entryMode === "text" ? "document" : "voice"}
+                        />
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  state.messages.map((message) => (
-                    <div key={message.id} className={`message ${message.role}`}>
-                      <span className="message-author">
-                        {message.role === "user"
-                          ? t("You")
-                          : message.role === "assistant"
-                            ? "Ursly"
-                            : t("Session update")}
-                      </span>
-                      <span className="message-text">
-                        {message.text || "…"}
-                      </span>
+                      <h3>
+                        {source
+                          ? t("What are you curious about?")
+                          : entryMode === "voice"
+                            ? t("Your voice is the shortcut.")
+                            : t("Good questions start here.")}
+                      </h3>
+                      <p className="hint">
+                        {source
+                          ? t(
+                              "Start voice chat and speak, type your question below, or choose an idea.",
+                            )
+                          : entryMode === "voice"
+                            ? t(
+                                "Bring a source in with a word, then ask out loud. Nothing starts without your word, and typing always works.",
+                              )
+                            : t(
+                                "Add a source, then explore the ideas inside it.",
+                              )}
+                      </p>
+                      {source && (
+                        <div className="suggestions">
+                          {suggestions.map((prompt) => (
+                            <button
+                              type="button"
+                              className="suggestion"
+                              key={prompt}
+                              onClick={() => {
+                                setQuestion(prompt);
+                                questionInput.current?.focus();
+                              }}
+                            >
+                              {prompt}
+                              <span aria-hidden="true">↗</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  ))
+                  ) : (
+                    state.messages.map((message, index) => {
+                      const streaming = message.id === streamingId;
+                      const answered =
+                        message.role === "assistant" && Boolean(message.text);
+                      const last = index === state.messages.length - 1;
+                      return (
+                        <div
+                          key={message.id}
+                          className={`message ${message.role}`}
+                          data-streaming={streaming || undefined}
+                        >
+                          <span className="message-author">
+                            {message.role === "user"
+                              ? t("You")
+                              : message.role === "assistant"
+                                ? "Ursly"
+                                : t("Session update")}
+                          </span>
+                          {message.role === "assistant" && message.text ? (
+                            <span className="message-text rendered">
+                              <Markdown text={message.text} />
+                            </span>
+                          ) : (
+                            <span className="message-text">
+                              {message.text || (streaming ? "" : "…")}
+                            </span>
+                          )}
+                          {answered && !streaming && (
+                            <div className="message-actions">
+                              <button
+                                type="button"
+                                className="message-action"
+                                onClick={() =>
+                                  void copyMessage(message.id, message.text)
+                                }
+                              >
+                                {copiedId === message.id
+                                  ? t("Copied")
+                                  : t("Copy")}
+                              </button>
+                              {last && lastAsked && !sessionLive && (
+                                <button
+                                  type="button"
+                                  className="message-action"
+                                  disabled={pendingAnswers > 0}
+                                  onClick={regenerate}
+                                >
+                                  {t("Try again")}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                {!atLatest && state.messages.length > 0 && (
+                  <button
+                    type="button"
+                    className="chat-jump"
+                    onClick={() => {
+                      followMessages.current = true;
+                      setAtLatest(true);
+                      if (chatLog.current)
+                        chatLog.current.scrollTop =
+                          chatLog.current.scrollHeight;
+                    }}
+                  >
+                    {t("Jump to latest")} <span aria-hidden="true">↓</span>
+                  </button>
                 )}
               </div>
 
-              {pendingAnswers > 0 && (
+              {pendingAnswers > 0 && !streamingId && (
                 <p className="answer-pending" role="status">
                   <span className="spinner" aria-hidden="true" />{" "}
                   {t("Finding an answer in your source…")}
@@ -1331,12 +1722,21 @@ export default function HomePage() {
                     : t("Your question (ready when your source is added)")}
               </label>
               <form className="composer" onSubmit={sendText}>
-                <input
+                <textarea
                   id="question"
                   aria-label={t("Ask a question")}
                   ref={questionInput}
+                  rows={1}
                   value={question}
                   onChange={(event) => setQuestion(event.target.value)}
+                  onKeyDown={(event) => {
+                    // Enter sends, because this is a conversation. A newline is
+                    // still one modifier away for anyone pasting a long prompt.
+                    if (event.key !== "Enter" || event.shiftKey) return;
+                    if (event.nativeEvent.isComposing) return;
+                    event.preventDefault();
+                    event.currentTarget.form?.requestSubmit();
+                  }}
                   placeholder={
                     source
                       ? t("Ask a question…")
@@ -1344,14 +1744,31 @@ export default function HomePage() {
                   }
                   disabled={busy}
                 />
-                <button
-                  className="secondary"
-                  type="submit"
-                  disabled={!source || !question.trim() || pendingAnswers > 0}
-                >
-                  {t("Send")} <Icon name="arrow" />
-                </button>
+                <div className="composer-buttons">
+                  {streamingId ? (
+                    <button
+                      className="secondary"
+                      type="button"
+                      onClick={stopAnswer}
+                    >
+                      {t("Stop")}
+                    </button>
+                  ) : (
+                    <button
+                      className="secondary"
+                      type="submit"
+                      disabled={
+                        !source || !question.trim() || pendingAnswers > 0
+                      }
+                    >
+                      {t("Send")} <Icon name="arrow" />
+                    </button>
+                  )}
+                </div>
               </form>
+              <p className="hint composer-hint">
+                {t("Enter sends · Shift + Enter starts a new line")}
+              </p>
               <p className="hint answer-note">
                 {source
                   ? t(
@@ -1363,20 +1780,30 @@ export default function HomePage() {
               </p>
             </section>
           </div>
-        </div>
 
-        <div className="container">
-          <PlatformSection onReplayIntro={openIntro} />
-          <Process locale={language} />
-          <HowItWorks />
-          <Applications />
-          <footer className="footer">
-            <span>{t("Ursly · Made for your next “aha”.")}</span>
-            <span className="footer-links">
-              <a href="#how-it-works">{t("How it works")} ↓</a>
-              <a href="#applications">{t("Applications & GitHub")} ↗</a>
-            </span>
-          </footer>
+          {/*
+            Who is signed in, and the way back out. A reader who cannot sign out
+            cannot hand the machine to anyone else.
+          */}
+          {account && (
+            <p className="footer-account">
+              {t("Signed in as {email}", { email: account })}
+              <button
+                type="button"
+                className="footer-signout"
+                onClick={() => {
+                  setAccount(null);
+                  void signOut().catch(() => {
+                    // The cookie is gone either way; a failed call must not
+                    // leave the reader looking signed in when they are not.
+                  });
+                }}
+              >
+                {t("Sign out")}
+              </button>
+            </p>
+          )}
+          <SiteFooter page="app" />
         </div>
       </main>
     </>

@@ -12,6 +12,10 @@ function fixture() {
     createRealtimeSession: vi.fn(),
     createRealtimeCallAnswer: vi.fn(),
     answerTextQuestion: vi.fn().mockResolvedValue("answer"),
+    streamTextAnswer: vi.fn(async function* () {
+      yield "streamed ";
+      yield "answer";
+    }),
   };
   return { provider, app: createConversation(provider) };
 }
@@ -56,6 +60,33 @@ it("carries recent exchanges so follow-up questions read naturally", async () =>
   expect(provider.answerTextQuestion).toHaveBeenCalledWith(
     source,
     "And for video?",
+    history,
+  );
+});
+it("validates a streamed question before a single delta can escape", () => {
+  const { app, provider } = fixture();
+  expect(() => app.streamTextAnswer(source, "x".repeat(4001))).toThrowError(
+    /question/,
+  );
+  expect(provider.streamTextAnswer).not.toHaveBeenCalled();
+});
+it("guards an unusable source on the streaming path too", () => {
+  const { app, provider } = fixture();
+  expect(() =>
+    app.streamTextAnswer({ ...source, text: "   " }, "Question?"),
+  ).toThrowError("Source text is required.");
+  expect(provider.streamTextAnswer).not.toHaveBeenCalled();
+});
+it("streams the provider deltas and carries the trimmed question and history", async () => {
+  const { app, provider } = fixture();
+  const history = [{ role: "user" as const, text: "Earlier?" }];
+  const received: string[] = [];
+  for await (const delta of app.streamTextAnswer(source, " And now? ", history))
+    received.push(delta);
+  expect(received.join("")).toBe("streamed answer");
+  expect(provider.streamTextAnswer).toHaveBeenCalledWith(
+    source,
+    "And now?",
     history,
   );
 });

@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./base";
 import { pdfFixture } from "../pdf-fixture";
+import { APP_PATH } from "../routes";
 
 // Explicit fault injection: delayed fetch completions intentionally ignore abort,
 // modelling a response already queued when a source/session is invalidated.
@@ -100,12 +101,20 @@ test.beforeEach(async ({ page }) => {
           harness.releaseSession = () => resolve(response());
         });
       }
-      if (url.endsWith("/api/text-chat")) {
+      // Answers stream now; a blackholed stream is one that never writes its
+      // first frame, so the whole response stays pending.
+      if (url.endsWith("/api/text-chat/stream")) {
         harness.textRequested++;
         return new Promise<Response>((resolve) => {
           harness.releaseText = () =>
             resolve(
-              Response.json({ answer: "STALE ANSWER FROM PREVIOUS SOURCE" }),
+              new Response(
+                `data: ${JSON.stringify({
+                  type: "done",
+                  answer: "STALE ANSWER FROM PREVIOUS SOURCE",
+                })}\n\n`,
+                { headers: { "Content-Type": "text/event-stream" } },
+              ),
             );
         });
       }
@@ -180,7 +189,7 @@ test.beforeEach(async ({ page }) => {
       value: Peer,
     });
   });
-  await page.goto("/");
+  await page.goto(APP_PATH);
   await ingest(page);
 });
 
@@ -214,7 +223,9 @@ test("blackholed text chat times out and ignores its eventual answer", async ({
   await expect(
     page.getByText("Finding an answer in your source…"),
   ).toBeVisible();
-  await page.clock.runFor(25001);
+  // A streamed answer is allowed to take far longer than a session handshake,
+  // because words a reader can already see are worth waiting for.
+  await page.clock.runFor(120001);
   await expect(page.locator(".error")).toContainText(/timed out.*retry/i);
   await expect(page.getByLabel("Ask a question", { exact: true })).toHaveValue(
     "Will this time out?",

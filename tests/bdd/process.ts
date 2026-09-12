@@ -11,6 +11,8 @@ type Helpers = { page: (w: World) => Promise<Page> };
 export function registerProcessChecks(step: Step, h: Helpers) {
   const copy = resolveProcessCopy("en");
   const section = (p: Page) => p.locator("#how-we-build");
+  /** The first screen, where the loop is drawn. */
+  const hero = (p: Page) => p.locator(".landing-hero");
   const stages = (p: Page) =>
     section(p)
       .getByRole("list", { name: copy.controls.stepList })
@@ -57,19 +59,37 @@ export function registerProcessChecks(step: Step, h: Helpers) {
   });
   step("the build loop animation can be paused", async function () {
     const p = await h.page(this);
-    const pause = section(p).getByRole("button", {
-      name: copy.controls.pause,
-    });
+    // The picture and its control open the page; the stages are listed in
+    // the section below, and both move the same walk.
+    const pause = hero(p).getByRole("button", { name: copy.controls.pause });
     await pause.scrollIntoViewIfNeeded();
     await pause.click();
     await expect(
-      section(p).getByRole("button", { name: copy.controls.play }),
+      hero(p).getByRole("button", { name: copy.controls.play }),
     ).toBeVisible();
     const secure = PROCESS_STEP_IDS.indexOf("secure");
     await stages(p).nth(secure).getByRole("button").click();
     await expect(stages(p).nth(secure).getByRole("button")).toHaveAttribute(
       "aria-current",
       "step",
+    );
+    await expect(hero(p).locator('[data-stage="secure"]')).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+  });
+
+  step("the page opens on the build loop itself", async function () {
+    const p = await h.page(this);
+    const diagram = hero(p).getByTestId("loop-diagram");
+    await expect(diagram).toBeVisible();
+    // In the first screen, before anything has been scrolled past.
+    await expect(diagram).toBeInViewport();
+    await expect(hero(p).getByTestId("loop-caption")).toContainText(
+      copy.steps[0].title,
+    );
+    await expect(p.getByRole("heading", { level: 1 })).toContainText(
+      /build software/i,
     );
   });
 }

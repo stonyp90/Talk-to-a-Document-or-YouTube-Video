@@ -109,6 +109,44 @@ features/, tests/         Gherkin acceptance, unit, browser and architecture tes
 
 **Voice path.** The browser asks the backend for a Realtime session. The backend primes it with the source text and returns only a short-lived client secret, then steps aside: the browser negotiates SDP straight with OpenAI and media never transits our servers. Server-side voice activity detection is what lets a caller cut in mid-answer; the client closes its own caption on the same event so the transcript matches what was actually heard.
 
+**Signing in is the budget control.** Every endpoint that calls a provider —
+ingestion, uploads, extraction, typed questions, the streamed answer, a voice
+session and the turn recorder — requires a session cookie, and charges a
+per-account allowance on top. Login alone would not have solved the problem it
+exists for: whoever signs up can still spend the money. Sign-in is a mailed
+one-time code, so there is no password to store; the code is hashed with a
+server-side pepper and never logged, returned or kept in clear. `/api/health`
+and `/api/openapi` stay open. See [The gate](#the-gate) below.
+
+**A spoken source is searched, not spelled.** Nobody dictates "watch question mark v equals". Saying "YouTube, Miles Davis" posts the words to `POST /api/videos/search`, which asks the YouTube Data API only for videos that carry closed captions — an uncaptioned result would be a source that fails at the next step — and returns the best matches. The client opens the first and keeps the rest as alternatives. `VideoSearchPort` is the boundary: with `YOUTUBE_SEARCH_MODE=mock`, or with no `YOUTUBE_API_KEY` at all, the adapter returns deterministic fixtures derived from the query and says so in the log, so the spoken entry path works locally and in CI with no quota and no network.
+
+**Speaking is the interface, not a shortcut.** Listening is continuous: the
+browser engine hangs up by itself after a pause and the panel picks the
+microphone back up, so a reader is not re-arming it between sentences. Only
+settled speech runs a command — acting on a hypothesis fires "back" on the way
+to "backpack" — while the interim text is shown so the reader can see they are
+heard. Anything that is not a command becomes the question, sent after a pause
+or when they say "send it". Adding words to a built-in command sends their
+words instead of its: "summarize this" runs the shortcut, "summarize this in
+three short points" asks for exactly that. `packages/core/src/domain/voiceCommands.ts`
+owns the whole vocabulary — folding accents so French reaches its phrases,
+matching a command anywhere in a sentence, tolerating one mis-heard word, and
+separating the command from what was said around it. Saved phrases add to the
+built-in wordings rather than replacing them, so customising one action never
+breaks another.
+
+**The answer arrives as it is written.** `POST /api/text-chat/stream` sends the
+answer as server-sent events and the interface renders each delta, so a reader
+watches words appear instead of a spinner. Send becomes Stop while it runs, and
+stopping keeps what already arrived — it is the reader's decision, not a
+failure. A runtime or proxy that cannot stream answers `STREAM_UNSUPPORTED`,
+and the client falls back to the blocking endpoint rather than failing. Answers
+are parsed to a description of the text and rendered as elements, never as
+HTML, so a source that quotes markup renders it as words. Voice turns are
+posted to `POST /api/conversation/turns`, which is what keeps one thread of
+memory: a typed follow-up knows what was said out loud, and the other way
+round.
+
 **Sources live on the server.** Ingestion returns an opaque `sourceId`, and later requests carry that id instead of the whole extraction. If the server has forgotten the session — a cold start, or another instance — the client resends the source once and the conversation continues. Storage is in-memory with a TTL and a cap, which the assessment names as sufficient; a shared store is a one-adapter swap.
 
 **Large sources are windowed, not refused.** A 25 MB PDF can hold more text than any context window. The reader always sees the complete extraction; the model receives the largest faithful excerpt that fits, taken from the opening and the ending, with the elision marked so it never invents the middle. The budget is `CONTEXT_CHARACTER_BUDGET`.
@@ -119,6 +157,51 @@ features/, tests/         Gherkin acceptance, unit, browser and architecture tes
 
 ---
 
+## The gate
+
+| Caller               | `/api/health`, `/api/openapi` | Paid endpoints                       |
+| -------------------- | ----------------------------- | ------------------------------------ |
+| Anonymous            | 200                           | `401 UNAUTHENTICATED`                |
+| Signed in, under cap | 200                           | 200, and the allowance is charged    |
+| Signed in, over cap  | 200                           | `429 USAGE_LIMIT` with `Retry-After` |
+
+429 rather than 402: nothing is for sale, so "payment required" would be a lie,
+and `Retry-After` tells the reader exactly when their allowance reopens. The
+streamed answer runs the gate _before_ the event stream opens, so a refusal is
+an ordinary JSON reply the client can act on rather than an error frame. The
+gate also runs before each route validates its body, which means a malformed
+request still costs its units — the price of letting nothing at all slip in
+front of it, and bounded by the same per-address limiter.
+
+What each call costs, against an allowance of `USAGE_LIMIT_UNITS` (300) per
+`USAGE_WINDOW_MS` (24 h). Every number is configuration with a named default:
+
+| Endpoint                            | Units | Why                                           |
+| ----------------------------------- | ----- | --------------------------------------------- |
+| `POST /api/realtime/session`        | 50    | A voice session bills for as long as it lives |
+| `POST /api/ingest`                  | 10    | A whole document extracted and primed         |
+| `POST /api/uploads/extract`         | 10    | The same work, after a direct upload          |
+| `POST /api/text-chat`, `.../stream` | 5     | One question against the source               |
+| `POST /api/uploads`                 | 1     | Only a presigned form, but not a free-for-all |
+| `POST /api/videos/search`           | 2     | Third-party search quota, not model tokens    |
+| `POST /api/conversation/turns`      | 1     | Bookkeeping; it calls no provider             |
+
+**Signing in.** `POST /api/auth/request-code` mails a code and answers `204`
+whether or not the address is known, so it cannot be used to find out who has an
+account. `POST /api/auth/confirm` exchanges the code for an `HttpOnly`,
+`SameSite=Lax`, `Secure` session cookie. `GET /api/auth/session` reports the
+signed-in address; `DELETE` on the same path signs out. Locally, `EMAIL_MODE`
+defaults to `log`: the code appears in the server log as a `local sign-in code`
+line, so the flow can be completed with no mail infrastructure. `EMAIL_MODE=ses`
+sends it through Amazon SES instead.
+
+**The escape hatch fails closed.** `AUTH_MODE=disabled` resolves every request
+to one fixed local account, which is what keeps Compose, the acceptance suite
+and the browser suite running. Any other value — including an unset one and a
+typo — means `required`, so a misconfigured deployment is shut, never open.
+
+---
+
 ## Trade-offs
 
 - **Lambda over ECS.** Scale-to-zero and per-request billing fit a demo. The costs are cold starts, a 29-second API Gateway ceiling, and no shared process memory — which is exactly why sessions carry a rehydration fallback.
@@ -126,7 +209,9 @@ features/, tests/         Gherkin acceptance, unit, browser and architecture tes
 - **Window the context rather than chunk it.** The brief asks for no chunking, summarization or citations. Head-and-tail windowing keeps that promise and is honest with the reader about what the model can see. A long middle section is genuinely out of reach; retrieval would be the next step.
 - **Two turns of context, not a full memory.** Recent exchanges are kept per session so follow-ups read naturally, capped so a long conversation cannot grow the prompt without limit.
 - **A separate Python caption service.** `youtube-transcript-api` is the mature client for an endpoint with no official API. It costs a second runtime and a second Dockerfile, and buys a clean port boundary and a component that can be proxied or replaced on its own.
-- **Fixed-window rate limiting, per process.** Enough to stop a public, unauthenticated, billable endpoint being trivially abused. Not a substitute for authentication or a shared limiter.
+- **Fixed-window rate limiting, per process.** It bounds one address; a handful of addresses walk around it, which is why the paid endpoints now sit behind a session and a per-account cap as well. Still not a shared limiter.
+- **Accounts and ledgers in memory, like sessions.** The same trade as the session store, and the same caveat: a restart forgets who is signed in and what they have spent, and a second instance counts on its own. A shared store is a one-adapter swap, and it is the first thing to do before running more than one instance.
+- **A mailed code instead of a password.** No password to store, to leak or to reuse from somewhere less careful, and the mailbox is the proof. The cost is a mail dependency in production and a code with a short life.
 - **Content Security Policy keeps `unsafe-inline`.** Next.js inlines its own bootstrap. The directives that matter against injection and clickjacking are still enforced; nonce-based scripts would be the stricter next step.
 - **No OCR.** A scanned PDF with no text layer is rejected with an explanation rather than silently producing nothing.
 - **An Expo client is in the repository.** It is extra scope beyond the brief. The web application is the deliverable; the native client shares the same core and backend.

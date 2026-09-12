@@ -17,8 +17,14 @@ test("deploy only the successful, same-repository main revision through OIDC", (
     /role-duration-seconds: 3600/,
     /terraform.* plan .*out=deployment.tfplan/,
     /terraform.* apply .*deployment.tfplan/,
+    // A deployment with no pepper and no sender comes up refusing every paid
+    // endpoint with no way in. It must fail here, not in production.
+    /test -n "\$AUTH_PEPPER_SECRET_ARN"/,
+    /test -n "\$SES_FROM_ADDRESS"/,
   ])
     assert.match(workflow, pattern);
+  // Only ARNs and names travel through the workflow; never a secret value.
+  assert.doesNotMatch(workflow, /AUTH_HASH_PEPPER/);
   assert.doesNotMatch(
     workflow,
     /cloudformation|cdk|terraform.*bootstrap|aws-access-key-id|aws-secret-access-key/,

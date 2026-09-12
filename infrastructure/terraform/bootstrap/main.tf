@@ -32,6 +32,48 @@ variable "openai_secret_arn" {
     error_message = "Provide the exact existing secret ARN, without wildcards or secret contents."
   }
 }
+
+# The signing pepper, by the same rule as the provider key: the operator creates
+# the secret and supplies its exact ARN. The boundary below is why it belongs
+# here as well as in the application module — a grant the boundary does not
+# allow is a grant the task does not have, and sign-in would fail with an AWS
+# denial nobody is looking for.
+variable "auth_pepper_secret_arn" {
+  type = string
+  validation {
+    condition     = can(regex("^arn:aws:secretsmanager:${var.region}:${var.account_id}:secret:[^*?]+$", var.auth_pepper_secret_arn))
+    error_message = "Provide the exact existing secret ARN, without wildcards or secret contents."
+  }
+}
+
+# The verified sender for sign-in mail. Empty means this deployment sends none,
+# and the boundary then permits no sending at all. Terraform never creates or
+# verifies an SES identity: the operator owns the domain root.
+variable "ses_from_address" {
+  type    = string
+  default = ""
+  validation {
+    condition     = var.ses_from_address == "" || can(regex("^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$", var.ses_from_address))
+    error_message = "Use the address on an identity already verified in SES, or leave it empty."
+  }
+}
+variable "ses_region" {
+  type    = string
+  default = ""
+  validation {
+    condition     = var.ses_region == "" || can(regex("^[a-z]{2}(-gov)?-[a-z]+-[0-9]$", var.ses_region))
+    error_message = "Supply an AWS region such as us-east-1, or leave it empty to use the bootstrap region."
+  }
+}
+variable "ses_configuration_set" {
+  type    = string
+  default = ""
+  validation {
+    condition     = var.ses_configuration_set == "" || can(regex("^[A-Za-z0-9_-]{1,64}$", var.ses_configuration_set))
+    error_message = "Use an existing SES configuration set name, or leave it empty."
+  }
+}
+
 variable "github_subject_prefix" {
   type    = string
   default = null
@@ -57,6 +99,24 @@ locals {
   runtime_arns  = ["arn:aws:iam::${var.account_id}:role/${local.name}-runtime", "arn:aws:iam::${var.account_id}:role/${local.name}-transcript-runtime"]
   function_arns = [for name in ["api", "transcript"] : "arn:aws:lambda:${var.region}:${var.account_id}:function:${local.name}-${name}"]
   log_arns      = [for name in ["api", "transcript"] : "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/${local.name}-${name}"]
+
+  # The ceiling on sending, mirroring the grant the application module writes.
+  # Both identity spellings are named because only the one the operator verified
+  # exists; naming both keeps the ceiling exact rather than widening it.
+  ses_region = var.ses_region == "" ? var.region : var.ses_region
+  ses_scope = var.ses_from_address == "" ? [] : compact([
+    "arn:aws:ses:${local.ses_region}:${var.account_id}:identity/${var.ses_from_address}",
+    "arn:aws:ses:${local.ses_region}:${var.account_id}:identity/${element(split("@", var.ses_from_address), 1)}",
+    var.ses_configuration_set == "" ? "" : "arn:aws:ses:${local.ses_region}:${var.account_id}:configuration-set/${var.ses_configuration_set}",
+  ])
+  ses_boundary = [
+    for statement in [{
+      Effect    = "Allow"
+      Action    = ["ses:SendEmail"]
+      Resource  = local.ses_scope
+      Condition = { StringEquals = { "ses:FromAddress" = var.ses_from_address } }
+    }] : statement if var.ses_from_address != ""
+  ]
 }
 resource "aws_s3_bucket" "state" {
   bucket = "${local.name}-tfstate-${var.account_id}-${var.region}"
@@ -117,11 +177,11 @@ resource "aws_iam_policy" "runtime_boundary" {
   name = "${local.name}-runtime-boundary"
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat([
       { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = ["${local.bucket_arn}/uploads/*"] },
-      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn] },
+      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn, var.auth_pepper_secret_arn] },
       { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = [for arn in local.log_arns : "${arn}:*"] }
-    ]
+    ], local.ses_boundary)
   })
   lifecycle { prevent_destroy = true }
 }

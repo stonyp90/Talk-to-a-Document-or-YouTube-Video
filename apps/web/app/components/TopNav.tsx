@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { BrandIcon } from "./BrandIcon";
 import { Icon } from "./Icon";
 import { ModeSwitcher, type EntryMode } from "./ModeSwitcher";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { LANGUAGES, type Language } from "../i18n/languages";
+import { appDownloads, releaseNotesUrl } from "../content/downloads";
 
 /** Each language names itself, so a reader always recognises their own. */
-const LANGUAGE_NAMES: Record<Language, string> = { en: "English", fr: "Français" };
+const LANGUAGE_NAMES: Record<Language, string> = {
+  en: "English",
+  fr: "Français",
+};
 
 const SECTIONS = [{ id: "platform", label: "Platform" }] as const;
 
@@ -25,7 +30,10 @@ function useActiveSection(ids: readonly string[]): string | undefined {
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries)
-          visible.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0);
+          visible.set(
+            entry.target.id,
+            entry.isIntersecting ? entry.intersectionRatio : 0,
+          );
         const [best] = [...visible.entries()].sort((a, b) => b[1] - a[1]);
         setActive(best && best[1] > 0 ? best[0] : undefined);
       },
@@ -58,6 +66,8 @@ export function TopNav({
 }) {
   const { language, t } = useLanguage();
   const [scrolled, setScrolled] = useState(false);
+  const [downloadsOpen, setDownloadsOpen] = useState(false);
+  const downloads = useRef<HTMLDivElement>(null);
   const active = useActiveSection(SECTIONS.map((section) => section.id));
 
   useEffect(() => {
@@ -66,13 +76,37 @@ export function TopNav({
     return subscribeToScroll(update);
   }, []);
 
+  // The apps menu closes the way every menu does: a press outside it, or Escape.
+  useEffect(() => {
+    if (!downloadsOpen) return;
+    const dismiss = (event: Event) => {
+      if (!downloads.current?.contains(event.target as Node))
+        setDownloadsOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDownloadsOpen(false);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [downloadsOpen]);
+
   return (
     <nav className="nav" aria-label={t("Primary")} data-scrolled={scrolled}>
       <div className="nav-inner">
         <a className="brand" href={`/${language}`} aria-label={t("Ursly home")}>
           {/* A vector stays crisp at every screen density. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="brand-mark" src="/brand/ursly-mark.svg" width="32" height="32" alt="" />
+          <img
+            className="brand-mark"
+            src="/brand/ursly-mark.svg"
+            width="32"
+            height="32"
+            alt=""
+          />
           ursly<span className="brand-dot">.</span>
         </a>
 
@@ -91,6 +125,55 @@ export function TopNav({
               {t(section.label)}
             </a>
           ))}
+          {/* The builds are the point of the applications section, so the menu
+              hands them over directly instead of scrolling someone to them. */}
+          <div className="nav-downloads" ref={downloads}>
+            <button
+              type="button"
+              className="nav-link nav-download"
+              aria-expanded={downloadsOpen}
+              aria-haspopup="true"
+              onClick={() => setDownloadsOpen((open) => !open)}
+            >
+              <Icon name="download" />
+              <span className="nav-download-label">{t("Get the app")}</span>
+            </button>
+            {downloadsOpen && (
+              <div className="nav-download-menu" role="menu">
+                {appDownloads.map((build) => (
+                  <a
+                    key={build.id}
+                    className="nav-download-item"
+                    role="menuitem"
+                    href={build.url}
+                    onClick={() => setDownloadsOpen(false)}
+                  >
+                    <BrandIcon name={build.icon} />
+                    <span>
+                      <strong>{t(build.label)}</strong>
+                      <small>{t(build.detail)}</small>
+                    </span>
+                  </a>
+                ))}
+                <a
+                  className="nav-download-more"
+                  role="menuitem"
+                  href="#applications"
+                  onClick={() => setDownloadsOpen(false)}
+                >
+                  {t("All builds and instructions")}
+                </a>
+                <a
+                  className="nav-download-more"
+                  role="menuitem"
+                  href={releaseNotesUrl}
+                  onClick={() => setDownloadsOpen(false)}
+                >
+                  {t("Release notes")} <Icon name="external" />
+                </a>
+              </div>
+            )}
+          </div>
           <button
             ref={replayButton}
             type="button"

@@ -18,8 +18,11 @@ import { fixturePdf } from "./fixtures";
 import { registerLocalChecks } from "./local";
 import { registerResilienceChecks } from "./resilience";
 import { registerArchitectureChecks } from "./architecture";
+import { registerAuthChecks } from "./auth";
 import { registerEntryChecks } from "./entry";
 import { registerProcessChecks } from "./process";
+import { registerVideoSearchChecks } from "./videoSearch";
+import { registerConversationChecks } from "./conversation";
 
 setDefaultTimeout(120_000);
 const baseURL = process.env.BDD_BASE_URL ?? "http://localhost:3000";
@@ -157,7 +160,11 @@ async function session(this: World) {
 async function send(this: World) {
   const p = await page(this);
   this.question = "What is this source about?";
-  const request = p.waitForRequest((r) => r.url().endsWith("/api/text-chat"));
+  // The answer streams now, and only falls back to the blocking route when the
+  // connection cannot carry an event stream. Either one is a question asked.
+  const request = p.waitForRequest((r) =>
+    /\/api\/text-chat(\/stream)?$/.test(new URL(r.url()).pathname),
+  );
   await p.getByLabel("Ask a question", { exact: true }).fill(this.question);
   await p.getByRole("button", { name: "Send", exact: true }).click();
   this.requestBody = (await request).postDataJSON();
@@ -946,8 +953,11 @@ registerLocalChecks(step, {
 });
 registerResilienceChecks(step, { page, open, ready, baseURL });
 registerArchitectureChecks(step);
+registerAuthChecks(step);
 registerEntryChecks(step, { page, open, baseURL });
 registerProcessChecks(step, { page });
+registerVideoSearchChecks(step);
+registerConversationChecks(step);
 
 // Static inventory: unsupported steps are PENDING, never successful. Newly added
 // phrases without implementations remain undefined and fail the default gate.

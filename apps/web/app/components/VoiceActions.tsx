@@ -4,190 +4,111 @@ import {
   FormEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 import { Icon } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
+import {
+  VOICE_ACTIONS,
+  carriesOwnPhrasing,
+  defaultPhrases,
+  defaultTriggers,
+  dictationText,
+  isLikelyQuestion,
+  isSpokenContent,
+  matchCommands,
+  normalizeSpeech,
+  spokenArgument,
+  takesSpokenArgument,
+  type VoiceActionId,
+  type VoiceTrigger,
+} from "@/packages/core/src/domain/voiceCommands";
+import {
+  createSpeechListener,
+  speechRecognitionSupported,
+  type SpeechErrorReason,
+  type SpeechListener,
+} from "@/apps/web/src/lib/speech";
+
+export type { VoiceActionId };
 
 /** BCP 47 tags the speech engines expect for each interface language. */
 const SPEECH_LOCALES = { en: "en-US", fr: "fr-CA" } as const;
 
-export type VoiceActionId =
-  | "youtube"
-  | "upload"
-  | "voice"
-  | "summarize"
-  | "back"
-  | "next"
-  | "cancel";
-
-type VoiceTrigger = {
-  id: string;
-  phrase: string;
-  action: VoiceActionId;
-};
-
-type SpeechRecognitionAlternativeLike = {
-  transcript: string;
-};
-
-type SpeechRecognitionResultLike = {
-  [index: number]: SpeechRecognitionAlternativeLike | undefined;
-};
-
-type SpeechRecognitionResultListLike = {
-  [index: number]: SpeechRecognitionResultLike | undefined;
-  length: number;
-};
-
-type SpeechRecognitionResultEvent = Event & {
-  resultIndex: number;
-  results: SpeechRecognitionResultListLike;
-};
-
-type SpeechRecognitionInstance = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onerror: ((event: Event) => void) | null;
-  onend: (() => void) | null;
-  onresult: ((event: SpeechRecognitionResultEvent) => void) | null;
-  onstart: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
-
-type SpeechWindow = Window & {
-  SpeechRecognition?: SpeechRecognitionConstructor;
-  webkitSpeechRecognition?: SpeechRecognitionConstructor;
-};
-
-type VoiceActionsProps = {
-  onAction: (action: VoiceActionId) => void;
-  canStartVoice: boolean;
-  voiceBusy: boolean;
-};
-
 const MAX_TRIGGER_LENGTH = 80;
 const MAX_SAVED_TRIGGERS = 32;
-const MAX_LISTENING_MS = 30_000;
-const SILENCE_TIMEOUT_MS = 8_000;
-/** Longest a spoken confirmation may hold the microphone before listening resumes. */
-const REPLY_GUARD_MS = 4_000;
-const RESTART_DELAY_MS = 250;
+/** How long a dictated question waits for more words before it is sent. */
+const DICTATION_SETTLE_MS = 1600;
+/** Spoken confirmations are echoed back by the microphone; ignore that window. */
+const ECHO_GUARD_MS = 700;
+/** A spoken reply that never ends must not hold the guard open forever. */
+const REPLY_GUARD_MS = 4000;
+/** Listening ends by itself after this much silence, for a forgotten tab. */
+const QUIET_LIMIT_MS = 120_000;
 
-const actionLabels: Record<VoiceActionId, string> = {
-  youtube: "Open the YouTube source tab",
-  upload: "Open the PDF upload picker",
-  voice: "Start voice chat",
-  summarize: "Ask for a key-ideas summary",
-  back: "Go back or undo the last step",
-  next: "Go forward to the next step",
-  cancel: "Cancel the current action",
+type VoiceActionsProps = {
+  /** The argument carries whatever else was said, for an action that needs it. */
+  onAction: (action: VoiceActionId, argument?: string) => void;
+  /** A spoken question, ready to send. */
+  onDictate: (text: string) => void;
+  /** Words heard so far, so the composer can show them landing. */
+  onDraft?: (text: string) => void;
+  canStartVoice: boolean;
+  voiceBusy: boolean;
+  /** The conversation phase shows a tighter panel than the source phase. */
+  compact?: boolean;
 };
-
-const actionReplies: Record<VoiceActionId, string> = {
-  youtube: "Opening the YouTube source tab.",
-  upload: "Opening the PDF upload picker.",
-  voice: "Starting voice chat.",
-  summarize: "Preparing a key-ideas summary.",
-  back: "Going back and undoing the last step.",
-  next: "Moving forward to the next step.",
-  cancel: "Cancelling the current action.",
-};
-
-const defaultTriggers: VoiceTrigger[] = [
-  { id: "default-back", phrase: "back", action: "back" },
-  { id: "default-next", phrase: "next", action: "next" },
-  { id: "default-cancel", phrase: "cancel", action: "cancel" },
-];
-
-const examples: Array<{
-  phrase: string;
-  action: VoiceActionId;
-  label: string;
-}> = [
-  { phrase: "YouTube", action: "youtube", label: "switch to YouTube" },
-  { phrase: "Upload", action: "upload", label: "open the PDF picker" },
-  { phrase: "Let's talk", action: "voice", label: "try a voice action" },
-  {
-    phrase: "Summarize this",
-    action: "summarize",
-    label: "ask for a summary",
-  },
-  { phrase: "Back", action: "back", label: "undo the last step" },
-  { phrase: "Next", action: "next", label: "continue forward" },
-  { phrase: "Cancel", action: "cancel", label: "stop the current action" },
-];
-
-function normalize(text: string): string {
-  return text
-    .toLocaleLowerCase()
-    .replace(/[-–—]/g, "")
-    .replace(/[^\p{L}\p{N}\s']/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function escaped(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function findMatches(
-  transcript: string,
-  available: VoiceTrigger[],
-): VoiceTrigger[] {
-  const spoken = normalize(transcript);
-  return available
-    .map((trigger, index) => {
-      const phrase = normalize(trigger.phrase);
-      if (!phrase) return null;
-      const match = spoken.match(
-        new RegExp(`(?:^|\\s)${escaped(phrase)}(?=$|\\s)`),
-      );
-      return match
-        ? { trigger, index, position: match.index ?? Number.MAX_SAFE_INTEGER }
-        : null;
-    })
-    .filter(
-      (
-        item,
-      ): item is { trigger: VoiceTrigger; index: number; position: number } =>
-        item !== null,
-    )
-    .sort(
-      (left, right) =>
-        left.position - right.position || left.index - right.index,
-    )
-    .map(({ trigger }) => trigger);
-}
 
 const TRIGGER_STORAGE_NAME = "ursly-voice-triggers-v1";
 
-function parseSavedTriggers(stored: string | null): VoiceTrigger[] {
+function actionLabels(): Record<VoiceActionId, string> {
+  return {
+    youtube: "Open the YouTube source tab",
+    upload: "Open the PDF upload picker",
+    voice: "Start live voice chat",
+    summarize: "Ask for a key-ideas summary",
+    ask: "Send what I just said",
+    stop: "Stop listening or stop the answer",
+    back: "Go back or undo the last step",
+    next: "Go forward to the next step",
+    cancel: "Cancel the current action",
+  };
+}
+
+/** Short enough to be over before the speaker has drawn breath. */
+function actionReplies(): Partial<Record<VoiceActionId, string>> {
+  return {
+    youtube: "YouTube.",
+    upload: "Opening your files.",
+    voice: "Starting voice chat.",
+    back: "Going back.",
+    next: "Next.",
+    cancel: "Cancelled.",
+  };
+}
+
+function parseSavedTriggers(
+  stored: string | null,
+  fallback: VoiceTrigger[],
+): VoiceTrigger[] {
   try {
-    if (stored === null) return defaultTriggers;
+    if (stored === null) return fallback;
     const saved = JSON.parse(stored) as unknown;
     if (!Array.isArray(saved)) return [];
+    const known = new Set<string>(VOICE_ACTIONS);
     return saved
-      .filter((item): item is VoiceTrigger =>
-        Boolean(
-          item &&
-            typeof item === "object" &&
-            "id" in item &&
-            "phrase" in item &&
-            "action" in item &&
-            typeof item.id === "string" &&
-            typeof item.phrase === "string" &&
-            item.phrase.trim() &&
-            typeof item.action === "string" &&
-            normalize(item.phrase) &&
-            Object.hasOwn(actionLabels, item.action),
-        ),
+      .filter(
+        (item): item is VoiceTrigger =>
+          Boolean(item) &&
+          typeof item === "object" &&
+          typeof (item as VoiceTrigger).id === "string" &&
+          typeof (item as VoiceTrigger).phrase === "string" &&
+          typeof (item as VoiceTrigger).action === "string" &&
+          known.has((item as VoiceTrigger).action) &&
+          Boolean(normalizeSpeech((item as VoiceTrigger).phrase)),
       )
       .filter((item) => item.phrase.length <= MAX_TRIGGER_LENGTH)
       .slice(0, MAX_SAVED_TRIGGERS);
@@ -197,163 +118,111 @@ function parseSavedTriggers(stored: string | null): VoiceTrigger[] {
 }
 
 /**
- * The saved triggers as an external store: browser storage is the source, the
- * server snapshot is the default set, and the parsed value is cached per raw
- * string so React sees a stable reference between renders.
+ * Saved triggers as an external store: the browser holds them, the server
+ * snapshot is the built-in set, and a parsed value is cached per raw string so
+ * React sees a stable reference between renders.
  */
-let savedTriggersCache: { raw: string | null; parsed: VoiceTrigger[] } = {
-  raw: null,
-  parsed: defaultTriggers,
-};
-function readSavedTriggers(): VoiceTrigger[] {
+let savedCache: {
+  raw: string | null;
+  language: string;
+  parsed: VoiceTrigger[];
+} = { raw: null, language: "", parsed: [] };
+
+function readSavedTriggers(language: "en" | "fr"): VoiceTrigger[] {
   let raw: string | null = null;
   try {
     raw = localStorage.getItem(TRIGGER_STORAGE_NAME);
   } catch {
     raw = null;
   }
-  if (savedTriggersCache.raw !== raw || raw === null)
-    savedTriggersCache = { raw, parsed: parseSavedTriggers(raw) };
-  return savedTriggersCache.parsed;
+  if (savedCache.raw !== raw || savedCache.language !== language)
+    savedCache = {
+      raw,
+      language,
+      parsed: parseSavedTriggers(raw, defaultTriggers(language)),
+    };
+  return savedCache.parsed;
 }
+
 function subscribeToTriggerStorage(notify: () => void): () => void {
   window.addEventListener("storage", notify);
   return () => window.removeEventListener("storage", notify);
 }
 
-function browserSupportsSpeechRecognition(): boolean {
-  if (typeof window === "undefined") return false;
-  const speechWindow = window as SpeechWindow;
-  return Boolean(
-    speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition,
-  );
-}
-
 export function VoiceActions({
   onAction,
+  onDictate,
+  onDraft,
   canStartVoice,
   voiceBusy,
+  compact = false,
 }: VoiceActionsProps) {
   const { language, t } = useLanguage();
-  const speechLocale = SPEECH_LOCALES[language];
-  const [open, setOpen] = useState(false);
-  const [phrase, setPhrase] = useState("");
-  const [action, setAction] = useState<VoiceActionId>("upload");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  // Saved triggers live in browser storage, which the server cannot read: the
-  // server snapshot is the default set, hydration reads the saved one, and an
-  // edit made on this page wins over both until it is persisted.
+  const labels = useMemo(() => actionLabels(), []);
+  const replies = useMemo(() => actionReplies(), []);
+  const serverTriggers = useMemo(() => defaultTriggers(language), [language]);
   const savedTriggers = useSyncExternalStore(
     subscribeToTriggerStorage,
-    readSavedTriggers,
-    () => defaultTriggers,
+    () => readSavedTriggers(language),
+    () => serverTriggers,
   );
   const [editedTriggers, setEditedTriggers] = useState<VoiceTrigger[] | null>(
     null,
   );
   const triggers = editedTriggers ?? savedTriggers;
-  const setTriggers = useCallback(
-    (update: (current: VoiceTrigger[]) => VoiceTrigger[]) =>
-      setEditedTriggers((current) => update(current ?? readSavedTriggers())),
-    [],
-  );
-  // The server cannot know the browser; it assumes support and hydration
-  // corrects it without a mismatch.
+
   const supported = useSyncExternalStore(
     () => () => {},
-    browserSupportsSpeechRecognition,
+    speechRecognitionSupported,
     () => true,
   );
-  const [armed, setArmed] = useState(false);
+
+  const [open, setOpen] = useState(false);
+  const [phrase, setPhrase] = useState("");
+  const [action, setAction] = useState<VoiceActionId>("summarize");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
   const [heard, setHeard] = useState("");
-  const [notice, setNotice] = useState(
-    "Press once, then say a command such as “upload” or “YouTube”.",
-  );
-  const recognition = useRef<SpeechRecognitionInstance | null>(null);
-  const armedRef = useRef(false);
-  const startingRef = useRef(false);
-  const listeningEpoch = useRef(0);
-  const maximumTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
-  const silenceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
-  const restartTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
-  const resumeAfterSpeech = useRef(false);
-  const triggersRef = useRef(triggers);
-  const handledTriggers = useRef(new Set<string>());
-  const onActionRef = useRef(onAction);
+  const [draft, setDraft] = useState("");
+  const [notice, setNotice] = useState("");
+  const [problem, setProblem] = useState("");
 
+  const listener = useRef<SpeechListener | null>(null);
+  const draftRef = useRef("");
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const echoUntil = useRef(0);
+  // Every handler below is created once and reads the latest props through
+  // these, so changing a prop never tears down a live microphone.
+  const latest = useRef({
+    onAction,
+    onDictate,
+    onDraft,
+    canStartVoice,
+    voiceBusy,
+    triggers,
+    language,
+  });
   useEffect(() => {
-    onActionRef.current = onAction;
-  }, [onAction]);
-
-  useEffect(() => {
-    triggersRef.current = triggers;
-  }, [triggers]);
-
-  function speak(reply: string, onDone?: () => void) {
-    if (typeof window === "undefined" || !window.speechSynthesis) return false;
-    if (typeof SpeechSynthesisUtterance === "undefined") return false;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(reply);
-    utterance.lang = speechLocale;
-    // A browser without a voice never reports the end of an utterance. The
-    // microphone must not stay closed behind a reply nobody hears, so the
-    // hand-back happens on end, on error, or after the reply's own length.
-    let settled = false;
-    const settle = () => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(guard);
-      onDone?.();
+    latest.current = {
+      onAction,
+      onDictate,
+      onDraft,
+      canStartVoice,
+      voiceBusy,
+      triggers,
+      language,
     };
-    const guard = window.setTimeout(settle, REPLY_GUARD_MS);
-    utterance.onend = settle;
-    utterance.onerror = settle;
-    window.speechSynthesis.speak(utterance);
-    return true;
-  }
+  });
 
-  function clearListeningTimers() {
-    if (maximumTimer.current) clearTimeout(maximumTimer.current);
-    if (silenceTimer.current) clearTimeout(silenceTimer.current);
-    if (restartTimer.current) clearTimeout(restartTimer.current);
-    maximumTimer.current = undefined;
-    silenceTimer.current = undefined;
-    restartTimer.current = undefined;
-  }
-
-  function stopListening(
-    message = "Voice actions are off. Your saved triggers are ready for next time.",
-  ) {
-    listeningEpoch.current += 1;
-    armedRef.current = false;
-    startingRef.current = false;
-    resumeAfterSpeech.current = false;
-    clearListeningTimers();
-    const current = recognition.current;
-    recognition.current = null;
-    try {
-      current?.stop();
-    } catch {
-      /* Recognition may already have ended; stopping is intentionally idempotent. */
-    }
-    setArmed(false);
-    setNotice(message);
-  }
-
-  function resetSilenceTimer(epoch: number) {
-    if (!armedRef.current || epoch !== listeningEpoch.current) return;
-    if (silenceTimer.current) clearTimeout(silenceTimer.current);
-    silenceTimer.current = setTimeout(() => {
-      if (epoch !== listeningEpoch.current || !armedRef.current) return;
-      stopListening("Voice actions stopped after 8 seconds without speech.");
-    }, SILENCE_TIMEOUT_MS);
-  }
+  const setTriggers = useCallback(
+    (update: (current: VoiceTrigger[]) => VoiceTrigger[]) =>
+      setEditedTriggers((current) =>
+        update(current ?? readSavedTriggers(latest.current.language)),
+      ),
+    [],
+  );
 
   useEffect(() => {
     if (!editedTriggers) return;
@@ -363,111 +232,246 @@ export function VoiceActions({
         JSON.stringify(editedTriggers),
       );
     } catch {
-      /* Voice triggers still work for this session when storage is unavailable. */
+      /* Triggers still work for this session when storage is unavailable. */
     }
   }, [editedTriggers]);
 
+  const speak = useCallback((reply: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    if (typeof SpeechSynthesisUtterance === "undefined") return;
+    const utterance = new SpeechSynthesisUtterance(reply);
+    utterance.lang = SPEECH_LOCALES[latest.current.language];
+    // The reply comes out of the speakers and straight back into the
+    // microphone. Rather than closing the microphone — which loses the next
+    // sentence — the guard makes listening ignore what it hears meanwhile.
+    echoUntil.current = Date.now() + REPLY_GUARD_MS;
+    const release = () => {
+      echoUntil.current = Date.now() + ECHO_GUARD_MS;
+    };
+    utterance.onend = release;
+    utterance.onerror = release;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
+  const publishDraft = useCallback((text: string) => {
+    draftRef.current = text;
+    setDraft(text);
+    latest.current.onDraft?.(text);
+  }, []);
+
+  const sendDraft = useCallback(() => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = undefined;
+    const text = draftRef.current.trim();
+    if (!text) return;
+    publishDraft("");
+    setHeard("");
+    latest.current.onDictate(text);
+  }, [publishDraft]);
+
+  const stopListening = useCallback((message = "") => {
+    listener.current?.stop();
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = undefined;
+    setNotice(message);
+  }, []);
+
+  const runAction = useCallback(
+    (target: VoiceActionId, spoken?: string, argument?: string) => {
+      const { canStartVoice: ready, onAction: run } = latest.current;
+      if (target === "voice" && !ready) {
+        setNotice(t("Add a PDF or YouTube source first, then say it again."));
+        return;
+      }
+      if (target === "ask") {
+        sendDraft();
+        return;
+      }
+      if (target === "stop" || target === "cancel") {
+        publishDraft("");
+        stopListening(
+          target === "stop"
+            ? t("Stopped listening.")
+            : t("Cancelled. Nothing was sent."),
+        );
+        if (target === "cancel") run(target);
+        return;
+      }
+      // With an argument the page says something far more useful than the
+      // shortcut's own name — which video it is opening — so it speaks instead.
+      setNotice(
+        argument
+          ? ""
+          : spoken
+            ? t("Heard “{spoken}” · {action}.", {
+                spoken,
+                action: t(labels[target]),
+              })
+            : `${t(labels[target])}.`,
+      );
+      const reply = replies[target];
+      if (reply && spoken) speak(reply);
+      run(target, argument);
+    },
+    [labels, publishDraft, replies, sendDraft, speak, stopListening, t],
+  );
+
+  const handlePhrase = useCallback(
+    ({ text, final }: { text: string; final: boolean }) => {
+      if (Date.now() < echoUntil.current) return;
+      setHeard(text);
+      // Acting on a hypothesis fires commands nobody said: "back" on the way to
+      // "backpack". Only settled text moves anything.
+      if (!final) return;
+      const { triggers: available, language: locale } = latest.current;
+      const matches = matchCommands(text, available, { language: locale });
+      const leftover = dictationText(text, matches);
+      const commands = matches.filter(
+        (match) => match.trigger.action !== "ask",
+      );
+      const asked = matches.some((match) => match.trigger.action === "ask");
+
+      // What a command leaves behind is only dictation if something was said.
+      // "Can you go back please" is one instruction; treating its leftover as a
+      // question would leave "can you please" sitting in the composer.
+      const said =
+        commands.length === 0
+          ? leftover
+          : isSpokenContent(leftover)
+            ? leftover
+            : "";
+
+      // The speaker put their own words around a built-in command: "summarize
+      // this in three points" is their request, not the canned one, so the
+      // whole sentence goes to the assistant and the shortcut stands aside.
+      const rephrased =
+        said &&
+        isLikelyQuestion(said) &&
+        commands.some((match) => carriesOwnPhrasing(match.trigger.action));
+      if (rephrased) {
+        publishDraft(text);
+        sendDraft();
+        return;
+      }
+
+      // An action that takes an argument claims the rest of the sentence:
+      // "YouTube, Miles Davis" is one instruction, not a command and a question.
+      const searching = commands.find((match) =>
+        takesSpokenArgument(match.trigger.action),
+      );
+      const argument = searching ? spokenArgument(leftover) : "";
+      if (said && !argument) {
+        const next = draftRef.current ? `${draftRef.current} ${said}` : said;
+        publishDraft(next);
+      }
+      for (const match of commands)
+        runAction(
+          match.trigger.action,
+          text,
+          match === searching && argument ? argument : undefined,
+        );
+      // The words have been acted on. Leaving them under "Heard" makes a command
+      // that is already finished look like a question still waiting to be sent.
+      if (commands.length > 0 && !draftRef.current) setHeard("");
+      if (!listener.current?.listening()) return;
+      if (asked) {
+        sendDraft();
+        return;
+      }
+      // Nothing was commanded and the words stand on their own: treat the pause
+      // that follows as the end of a question, the way a listener would.
+      if (settleTimer.current) clearTimeout(settleTimer.current);
+      if (commands.length === 0 && isLikelyQuestion(draftRef.current))
+        settleTimer.current = setTimeout(sendDraft, DICTATION_SETTLE_MS);
+    },
+    [publishDraft, runAction, sendDraft],
+  );
+
+  const handleError = useCallback(
+    (reason: SpeechErrorReason) => {
+      setProblem(
+        reason === "denied"
+          ? t(
+              "Voice needs microphone access. Allow it in your browser, then press Speak again.",
+            )
+          : reason === "unavailable"
+            ? t(
+                "This browser does not recognise speech. The buttons below do the same things.",
+              )
+            : t("The microphone dropped out. Press Speak to pick it back up."),
+      );
+    },
+    [t],
+  );
+
+  useEffect(() => {
+    const instance = createSpeechListener({
+      language: SPEECH_LOCALES[language],
+      quietLimitMs: QUIET_LIMIT_MS,
+      onPhrase: handlePhrase,
+      onError: handleError,
+      onListeningChange: setListening,
+    });
+    listener.current = instance;
+    return () => {
+      instance.stop();
+      listener.current = null;
+    };
+    // The listener is built once; language changes are applied below so that a
+    // re-render never drops a microphone the reader is speaking into.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handleError, handlePhrase]);
+
+  useEffect(() => {
+    listener.current?.setLanguage(SPEECH_LOCALES[language]);
+  }, [language]);
+
+  useEffect(() => {
+    // A live realtime session owns the microphone; two listeners on one device
+    // transcribe each other. Release it without touching the notice, which the
+    // panel is already showing for the session itself.
+    if (voiceBusy) listener.current?.stop();
+  }, [voiceBusy]);
+
+  useEffect(() => {
+    function pause() {
+      if (document.visibilityState !== "visible")
+        stopListening(t("Listening stopped when this page was hidden."));
+    }
+    document.addEventListener("visibilitychange", pause);
+    return () => document.removeEventListener("visibilitychange", pause);
+  }, [stopListening, t]);
+
   useEffect(
     () => () => {
-      armedRef.current = false;
-      listeningEpoch.current += 1;
-      clearListeningTimers();
-      try {
-        recognition.current?.stop();
-      } catch {
-        /* The component is unmounting; there is nothing left to recover. */
-      }
-      recognition.current = null;
+      if (settleTimer.current) clearTimeout(settleTimer.current);
     },
     [],
   );
 
-  useEffect(() => {
-    if (voiceBusy && armedRef.current) {
-      stopListening(
-        "Voice actions paused while Ursly is busy with another action.",
-      );
-    }
-  }, [voiceBusy]);
-
-  useEffect(() => {
-    function stopWhenHidden() {
-      if (document.visibilityState !== "visible" && armedRef.current)
-        stopListening("Voice actions stopped when this page was hidden.");
-    }
-    document.addEventListener("visibilitychange", stopWhenHidden);
-    return () =>
-      document.removeEventListener("visibilitychange", stopWhenHidden);
-  }, []);
-
-  function runAction(trigger: VoiceTrigger, transcript = trigger.phrase) {
-    if (voiceBusy) {
-      stopListening(
-        "Voice actions paused while Ursly is busy with another action.",
-      );
+  function startListening() {
+    setProblem("");
+    if (!supported) {
+      handleError("unavailable");
       return;
     }
-    if (trigger.action === "voice" && !canStartVoice) {
-      if (armedRef.current) stopListening();
-      setNotice(
-        "Add a PDF or YouTube source first, then say “let’s talk” again.",
-      );
-      return;
-    }
-    const continueListening =
-      armedRef.current &&
-      !["upload", "voice", "cancel"].includes(trigger.action);
-    if (continueListening) {
-      stopListening("Voice actions are preparing for the next command.");
-      resumeAfterSpeech.current = true;
-    } else if (
-      armedRef.current &&
-      ["upload", "voice", "cancel"].includes(trigger.action)
-    ) {
-      stopListening();
-    }
-    setNotice(
-      `Triggered “${trigger.phrase}” · ${actionLabels[trigger.action]}.`,
-    );
-    const resumed = speak(
-      actionReplies[trigger.action],
-      continueListening
-        ? () => {
-            if (!resumeAfterSpeech.current || voiceBusy) return;
-            resumeAfterSpeech.current = false;
-            startListening();
-          }
-        : undefined,
-    );
-    if (continueListening && !resumed) {
-      resumeAfterSpeech.current = false;
-      startListening();
-    }
-    onActionRef.current(trigger.action);
-  }
-
-  function runExample(example: (typeof examples)[number]) {
-    runAction(
-      {
-        id: `example-${example.action}`,
-        phrase: example.phrase,
-        action: example.action,
-      },
-      example.phrase,
-    );
+    setNotice("");
+    listener.current?.start();
   }
 
   function saveTrigger(event: FormEvent) {
     event.preventDefault();
-    const nextPhrase = phrase.trim();
-    const normalizedPhrase = normalize(nextPhrase);
-    if (!normalizedPhrase) {
-      setNotice("Use at least one letter or number in the trigger phrase.");
+    const next = phrase.trim();
+    if (!normalizeSpeech(next)) {
+      setProblem(t("Use at least one letter or number in the trigger phrase."));
       return;
     }
-    if (nextPhrase.length > MAX_TRIGGER_LENGTH) {
-      setNotice(
-        `Keep trigger phrases to ${MAX_TRIGGER_LENGTH} characters or fewer.`,
+    if (next.length > MAX_TRIGGER_LENGTH) {
+      setProblem(
+        t("Keep trigger phrases to {max} characters or fewer.", {
+          max: MAX_TRIGGER_LENGTH,
+        }),
       );
       return;
     }
@@ -475,220 +479,144 @@ export function VoiceActions({
       triggers.some(
         (trigger) =>
           trigger.id !== editingId &&
-          normalize(trigger.phrase) === normalizedPhrase,
+          normalizeSpeech(trigger.phrase) === normalizeSpeech(next),
       )
     ) {
-      setNotice(`“${nextPhrase}” is already saved. Choose a different phrase.`);
+      setProblem(t("“{phrase}” is already saved.", { phrase: next }));
       return;
     }
     if (!editingId && triggers.length >= MAX_SAVED_TRIGGERS) {
-      setNotice(`You can save up to ${MAX_SAVED_TRIGGERS} voice triggers.`);
+      setProblem(
+        t("You can save up to {max} voice triggers.", {
+          max: MAX_SAVED_TRIGGERS,
+        }),
+      );
       return;
     }
-    const next: VoiceTrigger = {
+    const saved: VoiceTrigger = {
       id:
         editingId ??
         (typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `trigger-${Date.now()}-${Math.random().toString(36).slice(2)}`),
-      phrase: nextPhrase,
+      phrase: next,
       action,
     };
     setTriggers((current) =>
       editingId
-        ? current.map((item) => (item.id === editingId ? next : item))
-        : [...current, next],
+        ? current.map((item) => (item.id === editingId ? saved : item))
+        : [...current, saved],
     );
     setPhrase("");
     setEditingId(null);
-    setNotice(
-      `${editingId ? "Updated" : "Saved"} trigger: ${nextPhrase}. Arm voice actions and say it to run the action.`,
-    );
+    setProblem("");
+    setNotice(t("Saved “{phrase}”. Press Speak and say it.", { phrase: next }));
   }
 
-  function startListening() {
-    if (armedRef.current || startingRef.current || voiceBusy) return;
-    if (!supported) {
-      setNotice(
-        "This browser does not support speech recognition. Use the example buttons or type instead.",
-      );
-      return;
-    }
-    if (triggers.length === 0) {
-      setOpen(true);
-      setNotice("Create at least one trigger before arming voice actions.");
-      return;
-    }
-    const speechWindow = window as SpeechWindow;
-    const SpeechRecognition =
-      speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+  const examples = useMemo(() => {
+    const phrases = defaultPhrases(language);
+    const shown: VoiceActionId[] = canStartVoice
+      ? ["summarize", "voice", "next", "stop"]
+      : ["upload", "youtube", "summarize", "cancel"];
+    return shown.map((id) => ({
+      action: id,
+      phrase: phrases[id][0] ?? id,
+      label: labels[id],
+    }));
+  }, [canStartVoice, labels, language]);
 
-    let instance: SpeechRecognitionInstance;
-    try {
-      instance = new SpeechRecognition();
-    } catch {
-      setNotice(
-        "Voice actions could not start. Check microphone permissions and try again.",
-      );
-      return;
-    }
-    const epoch = listeningEpoch.current + 1;
-    listeningEpoch.current = epoch;
-    startingRef.current = true;
-    instance.continuous = true;
-    instance.interimResults = true;
-    instance.lang = speechLocale;
-    instance.onstart = () => {
-      if (
-        epoch !== listeningEpoch.current ||
-        recognition.current !== instance
-      ) {
-        try {
-          instance.stop();
-        } catch {
-          /* Ignore a stale recognition instance. */
-        }
-        return;
-      }
-      startingRef.current = false;
-      handledTriggers.current.clear();
-      setArmed(true);
-      setNotice(
-        `Listening for ${triggersRef.current.map((item) => `“${item.phrase}”`).join(", ")}.`,
-      );
-      resetSilenceTimer(epoch);
-    };
-    instance.onresult = (event) => {
-      if (epoch !== listeningEpoch.current || recognition.current !== instance)
-        return;
-      const transcript = Array.from(
-        { length: event.results.length - event.resultIndex },
-        (_, index) =>
-          event.results[event.resultIndex + index]?.[0]?.transcript ?? "",
-      )
-        .join(" ")
-        .trim();
-      if (!transcript) return;
-      resetSilenceTimer(epoch);
-      setHeard(transcript);
-      for (const match of findMatches(transcript, triggersRef.current)) {
-        if (handledTriggers.current.has(match.id)) continue;
-        handledTriggers.current.add(match.id);
-        runAction(match, transcript);
-        if (!armedRef.current) break;
-      }
-    };
-    instance.onerror = (event) => {
-      if (epoch !== listeningEpoch.current || recognition.current !== instance)
-        return;
-      const error = (event as Event & { error?: string }).error;
-      stopListening(
-        error === "not-allowed" || error === "service-not-allowed"
-          ? "Voice actions need microphone access. Check the browser permission and try again."
-          : "Voice recognition stopped unexpectedly. Press Arm voice actions to try again.",
-      );
-    };
-    instance.onend = () => {
-      if (epoch !== listeningEpoch.current || recognition.current !== instance)
-        return;
-      startingRef.current = false;
-      setArmed(false);
-      setNotice("Voice actions are reconnecting to the microphone…");
-      if (!armedRef.current) {
-        return;
-      }
-      restartTimer.current = setTimeout(() => {
-        if (
-          epoch !== listeningEpoch.current ||
-          !armedRef.current ||
-          recognition.current !== instance
-        )
-          return;
-        try {
-          instance.start();
-        } catch {
-          stopListening(
-            "Voice actions stopped. Press Arm voice actions to restart them.",
-          );
-        }
-      }, RESTART_DELAY_MS);
-    };
-    recognition.current = instance;
-    armedRef.current = true;
-    try {
-      instance.start();
-    } catch {
-      clearListeningTimers();
-      armedRef.current = false;
-      startingRef.current = false;
-      recognition.current = null;
-      setNotice(
-        "Voice actions could not start. Check microphone permissions and try again.",
-      );
-      return;
-    }
-    maximumTimer.current = setTimeout(() => {
-      if (epoch === listeningEpoch.current && armedRef.current)
-        stopListening(
-          "Voice actions stopped after 30 seconds for your privacy.",
-        );
-    }, MAX_LISTENING_MS);
-  }
-
-  const examplesToShow = examples.slice(0, 4);
+  const resting = listening
+    ? canStartVoice
+      ? "Ask your question out loud, or say a command. It sends when you pause."
+      : "Say “upload”, or say “YouTube” and the artist or title you want."
+    : canStartVoice
+      ? "Press Speak, then ask your question out loud. Say “summarize this”, or just talk."
+      : "Press Speak, then say a command such as “upload” or “YouTube”.";
 
   return (
     <section
       className="voice-commands"
       aria-labelledby="voice-actions-heading"
-      data-armed={armed}
+      data-armed={listening}
+      data-compact={compact}
     >
       <div className="voice-commands-row">
         <button
           type="button"
           className="voice-mic"
           disabled={voiceBusy}
-          aria-pressed={armed}
-          onClick={armed ? () => stopListening() : startListening}
+          aria-pressed={listening}
+          onClick={listening ? () => stopListening("") : startListening}
         >
           <span className="voice-mic-ring" aria-hidden="true" />
           <Icon name="voice" />
           <span className="voice-mic-label">
-            {armed ? t("Stop listening") : t("Speak a command")}
+            {listening ? t("Stop listening") : t("Speak")}
           </span>
         </button>
         <div className="voice-commands-status" role="status" aria-live="polite">
           <strong id="voice-actions-heading">
-            {armed ? t("Listening for a command") : t("Voice to action")}
+            {listening ? t("Listening") : t("Voice to action")}
           </strong>
-          <span>{t(notice)}</span>
+          <span>{notice || t(resting)}</span>
         </div>
       </div>
+
+      {(draft || (listening && heard)) && (
+        <div className="voice-draft">
+          <span className="voice-draft-label">
+            {draft ? t("Your question") : t("Heard")}
+          </span>
+          <span className="voice-draft-text">
+            {draft || <em>{heard}</em>}
+            {draft && heard && !draft.endsWith(heard) ? (
+              <em> {heard}</em>
+            ) : null}
+          </span>
+          {draft && (
+            <div className="voice-draft-actions">
+              <button
+                type="button"
+                className="voice-example"
+                onClick={sendDraft}
+              >
+                {t("Send it")}
+              </button>
+              <button
+                type="button"
+                className="voice-example"
+                onClick={() => publishDraft("")}
+              >
+                {t("Clear")}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div
         className="voice-example-row"
         aria-label={t("Voice command examples")}
       >
         <span className="voice-example-say">{t("Say")}</span>
-        {examplesToShow.map((example) => (
+        {examples.map((example) => (
           <button
-            key={example.phrase}
+            key={example.action}
             type="button"
             className="voice-example"
             disabled={voiceBusy}
-            aria-label={`“${t(example.phrase)}” ${t(example.label)}`}
+            aria-label={`“${example.phrase}” — ${t(example.label)}`}
             title={t(example.label)}
-            onClick={() => runExample(example)}
+            onClick={() => runAction(example.action)}
           >
-            “{t(example.phrase)}”
+            “{example.phrase}”
           </button>
         ))}
       </div>
 
-      {heard && (
-        <p className="voice-heard" role="status">
-          {t("Heard:")} <strong>{heard}</strong>
+      {problem && (
+        <p className="voice-error" role="alert">
+          {problem}
         </p>
       )}
 
@@ -703,7 +631,7 @@ export function VoiceActions({
             <h3>{t("Build a trigger")}</h3>
             <p>
               {t(
-                "The phrases stay on this device. Every action is configurable, including the built-in Back, Next, and Cancel commands.",
+                "The phrases stay on this device. Every action is configurable, and the built-in wordings keep working alongside yours.",
               )}
             </p>
           </div>
@@ -731,9 +659,9 @@ export function VoiceActions({
                   setAction(event.target.value as VoiceActionId)
                 }
               >
-                {Object.entries(actionLabels).map(([id, label]) => (
+                {VOICE_ACTIONS.map((id) => (
                   <option key={id} value={id}>
-                    {t(label)}
+                    {t(labels[id])}
                   </option>
                 ))}
               </select>
@@ -741,7 +669,7 @@ export function VoiceActions({
             <button
               className="primary"
               type="submit"
-              disabled={!normalize(phrase)}
+              disabled={!normalizeSpeech(phrase)}
             >
               {editingId ? t("Update trigger") : t("Save trigger")}
             </button>
@@ -750,7 +678,7 @@ export function VoiceActions({
           <div className="saved-trigger-list">
             {triggers.length === 0 ? (
               <p className="hint">
-                {t("No saved triggers yet. Start with “upload” or “YouTube”.")}
+                {t("No saved triggers. The built-in wordings still work.")}
               </p>
             ) : (
               triggers.map((trigger) => (
@@ -759,7 +687,7 @@ export function VoiceActions({
                     “{trigger.phrase}”
                   </span>
                   <span className="saved-trigger-action">
-                    {t(actionLabels[trigger.action])}
+                    {t(labels[trigger.action])}
                   </span>
                   <div className="saved-trigger-actions">
                     <button
@@ -799,14 +727,7 @@ export function VoiceActions({
           {!supported && (
             <p className="hint voice-support-note">
               {t(
-                "Live speech recognition is not available in this browser. The example buttons still preview every action.",
-              )}
-            </p>
-          )}
-          {!canStartVoice && (
-            <p className="hint voice-support-note">
-              {t(
-                "Start voice chat becomes available after you add a PDF or YouTube source.",
+                "Live speech recognition is not available in this browser. The example buttons still run every action.",
               )}
             </p>
           )}

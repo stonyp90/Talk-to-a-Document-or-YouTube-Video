@@ -4,6 +4,7 @@ import {
   resolveSession,
 } from "@/apps/web/src/composition";
 import { errorResponse, json, jsonError, rateLimit } from "@/apps/web/src/http";
+import { guard, unitsFor } from "@/apps/web/src/auth";
 import { textChatSchema } from "@/apps/web/src/validation";
 
 export async function POST(request: Request) {
@@ -13,6 +14,8 @@ export async function POST(request: Request) {
     windowMs: 60_000,
   });
   if (limited) return limited;
+  const account = await guard(request, { units: unitsFor("textChat") });
+  if (account instanceof Response) return account;
   try {
     const parsed = textChatSchema.safeParse(await request.json());
     if (!parsed.success)
@@ -35,6 +38,9 @@ export async function POST(request: Request) {
     ]);
     return json({ answer, sourceId: session.id });
   } catch (error) {
-    return errorResponse(error, "The answer could not be produced. Please retry.");
+    return errorResponse(
+      error,
+      "The answer could not be produced. Please retry.",
+    );
   }
 }

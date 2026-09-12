@@ -30,8 +30,9 @@ test.describe("first visit", () => {
     await page.getByRole("button", { name: "Skip intro" }).click();
     await expect(intro(page)).toHaveCount(0);
     await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
-    expect(await page.evaluate((key) => localStorage.getItem(key), INTRO_KEY))
-      .toBe("seen");
+    expect(
+      await page.evaluate((key) => localStorage.getItem(key), INTRO_KEY),
+    ).toBe("seen");
     await page.reload();
     await expect(intro(page)).toHaveCount(0);
     await nav(page).getByRole("button", { name: "Watch the intro" }).click();
@@ -126,7 +127,10 @@ test.describe("french visitor", () => {
 
 test.describe("returning visitor", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((key) => localStorage.setItem(key, "seen"), INTRO_KEY);
+    await page.addInitScript(
+      (key) => localStorage.setItem(key, "seen"),
+      INTRO_KEY,
+    );
   });
 
   for (const width of [320, 390, 768, 1440]) {
@@ -138,16 +142,27 @@ test.describe("returning visitor", () => {
       expect(await bar.evaluate((el) => getComputedStyle(el).position)).toBe(
         "fixed",
       );
-      const height = await bar.evaluate((el) => el.getBoundingClientRect().height);
+      const height = await bar.evaluate(
+        (el) => el.getBoundingClientRect().height,
+      );
       expect(height).toBeLessThanOrEqual(width <= 960 ? 112 : 72);
-      // The workspace is the first thing under the menu, not a billboard.
-      const workspaceTop = await page
-        .locator("#workspace")
-        .evaluate((el) => el.getBoundingClientRect().top);
-      expect(workspaceTop).toBeLessThanOrEqual(width <= 960 ? 340 : 280);
+      // The controls are the first thing under the menu, not a billboard. In
+      // voice mode the panel leads, and the two cards follow it.
+      const [panelTop, workspaceTop] = await Promise.all([
+        page
+          .locator(".voice-commands")
+          .evaluate((el) => el.getBoundingClientRect().top),
+        page
+          .locator("#workspace")
+          .evaluate((el) => el.getBoundingClientRect().top),
+      ]);
+      expect(panelTop).toBeLessThanOrEqual(width <= 960 ? 340 : 280);
+      expect(workspaceTop).toBeGreaterThan(panelTop);
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await page.waitForTimeout(150);
-      expect(await bar.evaluate((el) => el.getBoundingClientRect().top)).toBe(0);
+      expect(await bar.evaluate((el) => el.getBoundingClientRect().top)).toBe(
+        0,
+      );
       expect(await bar.getAttribute("data-scrolled")).toBe("true");
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
@@ -160,7 +175,9 @@ test.describe("returning visitor", () => {
   }) => {
     await page.goto("/");
     const voice = modes(page).getByRole("radio", { name: "Voice to action" });
-    const keyboard = modes(page).getByRole("radio", { name: "Keyboard to action" });
+    const keyboard = modes(page).getByRole("radio", {
+      name: "Keyboard to action",
+    });
     const motion = modes(page).getByRole("radio", { name: /Motion to action/ });
     await expect(voice).toHaveAttribute("aria-checked", "true");
     await expect(motion).toHaveAttribute("aria-disabled", "true");
@@ -191,10 +208,9 @@ test.describe("returning visitor", () => {
       nav(page).evaluate((el) => el.getBoundingClientRect().height),
     ]);
     expect(top).toBeGreaterThanOrEqual(barHeight - 1);
-    await expect(nav(page).getByRole("link", { name: "Platform" })).toHaveAttribute(
-      "aria-current",
-      "location",
-    );
+    await expect(
+      nav(page).getByRole("link", { name: "Platform" }),
+    ).toHaveAttribute("aria-current", "location");
   });
 
   test("keyboard mode keeps the picker in place; voice mode adds one listening button", async ({
@@ -203,12 +219,14 @@ test.describe("returning visitor", () => {
     await page.goto("/");
     await expect(page.getByLabel("PDF file")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Speak a command" }),
+      page.getByRole("button", { name: "Speak", exact: true }),
     ).toBeVisible();
-    await modes(page).getByRole("radio", { name: "Keyboard to action" }).click();
+    await modes(page)
+      .getByRole("radio", { name: "Keyboard to action" })
+      .click();
     await expect(page.getByLabel("PDF file")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Speak a command" }),
+      page.getByRole("button", { name: "Speak", exact: true }),
     ).toHaveCount(0);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),

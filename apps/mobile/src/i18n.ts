@@ -316,6 +316,38 @@ export const french = {
   "Open the source": "Ouvrir la source",
   "Add a source first to open this section.":
     "Ajoutez d’abord une source pour ouvrir cette section.",
+  // Signing in. Voice, documents and answers run on a paid model, so the app
+  // asks who is reading before it spends anything.
+  "SIGN IN": "CONNEXION",
+  "Sign in to keep exploring": "Connectez-vous pour continuer d’explorer",
+  "Voice, documents and answers run on a paid model, so they are for signed-in readers. We send a code — no password to remember.":
+    "La voix, les documents et les réponses fonctionnent avec un modèle payant : ils sont réservés aux personnes connectées. Nous envoyons un code, sans mot de passe à retenir.",
+  "Your email address": "Votre adresse courriel",
+  "you@example.com": "vous@exemple.com",
+  "Send me a code": "Envoyez-moi un code",
+  "Sending your code…": "Envoi de votre code…",
+  "Check your email": "Vérifiez votre courriel",
+  "We sent a code to": "Nous avons envoyé un code à",
+  "Your code": "Votre code",
+  "Enter the code": "Entrez le code",
+  "Sign in": "Se connecter",
+  "Signing you in…": "Connexion en cours…",
+  "Use another address": "Utiliser une autre adresse",
+  "Send a new code": "Envoyer un nouveau code",
+  "Enter a valid email address.": "Entrez une adresse courriel valide.",
+  "Enter the code exactly as it appears in the email.":
+    "Entrez le code exactement comme il apparaît dans le courriel.",
+  "The code is on its way.": "Le code s’en vient.",
+  "Not right now": "Pas maintenant",
+  "Your account": "Votre compte",
+  "Signed in as": "Connecté comme",
+  "Sign out": "Se déconnecter",
+  "You are signed out.": "Vous êtes déconnecté.",
+  "Your session ended. Sign in again to continue.":
+    "Votre session a pris fin. Reconnectez-vous pour continuer.",
+  "You have reached your limit for now. It reopens shortly.":
+    "Vous avez atteint votre limite pour le moment. Elle se rouvre sous peu.",
+  "Sign in to continue": "Connectez-vous pour continuer",
 } as const;
 export type TranslationKey = keyof typeof french;
 export function translate(language: Language, key: TranslationKey): string {

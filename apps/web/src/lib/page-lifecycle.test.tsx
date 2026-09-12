@@ -56,6 +56,8 @@ async function ingestFixture(request: ReturnType<typeof vi.fn>): Promise<void> {
 it("offers voice without hiding it behind a disclosure", async () => {
   await ingestFixture(
     vi.fn(async (url: string) => {
+      if (url === "/api/auth/session")
+        return Response.json({ email: "reader@example.com" });
       if (url === "/api/health") return Response.json({ directUpload: false });
       if (url === "/api/ingest") return Response.json(envelope);
       throw new Error(`Unexpected request ${url}`);
@@ -72,6 +74,8 @@ it("unmount aborts session setup and ignores its eventual response", async () =>
   let resolveSession!: (response: Response) => void;
   let sessionSignal: AbortSignal | undefined;
   const request = vi.fn(async (url: string, options?: RequestInit) => {
+    if (url === "/api/auth/session")
+      return Response.json({ email: "reader@example.com" });
     if (url === "/api/health") return Response.json({ directUpload: false });
     if (url === "/api/ingest") return Response.json(envelope);
     if (url === "/api/realtime/session") {

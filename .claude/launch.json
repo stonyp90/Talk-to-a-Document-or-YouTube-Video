@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ursly-voice-chat",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace", "@talk/web", "--", "--port", "3177"],
+      "port": 3177
+    }
+  ]
+}

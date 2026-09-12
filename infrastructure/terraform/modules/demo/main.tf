@@ -13,6 +13,32 @@ locals {
     { "ANY /" = "api", "ANY /{proxy+}" = "api", "GET /transcript/{videoId}" = "transcript" },
     { for route in local.paid_routes : route => "api" }
   )
+
+  # SES identities are regional and owned by the operator. Terraform reads them,
+  # it never creates them, so everything below is derived from the sender that
+  # was verified by hand rather than from a resource in this state.
+  ses_region   = var.ses_region == "" ? var.region : var.ses_region
+  ses_domain   = var.ses_from_address == "" ? "" : element(split("@", var.ses_from_address), 1)
+  ses_identity = "arn:aws:ses:${local.ses_region}:${var.account_id}:identity"
+  ses_sending  = var.email_mode == "ses"
+  # Sending is all the task may do, from one address, on one identity. It may
+  # not verify an identity, read a quota, or change SES in any way. Filtered
+  # rather than branched so the statement keeps one shape either way.
+  ses_statements = [
+    for statement in [{
+      Effect    = "Allow"
+      Action    = ["ses:SendEmail"]
+      Resource  = local.ses_send_scope
+      Condition = { StringEquals = { "ses:FromAddress" = var.ses_from_address } }
+    }] : statement if local.ses_sending
+  ]
+  ses_send_scope = local.ses_sending ? compact([
+    # Whichever of the two the operator verified is the one that exists; naming
+    # both keeps the grant exact rather than widening it to identity/*.
+    "${local.ses_identity}/${var.ses_from_address}",
+    "${local.ses_identity}/${local.ses_domain}",
+    var.ses_configuration_set == "" ? "" : "arn:aws:ses:${local.ses_region}:${var.account_id}:configuration-set/${var.ses_configuration_set}",
+  ]) : []
 }
 resource "aws_apigatewayv2_api" "http" {
   name          = "${local.name}-api"
@@ -100,8 +126,10 @@ resource "aws_iam_role_policy" "runtime" {
       [{ Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = ["${aws_cloudwatch_log_group.runtime[each.key].arn}:*"] }],
       each.key == "api" ? [
         { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = ["${aws_s3_bucket.uploads.arn}/uploads/*"] },
-        { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn] }
-      ] : []
+        # Two exact ARNs, no wildcard: the provider key and the signing pepper.
+        { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn, var.auth_pepper_secret_arn] }
+      ] : [],
+      each.key == "api" ? local.ses_statements : []
     )
   })
 }
@@ -126,6 +154,17 @@ resource "aws_lambda_function" "runtime" {
       OPENAI_BASE_URL          = "https://api.openai.com"
       OPENAI_REALTIME_MODEL    = "gpt-realtime", OPENAI_TEXT_MODEL = "gpt-4.1-mini"
       CONTEXT_CHARACTER_BUDGET = tostring(var.context_character_budget)
+      # The gate, the allowance, and the two things without which nobody can
+      # sign in. The pepper arrives as an ARN and is read at runtime, exactly
+      # like the provider key beside it; its value is never in this file.
+      AUTH_MODE              = var.auth_mode
+      AUTH_PEPPER_SECRET_ARN = var.auth_pepper_secret_arn
+      USAGE_LIMIT_UNITS      = tostring(var.usage_limit_units)
+      USAGE_WINDOW_MS        = tostring(var.usage_window_ms)
+      EMAIL_MODE             = var.email_mode
+      SES_REGION             = local.ses_region
+      SES_FROM_ADDRESS       = var.ses_from_address
+      SES_CONFIGURATION_SET  = var.ses_configuration_set
       } : merge(
       { PORT = "3010", TRANSCRIPT_MODE = "live", UPSTREAM_TIMEOUT_SECONDS = "10" },
       var.transcript_proxy_url == "" ? {} : { TRANSCRIPT_PROXY_URL = var.transcript_proxy_url }

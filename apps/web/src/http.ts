@@ -1,6 +1,11 @@
 import { InputValidationError } from "@/packages/core/src/domain/ingestion";
 import { TranscriptUnavailableError } from "@/packages/core/src/domain/transcript";
 import { SessionExpiredError } from "@/packages/core/src/application/sessions";
+import { InvalidEmailError } from "@/packages/core/src/domain/account";
+import {
+  SignInError,
+  UsageLimitError,
+} from "@/packages/core/src/application/accounts";
 
 const NO_STORE = { "Cache-Control": "no-store" } as const;
 
@@ -48,6 +53,29 @@ export function errorResponse(error: unknown, fallback: string): Response {
       (error as Error).message,
       400,
     );
+  if (error instanceof InvalidEmailError || named(error, "InvalidEmailError"))
+    return jsonError(
+      (error as { code?: string }).code ?? "INVALID_EMAIL",
+      (error as Error).message,
+      400,
+    );
+  // A wrong, stale or exhausted code is a failed authentication attempt, and
+  // the reason is safe to name: the reader already knows their own address.
+  if (error instanceof SignInError || named(error, "SignInError"))
+    return jsonError(
+      (error as { code?: string }).code ?? "CODE_INVALID",
+      (error as Error).message,
+      401,
+    );
+  if (error instanceof UsageLimitError || named(error, "UsageLimitError"))
+    return jsonError("USAGE_LIMIT", (error as Error).message, 429, {
+      "Retry-After": String(
+        Math.max(
+          1,
+          Math.ceil(((error as UsageLimitError).retryAfterMs ?? 0) / 1000),
+        ),
+      ),
+    });
   if (
     error instanceof SessionExpiredError ||
     named(error, "SessionExpiredError")

@@ -4,6 +4,7 @@ import { useEffect, useState, type RefObject } from "react";
 import { usePathname } from "next/navigation";
 import { Icon } from "./Icon";
 import { ModeSwitcher, type EntryMode } from "./ModeSwitcher";
+import { useHydrated } from "./useHydrated";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { LANGUAGES, withLanguage, type Language } from "../i18n/languages";
 import { MENU_SECTIONS, appHref } from "../content/story";
@@ -83,6 +84,7 @@ function StoryNavControls({
   active,
 }: StoryControls & { active?: string }) {
   const { t } = useLanguage();
+  const hydrated = useHydrated();
   return (
     <>
       {SECTIONS.map((section) => (
@@ -107,6 +109,7 @@ function StoryNavControls({
         type="button"
         className="nav-link nav-intro"
         onClick={onReplayIntro}
+        disabled={!hydrated}
         aria-label={t("Watch the intro")}
         title={t("Watch the intro")}
       >

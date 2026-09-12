@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { expect, type Page } from "@playwright/test";
 import type { Step, World } from "./steps";
 import { fixturePdf } from "./fixtures";
+import { french } from "../../apps/web/app/i18n/fr";
 
 type Helpers = {
   page: (w: World) => Promise<Page>;
@@ -148,11 +149,13 @@ export function registerEntryChecks(step: Step, h: Helpers) {
   });
   step("the control modes are named in French", async function () {
     const p = await h.page(this);
+    // Read from the dictionary rather than repeated here: renaming a mode in
+    // French is a copy decision, and it should not also be a test edit.
     await expect(
-      nav(p).getByRole("radiogroup", { name: "Mode de contrôle" }),
+      nav(p).getByRole("radiogroup", { name: french["Control mode"] }),
     ).toBeVisible();
     await expect(
-      nav(p).getByRole("radio", { name: "Commande vocale" }),
+      nav(p).getByRole("radio", { name: french["Voice to action"] }),
     ).toHaveAttribute("aria-checked", "true");
   });
   step("the introduction video is the French version", async function () {

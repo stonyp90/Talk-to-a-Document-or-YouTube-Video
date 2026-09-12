@@ -7,12 +7,26 @@ import {
   type SiteProfile,
 } from "../../packages/core/src/domain/discoverability";
 import { siteProfile } from "../../apps/web/app/seo/profile";
+import {
+  INTRO_DURATION_SECONDS,
+  INTRO_SCENES,
+} from "../../apps/web/app/content/intro-video";
+import { french } from "../../apps/web/app/i18n/fr";
 import type { Step, World } from "./steps";
 
 type Node = Record<string, unknown>;
 
 /** A sample id shaped like YouTube's, never pointing at a real video. */
 const SAMPLE_YOUTUBE_ID = "ursly_intro0";
+
+/**
+ * A line of the film, as a pattern. The film's words live in one content file,
+ * so the assertion reads them from there rather than repeating them: a scene
+ * rewritten upstream changes what is expected, not what fails.
+ */
+function spoken(line: string): RegExp {
+  return new RegExp(line.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+}
 
 function nodeOfType(graph: readonly unknown[], type: string): Node | undefined {
   return graph.find((node) => (node as Node)["@type"] === type) as
@@ -62,11 +76,8 @@ export function registerDiscoverabilityChecks(step: Step) {
     "the introduction is described with its duration and its transcript",
     function () {
       const video = nodeOfType(states.get(this)!.graph, "VideoObject");
-      assert.equal(video?.duration, "PT24S");
-      assert.match(
-        String(video?.transcript),
-        /Internet without a keyboard and a mouse\./,
-      );
+      assert.equal(video?.duration, `PT${INTRO_DURATION_SECONDS}S`);
+      assert.match(String(video?.transcript), spoken(INTRO_SCENES[0].headline));
       assert.ok(video?.uploadDate, "a video without an upload date is ignored");
     },
   );
@@ -91,7 +102,7 @@ export function registerDiscoverabilityChecks(step: Step) {
     assert.equal(video?.inLanguage, "fr");
     assert.match(
       String(video?.transcript),
-      /Internet sans clavier ni souris\./,
+      spoken(french[INTRO_SCENES[0].headline]),
     );
   });
 

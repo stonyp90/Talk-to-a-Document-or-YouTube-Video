@@ -138,7 +138,8 @@ the core never sees a locale. Presigned uploads go straight from the browser to
 the object store, so the Content Security Policy — fixed at build time in
 `next.config.ts` — must name the public store address the runtime hands out;
 Compose passes the same value as a build argument and as an environment variable.
-<<<<<<< HEAD
+`NEXT_PUBLIC_CHAT_SOCKET_URL` is named in that policy for the same reason and is
+fixed the same way, so the web image is built for the channel address it will use.
 
 How the site describes itself is domain work too, for the same reason the source
 models are: it is a reading of what Ursly is, not a detail of how it is served.
@@ -156,7 +157,3 @@ The introduction video is content, not markup. `apps/web/app/content/intro-video
 holds the four scenes it argues, and the dialog that plays it, the renderer that
 draws it, the captions and the structured data all read the same source, so the
 words burned into the frames and the words a crawler is given cannot drift.
-=======
-`NEXT_PUBLIC_CHAT_SOCKET_URL` is named in that policy for the same reason and is
-fixed the same way, so the web image is built for the channel address it will use.
->>>>>>> 79286d0 (Hold one socket open for the whole discussion)

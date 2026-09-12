@@ -50,9 +50,19 @@ import {
 import { MobileVoiceActions } from "./src/VoiceActions";
 import type { MobileVoiceActionId } from "./src/VoiceActions";
 import { MobileBottomNav, type MobileDestination } from "./src/BottomNav";
+import { chatSocketUrl, createChatClient } from "./src/chat";
+import type { ChatClient } from "../../packages/core/src/application/chatClient";
+
+const origin = apiOrigin(Platform.OS, process.env.EXPO_PUBLIC_API_URL);
+/**
+ * Where the live discussion is, if there is one. A deployment names it; a
+ * developer's machine has it beside the API. With neither, every question goes
+ * over the request path exactly as it did before.
+ */
+const channel = chatSocketUrl(origin, process.env.EXPO_PUBLIC_CHAT_SOCKET_URL);
 
 const api = new ApiClient(
-  apiOrigin(Platform.OS, process.env.EXPO_PUBLIC_API_URL),
+  origin,
   fetch,
   // The session outlives the process: the token the device kept is read back at
   // launch, so a signed-in reader is not asked again every time they return.
@@ -120,6 +130,10 @@ export default function App() {
   const [account, setAccount] = useState<{ email: string } | null>(null);
   const [signInOpen, setSignInOpen] = useState(false);
   const voice = useRef<NativeVoice | null>(null);
+  const chat = useRef<ChatClient | null>(null);
+  /** What the channel calls this conversation, so a question is a short frame. */
+  const sourceId = useRef<string | undefined>(undefined);
+  const sourceRef = useRef<IngestedSource | undefined>(undefined);
   const operation = useRef(0);
   const sequence = useRef(0);
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -140,6 +154,7 @@ export default function App() {
   useEffect(() => {
     const operationRef = operation;
     const voiceRef = voice;
+    const chatRef = chat;
     let mounted = true;
     void api
       .request("/api/health", { method: "GET" })
@@ -168,6 +183,8 @@ export default function App() {
       operationRef.current++;
       listener.remove();
       voiceRef.current?.stop();
+      chatRef.current?.close();
+      chatRef.current = null;
     };
   }, []);
 
@@ -208,8 +225,70 @@ export default function App() {
     setSheet(null);
     showToast(t("You are signed out."));
   }
+  /**
+   * Opens the live discussion for a source and keeps it for the whole
+   * conversation, so the extraction crosses the network once and every later
+   * question is a short frame. With no channel configured, or none that will
+   * open, `ask` falls back to the request path on its own.
+   */
+  function openChannel() {
+    chat.current?.close();
+    chat.current = null;
+    sourceId.current = undefined;
+    if (!channel) return;
+    const client = createChatClient({
+      url: channel,
+      reference: () => ({
+        sourceId: sourceId.current,
+        source: sourceRef.current,
+      }),
+      onEvent: (event) => {
+        if (event.type === "ready") {
+          sourceId.current = event.sourceId;
+          return;
+        }
+        if (event.type === "started") {
+          setTurns((previous) => [
+            ...previous,
+            { id: event.askId, role: "assistant", text: "" },
+          ]);
+          return;
+        }
+        if (event.type === "delta") {
+          setTurns((previous) =>
+            previous.map((turn) =>
+              turn.id === event.askId
+                ? { ...turn, text: turn.text + event.text }
+                : turn,
+            ),
+          );
+          return;
+        }
+        if (event.type === "completed") {
+          sourceId.current = event.sourceId;
+          setTurns((previous) =>
+            previous.map((turn) =>
+              turn.id === event.askId ? { ...turn, text: event.text } : turn,
+            ),
+          );
+          setBusy((current) => (current === "chat" ? null : current));
+          showToast(t("Answer ready"));
+          return;
+        }
+        if (event.type === "failed") {
+          setBusy((current) => (current === "chat" ? null : current));
+          setError(event.message);
+        }
+      },
+    });
+    chat.current = client;
+    client.start();
+  }
+
   function installSource(result: IngestedSource) {
     stop();
+    sourceRef.current = result;
+    openChannel();
     setSource(result);
     setTurns([]);
     setQuestion("");
@@ -254,6 +333,26 @@ export default function App() {
     setBusy("chat");
     setError("");
     Keyboard.dismiss();
+
+    // The open channel is the fast path: a short frame on a connection that
+    // already exists, and an answer that arrives as it is written.
+    const askId = String(++sequence.current) + "a";
+    if (chat.current?.ready) {
+      setTurns((previous) => [
+        ...previous,
+        { id: askId + "u", role: "user", text: submitted },
+      ]);
+      if (chat.current.ask(askId, submitted)) {
+        setQuestion("");
+        return;
+      }
+      // The socket closed between the check and the send; drop the turn and
+      // let the request path answer it rather than leaving it unanswered.
+      setTurns((previous) =>
+        previous.filter((turn) => turn.id !== askId + "u"),
+      );
+    }
+
     try {
       const answer = await api.ask(source, submitted);
       if (current !== operation.current) return;

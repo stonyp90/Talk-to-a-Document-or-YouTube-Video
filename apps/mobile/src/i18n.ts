@@ -254,7 +254,7 @@ export const french = {
   "QUICK TOUR": "VISITE GUIDÉE",
   "Pause slides": "Mettre en pause",
   "Resume slides": "Reprendre",
-  "Watch Ursly in 24 seconds": "Voir Ursly en 24 secondes",
+  "Watch the Ursly introduction": "Voir l’introduction d’Ursly",
   "The Ursly story": "L’histoire d’Ursly",
   "A source. A conversation.": "Une source. Une conversation.",
   "A quick, high-level look at how Ursly helps ideas become clear.":
@@ -262,8 +262,8 @@ export const french = {
   "Read the intro instead": "Lire la présentation",
   "The intro is unavailable right now.":
     "La présentation est indisponible pour le moment.",
-  "Ursly turns a document or a captioned video into a conversation. Bring a source, ask by voice or text, and explore what matters. Voice actions help you take the next step. Motion beta previews a future hands-free AR/VR layer without triggering actions from pointer clicks.":
-    "Ursly transforme un document ou une vidéo sous-titrée en conversation. Importez une source, questionnez à la voix ou à l’écrit et explorez l’essentiel. Les actions vocales vous aident à avancer; la bêta Motion présente une future couche mains libres AR/VR sans déclencher d’action par clic.",
+  "The next generation of internet: not a new website, but a new way to use one. Bring a document or a video and Ursly reads it, answering only from it. Say it, and Ursly does it. Motion to action is in beta, built for the headsets coming next. The keyboard still works; it is simply no longer the way in. And nothing ships until the loop closes: concept to production, tested in production, every cycle.":
+    "La nouvelle génération d’internet : pas un nouveau site Web, mais une nouvelle façon de s’en servir. Apportez un document ou une vidéo, Ursly le lit et ne répond qu’à partir de lui. Dites-le, Ursly le fait. Mouvement vers action est en bêta, pensé pour les casques qui arrivent. Le clavier fonctionne toujours ; ce n’est simplement plus la porte d’entrée. Et rien ne sort tant que la boucle n’est pas bouclée : du concept à la production, testé en production, à chaque cycle.",
   STEP: "ÉTAPE",
   "Go to step": "Aller à l’étape",
   "Guide progress": "Progression de la visite",
@@ -316,6 +316,38 @@ export const french = {
   "Open the source": "Ouvrir la source",
   "Add a source first to open this section.":
     "Ajoutez d’abord une source pour ouvrir cette section.",
+  // Signing in. Voice, documents and answers run on a paid model, so the app
+  // asks who is reading before it spends anything.
+  "SIGN IN": "CONNEXION",
+  "Sign in to keep exploring": "Connectez-vous pour continuer d’explorer",
+  "Voice, documents and answers run on a paid model, so they are for signed-in readers. We send a code — no password to remember.":
+    "La voix, les documents et les réponses fonctionnent avec un modèle payant : ils sont réservés aux personnes connectées. Nous envoyons un code, sans mot de passe à retenir.",
+  "Your email address": "Votre adresse courriel",
+  "you@example.com": "vous@exemple.com",
+  "Send me a code": "Envoyez-moi un code",
+  "Sending your code…": "Envoi de votre code…",
+  "Check your email": "Vérifiez votre courriel",
+  "We sent a code to": "Nous avons envoyé un code à",
+  "Your code": "Votre code",
+  "Enter the code": "Entrez le code",
+  "Sign in": "Se connecter",
+  "Signing you in…": "Connexion en cours…",
+  "Use another address": "Utiliser une autre adresse",
+  "Send a new code": "Envoyer un nouveau code",
+  "Enter a valid email address.": "Entrez une adresse courriel valide.",
+  "Enter the code exactly as it appears in the email.":
+    "Entrez le code exactement comme il apparaît dans le courriel.",
+  "The code is on its way.": "Le code s’en vient.",
+  "Not right now": "Pas maintenant",
+  "Your account": "Votre compte",
+  "Signed in as": "Connecté comme",
+  "Sign out": "Se déconnecter",
+  "You are signed out.": "Vous êtes déconnecté.",
+  "Your session ended. Sign in again to continue.":
+    "Votre session a pris fin. Reconnectez-vous pour continuer.",
+  "You have reached your limit for now. It reopens shortly.":
+    "Vous avez atteint votre limite pour le moment. Elle se rouvre sous peu.",
+  "Sign in to continue": "Connectez-vous pour continuer",
 } as const;
 export type TranslationKey = keyof typeof french;
 export function translate(language: Language, key: TranslationKey): string {

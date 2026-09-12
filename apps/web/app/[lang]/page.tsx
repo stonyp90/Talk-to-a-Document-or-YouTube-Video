@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import HomePage from "../components/HomePage";
+import LandingPage from "../components/LandingPage";
 import { LanguageProvider } from "../i18n/LanguageProvider";
 import { dictionaryFor } from "../i18n/dictionaries";
 import { isLanguage } from "../i18n/languages";
@@ -13,7 +13,7 @@ export default async function Page({
   if (!isLanguage(lang)) notFound();
   return (
     <LanguageProvider language={lang} dictionary={dictionaryFor(lang)}>
-      <HomePage />
+      <LandingPage />
     </LanguageProvider>
   );
 }

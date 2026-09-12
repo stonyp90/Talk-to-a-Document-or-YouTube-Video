@@ -18,9 +18,22 @@ describe("requestJson", () => {
   it("returns the parsed body on the first success", async () => {
     const fetchMock = vi.fn().mockResolvedValue(ok({ answer: "42" }));
     vi.stubGlobal("fetch", fetchMock);
-    await expect(requestJson<{ answer: string }>("/api/text-chat")).resolves.toEqual({
+    await expect(
+      requestJson<{ answer: string }>("/api/text-chat"),
+    ).resolves.toEqual({
       answer: "42",
     });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats an empty success as a success, not as an unreadable body", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      requestJson("/api/auth/request-code"),
+    ).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -30,7 +43,9 @@ describe("requestJson", () => {
       .mockResolvedValueOnce(failure(503))
       .mockResolvedValueOnce(ok({ answer: "42" }));
     vi.stubGlobal("fetch", fetchMock);
-    await expect(requestJson("/api/text-chat")).resolves.toEqual({ answer: "42" });
+    await expect(requestJson("/api/text-chat")).resolves.toEqual({
+      answer: "42",
+    });
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -48,7 +63,10 @@ describe("requestJson", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(
-        failure(400, { error: "Please upload a PDF file.", code: "INVALID_FILE_TYPE" }),
+        failure(400, {
+          error: "Please upload a PDF file.",
+          code: "INVALID_FILE_TYPE",
+        }),
       );
     vi.stubGlobal("fetch", fetchMock);
     await expect(requestJson("/api/ingest")).rejects.toMatchObject({
@@ -61,9 +79,11 @@ describe("requestJson", () => {
   it("surfaces an expired session so the caller can resend the source", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        failure(409, { error: "Send it again.", code: "SOURCE_EXPIRED" }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          failure(409, { error: "Send it again.", code: "SOURCE_EXPIRED" }),
+        ),
     );
     await expect(requestJson("/api/text-chat")).rejects.toMatchObject({
       code: "SOURCE_EXPIRED",
@@ -71,9 +91,13 @@ describe("requestJson", () => {
   });
 
   it("gives up after the retry budget and reports a network problem", async () => {
-    const fetchMock = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValue(new TypeError("Failed to fetch"));
     vi.stubGlobal("fetch", fetchMock);
-    const error = await requestJson("/api/health", { retries: 1 }).catch((e) => e);
+    const error = await requestJson("/api/health", { retries: 1 }).catch(
+      (e) => e,
+    );
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).code).toBe("NETWORK_ERROR");
     expect(fetchMock).toHaveBeenCalledTimes(2);

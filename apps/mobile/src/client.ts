@@ -53,15 +53,122 @@ export function updateTranscript(
     ? turns.map((item) => (item.id === id ? turn : item))
     : [...turns, turn];
 }
+/**
+ * A refusal the interface can act on rather than merely print. A reader whose
+ * session has lapsed needs sending back to sign-in; a reader who has spent
+ * their allowance needs telling to come back later. Both look like ordinary
+ * failures until the code is carried along with the message.
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly code: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+export const isSignInRequired = (error: unknown): error is ApiError =>
+  error instanceof ApiError && error.status === 401;
+export const isUsageLimit = (error: unknown): error is ApiError =>
+  error instanceof ApiError && error.code === "USAGE_LIMIT";
+
+/**
+ * Where the session token rests between launches. The app supplies a store
+ * backed by the device; tests supply one in memory. Keeping the device out of
+ * this file is what lets the client be tested under plain Node.
+ */
+export type SessionStore = {
+  read(): Promise<string>;
+  write(token: string): Promise<void>;
+  clear(): Promise<void>;
+};
+
+export function memorySessionStore(): SessionStore {
+  let held = "";
+  return {
+    read: async () => held,
+    write: async (token: string) => {
+      held = token;
+    },
+    clear: async () => {
+      held = "";
+    },
+  };
+}
+
 export class ApiClient {
+  /**
+   * The session, in memory for the life of the process. A React Native client
+   * has no dependable cookie jar, so every call to our own API carries it as
+   * `Authorization: Bearer`. It is never printed, never put in an error and
+   * never sent anywhere but this origin.
+   */
+  private held = "";
+  private restored = false;
+
   constructor(
     readonly origin: string,
     private transport: typeof fetch = fetch,
+    private store: SessionStore = memorySessionStore(),
   ) {}
-  async request(path: string, init: RequestInit) {
-    return this.requestUrl(this.origin + path, init);
+
+  get signedIn(): boolean {
+    return this.held !== "";
   }
-  private async requestUrl(url: string, init: RequestInit, timeoutMs = 45000) {
+
+  /** Reads the token the device kept, once per launch. */
+  private async restore(): Promise<string> {
+    if (this.restored) return this.held;
+    this.restored = true;
+    this.held = await this.store.read().catch(() => "");
+    return this.held;
+  }
+
+  private async remember(token: string): Promise<void> {
+    this.held = token;
+    this.restored = true;
+    await this.store.write(token).catch(() => undefined);
+  }
+
+  private async forget(): Promise<void> {
+    this.held = "";
+    this.restored = true;
+    await this.store.clear().catch(() => undefined);
+  }
+
+  async request(path: string, init: RequestInit) {
+    // Every call to our own API hydrates the stored session first, so a request
+    // made before the app has finished asking who is signed in still carries it.
+    await this.restore();
+    return this.requestUrl(
+      this.origin + path,
+      { ...init, headers: this.withSession(init.headers) },
+      45000,
+      true,
+    );
+  }
+
+  /**
+   * Only our own API is told who is calling. A presigned storage URL and the
+   * provider's realtime endpoint get the credential they were issued and never
+   * this one.
+   */
+  private withSession(headers: RequestInit["headers"]): RequestInit["headers"] {
+    if (!this.held) return headers;
+    return {
+      ...((headers as Record<string, string> | undefined) ?? {}),
+      Authorization: `Bearer ${this.held}`,
+    };
+  }
+
+  private async requestUrl(
+    url: string,
+    init: RequestInit,
+    timeoutMs = 45000,
+    ours = false,
+  ) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -72,14 +179,77 @@ export class ApiClient {
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as {
           error?: string;
+          code?: string;
         };
-        throw new Error(
+        // A session our own API has stopped honouring is worth nothing on this
+        // device either: drop it so the reader is asked to sign in again
+        // instead of retrying with a token that will never work.
+        if (ours && response.status === 401) await this.forget();
+        throw new ApiError(
           body.error || `Request failed (${response.status}). Please retry.`,
+          body.code || `HTTP_${response.status}`,
+          response.status,
         );
       }
       return response;
     } finally {
       clearTimeout(timeout);
+    }
+  }
+
+  /** Asks for a one-time code. It answers the same way for any address. */
+  async requestSignInCode(email: string): Promise<void> {
+    await this.request("/api/auth/request-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim() }),
+    });
+  }
+
+  /**
+   * Exchanges the mailed code for a session. The token comes back in the body
+   * because this client has nowhere to keep a cookie; it goes straight into
+   * storage and is never logged.
+   */
+  async confirmSignInCode(
+    email: string,
+    code: string,
+  ): Promise<{ email: string }> {
+    const response = await this.request("/api/auth/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), code: code.trim() }),
+    });
+    const body = (await response.json()) as { email: string; token?: string };
+    await this.remember(String(body.token ?? ""));
+    return { email: body.email };
+  }
+
+  /** Who is signed in, or nothing at all. Being signed out is not an error. */
+  async readSession(): Promise<{ email: string } | null> {
+    if (!(await this.restore())) return null;
+    try {
+      const response = await this.request("/api/auth/session", {
+        method: "GET",
+      });
+      return (await response.json()) as { email: string };
+    } catch (error) {
+      if (isSignInRequired(error)) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * Ends the session on the server and on the device. A network that refuses
+   * the call must not leave the reader signed in on the phone in front of them.
+   */
+  async signOut(): Promise<void> {
+    try {
+      await this.request("/api/auth/session", { method: "DELETE" });
+    } catch {
+      // The local half of signing out cannot be allowed to fail.
+    } finally {
+      await this.forget();
     }
   }
   async youtube(url: string): Promise<IngestedSource> {

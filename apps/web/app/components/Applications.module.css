@@ -1,19 +1,19 @@
 .section {
-  padding: 48px 0 24px;
-  scroll-margin-top: 24px;
+  padding: var(--section-y) 0 0;
+  scroll-margin-top: var(--space-2xl);
 }
 .heading {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 26px;
+  gap: var(--space-2xl);
+  margin-bottom: var(--space-2xl);
 }
 .heading h2 {
   font-family: Georgia, serif;
   font-size: clamp(28px, 3vw, 36px);
   font-weight: 400;
-  margin: 14px 0 12px;
+  margin: var(--space-lg) 0 var(--space-md);
   line-height: 1.2;
 }
 .heading p {
@@ -25,7 +25,7 @@
 .releaseLink {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-md);
   min-height: 44px;
   font-size: 13px;
   flex-shrink: 0;
@@ -40,7 +40,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--space-xl);
 }
 .card {
   display: flex;
@@ -50,7 +50,7 @@
   border: 1px solid var(--accent-border-wash);
   background: var(--accent-wash-soft);
   border-radius: 24px;
-  padding: 26px;
+  padding: var(--space-2xl);
   min-width: 0;
 }
 .ios {
@@ -66,18 +66,18 @@
   font-weight: 650;
   border: 1px solid var(--line-strong);
   border-radius: 100px;
-  padding: 6px 10px;
+  padding: var(--space-xs) var(--space-md);
 }
 .card h3 {
   font-size: 23px;
   line-height: 1.25;
-  margin: 22px 0 12px;
+  margin: var(--space-2xl) 0 var(--space-md);
 }
 .card p {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.7;
-  margin: 0 0 24px;
+  margin: 0 0 var(--space-2xl);
 }
 .action {
   margin-top: auto;
@@ -92,13 +92,13 @@
 .action :global(.icon) {
   width: 17px;
   height: 17px;
-  margin-right: 8px;
+  margin-right: var(--space-sm);
   flex: 0 0 auto;
 }
 .action :global(.brand-icon) {
   width: 20px;
   height: 20px;
-  margin-right: 8px;
+  margin-right: var(--space-sm);
   flex: 0 0 auto;
   fill: currentColor;
 }
@@ -108,14 +108,14 @@
 .note {
   color: var(--muted);
   font-size: 11px;
-  margin-top: 12px;
+  margin-top: var(--space-md);
   line-height: 1.6;
 }
 .disclosure {
   font-size: 12px;
   color: var(--muted);
   line-height: 1.8;
-  margin: 20px 0 0;
+  margin: var(--space-xl) 0 0;
 }
 .disclosure a {
   text-underline-offset: 3px;
@@ -130,24 +130,24 @@
   .heading {
     align-items: flex-start;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-md);
   }
   .grid {
     grid-template-columns: 1fr;
   }
   .card {
-    padding: 24px;
+    padding: var(--space-2xl);
   }
   .action {
     width: 100%;
-    gap: 16px;
+    gap: var(--space-lg);
   }
 }
 @media (max-width: 400px) {
   .action {
     width: 100%;
     font-size: 12px;
-    padding-inline: 12px;
+    padding-inline: var(--space-md);
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -242,9 +242,12 @@
 }
 .caption {
   /* Reserves the tallest stage summary at this measure, so the walk never
-     nudges the control, the rule or the index below it: two lines here,
-     three while the column is narrow, where French runs longest. */
-  min-height: 3.3em;
+     nudges the control, the rule or the index below it. Measured against the
+     French copy, which runs longest, and against the funding stage, whose
+     summary is the longest of the seven: three lines here, and more as the
+     column narrows. The extra fifth of a line is for the renderer, which
+     wraps a shade wider on Linux than it does on a Mac. */
+  min-height: 5.1em;
   margin: 0;
   font-size: 14px;
   line-height: 1.6;
@@ -388,7 +391,7 @@
 
 @media (max-width: 1160px) {
   .caption {
-    min-height: 4.9em;
+    min-height: 6.7em;
   }
 }
 @media (max-width: 900px) {
@@ -413,7 +416,7 @@
     border-top: 0;
   }
   .caption {
-    min-height: 3.4em;
+    min-height: 5.1em;
   }
   .steps {
     grid-template-columns: 1fr;
@@ -501,17 +504,18 @@
  * does not shift as the walk advances. The need is not monotonic in width: at
  * 900px the layout drops to one column, which WIDENS the caption's measure and
  * costs it a line. It climbs again once the column itself gets narrow. Measured
- * against the French copy, which runs longest: 45px down to 540, 67px from 500
- * to 360, 90px at 340 and below.
+ * against the French copy, which runs longest, after the funding stage joined
+ * the walk: 67px at 1280, 90px from 1160 to 1000, 67px from 900 to 700, 112px
+ * from 500 to 360, 134px at 340 and below.
  */
 @media (max-width: 520px) {
   .caption {
-    min-height: 5em;
+    min-height: 8.3em;
   }
 }
 @media (max-width: 350px) {
   .caption {
-    min-height: 6.6em;
+    min-height: 9.9em;
   }
 }
 @media (max-width: 420px) {

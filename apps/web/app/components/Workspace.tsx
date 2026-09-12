@@ -208,6 +208,15 @@ export default function Workspace() {
       chatLog.current.scrollTop = chatLog.current.scrollHeight;
   }, [state.messages]);
 
+  // A reader can choose a PDF before this page's script has run, and the
+  // change event is lost because React was not listening yet: the picker
+  // holds a file the page does not know about, and the way forward stays
+  // disabled. Adopt whatever is already there the moment we can see it.
+  useEffect(() => {
+    const chosen = fileInput.current?.files?.[0];
+    if (chosen) setFile((current) => current ?? chosen);
+  }, []);
+
   useEffect(() => {
     mounted.current = true;
     const sourceEpoch = sourceVersion;

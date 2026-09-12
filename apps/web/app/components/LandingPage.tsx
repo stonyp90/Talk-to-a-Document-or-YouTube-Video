@@ -14,6 +14,7 @@ import { PlatformSection } from "./PlatformSection";
 import { Process } from "./Process";
 import { SiteFooter } from "./SiteFooter";
 import { TopNav } from "./TopNav";
+import { useHydrated } from "./useHydrated";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   STORY_SECTIONS,
@@ -60,6 +61,7 @@ const STORY_VIEWS: Record<StorySectionId, ComponentType<StoryContext>> = {
 export default function LandingPage() {
   const { t, language } = useLanguage();
   const appHref = appHrefFor(language);
+  const hydrated = useHydrated();
   // The server never shows the intro; a first visit opens it after hydration.
   const firstVisit = useSyncExternalStore(
     subscribeToStorage,
@@ -126,7 +128,12 @@ export default function LandingPage() {
               <a ref={heroCta} className="primary" href={appHref}>
                 <Icon name="arrow" /> {t("Open the app")}
               </a>
-              <button type="button" className="secondary" onClick={openIntro}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={openIntro}
+                disabled={!hydrated}
+              >
                 <Icon name="play" /> {t("Watch the intro")} · 24 s
               </button>
             </div>

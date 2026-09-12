@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon, type IconName } from "./Icon";
+import { useHydrated } from "./useHydrated";
 import { useLanguage } from "../i18n/LanguageProvider";
 
 const repository =
@@ -60,6 +61,7 @@ export function PlatformSection({
   onReplayIntro: () => void;
 }) {
   const { t } = useLanguage();
+  const hydrated = useHydrated();
   return (
     <section
       className="platform"
@@ -131,7 +133,12 @@ export function PlatformSection({
         <a href={`${repository}/releases`}>
           {t("Signed builds and release notes")}
         </a>
-        <button type="button" className="link-button" onClick={onReplayIntro}>
+        <button
+          type="button"
+          className="link-button"
+          onClick={onReplayIntro}
+          disabled={!hydrated}
+        >
           {t("Watch the intro again")} · 24 s
         </button>
       </div>

@@ -50,6 +50,20 @@ const GEOMETRY = {
   disc: 104,
 };
 
+/**
+ * The furthest the picture reaches from its centre: the ring, plus whichever
+ * is wider at a stage — the node itself or the training satellite around it —
+ * plus a hair for the stroke that sits on that edge.
+ */
+const PLOT_REACH =
+  GEOMETRY.ring + Math.max(GEOMETRY.node, GEOMETRY.satellite) + 2;
+/**
+ * Without their labels the stages sit in a frame of empty gutters. A phone
+ * drops the labels, so the picture scales by this much to take that room
+ * back, and still lands inside the viewBox.
+ */
+const PLOT_FILL = Math.min(GEOMETRY.width, GEOMETRY.height) / 2 / PLOT_REACH;
+
 const ICONS: Record<ProcessStepId, string[]> = {
   concept: [
     "M9 18h6",
@@ -277,6 +291,7 @@ export function Process({
   const diagramStyle = {
     "--loop-travel": `${travelMs}ms`,
     "--loop-inner": `${innerHoldMs}ms`,
+    "--plot-fill": PLOT_FILL.toFixed(3),
   } as CSSProperties;
 
   return (
@@ -309,143 +324,170 @@ export function Process({
             aria-hidden="true"
             focusable="false"
           >
-            <circle
-              className={styles.ring}
-              cx={GEOMETRY.cx}
-              cy={GEOMETRY.cy}
-              r={GEOMETRY.ring}
-            />
-            <circle
-              className={styles.discHalo}
-              cx={GEOMETRY.cx}
-              cy={GEOMETRY.cy}
-              r={GEOMETRY.disc + 12}
-            />
-            <circle
-              className={styles.disc}
-              cx={GEOMETRY.cx}
-              cy={GEOMETRY.cy}
-              r={GEOMETRY.disc}
-            />
-            <text
-              className={styles.discEyebrow}
-              x={GEOMETRY.cx}
-              y={GEOMETRY.cy - 36}
-              textAnchor="middle"
-            >
-              {copy.target.eyebrow}
-            </text>
-            <text
-              className={styles.discStatement}
-              x={GEOMETRY.cx}
-              y={GEOMETRY.cy - 6}
-              textAnchor="middle"
-            >
-              {copy.target.statement.map((line, index) => (
-                <tspan key={line} x={GEOMETRY.cx} dy={index === 0 ? 0 : 22}>
-                  {line}
-                </tspan>
-              ))}
-            </text>
-            <text
-              className={styles.discNote}
-              x={GEOMETRY.cx}
-              y={GEOMETRY.cy + 52}
-              textAnchor="middle"
-            >
-              {copy.target.note}
-            </text>
+            {/* One group for the whole picture, so a phone can scale it into
+                the room its hidden labels leave behind. */}
+            <g className={styles.plot}>
+              <circle
+                className={styles.ring}
+                cx={GEOMETRY.cx}
+                cy={GEOMETRY.cy}
+                r={GEOMETRY.ring}
+              />
+              <circle
+                className={styles.discHalo}
+                cx={GEOMETRY.cx}
+                cy={GEOMETRY.cy}
+                r={GEOMETRY.disc + 12}
+              />
+              <circle
+                className={styles.disc}
+                cx={GEOMETRY.cx}
+                cy={GEOMETRY.cy}
+                r={GEOMETRY.disc}
+              />
+              <text
+                className={styles.discEyebrow}
+                x={GEOMETRY.cx}
+                y={GEOMETRY.cy - 36}
+                textAnchor="middle"
+              >
+                {copy.target.eyebrow}
+              </text>
+              <text
+                className={styles.discStatement}
+                x={GEOMETRY.cx}
+                y={GEOMETRY.cy - 6}
+                textAnchor="middle"
+              >
+                {copy.target.statement.map((line, index) => (
+                  <tspan key={line} x={GEOMETRY.cx} dy={index === 0 ? 0 : 22}>
+                    {line}
+                  </tspan>
+                ))}
+              </text>
+              <text
+                className={styles.discNote}
+                x={GEOMETRY.cx}
+                y={GEOMETRY.cy + 52}
+                textAnchor="middle"
+              >
+                {copy.target.note}
+              </text>
 
-            <g
-              className={styles.traveller}
-              style={{ transform: `rotate(${angle}deg)` }}
-            >
-              {TRAIL.map((dot) => (
-                <circle
-                  key={dot.lag}
-                  className={styles.comet}
-                  cx={dot.x}
-                  cy={dot.y}
-                  r={dot.radius}
-                  opacity={dot.opacity}
-                />
+              <g
+                className={styles.traveller}
+                style={{ transform: `rotate(${angle}deg)` }}
+              >
+                {TRAIL.map((dot) => (
+                  <circle
+                    key={dot.lag}
+                    className={styles.comet}
+                    cx={dot.x}
+                    cy={dot.y}
+                    r={dot.radius}
+                    opacity={dot.opacity}
+                  />
+                ))}
+              </g>
+
+              {NODES.map((node) => (
+                <g
+                  key={node.id}
+                  className={styles.node}
+                  data-active={node.index === walk.index}
+                  onClick={() => select(node.index)}
+                >
+                  {node.inner && (
+                    <>
+                      <circle
+                        className={styles.satelliteRing}
+                        cx={node.x}
+                        cy={node.y}
+                        r={GEOMETRY.satellite}
+                      />
+                      {PROVIDERS.map((provider) => (
+                        <circle
+                          key={provider.index}
+                          className={styles.providerDot}
+                          data-provider={provider.index}
+                          style={{
+                            animationDelay: `calc(var(--loop-inner) * ${provider.index} / ${PROVIDER_TURNS})`,
+                          }}
+                          cx={node.x + provider.dx}
+                          cy={node.y + provider.dy}
+                          r={3.2}
+                        />
+                      ))}
+                      <g
+                        className={styles.satellite}
+                        style={{
+                          transform: `rotate(${walk.innerTurns * 360}deg)`,
+                          transformOrigin: `${node.x}px ${node.y}px`,
+                        }}
+                      >
+                        <circle
+                          className={styles.satelliteDot}
+                          cx={node.x}
+                          cy={node.y - GEOMETRY.satellite}
+                          r={4}
+                        />
+                      </g>
+                    </>
+                  )}
+                  <circle
+                    className={styles.nodeDisc}
+                    cx={node.x}
+                    cy={node.y}
+                    r={GEOMETRY.node}
+                  />
+                  <svg
+                    x={node.x - 10}
+                    y={node.y - 10}
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    {ICONS[node.id].map((path) => (
+                      <path key={path} d={path} />
+                    ))}
+                  </svg>
+                  <text
+                    className={styles.label}
+                    x={node.label.x}
+                    y={node.label.y + node.placement.dy}
+                    textAnchor={node.placement.anchor}
+                    dominantBaseline={node.placement.baseline}
+                  >
+                    {copy.steps[node.index].title}
+                  </text>
+                </g>
               ))}
             </g>
-
-            {NODES.map((node) => (
-              <g
-                key={node.id}
-                className={styles.node}
-                data-active={node.index === walk.index}
-                onClick={() => select(node.index)}
-              >
-                {node.inner && (
-                  <>
-                    <circle
-                      className={styles.satelliteRing}
-                      cx={node.x}
-                      cy={node.y}
-                      r={GEOMETRY.satellite}
-                    />
-                    {PROVIDERS.map((provider) => (
-                      <circle
-                        key={provider.index}
-                        className={styles.providerDot}
-                        data-provider={provider.index}
-                        style={{
-                          animationDelay: `calc(var(--loop-inner) * ${provider.index} / ${PROVIDER_TURNS})`,
-                        }}
-                        cx={node.x + provider.dx}
-                        cy={node.y + provider.dy}
-                        r={3.2}
-                      />
-                    ))}
-                    <g
-                      className={styles.satellite}
-                      style={{
-                        transform: `rotate(${walk.innerTurns * 360}deg)`,
-                        transformOrigin: `${node.x}px ${node.y}px`,
-                      }}
-                    >
-                      <circle
-                        className={styles.satelliteDot}
-                        cx={node.x}
-                        cy={node.y - GEOMETRY.satellite}
-                        r={4}
-                      />
-                    </g>
-                  </>
-                )}
-                <circle cx={node.x} cy={node.y} r={GEOMETRY.node} />
-                <svg
-                  x={node.x - 10}
-                  y={node.y - 10}
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  {ICONS[node.id].map((path) => (
-                    <path key={path} d={path} />
-                  ))}
-                </svg>
-                <text
-                  className={styles.label}
-                  x={node.label.x}
-                  y={node.label.y + node.placement.dy}
-                  textAnchor={node.placement.anchor}
-                  dominantBaseline={node.placement.baseline}
-                >
-                  {copy.steps[node.index].title}
-                </text>
-              </g>
-            ))}
           </svg>
 
+          {/* The disc draws the mission, and the drawing is aria-hidden, so on
+              its own it never reaches a screen reader. Here the same words are
+              real text: carried for assistive technology while the disc still
+              shows them, and the visible copy on a phone, where the disc's
+              type would render at a third of its size. */}
+          <div className={styles.target}>
+            <span className={styles.targetEyebrow}>{copy.target.eyebrow}</span>
+            <p className={styles.targetStatement}>
+              {copy.target.statement.join(" ")}
+            </p>
+            <span className={styles.targetNote}>{copy.target.note}</span>
+          </div>
+        </div>
+
+        {/* The picture's readout: where the traveller is, and the control for
+            it. It sits under the copy, so the column runs to the ring's foot
+            instead of stopping mid-argument. */}
+        <div className={styles.legend}>
           <p className={styles.caption} key={walk.index} aria-hidden="true">
             <span className={styles.captionNumber}>{number(walk.index)}</span>{" "}
             <b>{active.title}.</b> <i>{active.summary}</i>

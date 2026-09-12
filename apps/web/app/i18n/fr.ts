@@ -1,6 +1,24 @@
 import type { Dictionary } from "./translate";
 
 /**
+ * The terms French writes exactly as English does: product and technology
+ * names, and the words the two languages happen to share. Every one of them is
+ * a decision, named here so it can be argued with.
+ *
+ * Anywhere else, an entry whose French equals its English is not a decision but
+ * a placeholder — the English copied across while the translation was late —
+ * and the page then reads English to a French reader. The tests hold the
+ * dictionary to that: identical means listed here, or it means untranslated.
+ */
+export const IDENTICAL_IN_BOTH: readonly string[] = [
+  "YouTube",
+  "Conversation",
+  "Applications",
+  "Guide",
+  "Next.js · Expo · TypeScript",
+];
+
+/**
  * French translations keyed by the English source string. Quebec French,
  * vouvoiement, typographic apostrophes, and a non-breaking space before
  * two-part punctuation. Terms follow the Office québécois de la langue
@@ -11,26 +29,30 @@ export const french: Dictionary = {
   Primary: "Principale",
   "Ursly home": "Accueil Ursly",
   "Control mode": "Mode de contrôle",
-  "Voice to action": "Commande vocale",
-  "Keyboard to action": "Clavier",
-  "Motion to action": "Mouvement",
+  "Voice to action": "Voix vers action",
+  "Keyboard to action": "Clavier vers action",
+  "Motion to action": "Mouvement vers action",
   Voice: "Voix",
   Keyboard: "Clavier",
   Motion: "Mouvement",
   Beta: "Bêta",
-  "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.":
-    "Le mouvement n’est pas encore disponible. Nous y travaillons. La voix et le clavier sont prêts dès aujourd’hui.",
+  Legacy: "Ancien",
+  "Motion to action is what comes next: control by movement, built for VR and AR headsets. It is not available yet. Voice works today, and the keyboard is still there.":
+    "Le mouvement vers action, c’est la suite : commander par le geste, pensé pour les casques de réalité virtuelle et augmentée. Ce n’est pas encore disponible. La voix fonctionne aujourd’hui, et le clavier est toujours là.",
   Platform: "Plateforme",
   "How we build": "Notre façon de bâtir",
   Build: "Bâtir",
+  // Identical in French on purpose; see IDENTICAL_IN_BOTH above.
   Guide: "Guide",
-  Apps: "Apps",
+  // The narrow-screen short forms of "Applications" and "Ouvrir
+  // l’application". French abbreviates application as appli.
+  Apps: "Applis",
   "Watch the intro": "Voir l’intro",
   Language: "Langue",
   "Skip to workspace": "Aller à l’atelier",
   "Skip to content": "Aller au contenu",
   "Open the app": "Ouvrir l’application",
-  App: "App",
+  App: "Appli",
   "Back to the story": "Retour à l’histoire",
   Story: "Histoire",
 
@@ -83,18 +105,18 @@ export const french: Dictionary = {
   "Your questions.": "Vos questions.",
   "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.":
     "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis parlez-lui. Dites une commande, posez votre question à voix haute ou écrivez quand vous préférez.",
-  "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.":
-    "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis posez vos questions au clavier. La voix reste à un geste.",
+  "Add a PDF or a captioned YouTube video, then ask about it by typing. This is the old way in, and it still does everything. Voice is one tap away.":
+    "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis posez vos questions au clavier. C’est l’ancienne porte d’entrée, et elle fait encore tout. La voix est à un geste.",
   Progress: "Progression",
   "Add a source": "Ajouter une source",
   "Ask a question": "Poser une question",
   "You are offline. Ursly will reconnect when your network returns.":
     "Vous êtes hors ligne. Ursly se reconnectera au retour du réseau.",
   "Dismiss notification": "Fermer la notification",
-  "Voice to action: say a command, or use the controls as usual.":
-    "Commande vocale : dites une commande ou utilisez les contrôles comme d’habitude.",
-  "Keyboard to action: everything works by typing and clicking.":
-    "Clavier : tout fonctionne en écrivant et en cliquant.",
+  "Voice to action: the way in. Say a command, or use the controls as usual.":
+    "Voix vers action : c’est la porte d’entrée. Dites une commande ou utilisez les contrôles comme d’habitude.",
+  "Keyboard to action: the old way in, still complete. Everything works by typing and clicking.":
+    "Clavier vers action : l’ancienne porte d’entrée, toujours complète. Tout fonctionne en écrivant et en cliquant.",
 
   // Source card
   "1. Add a source": "1. Ajouter une source",
@@ -278,9 +300,10 @@ export const french: Dictionary = {
     "Autorisez le microphone quand on vous le demande, puis parlez. Vous pouvez couper le micro ou arrêter à tout moment, et l’écriture fonctionne toujours.",
   "Voice chat opens as soon as your source is ready. Typing always works too.":
     "La conversation vocale s’ouvre dès que votre source est prête. L’écriture fonctionne aussi.",
-  "Adapting to your voice": "Adaptation à votre voix",
-  "Learning your accent, pace and words from this session. Nothing is kept without your say.":
-    "Apprend votre accent, votre débit et vos mots pendant cette session. Rien n’est conservé sans votre accord.",
+  "Answering in Ursly’s preset voice":
+    "Réponse avec la voix par défaut d’Ursly",
+  "Talking here teaches Ursly nothing about your voice. Lending it yours is a separate, deliberate step.":
+    "Parler ici n’apprend rien à Ursly sur votre voix. Lui prêter la vôtre est une démarche distincte et délibérée.",
   Conversation: "Conversation",
   "What are you curious about?": "Qu’est-ce qui vous intrigue?",
   "Your voice is the shortcut.": "Votre voix est le raccourci.",
@@ -326,8 +349,8 @@ export const french: Dictionary = {
   // Platform section
   "Not a new website. A new way to use one.":
     "Pas un nouveau site Web. Une nouvelle façon de s’en servir.",
-  "Ursly sits between what you mean and what a screen does. You speak, move or type; it listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.":
-    "Ursly se place entre ce que vous voulez dire et ce que l’écran fait. Vous parlez, bougez ou écrivez; Ursly écoute, s’adapte à votre façon de parler et vous laisse, à vous et non au modèle, la maîtrise de la suite.",
+  "Ursly sits between what you mean and what a screen does. You speak; soon you will move; you can still type. It listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.":
+    "Ursly se place entre ce que vous voulez dire et ce que l’écran fait. Vous parlez; bientôt vous bougerez; vous pouvez encore écrire. Ursly écoute, s’adapte à votre façon de parler et vous laisse, à vous et non au modèle, la maîtrise de la suite.",
   "A human stays in the loop.": "Un humain garde la main.",
   "Every action Ursly takes is one you asked for, can see and can undo. When it is unsure, it asks instead of guessing.":
     "Chaque action qu’Ursly effectue est une action que vous avez demandée, que vous voyez et que vous pouvez annuler. En cas de doute, Ursly vous pose la question au lieu de deviner.",
@@ -335,9 +358,10 @@ export const french: Dictionary = {
     "Un modèle vocal qui apprend votre voix, avec votre permission.",
   "Ursly is built to tune itself to your accent, your pace and the words you actually use, so it understands you a little better each time. Your recordings stay yours: nothing is kept without your say, and everything can be deleted in one tap.":
     "Ursly est conçu pour se régler sur votre accent, votre débit et les mots que vous employez vraiment, pour vous comprendre un peu mieux à chaque échange. Vos enregistrements vous appartiennent : rien n’est conservé sans votre consentement et tout peut être supprimé d’un seul geste.",
-  "Speak. Move. Type.": "Parlez. Bougez. Écrivez.",
-  "Voice first, movement next, keyboard whenever you need it: three ways to do the same thing, so no one is left out. Choose what fits the moment, the room or the person; the request underneath stays the same.":
-    "La voix d’abord, le mouvement ensuite, le clavier chaque fois que vous en avez besoin : trois façons de faire la même chose, pour que personne ne soit laissé de côté. Choisissez ce qui convient au moment, au lieu ou à la personne; la demande, elle, ne change pas.",
+  "Voice now. Movement next. Keyboard still here.":
+    "La voix maintenant. Le mouvement ensuite. Le clavier toujours là.",
+  "Voice to action is how you use Ursly today. Motion to action comes next, in beta, built for VR and AR headsets. The keyboard is the old way in: it still does everything, we keep it and support it, and no one is left out. It is simply no longer where you start.":
+    "La commande vocale, c’est la façon d’utiliser Ursly aujourd’hui. Le mouvement vers action arrive ensuite, en version bêta, pensé pour les casques de réalité virtuelle et augmentée. Le clavier est l’ancienne porte d’entrée : il fait encore tout, nous le gardons et le prenons en charge, et personne n’est laissé de côté. Il n’est simplement plus le point de départ.",
   "A simple site today. Every surface tomorrow.":
     "Un site simple aujourd’hui. Toutes les surfaces demain.",
   "Talking to a document is the first surface. The same platform is designed to drive connected objects, 3D objects and interfaces that do not exist yet, without changing how you ask.":
@@ -347,10 +371,10 @@ export const french: Dictionary = {
   Today: "Aujourd’hui",
   Next: "Ensuite",
   Later: "Plus tard",
-  "Talk to a PDF or a captioned YouTube video. Say “upload”, “summarize” or “next” to drive the page. Keyboard everywhere.":
-    "Conversez avec un PDF ou une vidéo YouTube sous-titrée. Dites « téléverser », « résume » ou « suivant » pour piloter la page. Le clavier, partout.",
-  "Voice profiles that adapt to each speaker, with consent and one-tap deletion. Motion to action, in beta.":
-    "Des profils vocaux qui s’adaptent à chaque personne, avec consentement et suppression d’un seul geste. Le mouvement, en version bêta.",
+  "Talk to a PDF or a captioned YouTube video. Say “upload”, “summarize” or “next” to drive the page. The keyboard still does all of it, for whoever wants it.":
+    "Conversez avec un PDF ou une vidéo YouTube sous-titrée. Dites « téléverser », « résume » ou « suivant » pour piloter la page. Le clavier fait encore tout cela, pour qui le souhaite.",
+  "Voice profiles that adapt to each speaker, with consent and one-tap deletion. Motion to action in beta, for VR and AR headsets.":
+    "Des profils vocaux qui s’adaptent à chaque personne, avec consentement et suppression d’un seul geste. Le mouvement vers action en version bêta, pour les casques de réalité virtuelle et augmentée.",
   "Connected objects, 3D objects and other surfaces. Whole industries, not only websites.":
     "Objets connectés, objets 3D et autres surfaces. Des industries entières, pas seulement des sites Web.",
   "Try it now": "Essayez-le maintenant",
@@ -371,15 +395,15 @@ export const french: Dictionary = {
   "Choose a text-based PDF up to 25 MB or a captioned YouTube video, then check the extracted text in the preview.":
     "Choisissez un PDF avec du texte, jusqu’à 25 Mo, ou une vidéo YouTube sous-titrée, puis vérifiez le texte extrait dans l’aperçu.",
   "Start talking": "Commencez à parler",
-  "Select Start Voice Chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want; typing is always available.":
-    "Choisissez Démarrer la conversation vocale, autorisez le microphone et posez votre question à voix haute. Interrompez ou coupez le micro quand vous voulez; l’écriture reste toujours disponible.",
+  "Select Start Voice Chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want. The keyboard is still there, it is simply no longer the way in.":
+    "Choisissez Démarrer la conversation vocale, autorisez le microphone et posez votre question à voix haute. Interrompez ou coupez le micro quand vous voulez. Le clavier est toujours là, il n’est simplement plus la porte d’entrée.",
   "Go a little deeper": "Allez un peu plus loin",
   "Use a suggestion or ask a follow-up in your own words. Keep the source nearby to check important details.":
     "Utilisez une suggestion ou posez une question de suivi dans vos mots. Gardez la source à portée pour vérifier les détails importants.",
   "Having trouble with a source or your microphone?":
     "Un problème avec une source ou votre microphone?",
-  "Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, you can still type your questions about an extracted source.":
-    "Les PDF numérisés doivent contenir une couche de texte avant le téléversement. Les sous-titres YouTube doivent être disponibles, et certaines vidéos peuvent être bloquées par YouTube. Pour la voix, autorisez le microphone dans votre navigateur. Si la voix ne se connecte pas, vous pouvez toujours écrire vos questions sur une source extraite.",
+  "Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, the keyboard is right there and answers every question about an extracted source.":
+    "Les PDF numérisés doivent contenir une couche de texte avant le téléversement. Les sous-titres YouTube doivent être disponibles, et certaines vidéos peuvent être bloquées par YouTube. Pour la voix, autorisez le microphone dans votre navigateur. Si la voix ne se connecte pas, le clavier est juste là et répond à toutes vos questions sur une source extraite.",
 
   // Sign-in and the spending limit
   "Sign in to keep going": "Connectez‑vous pour continuer",
@@ -436,6 +460,38 @@ export const french: Dictionary = {
     "Un PDF ou une vidéo YouTube sous-titrée, une question à voix haute, et une réponse qui reste ancrée dans ce que vous avez apporté.",
   "Three steps, about a minute. Nothing to install.":
     "Trois étapes, environ une minute. Rien à installer.",
+  // Applications
+  Applications: "Applications",
+  "Your next insight, wherever you go.":
+    "Votre prochain déclic, où que vous soyez.",
+  "Try Ursly on Android, explore the iOS Simulator build, or look inside the code.":
+    "Essayez Ursly sur Android, explorez la version pour le simulateur iOS ou regardez le code de l’intérieur.",
+  "Release notes & installation": "Notes de version et installation",
+  "Android preview": "Aperçu Android",
+  "Take Ursly with you.": "Emportez Ursly avec vous.",
+  "Download the signed APK for Android 7.0 or later. Installation requires allowing apps from your browser.":
+    "Téléchargez l’APK signé pour Android 7.0 ou une version plus récente. L’installation exige d’autoriser les applications provenant de votre navigateur.",
+  "Download Android APK": "Télécharger l’APK Android",
+  "Preview {version} · APK": "Aperçu {version} · APK",
+  "iOS Simulator preview": "Aperçu simulateur iOS",
+  "Explore the iOS experience.": "Découvrez l’expérience iOS.",
+  "For the iOS Simulator in Xcode on an Apple silicon Mac. This archive cannot be installed on an iPhone.":
+    "Pour le simulateur iOS dans Xcode, sur un Mac à puce Apple. Cette archive ne peut pas être installée sur un iPhone.",
+  "Download iOS Simulator build":
+    "Télécharger la version pour le simulateur iOS",
+  "Preview {version} · ARM64 archive": "Aperçu {version} · archive ARM64",
+  "Public repository": "Dépôt public",
+  "See how it’s made.": "Voyez comment c’est fait.",
+  "Explore the source, architecture, development setup, and tests. Contributions and thoughtful feedback are welcome.":
+    "Explorez le code source, l’architecture, l’environnement de développement et les tests. Les contributions et les commentaires réfléchis sont bienvenus.",
+  "View on GitHub": "Voir sur GitHub",
+  // Identical in French on purpose; see IDENTICAL_IN_BOTH above.
+  "Next.js · Expo · TypeScript": "Next.js · Expo · TypeScript",
+  "These are evaluation builds. Review the {limitations} before downloading. {checksums}.":
+    "Ce sont des versions d’évaluation. Consultez les {limitations} avant de télécharger. {checksums}.",
+  "known limitations and installation instructions":
+    "limites connues et instructions d’installation",
+  "Verify download checksums": "Vérifier les sommes de contrôle",
 
   // Footer
   "Ursly · Made for your next “aha”.":
@@ -528,4 +584,34 @@ export const french: Dictionary = {
     "Votre session est terminée. Connectez-vous de nouveau pour reprendre où vous étiez.",
   "You have used this account's allowance for now. It reopens shortly.":
     "Vous avez utilisé l’allocation de ce compte pour l’instant. Elle se rouvrira sous peu.",
+
+  // Lending a voice. Everything below is said while a microphone is open or
+  // just after, so it stays literal: what is happening, what is kept, and what
+  // is not.
+  "How Ursly answers": "Comment Ursly répond",
+  "Ursly answers in a preset voice, and that asks nothing of you. You can lend it yours instead.":
+    "Ursly répond avec une voix par défaut, et cela ne vous demande rien. Vous pouvez plutôt lui prêter la vôtre.",
+  "Lend Ursly your voice": "Prêter votre voix à Ursly",
+  "Ursly starts recording only after you press this, and keeps the recording only if you approve it.":
+    "Ursly n’enregistre qu’après votre appui sur ce bouton, et ne conserve l’enregistrement que si vous l’approuvez.",
+  "Ursly is recording your voice": "Ursly enregistre votre voix",
+  "Ursly keeps this recording only if you approve it, so it can learn your voice. It has not been sent anywhere.":
+    "Ursly ne conserve cet enregistrement que si vous l’approuvez, pour pouvoir apprendre votre voix. Il n’a été envoyé nulle part.",
+  "Recorded so far: {seconds} s. That is enough to keep.":
+    "Enregistré jusqu’ici : {seconds} s. C’est assez pour le conserver.",
+  "Recorded so far: {seconds} s. Keep talking — Ursly needs at least {minimum} s.":
+    "Enregistré jusqu’ici : {seconds} s. Continuez de parler — Ursly a besoin d’au moins {minimum} s.",
+  "Keep the recording": "Conserver l’enregistrement",
+  "Discard it": "Le supprimer",
+  "Recording discarded. Nothing was kept.":
+    "Enregistrement supprimé. Rien n’a été conservé.",
+  "Ursly kept {seconds} seconds of your voice, in this browser and for as long as this page is open. Nothing was sent anywhere, and Ursly still answers in its preset voice: lending it a voice for real is a separate, deliberate step.":
+    "Ursly a conservé {seconds} secondes de votre voix, dans ce navigateur et tant que cette page reste ouverte. Rien n’a été envoyé nulle part, et Ursly répond toujours avec sa voix par défaut : lui prêter une voix pour de bon est une démarche distincte et délibérée.",
+  "Delete the recording": "Supprimer l’enregistrement",
+  "Voice sample deleted. Ursly answers in its preset voice again.":
+    "Échantillon vocal supprimé. Ursly répond de nouveau avec sa voix par défaut.",
+  "The microphone handed back no audio, so nothing was kept. Lend your voice again to try once more.":
+    "Le microphone n’a rendu aucun son, donc rien n’a été conservé. Prêtez votre voix de nouveau pour réessayer.",
+  "Ursly could not open the microphone. Check the microphone permission in your browser and try again.":
+    "Ursly n’a pas pu ouvrir le microphone. Vérifiez l’autorisation du microphone dans votre navigateur, puis réessayez.",
 };

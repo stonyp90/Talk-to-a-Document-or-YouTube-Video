@@ -27,7 +27,7 @@ variable "openai_secret_arn" { type = string }
 variable "auth_pepper_secret_arn" { type = string }
 variable "app_origin" {
   type    = string
-  default = "http://localhost:3000"
+  default = ""
 }
 
 # The module holds the defaults for these; they are repeated here only so an

@@ -71,6 +71,13 @@
   --nav-h-mobile: calc(var(--nav-row) + var(--nav-modes-row));
   --nav-gap: 16px;
   --disabled-ink: #8f8a95;
+  /* The keyboard stands one step back: a rule marks the break with the modes
+     that lead, and its icon sits a shade quieter than theirs. */
+  --legacy-gap: 9px;
+  --legacy-dim: 0.78;
+  /* Nine uppercase pixels on a soft wash: quiet, and still above 4.5:1,
+     which `--muted` misses by a hair. */
+  --badge-ink: #5f5a66;
   /* Corners: square shapes with a modest rounding, never a pill. */
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -1700,7 +1707,7 @@ h3 {
   padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--radius-xl);
   background: var(--surface-soft);
-  color: var(--muted);
+  color: var(--badge-ink);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -1728,14 +1735,47 @@ h3 {
   background: var(--accent-wash);
   color: var(--accent);
 }
+/* Voice is the way in, so its selected state answers in the brand colour
+   while the other modes settle for ink. */
+.mode-voice[aria-checked="true"] {
+  border-color: var(--accent-border);
+  background: var(--accent-wash-soft);
+  color: var(--accent);
+}
+/* The keyboard is the previous generation of input. It is kept, supported and
+   selectable, and it is drawn behind the two modes that carry the product
+   forward: a hairline for the break in era, a lighter word, a quieter icon.
+   Its badge keeps the neutral grey of `.mode-detail`, so the eye reads it as
+   a label about the past next to the accent the beta wears. */
+.mode-legacy {
+  position: relative;
+  margin-left: var(--legacy-gap);
+  font-weight: 550;
+}
+.mode-legacy::before {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--legacy-gap) / -2);
+  width: 1px;
+  height: 18px;
+  background: var(--line-strong);
+  content: "";
+  transform: translateY(-50%);
+}
+.mode-legacy .icon {
+  opacity: var(--legacy-dim);
+}
 .mode:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* The beta now sits in the middle of the row, so its explanation is centred
+   under the group rather than hung off the right edge. */
 .mode-tooltip {
+  --tooltip-width: min(320px, calc(100vw - 32px));
   position: absolute;
   top: calc(100% + 10px);
-  right: 0;
+  left: 50%;
   z-index: 50;
   width: max-content;
   max-width: min(320px, calc(100vw - 32px));
@@ -1756,7 +1796,7 @@ h3 {
 .mode-tooltip::before {
   position: absolute;
   top: -5px;
-  right: 22px;
+  left: calc(50% - 4.5px);
   width: 9px;
   height: 9px;
   background: var(--ink);
@@ -2152,6 +2192,130 @@ h3 {
   margin: 0;
   color: var(--muted);
   font-size: 11px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Lending a voice
+ *
+ * The panel says which voice answers today and offers the only way to change
+ * it. The toast is the one moment in Ursly where a person is being recorded,
+ * so it leaves the flow of the page and sits over it: it has to be the thing
+ * you are looking at, and it waits for an answer rather than fading on its own.
+ * ------------------------------------------------------------------------- */
+.voice-lending {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+.voice-lending[data-listening="true"] {
+  border-color: var(--accent);
+}
+.voice-lending h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.voice-lending p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.voice-lending .voice-lending-notice {
+  color: var(--ink);
+  font-weight: 650;
+}
+.voice-lending-sample {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--accent-border-wash);
+  border-radius: var(--radius-lg);
+  background: var(--accent-wash-soft);
+}
+.voice-consent-toast {
+  /* Named once so the centring maths cannot drift from the width. */
+  --consent-width: min(420px, calc(100vw - 24px));
+  position: fixed;
+  bottom: calc(20px + var(--safe-bottom));
+  left: 50%;
+  z-index: 55;
+  display: grid;
+  gap: 8px;
+  width: var(--consent-width);
+  margin-left: calc(var(--consent-width) / -2);
+  padding: 15px 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 16px 40px var(--shadow-lg);
+  font-size: 13px;
+  line-height: 1.5;
+  animation: toast-in 220ms var(--ease-spring) both;
+}
+/* The toast takes focus as it opens, and it is already impossible to miss. */
+.voice-consent-toast:focus-visible {
+  outline: none;
+}
+.voice-consent-toast p {
+  margin: 0;
+}
+.voice-consent-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+}
+.voice-consent-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: voice-consent-recording 1400ms var(--ease-out) infinite;
+}
+.voice-consent-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.voice-consent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+.voice-consent-actions button {
+  flex: 1 1 140px;
+}
+/* Refused, not removed: it keeps its focus ring and the counter says why. */
+.voice-consent-actions button[aria-disabled="true"] {
+  border-color: var(--line-strong);
+  color: var(--disabled-ink);
+  cursor: not-allowed;
+}
+.voice-consent-actions button[aria-disabled="true"]:hover {
+  border-color: var(--line-strong);
+  color: var(--disabled-ink);
+  box-shadow: none;
+  transform: none;
+}
+@keyframes voice-consent-recording {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 /* The dropzone is a real target, with a button for people who prefer one. */
@@ -2586,11 +2750,17 @@ h3 {
     padding: var(--space-2xs);
     border-radius: var(--radius-lg);
   }
+  /* A third of a phone is not wide enough for a word and a badge side by
+     side, so the badge drops under the label rather than spilling out. */
   .mode {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
+    align-content: center;
     justify-content: center;
-    gap: var(--space-xs);
+    column-gap: var(--space-xs);
+    /* The badge sits directly under the label it belongs to. */
+    row-gap: 1px;
     min-height: 44px;
     padding: var(--space-2xs) var(--space-xs);
     border-radius: var(--radius-md);
@@ -2600,6 +2770,14 @@ h3 {
   .mode .icon {
     width: 13px;
     height: 13px;
+  }
+  /* Three equal columns already set the keyboard apart here, and the rule
+     would only take width the label needs. */
+  .mode-legacy {
+    margin-left: 0;
+  }
+  .mode-legacy::before {
+    display: none;
   }
   .mode-label-full {
     display: none;
@@ -2613,10 +2791,7 @@ h3 {
     letter-spacing: 0.04em;
   }
   .mode-tooltip {
-    right: 8px;
-    left: 8px;
-    width: auto;
-    max-width: none;
+    --tooltip-width: calc(100vw - 16px);
   }
   .workspace-heading {
     flex-direction: column;

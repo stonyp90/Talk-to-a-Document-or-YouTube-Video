@@ -124,6 +124,41 @@ run "reject_mutable_image_tag" {
   variables { image_tag = "latest" }
   expect_failures = [var.image_tag]
 }
+# The function publishes its own OpenAPI document, and the server URL in that
+# document is the only address a generated client will ever call. It learns that
+# address from APP_ORIGIN, so APP_ORIGIN has to be the origin the public reaches
+# this deployment on — the same value CORS allows, not a second opinion.
+run "the_function_is_told_the_public_origin_it_is_reached_on" {
+  command = apply
+  variables { app_origin = "https://ursly.io" }
+  assert {
+    condition     = aws_lambda_function.runtime["api"].environment[0].variables["APP_ORIGIN"] == "https://ursly.io"
+    error_message = "The api function must be handed the configured public origin, not the gateway endpoint."
+  }
+  assert {
+    condition     = contains(aws_apigatewayv2_api.http.cors_configuration[0].allow_origins, "https://ursly.io")
+    error_message = "The browser origin the app is served on must be allowed to call the API."
+  }
+  assert {
+    # cors_rule is a set of objects, which has no addressable keys: ask whether
+    # any rule allows the origin rather than reaching for the first one.
+    condition     = anytrue([for rule in aws_s3_bucket_cors_configuration.uploads.cors_rule : contains(rule.allowed_origins, "https://ursly.io")])
+    error_message = "The browser origin the app is served on must be allowed to upload."
+  }
+}
+# Nothing configured must still leave the document naming somewhere that
+# answers. The gateway's own endpoint is that address; a guessed default is not.
+run "an_unconfigured_deployment_publishes_its_gateway_endpoint" {
+  command = apply
+  assert {
+    condition     = aws_lambda_function.runtime["api"].environment[0].variables["APP_ORIGIN"] == aws_apigatewayv2_api.http.api_endpoint
+    error_message = "Without a site origin the function must publish the gateway endpoint, which is reachable."
+  }
+  assert {
+    condition     = length(aws_apigatewayv2_api.http.cors_configuration[0].allow_origins) == 0
+    error_message = "With no separate site origin, no cross-origin caller is allowed rather than an empty one."
+  }
+}
 run "no_email_permission_before_the_operator_verifies_the_domain" {
   command = apply
   variables {

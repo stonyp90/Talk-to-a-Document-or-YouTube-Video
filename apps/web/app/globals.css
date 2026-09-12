@@ -2469,8 +2469,15 @@ h3 {
     align-items: center;
     gap: var(--space-sm);
   }
+  /* Never squeezed to a clipped label: where the row runs out the anchors
+     yield whole, at the widths below. */
   .nav[data-page="landing"] .nav-sections {
-    flex: 0 1 auto;
+    flex: none;
+  }
+  /* The speaking mark is the panel's flourish. On a phone row every pixel is
+     spoken for, so the way in keeps its word and drops the mark. */
+  .nav-cta .nav-orb {
+    display: none;
   }
   .nav[data-page="landing"] .nav-actions {
     margin-left: auto;

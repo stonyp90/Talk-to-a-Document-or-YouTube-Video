@@ -2011,12 +2011,30 @@ h3 {
 .hero {
   padding: var(--section-gap) 0;
 }
-/* The first thing a reader meets is given the most air of anything. */
+/* The first thing a reader meets is given the most air of anything, and it
+   is the loop: the claim on the left, the loop turning on the right. */
 .landing-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: var(--space-3xl) var(--space-4xl);
   padding: calc(var(--section-gap) + var(--space-md)) 0 var(--section-y);
+}
+.landing-hero-copy,
+.landing-hero-loop {
+  min-width: 0;
 }
 .landing-hero .lede {
   max-width: 640px;
+}
+/* Stacked, the loop follows the way in: on a phone the point of the page and
+   the button that acts on it come first, and the picture is what you scroll
+   into rather than what you scroll past. */
+@media (max-width: 900px) {
+  .landing-hero {
+    grid-template-columns: 1fr;
+    gap: var(--space-2xl);
+  }
 }
 .hero-actions {
   display: flex;

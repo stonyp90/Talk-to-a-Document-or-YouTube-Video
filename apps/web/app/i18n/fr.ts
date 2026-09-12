@@ -29,6 +29,13 @@ export const french: Dictionary = {
   Language: "Langue",
   "Skip to workspace": "Aller à l’atelier",
   "Skip to content": "Aller au contenu",
+  "The software development lifecycle": "Le cycle de développement logiciel",
+  "A new way to build software.": "Une nouvelle façon de bâtir des logiciels.",
+  "For tomorrow’s internet.": "Pour l’Internet de demain.",
+  "One loop of {count} stages, walked in full before anything ships: concept, tools, tests, security, delivery, production, then what people tell us, and what the models learn from it.":
+    "Une seule boucle de {count} étapes, parcourue au complet avant que quoi que ce soit ne sorte : concept, outils, tests, sécurité, livraison, production, puis ce que les gens nous disent, et ce que les modèles en apprennent.",
+  "What it does today: bring a PDF or a captioned YouTube video and talk to it. How it is built is the rest of this page.":
+    "Ce qu’il fait aujourd’hui : apportez un PDF ou une vidéo YouTube sous-titrée et parlez-lui. Comment il est bâti, c’est le reste de cette page.",
   "Open the app": "Ouvrir l’application",
   App: "App",
   "Back to the story": "Retour à l’histoire",
@@ -72,11 +79,6 @@ export const french: Dictionary = {
     "Du concept à la production, testé en production, à chaque cycle.",
 
   // Landing hero
-  "Voice first": "La voix d’abord",
-  "Less scrolling.": "Moins défiler.",
-  "More understanding.": "Mieux comprendre.",
-  "Bring a PDF or a captioned YouTube video, ask by voice or keyboard, and get answers that stay anchored to your source.":
-    "Apportez un PDF ou une vidéo YouTube sous-titrée, posez vos questions à la voix ou au clavier, et obtenez des réponses qui restent ancrées dans votre source.",
 
   // Workspace heading
   "Your source.": "Votre source.",
@@ -382,8 +384,6 @@ export const french: Dictionary = {
     "Les PDF numérisés doivent contenir une couche de texte avant le téléversement. Les sous-titres YouTube doivent être disponibles, et certaines vidéos peuvent être bloquées par YouTube. Pour la voix, autorisez le microphone dans votre navigateur. Si la voix ne se connecte pas, vous pouvez toujours écrire vos questions sur une source extraite.",
 
   // The story, and the invitation that closes it
-  "The story first: how this was built, what it is, and how to use it. The app is one tap away from anywhere on this page.":
-    "L’histoire d’abord : comment ceci a été bâti, ce que c’est et comment s’en servir. L’application est à un seul geste, depuis n’importe où sur cette page.",
   "Your turn": "À votre tour",
   "That is the story. Now bring a document.":
     "Voilà l’histoire. Apportez maintenant un document.",

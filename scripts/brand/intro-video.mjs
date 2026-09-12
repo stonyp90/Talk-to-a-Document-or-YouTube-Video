@@ -329,15 +329,63 @@ const LOOP_TRAVEL = 4.4;
 const LOOP_TAIL = 0.16;
 
 // The keyboard is an object standing in front of the product, not a diagram
-// beside it: it sits over the screen and runs off two edges of the frame.
-const KEYBOARD = { x: 1104, y: 600, width: 1010, height: 560, r: 36 };
-const KEY_COLUMNS = 11;
-const KEY_ROWS = 4;
-const KEY_WIDTH = 70;
-const KEY_HEIGHT = 76;
-const KEY_GAP = 14;
-const KEY_TOP = 46;
-const slab = mix(paper, ink, 0.18);
+// beside it: it sits over the screen and runs off the right edge and the
+// bottom of the frame, the way the keyboard on your desk runs off the bottom
+// of your view of the screen behind it.
+//
+// It is drawn as the object it is rather than as a grid of identical tiles.
+// The earlier cut laid eleven equal squares across four equal rows and nudged
+// alternate rows sideways by one gap, which is not what a keyboard looks like
+// from any angle: what makes a keyboard recognisable at a glance is that its
+// rows are different from each other -- a wide key starting each one, a
+// return, two long shifts, a space bar -- and that the keys carry letters.
+const KEYBOARD = { x: 1040, top: 649, r: 40, pad: 40 };
+// One key unit. Every key is a multiple of it, so a row is described by what
+// its keys are rather than by where they sit, and no position is ever typed
+// twice.
+const KEY_UNIT = 78;
+const KEY_GAP = 13;
+const KEY_HEIGHT = 78;
+const KEY_ROW_PITCH = KEY_HEIGHT + KEY_GAP;
+const KEY_RADIUS = 13;
+const KEY_LEGEND_SIZE = 26;
+// The sliver of darker deck showing under the near edge of every cap. It is
+// the whole difference between a key and a painted rectangle.
+const KEY_RELIEF = 4;
+
+// The widths, in key units, of the keys on either side of the letters in each
+// of the three letter rows. A real keyboard staggers by widening the key that
+// begins each row, not by sliding the whole row sideways, and the widening is
+// what the eye actually reads as a keyboard.
+const KEY_LETTER_ROWS = [
+  { before: [1.6], after: [1, 1, 1.6] },
+  { before: [1.9], after: [1, 1, 1.9] },
+  { before: [2.4], after: [1, 1, 1, 2.4] },
+];
+// The near row: modifiers, a space bar, modifiers.
+const KEY_SPACE_ROW = [1.35, 1.35, 1.35, 6.4, 1.35, 1.35, 1.35];
+
+// The keyboard arrives lit and settles into the deck it stands on. It is the
+// scene's whole argument drawn as time rather than as a mark: nothing is
+// crossed out, nothing is broken, the thing simply stops being the brightest
+// object in the frame while the wave above it keeps moving. The earlier cut
+// drew a bar straight across the keys instead, which read as damage to the
+// render rather than as a demotion of the keyboard.
+const KEY_SETTLE_FROM = 1.6;
+const KEY_SETTLE_SECONDS = 2.6;
+const KEY_SETTLE_TINT = 0.45;
+
+// The shadow the keyboard throws up the screen behind it. ImageMagick's SVG
+// renderer has no gradient this script can rely on, so the falloff is a stack
+// of flat bands, which at these opacities is indistinguishable from one.
+const KEYBOARD_SHADOW_BANDS = 9;
+const KEYBOARD_SHADOW_BAND = 4;
+const KEYBOARD_SHADOW_DEPTH = 0.17;
+
+const slab = mix(paper, ink, 0.2);
+// The deck in shadow under a cap, and the lit front edge of the deck itself.
+const keyRelief = mix(slab, ink, 0.32);
+const keyLip = mix(slab, paper, 0.5);
 
 // How an element arrives: a third of a second of travel, from a little below.
 const ENTER_SECONDS = 0.7;
@@ -981,57 +1029,136 @@ function motion(scene, t, words_, elapsed) {
 }
 
 /**
+ * The keyboard itself: a deck standing in front of the product, four rows
+ * deep, running off the right edge and the bottom of the frame.
+ *
+ * The rows are built from a list of key widths rather than from a column
+ * count, so each one is the shape the real row is -- a wide key to start, a
+ * return, two long shifts, a space bar -- and the stagger falls out of the
+ * widths instead of being faked with an offset. The letters come from the copy
+ * file, which is why the French film draws an AZERTY keyboard: the keyboard a
+ * reader recognises is the one their own hands know.
+ *
+ * Keys are emitted until they leave the frame. Nothing is centred inside a
+ * fixed box, so the keyboard genuinely continues past the edge rather than
+ * stopping just short of it and looking like a picture of a keyboard.
+ */
+function keyboard(t, words_) {
+  // Arrives lit, settles into the deck. `settle` is the scene's argument.
+  const settled = smooth(clamp((t - KEY_SETTLE_FROM) / KEY_SETTLE_SECONDS));
+  const cap = mix(paper, slab, settled * KEY_SETTLE_TINT);
+  const legend = mix(ink, muted, settled);
+  const legendOpacity = 0.9 - settled * 0.46;
+  // Far enough past the frame that the push, which only ever moves the field
+  // to the right, cannot pull the last key back into view.
+  const beyond = WIDTH + KEY_UNIT * 2;
+
+  const key = (x, y, units, label) => {
+    const width = units * KEY_UNIT;
+    return (
+      box({
+        x,
+        y: y + KEY_RELIEF,
+        width,
+        height: KEY_HEIGHT,
+        r: KEY_RADIUS,
+        fill: keyRelief,
+        opacity: 0.4,
+      }) +
+      box({ x, y, width, height: KEY_HEIGHT, r: KEY_RADIUS, fill: cap }) +
+      (label
+        ? text({
+            x: x + width / 2,
+            // Georgia and Arial both sit their capitals on the baseline, so a
+            // capital is centred by dropping the baseline a third of its own
+            // height below the middle of the cap.
+            y: y + KEY_HEIGHT / 2 + KEY_LEGEND_SIZE / 3,
+            value: label,
+            size: KEY_LEGEND_SIZE,
+            fill: legend,
+            weight: "700",
+            anchor: "middle",
+            opacity: legendOpacity,
+          })
+        : "")
+    );
+  };
+
+  /** One row, left to right, until it leaves the frame. */
+  const row = (index, units) => {
+    const y = KEYBOARD.top + KEYBOARD.pad + index * KEY_ROW_PITCH;
+    let x = KEYBOARD.x + KEYBOARD.pad;
+    const drawn = [];
+    for (const { width, label } of units) {
+      if (x > beyond) break;
+      drawn.push(key(x, y, width, label));
+      x += width * KEY_UNIT + KEY_GAP;
+    }
+    return drawn.join("");
+  };
+
+  const plain = (width) => ({ width });
+  const rows = KEY_LETTER_ROWS.map((shape, index) =>
+    row(index, [
+      ...shape.before.map(plain),
+      ...words_.keys[index].map((label) => ({ width: 1, label })),
+      ...shape.after.map(plain),
+    ]),
+  ).join("");
+
+  // The deck: a shadow thrown up the screen, the body, and the lit front edge
+  // that gives the body a thickness.
+  const width = beyond + KEY_UNIT - KEYBOARD.x;
+  const shadow = Array.from({ length: KEYBOARD_SHADOW_BANDS }, (_, band) =>
+    box({
+      // Stepped in as it rises, so the shadow follows the deck's rounded
+      // corner instead of standing square beside it.
+      x: KEYBOARD.x + (KEYBOARD_SHADOW_BANDS - band) * 2,
+      y: KEYBOARD.top - (KEYBOARD_SHADOW_BANDS - band) * KEYBOARD_SHADOW_BAND,
+      width,
+      height: KEYBOARD_SHADOW_BAND,
+      fill: ink,
+      opacity: (KEYBOARD_SHADOW_DEPTH * (band + 1)) / KEYBOARD_SHADOW_BANDS,
+    }),
+  ).join("");
+
+  return (
+    shadow +
+    box({
+      x: KEYBOARD.x,
+      y: KEYBOARD.top,
+      width,
+      // Off the bottom of the frame, with room for the push to take it further.
+      height: HEIGHT + KEY_UNIT * 2 - KEYBOARD.top,
+      r: KEYBOARD.r,
+      fill: slab,
+    }) +
+    box({
+      x: KEYBOARD.x + KEYBOARD.r,
+      y: KEYBOARD.top,
+      width: width - KEYBOARD.r,
+      height: 5,
+      fill: keyLip,
+      opacity: 0.55,
+    }) +
+    rows +
+    row(KEY_LETTER_ROWS.length, KEY_SPACE_ROW.map(plain))
+  );
+}
+
+/**
  * Scene five: the keyboard, named for what it now is. The screen from the
  * first two scenes comes back behind it -- the product did not go anywhere --
- * and the keyboard stands in front of it in the muted grey everything
- * secondary is drawn in, struck through as the scene settles, while voice and
- * motion keep the accent. The hierarchy is visible to someone who has the
- * sound off and does not read the caption.
+ * and the keyboard stands in front of it, complete and legible and quiet,
+ * settling into its deck while voice and motion keep the accent in the column
+ * beside it. The hierarchy is visible to someone who has the sound off and
+ * does not read the caption, and it is stated by what is bright rather than by
+ * anything being struck out: the sentence on screen is that the keyboard still
+ * works.
  */
 function legacy(scene, t, words_, elapsed) {
   const scale = pushed(elapsed);
   const arrival = entered(t, 0.4);
-  const padding =
-    (KEYBOARD.width - (KEY_COLUMNS * KEY_WIDTH + (KEY_COLUMNS - 1) * KEY_GAP)) /
-    2;
-  const keys = Array.from({ length: KEY_ROWS }, (_, row) =>
-    row === KEY_ROWS - 1
-      ? box({
-          x: KEYBOARD.x + padding + 2 * (KEY_WIDTH + KEY_GAP),
-          y: KEYBOARD.y + KEY_TOP + row * (KEY_HEIGHT + KEY_GAP),
-          width: 7 * KEY_WIDTH + 6 * KEY_GAP,
-          height: KEY_HEIGHT,
-          r: 14,
-          fill: paper,
-          opacity: 0.82,
-        })
-      : Array.from({ length: KEY_COLUMNS }, (_, key) =>
-          box({
-            x:
-              KEYBOARD.x +
-              padding +
-              key * (KEY_WIDTH + KEY_GAP) +
-              (row % 2 ? KEY_GAP : 0),
-            y: KEYBOARD.y + KEY_TOP + row * (KEY_HEIGHT + KEY_GAP),
-            width: KEY_WIDTH,
-            height: KEY_HEIGHT,
-            r: 14,
-            fill: paper,
-            opacity: 0.82,
-          }),
-        ).join(""),
-  ).join("");
-  // The strike is drawn, not typeset, so it can be seen to happen.
-  const strike = box({
-    x: KEYBOARD.x + 40,
-    y: KEYBOARD.y + KEY_TOP + 1.5 * (KEY_HEIGHT + KEY_GAP) + KEY_HEIGHT / 2 - 5,
-    width: (KEYBOARD.width - 80) * entered(t, 1.8),
-    height: 10,
-    r: 5,
-    fill: ink,
-    opacity: 0.6,
-  });
-
   const chips = [
     { label: words_.modes.voice, live: true },
     { label: words_.modes.motion, live: true },
@@ -1082,10 +1209,7 @@ function legacy(scene, t, words_, elapsed) {
     // The keyboard is the one thing in the film that has to sit on top of a
     // still, so it is handed back as its own layer rather than drawn into the
     // frame the stills are composited over.
-    front: staged(
-      scale,
-      arriving(arrival, box({ ...KEYBOARD, fill: slab }) + keys + strike),
-    ),
+    front: staged(scale, arriving(arrival, keyboard(t, words_))),
   };
 }
 

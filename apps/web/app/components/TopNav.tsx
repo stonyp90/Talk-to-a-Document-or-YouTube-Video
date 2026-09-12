@@ -162,11 +162,17 @@ function IntroReplayButton({
  * tap from anywhere on either page.
  */
 /**
- * The builds, one press from the menu. The applications section carries the
- * same files further down the landing page; handing them over here means a
- * reader who came for the app does not have to go looking for it.
+ * "Get the app", beside the way into the web application and deliberately not
+ * the same thing: that one opens Ursly in the browser, this one descends to
+ * the applications section, where the builds you install actually live.
+ *
+ * So the control is a plain anchor first. Pressing it always lands the reader
+ * on the downloads, with no state to guess at and nothing that depends on
+ * JavaScript having run. Reaching it — hovering, or arriving by keyboard —
+ * additionally offers the two builds directly, for the reader who already
+ * knows which file they came for and would rather not scroll at all.
  */
-function AppDownloadsMenu() {
+function AppDownloadsMenu({ prefix }: { prefix: string }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const holder = useRef<HTMLDivElement>(null);
@@ -189,28 +195,39 @@ function AppDownloadsMenu() {
   }, [open]);
 
   return (
-    <div className="nav-downloads" ref={holder}>
-      <button
-        type="button"
+    <div
+      className="nav-downloads"
+      ref={holder}
+      onPointerEnter={() => setOpen(true)}
+      onPointerLeave={() => setOpen(false)}
+      // Focus and blur bubble in React, so the shortcuts open for a reader
+      // arriving on the anchor by keyboard and close when they tab past the
+      // last one, without the holder having to know which child has focus.
+      onFocus={() => setOpen(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node))
+          setOpen(false);
+      }}
+    >
+      <a
         className="nav-link nav-download"
-        aria-expanded={open}
-        aria-haspopup="true"
+        href={`${prefix}#applications`}
+        data-open={open}
         // The label is hidden on a narrow screen, which would leave the
         // control with nothing but an icon to announce itself by.
         aria-label={t("Get the app")}
         title={t("Get the app")}
-        onClick={() => setOpen((shown) => !shown)}
+        onClick={() => setOpen(false)}
       >
         <Icon name="download" />
         <span className="nav-download-label">{t("Get the app")}</span>
-      </button>
+      </a>
       {open && (
-        <div className="nav-download-menu" role="menu">
+        <div className="nav-download-menu">
           {appDownloads.map((build) => (
             <a
               key={build.id}
               className="nav-download-item"
-              role="menuitem"
               href={build.url}
               onClick={() => setOpen(false)}
             >
@@ -223,15 +240,13 @@ function AppDownloadsMenu() {
           ))}
           <a
             className="nav-download-more"
-            role="menuitem"
-            href="#applications"
+            href={`${prefix}#applications`}
             onClick={() => setOpen(false)}
           >
             {t("All builds and instructions")}
           </a>
           <a
             className="nav-download-more"
-            role="menuitem"
             href={releaseNotesUrl}
             onClick={() => setOpen(false)}
           >
@@ -319,7 +334,9 @@ export function TopNav(props: TopNavProps) {
           )}
 
           <div className="nav-actions">
-            <AppDownloadsMenu />
+            {/* The applications section lives on the landing page, so from the
+                application the jump is a page away rather than a scroll. */}
+            <AppDownloadsMenu prefix={page === "app" ? `/${language}` : ""} />
             {story && (
               <IntroReplayButton
                 onReplayIntro={story.onReplayIntro}

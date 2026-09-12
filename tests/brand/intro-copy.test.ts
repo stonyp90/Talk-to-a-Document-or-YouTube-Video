@@ -17,7 +17,7 @@ import { french } from "../../apps/web/app/i18n/fr";
 
 type Scene = { id: string; headline: string; lede: string };
 type Loop = { centre: string[]; stages: string[] };
-type LanguageCopy = { scenes: Scene[]; loop: Loop };
+type LanguageCopy = { scenes: Scene[]; loop: Loop; keys: string[][] };
 type IntroCopy = Record<"en" | "fr", LanguageCopy>;
 
 const languages = ["en", "fr"] as const;
@@ -80,6 +80,32 @@ describe("the film's copy against the app's", () => {
       expect(copy()[language].loop.stages, language).toEqual(
         processCopy[language].steps.map((step) => step.title),
       );
+  });
+
+  /**
+   * The fifth scene draws a keyboard, and the letters on it come from here so
+   * that a reader sees the keyboard their own hands know: QWERTY in English,
+   * AZERTY in French. The renderer gives every letter exactly one key unit of
+   * room, so anything longer than a single character would run over the key
+   * beside it, and a row the renderer does not draw would simply be dropped
+   * without a word.
+   */
+  it("names one legend per key on three letter rows, in both languages", () => {
+    for (const language of languages) {
+      const rows = copy()[language].keys;
+      expect(rows, language).toHaveLength(3);
+      for (const row of rows) {
+        expect(row.length, `${language} row of ${row.length}`).toBeGreaterThan(
+          5,
+        );
+        for (const legend of row) expect(legend, language).toHaveLength(1);
+      }
+    }
+  });
+
+  /** Two layouts, not one layout labelled twice. */
+  it("draws a different keyboard for a French reader", () => {
+    expect(copy().fr.keys).not.toEqual(copy().en.keys);
   });
 
   it("puts the page's own mission at the centre of the loop", () => {

@@ -3174,7 +3174,7 @@ h3 {
   width: 14px;
   height: 14px;
 }
-.nav-download[aria-expanded="true"] {
+.nav-download[data-open="true"] {
   border-color: var(--accent-border);
   background: var(--accent-wash-soft);
   color: var(--accent);
@@ -3194,6 +3194,17 @@ h3 {
   background: var(--surface);
   box-shadow: 0 18px 44px var(--shadow-lg);
   animation: rise-in var(--motion-fast) var(--ease-out) both;
+}
+/* The flyout hangs a little below the control, and that gap is still the
+   control's ground: without it a pointer travelling down to a build would
+   fall through the space between and close the menu on the way. */
+.nav-download-menu::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 8px;
 }
 .nav-download-item {
   display: flex;

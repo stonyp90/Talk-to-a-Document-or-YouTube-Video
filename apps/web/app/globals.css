@@ -571,7 +571,7 @@ h3 {
   background: linear-gradient(150deg, var(--surface), var(--violet-tint-alt));
   transition: background var(--motion-slow) var(--ease-out);
 }
-.conversation-card[data-ready="false"] /* Motion to action: a small mirror of the room, a marker where movement is,
+/* Motion to action: a small mirror of the room, a marker where movement is,
    and the five movements written out. The preview is deliberately small — it
    is a confidence signal, not a video call. */
 .motion-panel {
@@ -713,7 +713,7 @@ h3 {
     transition: none;
   }
 }
-.voice-panel {
+.conversation-card[data-ready="false"] .voice-panel {
   opacity: 0.72;
   transform: translateY(3px);
 }

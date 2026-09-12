@@ -128,6 +128,16 @@ test("choosing motion hands the reader the panel, with the camera still off", as
 
   const panel = page.getByRole("region", { name: "Motion to action" });
   await expect(panel).toBeVisible();
+  // The panel is a sibling of the conversation card. A malformed merged
+  // selector once made its layout conditional on being inside that card.
+  await expect(panel).toHaveCSS("display", "grid");
+  const cameraBox = await panel.locator(".motion-stage").boundingBox();
+  const controlsBox = await panel.locator(".motion-controls").boundingBox();
+  expect(cameraBox).not.toBeNull();
+  expect(controlsBox).not.toBeNull();
+  expect(controlsBox!.y - (cameraBox!.y + cameraBox!.height)).toBeGreaterThan(
+    8,
+  );
   await expect(
     panel.getByRole("button", { name: /Start motion/ }),
   ).toBeVisible();
@@ -149,9 +159,9 @@ test("choosing motion hands the reader the panel, with the camera still off", as
     "data-watching",
     "true",
   );
-  await expect(
-    panel.getByRole("button", { name: /Stop motion/ }),
-  ).toHaveCount(0);
+  await expect(panel.getByRole("button", { name: /Stop motion/ })).toHaveCount(
+    0,
+  );
 
   // And the mode is reachable on a phone without the page growing sideways.
   await page.setViewportSize({ width: 390, height: 844 });

@@ -20,6 +20,7 @@ import { registerResilienceChecks } from "./resilience";
 import { registerArchitectureChecks } from "./architecture";
 import { registerAuthChecks } from "./auth";
 import { registerEntryChecks } from "./entry";
+import { registerPricingChecks } from "./pricing";
 import { registerProcessChecks } from "./process";
 import { registerVideoSearchChecks } from "./videoSearch";
 import { registerConversationChecks } from "./conversation";
@@ -969,6 +970,7 @@ registerProcessChecks(step, { page });
 registerVideoSearchChecks(step);
 registerConversationChecks(step);
 registerVoiceChecks(step);
+registerPricingChecks(step, { page });
 registerDiscoverabilityChecks(step);
 registerVoiceConsentChecks(step);
 

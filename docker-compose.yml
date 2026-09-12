@@ -83,6 +83,10 @@ x-app-environment: &app-environment
   SES_REGION: ${SES_REGION:-}
   SES_FROM_ADDRESS: ${SES_FROM_ADDRESS:-}
   SES_CONFIGURATION_SET: ${SES_CONFIGURATION_SET:-}
+  # Empty until billing opens: the pricing card then says so instead of
+  # printing a figure nobody can pay.
+  NEXT_PUBLIC_PAID_PLAN_PRICE: ${NEXT_PUBLIC_PAID_PLAN_PRICE:-}
+  NEXT_PUBLIC_PAID_PLAN_URL: ${NEXT_PUBLIC_PAID_PLAN_URL:-}
   SITE_URL: ${SITE_URL:-http://localhost:3000}
   SITE_SAME_AS: ${SITE_SAME_AS:-}
   INTRO_VIDEO_YOUTUBE_ID_EN: ${INTRO_VIDEO_YOUTUBE_ID_EN:-}
@@ -99,6 +103,9 @@ services:
         # may only reach the object store the image was built for. It must be
         # the same address the runtime hands out for presigned uploads.
         OBJECT_STORE_PUBLIC_ENDPOINT: ${OBJECT_STORE_PUBLIC_ENDPOINT:-http://localhost:9002}
+        # The paid figure is inlined into the bundle, so the build needs it too.
+        NEXT_PUBLIC_PAID_PLAN_PRICE: ${NEXT_PUBLIC_PAID_PLAN_PRICE:-}
+        NEXT_PUBLIC_PAID_PLAN_URL: ${NEXT_PUBLIC_PAID_PLAN_URL:-}
         # What the site tells crawlers about itself is prerendered with it.
         SITE_URL: ${SITE_URL:-http://localhost:3000}
         SITE_SAME_AS: ${SITE_SAME_AS:-}

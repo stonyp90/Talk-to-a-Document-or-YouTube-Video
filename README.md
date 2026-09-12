@@ -75,20 +75,22 @@ It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom vo
    be replayed from the top menu.
 2. **A fixed top menu.** It carries the three control modes — _Voice to action_
    (default), _Keyboard to action_ and _Motion to action_, shown as a beta that is
-   not available yet — plus the _Platform_ section, the intro and the language
-   switch. It stays in place while scrolling.
+   not available yet — plus the _Platform_ and _Pricing_ sections, the intro and
+   the language switch. It stays in place while scrolling.
 3. **The workspace, right away.** Add a PDF or a captioned YouTube video, then ask
    by voice or by typing. A first answer is three actions away.
 4. **Platform**, a static section reachable from the menu: a human stays in the
    loop, voice models that adapt to each speaker with consent, voice, movement or
    keyboard, and the surfaces to come (connected objects, 3D objects), with a
    dateless roadmap.
+5. **What it costs**, also reachable from the menu: the two ways to use Ursly,
+   side by side, and what each one costs you.
 
 ### Pages
 
 Two pages, deliberately separate. `/<lang>` is the landing page: what Ursly is,
-the introduction, then the story in one order — how we build, the
-platform, the guide, and the mobile downloads
+the introduction, then the story in one order — how we build, the platform,
+what it costs, the guide, and the mobile downloads
 (`apps/web/app/components/LandingPage.tsx`). That order lives in
 `apps/web/app/content/story.ts`, which the page, the fixed menu and the suites
 all read, so it changes in one place. The build loop leads: how this was made is
@@ -164,6 +166,35 @@ them, with the self-hosted file kept as `contentUrl`. Leave them empty and
 nothing breaks: the graph simply describes the file this origin serves. The
 values are read when the pages are prerendered, so they are build arguments,
 not runtime settings.
+
+## What it costs
+
+Nobody builds software for free, so the product says how it is paid for — on the
+landing page, in the build loop, and here. There are two ways to use Ursly and
+the visitor picks one.
+
+| Plan     | Money                | What happens to what you say                                                                                                          |
+| -------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Free** | None                 | Your questions and Ursly's answers are used to train the models. Voice recordings only with a separate consent, deletable in one tap. |
+| **Paid** | The configured price | The same product. Your sources, questions, answers and recordings are never used for training, by us or by a provider.                |
+
+Helping train the models is the price of the free plan, and paying is how you opt
+out of it. A switch applies from the moment it is made and never backwards. On
+either plan we ask before keeping anything, say what it is for, and delete it on
+request.
+
+The figure and the sign-up link are configuration, never code:
+
+| Variable                      | Effect                                                                                               |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_PAID_PLAN_PRICE` | Printed as the paid plan's amount. Unset, the card says the price is announced before billing opens. |
+| `NEXT_PUBLIC_PAID_PLAN_URL`   | Where _Get the paid plan_ goes. Unset, the card shows no button and says billing is not open yet.    |
+
+Billing, accounts and the consent record are not built yet. Until they are,
+everyone is on the free terms, the paid card says so, and nothing changes without
+being asked first. **Sustain** is the stage of the build loop that carries this.
+
+---
 
 ## How each requirement is met
 
@@ -366,8 +397,9 @@ Every feature walks one loop, and it is done only when the loop closes. The land
 6. **Secure** — security and compliance are the law: secret scanning, canary builds, CodeQL and dependency audits run on every change.
 7. **Deliver** — continuous integration and delivery: every change is checked, then shipped automatically from `main`.
 8. **Production** — deployed through OIDC and smoke-tested in production.
-9. **Listen** — enough feedback from real people to make the models better each cycle.
-10. **Train** — the direction we are building toward: what the loop learns trains the models, and every model provider gets its turn. The best model from one provider proves itself, an event hands off to the best from the next, each iterating on its own, locally and then in beta, through this same loop before the next step.
+9. **Sustain** — nobody builds software for free, so every cycle has to pay for itself: free if the visitor's conversations help train the models, paid if they would rather they did not.
+10. **Listen** — enough feedback from real people to make the models better each cycle.
+11. **Train** — the direction we are building toward: what the free plan agreed to share trains the models, paid work never does, and every model provider gets its turn. The best model from one provider proves itself, an event hands off to the best from the next, each iterating on its own, locally and then in beta, through this same loop before the next step.
 
 The training stage has a loop of its own, and the big loop waits for it. We build by voice because it is faster than a keyboard; gestures come next, and the motion mode shown in the top menu is the first step.
 

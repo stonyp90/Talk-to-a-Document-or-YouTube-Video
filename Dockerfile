@@ -3,6 +3,10 @@ FROM public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 AS lambda-adapter
 # One image family is used locally and as the Lambda container base.
 FROM node:22-bookworm-slim AS dependencies
 ARG OBJECT_STORE_PUBLIC_ENDPOINT
+# What the paid plan costs and where it is bought. Public values, inlined into
+# the browser bundle at build time; empty means billing is not open yet.
+ARG NEXT_PUBLIC_PAID_PLAN_PRICE
+ARG NEXT_PUBLIC_PAID_PLAN_URL
 # The pages, the sitemap and the plain-text reading are prerendered, so what
 # the site says about itself is fixed when the image is built, not when it runs.
 ARG SITE_URL
@@ -11,6 +15,8 @@ ARG INTRO_VIDEO_YOUTUBE_ID_EN
 ARG INTRO_VIDEO_YOUTUBE_ID_FR
 ENV NODE_ENV=production
 ENV OBJECT_STORE_PUBLIC_ENDPOINT=${OBJECT_STORE_PUBLIC_ENDPOINT}
+ENV NEXT_PUBLIC_PAID_PLAN_PRICE=${NEXT_PUBLIC_PAID_PLAN_PRICE}
+ENV NEXT_PUBLIC_PAID_PLAN_URL=${NEXT_PUBLIC_PAID_PLAN_URL}
 ENV SITE_URL=${SITE_URL}
 ENV SITE_SAME_AS=${SITE_SAME_AS}
 ENV INTRO_VIDEO_YOUTUBE_ID_EN=${INTRO_VIDEO_YOUTUBE_ID_EN}

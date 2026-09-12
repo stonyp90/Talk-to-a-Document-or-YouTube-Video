@@ -104,6 +104,22 @@ const jsonRequest = (path: string, body: unknown) =>
     body: JSON.stringify(body),
   });
 
+/**
+ * These scenarios are about the conversation, not about who may have one. The
+ * gate has its own feature file; here it stands aside so a refusal cannot be
+ * mistaken for a broken answer.
+ */
+async function withoutGate<T>(run: () => Promise<T>): Promise<T> {
+  const previous = process.env.AUTH_MODE;
+  process.env.AUTH_MODE = "disabled";
+  try {
+    return await run();
+  } finally {
+    if (previous === undefined) delete process.env.AUTH_MODE;
+    else process.env.AUTH_MODE = previous;
+  }
+}
+
 /** Runs a block with `fetch` wired to a route handler instead of a network. */
 async function withRoute<T>(
   handler: (request: Request) => Promise<Response>,
@@ -113,7 +129,7 @@ async function withRoute<T>(
   globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
     handler(new Request(input as string, init))) as typeof fetch;
   try {
-    return await run();
+    return await withoutGate(run);
   } finally {
     globalThis.fetch = original;
   }
@@ -342,14 +358,16 @@ export function registerConversationChecks(step: Step) {
 
   step("the reader still receives it", async function () {
     const here = state(this);
-    const reply = (await ok(
-      await postTextChat(
-        jsonRequest("/api/text-chat", {
-          sourceId: here.sourceId,
-          question: "What is this about?",
-        }),
-      ),
-    ).json()) as { answer: string };
+    const reply = (await withoutGate(async () =>
+      ok(
+        await postTextChat(
+          jsonRequest("/api/text-chat", {
+            sourceId: here.sourceId,
+            question: "What is this about?",
+          }),
+        ),
+      ).json(),
+    )) as { answer: string };
     assert.ok(reply.answer.trim());
   });
 
@@ -359,15 +377,17 @@ export function registerConversationChecks(step: Step) {
       const here = state(this);
       here.sourceId = (await openFixtureSource()).sourceId;
       here.history = ["What did the opening say?", "It introduced the topic."];
-      ok(
-        await postTurns(
-          jsonRequest("/api/conversation/turns", {
-            sourceId: here.sourceId,
-            turns: [
-              { role: "user", text: here.history[0] },
-              { role: "assistant", text: here.history[1] },
-            ],
-          }),
+      await withoutGate(async () =>
+        ok(
+          await postTurns(
+            jsonRequest("/api/conversation/turns", {
+              sourceId: here.sourceId,
+              turns: [
+                { role: "user", text: here.history[0] },
+                { role: "assistant", text: here.history[1] },
+              ],
+            }),
+          ),
         ),
       );
     },
@@ -375,12 +395,14 @@ export function registerConversationChecks(step: Step) {
 
   step("the reader then types a follow-up question", async function () {
     const here = state(this);
-    ok(
-      await postTextChat(
-        jsonRequest("/api/text-chat", {
-          sourceId: here.sourceId,
-          question: "And after that?",
-        }),
+    await withoutGate(async () =>
+      ok(
+        await postTextChat(
+          jsonRequest("/api/text-chat", {
+            sourceId: here.sourceId,
+            question: "And after that?",
+          }),
+        ),
       ),
     );
   });

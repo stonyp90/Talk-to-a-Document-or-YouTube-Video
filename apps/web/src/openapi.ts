@@ -127,7 +127,8 @@ const OPERATIONS: Operation[] = [
     errors: [
       {
         status: 400,
-        description: "The source was rejected during validation.",
+        description:
+          "The body could not be read as multipart form data, or the source was rejected during validation.",
       },
       { status: 401, description: "No session; sign in first." },
       {

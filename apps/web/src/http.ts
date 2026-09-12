@@ -102,6 +102,102 @@ export function errorResponse(error: unknown, fallback: string): Response {
   return jsonError("INTERNAL_ERROR", fallback, 500);
 }
 
+/**
+ * Reads a multipart form, or reports the client's mistake as the client's.
+ * `Request.formData` throws on the wrong content type and on a truncated
+ * body, and letting that reach the generic handler would answer a malformed
+ * request with a 500: a healthy service looking broken, and the one person who
+ * can fix the call told nothing about how.
+ */
+export async function multipartFormData(request: Request): Promise<FormData> {
+  try {
+    return await request.formData();
+  } catch (cause) {
+    throw new InputValidationError(
+      "Send this request as multipart/form-data with a file or a url field.",
+      "INVALID_FORM_DATA",
+      { cause },
+    );
+  }
+}
+
+/** The first hop of a comma-separated proxy header, if it carries one. */
+const firstHop = (value: string | null): string | undefined =>
+  value?.split(",")[0]?.trim() || undefined;
+
+/** An absolute http(s) origin, or nothing when the value cannot be one. */
+const httpOrigin = (value: string | undefined): string | undefined => {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.origin
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/** The addresses a server listens on, which name no host to call back. */
+const UNSPECIFIED = new Set(["0.0.0.0", "[::]", "[::0]"]);
+/** Loopback: only ever the machine the caller is already on. */
+const LOOPBACK = /^(?:localhost|127\.\d+\.\d+\.\d+|\[::1\])$/;
+/** Addresses that route inside one network and nowhere else. */
+const PRIVATE =
+  /^(?:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|169\.254\.\d+\.\d+|\[f[cd][0-9a-f]{2}:|\[fe[89ab][0-9a-f]:)/i;
+
+/**
+ * Whether a host from a request header can be the address a client reached us
+ * on. A header is written by whoever is calling, so every value here is either
+ * somewhere only this machine or this network can reach — the bind address
+ * included, which is exactly what the live defect published — or a bare name
+ * no public resolver answers for, such as a proxy's own target or a container.
+ */
+const publishableHost = (hostname: string): boolean =>
+  !UNSPECIFIED.has(hostname) &&
+  !LOOPBACK.test(hostname) &&
+  !PRIVATE.test(hostname) &&
+  (hostname.includes(".") || hostname.startsWith("["));
+
+/**
+ * The origin to publish as the API's server: the only origin a client
+ * generated from what we publish can call back. `undefined` when there is no
+ * trustworthy answer, which leaves the document to name itself relatively —
+ * always correct, where a dead absolute address is worse than none.
+ *
+ * `APP_ORIGIN` comes first because it is the one statement of this that nobody
+ * outside the deployment can write. It is the public origin the deployment is
+ * reached on: the terraform hands the function the site's own origin when one
+ * is configured, and the gateway's own endpoint when none is.
+ *
+ * Only without it do the forwarded headers speak, and then only when the host
+ * they name could really have been used: behind the proxy the process is bound
+ * to a private address, so `request.url` is that bind address and the headers
+ * are all there is. The request itself is last and may be loopback, because it
+ * is the process's own view rather than a caller's claim, and in local
+ * development it is already right. Nothing is hardcoded: one image serves
+ * local, Compose and the deployment.
+ */
+export function publicOrigin(request: Request): string | undefined {
+  const requestUrl = new URL(request.url);
+  const host =
+    firstHop(request.headers.get("x-forwarded-host")) ??
+    firstHop(request.headers.get("host"));
+  const forwardedScheme = firstHop(request.headers.get("x-forwarded-proto"));
+  const scheme =
+    forwardedScheme === "http" || forwardedScheme === "https"
+      ? forwardedScheme
+      : requestUrl.protocol.replace(":", "");
+  const forwarded = host ? httpOrigin(`${scheme}://${host}`) : undefined;
+  return (
+    httpOrigin(process.env.APP_ORIGIN) ??
+    (forwarded && publishableHost(new URL(forwarded).hostname)
+      ? forwarded
+      : undefined) ??
+    (UNSPECIFIED.has(requestUrl.hostname) ? undefined : requestUrl.origin)
+  );
+}
+
 type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
 

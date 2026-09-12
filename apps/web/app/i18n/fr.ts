@@ -1,6 +1,24 @@
 import type { Dictionary } from "./translate";
 
 /**
+ * The terms French writes exactly as English does: product and technology
+ * names, and the words the two languages happen to share. Every one of them is
+ * a decision, named here so it can be argued with.
+ *
+ * Anywhere else, an entry whose French equals its English is not a decision but
+ * a placeholder — the English copied across while the translation was late —
+ * and the page then reads English to a French reader. The tests hold the
+ * dictionary to that: identical means listed here, or it means untranslated.
+ */
+export const IDENTICAL_IN_BOTH: readonly string[] = [
+  "YouTube",
+  "Conversation",
+  "Applications",
+  "Guide",
+  "Next.js · Expo · TypeScript",
+];
+
+/**
  * French translations keyed by the English source string. Quebec French,
  * vouvoiement, typographic apostrophes, and a non-breaking space before
  * two-part punctuation. Terms follow the Office québécois de la langue
@@ -24,14 +42,17 @@ export const french: Dictionary = {
   Platform: "Plateforme",
   "How we build": "Notre façon de bâtir",
   Build: "Bâtir",
+  // Identical in French on purpose; see IDENTICAL_IN_BOTH above.
   Guide: "Guide",
-  Apps: "Apps",
+  // The narrow-screen short forms of "Applications" and "Ouvrir
+  // l’application". French abbreviates application as appli.
+  Apps: "Applis",
   "Watch the intro": "Voir l’intro",
   Language: "Langue",
   "Skip to workspace": "Aller à l’atelier",
   "Skip to content": "Aller au contenu",
   "Open the app": "Ouvrir l’application",
-  App: "App",
+  App: "Appli",
   "Back to the story": "Retour à l’histoire",
   Story: "Histoire",
 
@@ -439,6 +460,38 @@ export const french: Dictionary = {
     "Un PDF ou une vidéo YouTube sous-titrée, une question à voix haute, et une réponse qui reste ancrée dans ce que vous avez apporté.",
   "Three steps, about a minute. Nothing to install.":
     "Trois étapes, environ une minute. Rien à installer.",
+  // Applications
+  Applications: "Applications",
+  "Your next insight, wherever you go.":
+    "Votre prochain déclic, où que vous soyez.",
+  "Try Ursly on Android, explore the iOS Simulator build, or look inside the code.":
+    "Essayez Ursly sur Android, explorez la version pour le simulateur iOS ou regardez le code de l’intérieur.",
+  "Release notes & installation": "Notes de version et installation",
+  "Android preview": "Aperçu Android",
+  "Take Ursly with you.": "Emportez Ursly avec vous.",
+  "Download the signed APK for Android 7.0 or later. Installation requires allowing apps from your browser.":
+    "Téléchargez l’APK signé pour Android 7.0 ou une version plus récente. L’installation exige d’autoriser les applications provenant de votre navigateur.",
+  "Download Android APK": "Télécharger l’APK Android",
+  "Preview {version} · APK": "Aperçu {version} · APK",
+  "iOS Simulator preview": "Aperçu simulateur iOS",
+  "Explore the iOS experience.": "Découvrez l’expérience iOS.",
+  "For the iOS Simulator in Xcode on an Apple silicon Mac. This archive cannot be installed on an iPhone.":
+    "Pour le simulateur iOS dans Xcode, sur un Mac à puce Apple. Cette archive ne peut pas être installée sur un iPhone.",
+  "Download iOS Simulator build":
+    "Télécharger la version pour le simulateur iOS",
+  "Preview {version} · ARM64 archive": "Aperçu {version} · archive ARM64",
+  "Public repository": "Dépôt public",
+  "See how it’s made.": "Voyez comment c’est fait.",
+  "Explore the source, architecture, development setup, and tests. Contributions and thoughtful feedback are welcome.":
+    "Explorez le code source, l’architecture, l’environnement de développement et les tests. Les contributions et les commentaires réfléchis sont bienvenus.",
+  "View on GitHub": "Voir sur GitHub",
+  // Identical in French on purpose; see IDENTICAL_IN_BOTH above.
+  "Next.js · Expo · TypeScript": "Next.js · Expo · TypeScript",
+  "These are evaluation builds. Review the {limitations} before downloading. {checksums}.":
+    "Ce sont des versions d’évaluation. Consultez les {limitations} avant de télécharger. {checksums}.",
+  "known limitations and installation instructions":
+    "limites connues et instructions d’installation",
+  "Verify download checksums": "Vérifier les sommes de contrôle",
 
   // Footer
   "Ursly · Made for your next “aha”.":

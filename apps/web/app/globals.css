@@ -60,6 +60,11 @@
   --nav-float: 8px;
   --nav-float-h: 52px;
   --nav-glass-strong: #f8f5eff2;
+  /* The same paper with nothing behind it, for a browser that cannot blur:
+     glass over an unblurred page is not glass, it is a page you can read
+     through the menu. It is the page's own paper, so it moves when the
+     palette does. */
+  --nav-solid: var(--paper);
   --nav-aurora: #f477621f;
   --nav-edge: #e0d8cd;
   --nav-glow: #f4776240;
@@ -70,6 +75,12 @@
   --nav-modes-row: 52px;
   --nav-h-mobile: calc(var(--nav-row) + var(--nav-modes-row));
   --nav-gap: 16px;
+  /* The floating panel: what holds the brand off its own border, and how far
+     the panel steps outside the page measure so the brand lands on it. The
+     extra step past the padding is the "a little further left" that makes
+     the mark read as the margin rather than as a second column. */
+  --nav-pad: var(--space-md);
+  --nav-outdent: calc(var(--nav-pad) + 1px + var(--space-xs));
   --disabled-ink: #8f8a95;
   /* The keyboard stands one step back: a rule marks the break with the modes
      that lead, and its icon sits a shade quieter than theirs. */
@@ -1303,7 +1314,10 @@ h3 {
   .shell {
     /* The container already owns the mobile gutter; avoid doubling it. */
     padding-inline: 0;
-    padding-bottom: calc(112px + var(--safe-bottom));
+    /* The dock of control modes this reserved room for moved into the top
+       bar. What was left was most of a screenful of nothing under the footer
+       of every phone page; what a phone needs here is the home indicator. */
+    padding-bottom: calc(var(--space-lg) + var(--safe-bottom));
   }
   .brand {
     font-size: 23px;
@@ -1354,12 +1368,21 @@ h3 {
   .danger,
   .tab,
   .suggestion {
-    min-height: 42px;
+    min-height: 44px;
   }
   .field input,
   .composer input,
   .composer textarea {
     font-size: 16px;
+  }
+  /* Beside a button, the field is barely two thirds of a phone and cuts its
+     own placeholder mid-word. Stacked, the question has the width of the
+     phone and the send has a full-width target under it. */
+  .composer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .composer .secondary {
+    width: 100%;
   }
   .guide-grid {
     grid-template-columns: 1fr;
@@ -1415,8 +1438,12 @@ h3 {
   padding-top: var(--safe-top);
   border-bottom: 1px solid var(--nav-edge);
   background: var(--nav-glass);
-  backdrop-filter: blur(20px) saturate(1.4);
+  /* Prefixed first, standard last. The CSS pipeline collapses a pair of
+     identical declarations onto the one it sees last, and collapsing onto the
+     prefix left every browser that has dropped the alias with no glass at all
+     -- a translucent bar with the page legible straight through it. */
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
   transition:
     box-shadow var(--motion-fast) ease,
     background var(--motion-base) var(--ease-out);
@@ -1440,6 +1467,29 @@ h3 {
   background: var(--nav-glass-strong);
   box-shadow: 0 10px 28px var(--shadow-sm);
 }
+/* No glass to see through: the bar becomes paper. A translucent menu over an
+   unblurred page is the one state that must never ship -- the story scrolls
+   visibly across the brand, the modes and the way in, and on a phone, where
+   the bar is two rows of a short screen, it takes the menu with it. */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .nav,
+  .nav[data-scrolled="true"] {
+    background: var(--nav-solid);
+  }
+}
+
+@media (min-width: 961px) {
+  /* One class more specific than the rule it overrides, on purpose: the base
+     `.nav-inner` is written further down the sheet, and at equal specificity
+     the last one wins -- which quietly gave the floating panel the page's
+     gutter as padding and pushed the brand 40px off the measure. */
+  .nav .nav-inner {
+    padding-inline: var(--nav-pad);
+  }
+}
+
 /* How much of the story is behind the reader, drawn along the lit edge. */
 .nav-progress {
   position: absolute;
@@ -1468,10 +1518,13 @@ h3 {
 @media (min-width: 961px) {
   .nav {
     top: calc(var(--safe-top) + var(--nav-float));
-    /* The panel keeps the page's own measure, so its edge and the text
-       below it answer to the same margin. */
-    right: var(--gutter);
-    left: var(--gutter);
+    /* The brand keeps the page's own measure, not the panel's edge. The
+       panel steps out by the padding that holds the mark, and a little
+       further, so the mark reads as the left margin of the page and the
+       first heading begins just inside it. Floored so a narrow desktop
+       window never has the panel touching the glass. */
+    right: max(var(--space-sm), calc(var(--gutter) - var(--nav-outdent)));
+    left: max(var(--space-sm), calc(var(--gutter) - var(--nav-outdent)));
     padding-top: 0;
     border: 1px solid var(--nav-edge);
     border-radius: var(--radius-xl);
@@ -1484,7 +1537,6 @@ h3 {
   }
   .nav-inner {
     height: var(--nav-float-h);
-    padding-inline: var(--space-xl);
   }
   .nav-progress {
     bottom: 0;
@@ -1963,6 +2015,14 @@ h3 {
 }
 .intro-transcript-list li + li {
   margin-top: var(--space-2xs);
+}
+/* The film's own sentence, repeated at page size. It is drawn for a 1920
+   frame; a phone shows that frame about 340 wide, where the type inside it is
+   a third of the size it was set at and the argument is simply lost. Wide
+   enough to read the frame, this says nothing the frame is not already
+   saying, so it stays out of the way. */
+.intro-scene {
+  display: none;
 }
 
 /* ---------------------------------------------------------------------------
@@ -2684,13 +2744,26 @@ h3 {
     justify-self: end;
     gap: var(--space-2xs);
   }
+  /* The bar is an instrument, and an instrument has to be playable with a
+     thumb. Inside the 52px row every control keeps a 44px target, whatever
+     the type inside it measures: the brand, the way across, the replay and
+     the language pair were all between 26 and 36 pixels tall. */
+  .nav .brand,
+  .nav-link,
+  .nav-cta,
+  .nav-intro,
+  .nav-language {
+    min-height: 44px;
+  }
+  .nav .brand {
+    display: inline-flex;
+    align-items: center;
+  }
   .nav-link {
-    min-height: 36px;
     padding: var(--space-xs) var(--space-sm);
     font-size: 11px;
   }
   .nav-cta {
-    min-height: 36px;
     padding: var(--space-xs) var(--space-sm);
     font-size: 11px;
   }
@@ -2712,7 +2785,7 @@ h3 {
   }
   .nav-intro,
   .nav-download {
-    width: 36px;
+    width: 44px;
     justify-content: center;
     padding: var(--space-xs);
   }
@@ -2727,8 +2800,7 @@ h3 {
     margin-left: var(--space-3xs);
   }
   .nav-language {
-    min-width: 30px;
-    min-height: 28px;
+    min-width: 40px;
     font-size: 10px;
   }
   .nav-sections {
@@ -2815,9 +2887,11 @@ h3 {
   .voice-mic {
     justify-content: center;
   }
+  /* A phone gets the film across the top and the scene it is on underneath:
+     the band a letterboxed sixteen-by-nine leaves empty on a tall screen was
+     half the dialog, and it now carries the argument the film is making. */
   .intro-gate-inner {
-    grid-template-rows: auto auto auto 1fr;
-    align-content: start;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
     gap: var(--space-md);
   }
   .intro-stage {
@@ -2826,12 +2900,42 @@ h3 {
   .intro-gate-footer {
     align-self: end;
   }
+  /* The dialog's own lede and the scene caption would say the same thing
+     twice. The caption moves with the film, so the lede yields the room and
+     keeps only its part in naming the dialog. */
   .intro-gate-copy p {
-    font-size: 13px;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .intro-player {
     aspect-ratio: 16 / 9;
     border-radius: var(--radius-lg);
+  }
+  .intro-scene {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+    margin: 0;
+    padding: var(--space-xl) 0 0;
+  }
+  .intro-scene strong {
+    font-family: Georgia, serif;
+    font-size: clamp(26px, 8vw, 38px);
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    animation: rise-in var(--motion-base) var(--ease-out) both;
+  }
+  .intro-scene span {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.5;
+    animation: rise-in var(--motion-base) var(--ease-out) both;
+    animation-delay: 90ms;
   }
   .voice-commands {
     padding: var(--space-md);
@@ -2850,6 +2954,14 @@ h3 {
   .footer-links {
     flex-direction: column;
     gap: var(--space-xs);
+  }
+  /* A stacked link is a line of text until it is given a row to sit in. At
+     eleven pixels of type these were fourteen pixels tall, three links deep,
+     with nothing but the gap between them. */
+  .footer-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 }
 
@@ -3353,5 +3465,29 @@ h3 {
     width: 36px;
     justify-content: center;
     padding: var(--space-xs);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * A thumb, not a cursor
+ *
+ * Forty-four pixels is the size a finger can be asked to find. Everything a
+ * phone offers answers to it, including what a disclosure keeps folded away:
+ * the saved voice triggers carried a 27px edit and a 27px remove, and the
+ * spoken examples a 32px chip. This block is last in the sheet on purpose --
+ * the rules it raises are written further up, and at equal specificity the
+ * last one wins.
+ * ------------------------------------------------------------------------- */
+@media (max-width: 700px) {
+  .voice-example,
+  .voice-customize summary,
+  .voice-trigger-form input,
+  .voice-trigger-form select,
+  .saved-trigger-remove,
+  .composer input {
+    min-height: 44px;
+  }
+  .saved-trigger-remove {
+    min-width: 44px;
   }
 }

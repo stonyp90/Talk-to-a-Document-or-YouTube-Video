@@ -68,6 +68,7 @@ export function Touch({
   style,
   selected,
   accessibilityRole,
+  accessibilityDisabled,
 }: {
   children: React.ReactNode;
   onPress: () => void;
@@ -77,6 +78,9 @@ export function Touch({
   style?: StyleProp<ViewStyle>;
   selected?: boolean;
   accessibilityRole?: AccessibilityRole;
+  // Announced as unavailable while still accepting a press, so the control can
+  // explain itself instead of silently doing nothing.
+  accessibilityDisabled?: boolean;
 }) {
   const [scale] = useState(() => new Animated.Value(1));
   const animate = (value: number) => {
@@ -98,7 +102,7 @@ export function Touch({
         accessibilityRole={accessibilityRole ?? "button"}
         accessibilityLabel={label}
         accessibilityState={{
-          disabled,
+          disabled: disabled || !!accessibilityDisabled,
           ...(selected === undefined ? {} : { selected }),
         }}
         disabled={disabled}

@@ -8,10 +8,10 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   AppState,
   Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -81,6 +81,7 @@ function messageOf(error: string, t: (key: TranslationKey) => string) {
 
 export default function App() {
   const motion = useMotion();
+  const [navHeight, setNavHeight] = useState(0);
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
   const t = (key: TranslationKey) => translate(language, key);
   const suggestions = (
@@ -115,6 +116,20 @@ export default function App() {
   const followTranscript = useRef(true);
   const composer = useRef<TextInput>(null);
   const active = ["connecting", "connected", "reconnecting"].includes(status);
+
+  // The sheet is no longer a native Modal, so it owns the Android back gesture.
+  useEffect(() => {
+    if (sheet === null) return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        if (busy) return true;
+        setSheet(null);
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [sheet, busy]);
 
   function showToast(message: string) {
     setToast(message);
@@ -162,6 +177,7 @@ export default function App() {
     setSource(result);
     setTurns([]);
     setQuestion("");
+    setUrl("");
     setExpanded(false);
     setError("");
     setTab("chat");
@@ -932,37 +948,35 @@ export default function App() {
             destination={screen === "home" ? "home" : tab}
             language={language}
             motion={motion}
+            sourceReady={!!source}
             t={t}
             onNavigate={navigate}
+            onLayout={(event) => setNavHeight(event.nativeEvent.layout.height)}
           />
-        </KeyboardAvoidingView>
-        {toast && (
-          <View pointerEvents="box-none" style={s.toastWrap}>
+          {toast && (
             <View
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              style={s.toast}
+              pointerEvents="box-none"
+              style={[s.toastWrap, { bottom: navHeight + 12 }]}
             >
-              <Text style={s.toastText}>{toast}</Text>
-              <Touch
-                label={t("Dismiss message")}
-                motion={motion}
-                onPress={() => setToast("")}
-                style={s.toastClose}
+              <View
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                style={s.toast}
               >
-                <Text style={s.toastCloseText}>×</Text>
-              </Touch>
+                <Text style={s.toastText}>{toast}</Text>
+                <Touch
+                  label={t("Dismiss message")}
+                  motion={motion}
+                  onPress={() => setToast("")}
+                  style={s.toastClose}
+                >
+                  <Text style={s.toastCloseText}>×</Text>
+                </Touch>
+              </View>
             </View>
-          </View>
-        )}
-        <Modal
-          visible={sheet !== null}
-          transparent
-          animationType={motion ? "slide" : "none"}
-          onRequestClose={() => {
-            if (!busy) setSheet(null);
-          }}
-        >
+          )}
+        </KeyboardAvoidingView>
+        {sheet !== null && (
           <KeyboardAvoidingView
             style={s.modalRoot}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -1032,41 +1046,38 @@ export default function App() {
                       {"\n"}
                       {t("We’ll get the text. You bring the curiosity.")}
                     </Text>
-                    <TextInput
-                      accessibilityLabel={t("YouTube link")}
-                      placeholder="https://youtube.com/watch?v=…"
-                      placeholderTextColor={c.muted}
-                      value={url}
-                      onChangeText={setUrl}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      keyboardType="url"
-                      returnKeyType="go"
-                      onSubmitEditing={() => {
-                        if (url.trim()) void ingest("youtube");
-                      }}
-                      style={s.urlInput}
-                      editable={!busy}
-                    />
-                    {notice}
-                    <Touch
-                      label={t("Load video")}
-                      motion={motion}
-                      onPress={() => void ingest("youtube")}
-                      disabled={!!busy || !url.trim()}
-                      style={s.primary}
-                    >
-                      <View style={s.buttonRow}>
-                        {busy === "youtube" && (
+                    <View style={s.urlRow}>
+                      <TextInput
+                        accessibilityLabel={t("YouTube link")}
+                        placeholder="https://youtube.com/watch?v=…"
+                        placeholderTextColor={c.muted}
+                        value={url}
+                        onChangeText={setUrl}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="url"
+                        returnKeyType="go"
+                        onSubmitEditing={() => {
+                          if (url.trim()) void ingest("youtube");
+                        }}
+                        style={[s.urlInput, { flex: 1 }]}
+                        editable={!busy}
+                      />
+                      <Touch
+                        label={t("Load video")}
+                        motion={motion}
+                        onPress={() => void ingest("youtube")}
+                        disabled={!!busy || !url.trim()}
+                        style={s.send}
+                      >
+                        {busy === "youtube" ? (
                           <ActivityIndicator color={c.ink} />
+                        ) : (
+                          <Text style={s.sendArrow}>↑</Text>
                         )}
-                        <Text style={s.buttonInk}>
-                          {busy === "youtube"
-                            ? t("Getting things ready…")
-                            : t("Explore this video →")}
-                        </Text>
-                      </View>
-                    </Touch>
+                      </Touch>
+                    </View>
+                    {notice}
                   </>
                 ) : (
                   <>
@@ -1102,7 +1113,7 @@ export default function App() {
               </ScrollView>
             </SafeAreaView>
           </KeyboardAvoidingView>
-        </Modal>
+        )}
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -1311,7 +1322,6 @@ const s = StyleSheet.create({
     position: "absolute",
     left: 18,
     right: 18,
-    bottom: 96,
     zIndex: 20,
     elevation: 20,
   },
@@ -1532,7 +1542,7 @@ const s = StyleSheet.create({
   readingHint: { color: c.muted, fontSize: 13, lineHeight: 20 },
   sourceText: { color: c.ink, fontSize: 16, lineHeight: 28 },
   outline: { borderWidth: 1, borderColor: c.line, borderRadius: 15 },
-  modalRoot: { flex: 1, justifyContent: "flex-end" },
+  modalRoot: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-end" },
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: c.scrim },
   sheet: {
     padding: 24,
@@ -1552,6 +1562,7 @@ const s = StyleSheet.create({
   sheetTitle: { flex: 1, fontFamily: serif, fontSize: 26, color: c.ink },
   close: { color: c.ink, fontSize: 26 },
   sheetCaption: { color: c.muted, fontSize: 14, lineHeight: 22 },
+  urlRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   urlInput: {
     backgroundColor: c.white,
     borderColor: "#C9C0B5",

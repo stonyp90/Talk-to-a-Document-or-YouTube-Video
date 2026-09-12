@@ -52,6 +52,7 @@ const config = {
     },
     android: {
       package: "com.talktosource.demo",
+      softwareKeyboardLayoutMode: "pan",
       versionCode: 2,
       permissions: ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS"],
       usesCleartextTraffic: true,

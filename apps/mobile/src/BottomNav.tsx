@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 import { Language, TranslationKey } from "./i18n";
 import { NavIcon, Touch, palette as c } from "./design";
 
@@ -9,8 +9,11 @@ type Props = {
   destination: MobileDestination;
   language: Language;
   motion: boolean;
+  // Conversation and Source lead nowhere until a source is loaded.
+  sourceReady: boolean;
   t: (key: TranslationKey) => string;
   onNavigate: (destination: MobileDestination) => void;
+  onLayout?: (event: LayoutChangeEvent) => void;
 };
 
 const items: Array<{
@@ -43,8 +46,10 @@ export function MobileBottomNav({
   destination,
   language,
   motion,
+  sourceReady,
   t,
   onNavigate,
+  onLayout,
 }: Props) {
   return (
     <View
@@ -53,9 +58,11 @@ export function MobileBottomNav({
         language === "fr" ? "Navigation principale" : "Main navigation"
       }
       style={s.bar}
+      onLayout={onLayout}
     >
       {items.map((item) => {
         const selected = destination === item.id;
+        const waiting = !sourceReady && item.id !== "home";
         return (
           <Touch
             key={item.id}
@@ -63,11 +70,25 @@ export function MobileBottomNav({
             motion={motion}
             selected={selected}
             accessibilityRole="tab"
+            accessibilityDisabled={waiting}
             onPress={() => onNavigate(item.id)}
-            style={[s.item, selected && s.itemSelected]}
+            style={[
+              s.item,
+              selected && s.itemSelected,
+              waiting && s.itemWaiting,
+            ]}
           >
-            <NavIcon kind={item.icon} color={selected ? c.ink : c.muted} />
-            <Text style={[s.label, selected && s.labelSelected]}>
+            <NavIcon
+              kind={item.icon}
+              color={selected ? c.ink : waiting ? c.lilac : c.muted}
+            />
+            <Text
+              style={[
+                s.label,
+                selected && s.labelSelected,
+                waiting && s.labelWaiting,
+              ]}
+            >
               {t(item.label)}
             </Text>
           </Touch>
@@ -81,11 +102,10 @@ const s = StyleSheet.create({
   bar: {
     flexDirection: "row",
     alignItems: "stretch",
-    gap: 8,
-    minHeight: 80,
+    gap: 6,
     paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 6,
+    paddingBottom: 6,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: c.line,
     backgroundColor: c.white,
@@ -97,14 +117,17 @@ const s = StyleSheet.create({
   },
   item: {
     flex: 1,
-    minHeight: 62,
+    minHeight: 48,
     paddingHorizontal: 8,
-    paddingVertical: 7,
-    borderRadius: 18,
-    gap: 4,
+    paddingVertical: 5,
+    borderRadius: 16,
+    gap: 3,
   },
   itemSelected: {
     backgroundColor: c.lavender,
+  },
+  itemWaiting: {
+    opacity: 0.55,
   },
   label: {
     color: c.muted,
@@ -114,5 +137,8 @@ const s = StyleSheet.create({
   labelSelected: {
     color: c.ink,
     fontWeight: "800",
+  },
+  labelWaiting: {
+    color: c.lilac,
   },
 });

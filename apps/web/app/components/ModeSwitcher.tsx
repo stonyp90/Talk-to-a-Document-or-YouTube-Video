@@ -19,12 +19,35 @@ type Mode = {
 };
 
 const MODES: readonly Mode[] = [
-  { id: "voice", label: "Voice to action", short: "Voice", detail: "", icon: "voice", available: true },
-  { id: "text", label: "Keyboard to action", short: "Keyboard", detail: "", icon: "document", available: true },
-  { id: "motion", label: "Motion to action", short: "Motion", detail: "Beta", icon: "motion", available: false },
+  {
+    id: "voice",
+    label: "Voice to action",
+    short: "Voice",
+    detail: "",
+    icon: "voice",
+    available: true,
+  },
+  {
+    id: "text",
+    label: "Keyboard to action",
+    short: "Keyboard",
+    detail: "",
+    icon: "document",
+    available: true,
+  },
+  {
+    id: "motion",
+    label: "Motion to action",
+    short: "Motion",
+    detail: "Beta",
+    icon: "motion",
+    available: false,
+  },
 ];
 
-const SELECTABLE = MODES.filter((mode) => mode.available).map((mode) => mode.id as EntryMode);
+const SELECTABLE = MODES.filter((mode) => mode.available).map(
+  (mode) => mode.id as EntryMode,
+);
 
 /**
  * A segmented control with radio semantics: one mode is always selected, the
@@ -45,7 +68,8 @@ export function ModeSwitcher({
 
   function move(from: EntryMode, step: 1 | -1) {
     const index = SELECTABLE.indexOf(from);
-    const next = SELECTABLE[(index + step + SELECTABLE.length) % SELECTABLE.length];
+    const next =
+      SELECTABLE[(index + step + SELECTABLE.length) % SELECTABLE.length];
     onChange(next);
     document.getElementById(`mode-${next}`)?.focus();
   }
@@ -103,12 +127,16 @@ export function ModeSwitcher({
               <span className="mode-label-full">{t(item.label)}</span>
               <span className="mode-label-short">{t(item.short)}</span>
             </span>
-            {item.detail && <small className="mode-detail">{t(item.detail)}</small>}
+            {item.detail && (
+              <small className="mode-detail">{t(item.detail)}</small>
+            )}
           </button>
         );
       })}
       <span id={tooltipId} role="tooltip" className="mode-tooltip">
-        {t("Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.")}
+        {t(
+          "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.",
+        )}
       </span>
     </div>
   );

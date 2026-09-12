@@ -1,7 +1,7 @@
 Feature: Provide a polished mobile-first conversation UI
 
   Scenario: Offer a short accessible product introduction
-    When I open the application
+    When I open the landing page
     Then the short Ursly intro is available
     And the intro has a text alternative
 
@@ -50,9 +50,18 @@ Feature: Provide a polished mobile-first conversation UI
     Then all essential content remains reachable
     And no horizontal scrolling is required
 
+  Scenario: Tell the whole story on a narrow mobile viewport too
+    Given the browser viewport is narrower than 390 pixels
+    When I open the landing page
+    Then the landing page tells the story without the workspace
+    And no horizontal scrolling is required
+    And the application is one tap from the landing page
+    And no horizontal scrolling is required
+
   Scenario: Explain how Ursly is built and what it is for
-    When I open the application
+    When I open the landing page
     Then the build loop lists every stage from concept to training
     And the build loop names security, compliance and continuous delivery
     And the Ursly mission is stated in plain words
     And the build loop animation can be paused
+    And the mission call to action opens the app

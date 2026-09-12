@@ -240,8 +240,8 @@ export function IntroGate({
           </div>
           <p className="intro-timing">
             {reduced || autoplayBlocked || failed
-              ? t("Skip whenever you like. The app is right behind this.")
-              : t("Continues to the app in {seconds} s", { seconds })}
+              ? t("Skip whenever you like. Ursly is right behind this.")
+              : t("Continues in {seconds} s", { seconds })}
           </p>
           <details className="intro-transcript" open={reduced}>
             <summary>{t("Read the intro instead")}</summary>

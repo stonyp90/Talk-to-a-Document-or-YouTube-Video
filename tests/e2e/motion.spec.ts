@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./base";
+import { APP_PATH, LANDING_PATH } from "../routes";
 
 const modes = (page: Page) =>
   page
@@ -10,7 +11,7 @@ test("reduced motion keeps source tabs usable without animation", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  await page.goto(APP_PATH);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await expect(page.getByLabel("YouTube URL")).toBeVisible();
@@ -26,35 +27,87 @@ test("reduced motion keeps source tabs usable without animation", async ({
   await expect(page.getByLabel("PDF file")).toBeVisible();
 });
 
-test("decorative motion settles instead of continuously distracting", async ({
+for (const [name, path] of [
+  ["the landing page", LANDING_PATH],
+  ["the application", APP_PATH],
+] as const) {
+  test(`decorative motion on ${name} settles instead of continuously distracting`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto(path);
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () =>
+              document
+                .getAnimations()
+                .filter(
+                  (animation) =>
+                    animation.playState === "running" &&
+                    animation.timeline instanceof DocumentTimeline,
+                ).length,
+          ),
+        { timeout: 6500 },
+      )
+      .toBe(0);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  });
+}
+
+const running = (page: Page) =>
+  page.evaluate(
+    () =>
+      document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.playState === "running" &&
+            animation.timeline instanceof DocumentTimeline,
+        ).length,
+  );
+
+test("the build loop moves only while it is on screen", async ({ page }) => {
+  // The section that carries the page's decorative motion now sits alone on
+  // the landing page, so the bound on it belongs here: it steps while a
+  // reader is looking at the picture, and stops when they are not. Without
+  // this, "settles within 6.5s" would pass on a page whose only animation is
+  // below the fold, which proves nothing about the animation.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto(LANDING_PATH);
+  await page.locator("#how-we-build").scrollIntoViewIfNeeded();
+  await expect.poll(() => running(page), { timeout: 4000 }).toBeGreaterThan(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(() => running(page), { timeout: 6500 }).toBe(0);
+  // And a reader who wants it still can stop it while looking straight at it.
+  await page.locator("#how-we-build").scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: /Pause/ }).click();
+  await expect.poll(() => running(page), { timeout: 6500 }).toBe(0);
+});
+
+test("the landing page adds no animation under reduced motion", async ({
   page,
 }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/");
-  await expect
-    .poll(
+  // Even with the picture straight on screen, and including the new hero.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(LANDING_PATH);
+  await page.locator("#how-we-build").scrollIntoViewIfNeeded();
+  expect(
+    await page.evaluate(
       () =>
-        page.evaluate(
-          () =>
-            document
-              .getAnimations()
-              .filter(
-                (animation) =>
-                  animation.playState === "running" &&
-                  animation.timeline instanceof DocumentTimeline,
-              ).length,
-        ),
-      { timeout: 6500 },
-    )
-    .toBe(0);
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        document
+          .getAnimations()
+          .filter((animation) => animation.playState === "running").length,
+    ),
+  ).toBe(0);
 });
 
 test("motion tooltip has its own desktop layer and a safe mobile fallback", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
+  await page.goto(APP_PATH);
   const motion = modes(page).getByRole("radio", { name: /Motion to action/ });
   const tooltip = modes(page).locator(".mode-tooltip");
   await motion.hover();

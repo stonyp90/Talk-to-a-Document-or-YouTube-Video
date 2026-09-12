@@ -21,9 +21,18 @@ export const french: Dictionary = {
   "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.":
     "Le mouvement n’est pas encore disponible. Nous y travaillons. La voix et le clavier sont prêts dès aujourd’hui.",
   Platform: "Plateforme",
+  "How we build": "Notre façon de bâtir",
+  Build: "Bâtir",
+  Guide: "Guide",
+  Apps: "Apps",
   "Watch the intro": "Voir l’intro",
   Language: "Langue",
   "Skip to workspace": "Aller à l’atelier",
+  "Skip to content": "Aller au contenu",
+  "Open the app": "Ouvrir l’application",
+  App: "App",
+  "Back to the story": "Retour à l’histoire",
+  Story: "Histoire",
 
   // Introduction
   Welcome: "Bienvenue",
@@ -33,10 +42,9 @@ export const french: Dictionary = {
   "Skip intro": "Passer l’intro",
   "Play the intro": "Lire l’intro",
   "Intro progress": "Progression de l’intro",
-  "Continues to the app in {seconds} s":
-    "L’application s’ouvre dans {seconds} s",
-  "Skip whenever you like. The app is right behind this.":
-    "Passez quand vous voulez. L’application est juste derrière.",
+  "Continues in {seconds} s": "Suite dans {seconds} s",
+  "Skip whenever you like. Ursly is right behind this.":
+    "Passez quand vous voulez. Ursly est juste derrière.",
   "Read the intro instead": "Lire l’intro plutôt",
   "The intro is unavailable right now.":
     "L’intro n’est pas disponible pour le moment.",
@@ -47,9 +55,16 @@ export const french: Dictionary = {
     "Posez vos questions à la voix, au clavier et bientôt par le mouvement.",
   "Source, question, understanding.": "Source, question, compréhension.",
 
-  // Workspace heading
+  // Landing hero
+  "Voice first": "La voix d’abord",
   "Less scrolling.": "Moins défiler.",
   "More understanding.": "Mieux comprendre.",
+  "Bring a PDF or a captioned YouTube video, ask by voice or keyboard, and get answers that stay anchored to your source.":
+    "Apportez un PDF ou une vidéo YouTube sous-titrée, posez vos questions à la voix ou au clavier, et obtenez des réponses qui restent ancrées dans votre source.",
+
+  // Workspace heading
+  "Your source.": "Votre source.",
+  "Your questions.": "Vos questions.",
   "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.":
     "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis parlez-lui. Dites une commande, posez votre question à voix haute ou écrivez quand vous préférez.",
   "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.":
@@ -322,7 +337,7 @@ export const french: Dictionary = {
     "Des profils vocaux qui s’adaptent à chaque personne, avec consentement et suppression d’un seul geste. Le mouvement, en version bêta.",
   "Connected objects, 3D objects and other surfaces. Whole industries, not only websites.":
     "Objets connectés, objets 3D et autres surfaces. Des industries entières, pas seulement des sites Web.",
-  "Try it above": "Essayez-le ci-dessus",
+  "Try it now": "Essayez-le maintenant",
   "No dates. We publish what ships, and we revise this as we learn. Not on the list: replacing your keyboard, or acting without asking.":
     "Sans dates. Nous publions ce qui est livré et nous révisons ce plan à mesure que nous apprenons. Pas au programme : remplacer votre clavier, ou agir sans demander.",
   "Open source": "Code source ouvert",
@@ -349,6 +364,17 @@ export const french: Dictionary = {
     "Un problème avec une source ou votre microphone?",
   "Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, you can still type your questions about an extracted source.":
     "Les PDF numérisés doivent contenir une couche de texte avant le téléversement. Les sous-titres YouTube doivent être disponibles, et certaines vidéos peuvent être bloquées par YouTube. Pour la voix, autorisez le microphone dans votre navigateur. Si la voix ne se connecte pas, vous pouvez toujours écrire vos questions sur une source extraite.",
+
+  // The story, and the invitation that closes it
+  "The story first: how this was built, what it is, and how to use it. The app is one tap away from anywhere on this page.":
+    "L’histoire d’abord : comment ceci a été bâti, ce que c’est et comment s’en servir. L’application est à un seul geste, depuis n’importe où sur cette page.",
+  "Your turn": "À votre tour",
+  "That is the story. Now bring a document.":
+    "Voilà l’histoire. Apportez maintenant un document.",
+  "A PDF or a captioned YouTube video, a question out loud, and an answer that stays anchored to what you brought.":
+    "Un PDF ou une vidéo YouTube sous-titrée, une question à voix haute, et une réponse qui reste ancrée dans ce que vous avez apporté.",
+  "Three steps, about a minute. Nothing to install.":
+    "Trois étapes, environ une minute. Rien à installer.",
 
   // Footer
   "Ursly · Made for your next “aha”.":

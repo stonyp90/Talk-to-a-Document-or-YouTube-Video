@@ -52,8 +52,11 @@ const ROADMAP = [
  * reachable from the fixed menu and reads in one scroll.
  */
 export function PlatformSection({
+  appHref,
   onReplayIntro,
 }: {
+  /** Where the ways in lead. Injected so this section knows no routes. */
+  appHref: string;
   onReplayIntro: () => void;
 }) {
   const { t } = useLanguage();
@@ -104,8 +107,8 @@ export function PlatformSection({
             </span>
             <p>{t(item.text)}</p>
             {index === 0 && (
-              <a className="roadmap-link" href="#workspace">
-                {t("Try it above")} <Icon name="arrow" />
+              <a className="roadmap-link" href={appHref}>
+                {t("Try it now")} <Icon name="arrow" />
               </a>
             )}
           </li>
@@ -118,6 +121,9 @@ export function PlatformSection({
       </p>
 
       <div className="platform-proof">
+        <a className="platform-way-in" href={appHref}>
+          {t("Open the app")} <Icon name="arrow" />
+        </a>
         <a href={repository}>{t("Open source")}</a>
         <a href={`${repository}/actions`}>
           {t("Tests and CI on every change")}

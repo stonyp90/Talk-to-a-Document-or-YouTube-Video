@@ -11,13 +11,9 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { Applications } from "./Applications";
-import { HowItWorks } from "./HowItWorks";
 import { Icon } from "./Icon";
-import { IntroGate, hasSeenIntro } from "./IntroGate";
 import type { EntryMode } from "./ModeSwitcher";
-import { PlatformSection } from "./PlatformSection";
-import { Process } from "./Process";
+import { SiteFooter } from "./SiteFooter";
 import { TopNav } from "./TopNav";
 import { VoiceActions, type VoiceActionId } from "./VoiceActions";
 import { spokenExamples } from "@/apps/web/src/lib/voiceCommands";
@@ -126,7 +122,13 @@ function readSavedMode(): EntryMode {
   }
 }
 
-export default function HomePage() {
+/**
+ * The application itself, at `/<lang>/app`: add a source, then ask about it.
+ * It holds every piece of conversation state and nothing about the story —
+ * the pitch, the introduction and the platform sections live on the landing
+ * page, one tap away through the menu.
+ */
+export default function Workspace() {
   const { t, language } = useLanguage();
   /** The wording this language listens for, so a notice never quotes another. */
   const spokenPhrase = (action: VoiceActionId) =>
@@ -166,16 +168,6 @@ export default function HomePage() {
     () => navigator.onLine,
     () => true,
   );
-  // The server never shows the intro; a first visit opens it after hydration.
-  const firstVisit = useSyncExternalStore(
-    subscribeToStorage,
-    () => !hasSeenIntro(),
-    () => false,
-  );
-  const [introOverride, setIntroOverride] = useState<boolean | null>(null);
-  const introOpen = introOverride ?? firstVisit;
-  const introOrigin = useRef<"first" | "replay">("first");
-  const replayButton = useRef<HTMLButtonElement>(null);
   const [state, dispatch] = useReducer(
     conversationReducer,
     initialConversationState,
@@ -279,29 +271,6 @@ export default function HomePage() {
     [file, tab, url],
   );
   const sessionLive = LIVE_STATUSES.includes(state.status);
-
-  function openIntro() {
-    introOrigin.current = "replay";
-    setIntroOverride(true);
-  }
-
-  function closeIntro() {
-    setIntroOverride(false);
-  }
-
-  // Land where the work is: the workspace on a first visit, the menu button
-  // that opened the replay otherwise. Runs once the dialog has closed, after
-  // the browser has restored focus to whatever had it before.
-  function focusAfterIntro() {
-    if (introOrigin.current === "replay") {
-      replayButton.current?.focus();
-      return;
-    }
-    const first =
-      document.querySelector<HTMLElement>("#workspace .voice-mic") ??
-      fileInput.current;
-    (first ?? document.getElementById("workspace"))?.focus();
-  }
 
   /**
    * Calls an endpoint with the opaque session id, and resends the whole source
@@ -759,17 +728,7 @@ export default function HomePage() {
       <a className="skip-link" href="#workspace">
         {t("Skip to workspace")}
       </a>
-      <TopNav
-        mode={entryMode}
-        onModeChange={switchEntryMode}
-        onReplayIntro={openIntro}
-        replayButton={replayButton}
-      />
-      <IntroGate
-        open={introOpen}
-        onClose={closeIntro}
-        onClosed={focusAfterIntro}
-      />
+      <TopNav page="app" mode={entryMode} onModeChange={switchEntryMode} />
 
       <main className="shell">
         <div className="container app-frame">
@@ -784,7 +743,7 @@ export default function HomePage() {
           <div className="workspace-heading">
             <div className="workspace-heading-copy">
               <h1>
-                {t("Less scrolling.")} <span>{t("More understanding.")}</span>
+                {t("Your source.")} <span>{t("Your questions.")}</span>
               </h1>
               <p className="lede">
                 {entryMode === "voice"
@@ -1149,7 +1108,7 @@ export default function HomePage() {
                 one tap from the consent story.
               */}
               {sessionLive && state.status === "connected" && (
-                <a className="voice-learning" href="#platform">
+                <a className="voice-learning" href={`/${language}#platform`}>
                   <span className="voice-learning-dot" aria-hidden="true" />
                   <span>
                     <strong>{t("Adapting to your voice")}</strong>
@@ -1370,20 +1329,8 @@ export default function HomePage() {
               </p>
             </section>
           </div>
-        </div>
 
-        <div className="container">
-          <PlatformSection onReplayIntro={openIntro} />
-          <Process locale={language} />
-          <HowItWorks />
-          <Applications />
-          <footer className="footer">
-            <span>{t("Ursly · Made for your next “aha”.")}</span>
-            <span className="footer-links">
-              <a href="#how-it-works">{t("How it works")} ↓</a>
-              <a href="#applications">{t("Applications & GitHub")} ↗</a>
-            </span>
-          </footer>
+          <SiteFooter page="app" />
         </div>
       </main>
     </>

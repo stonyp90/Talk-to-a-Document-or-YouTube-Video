@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./base";
 import { pdfFixture } from "../pdf-fixture";
+import { APP_PATH } from "../routes";
 
 // Compose's configured origin is localhost; exercise the real browser upload
 // and API paths, including CORS and the object store, without request mocks.
@@ -42,7 +43,7 @@ test.describe("source conversation journey", () => {
       await response.json(),
       "Run against freshly built Compose with object-store uploads and mock AI",
     ).toMatchObject({ ok: true, mode: "mock", directUpload: true });
-    await page.goto("/");
+    await page.goto(APP_PATH);
     await expect(page.getByLabel("PDF file")).toBeVisible();
   });
 
@@ -117,9 +118,7 @@ test.describe("source conversation journey", () => {
     await page.getByRole("button", { name: "Continue to questions" }).click();
     expect((await ingestion).status()).toBe(400);
     await expect(
-      page
-        .getByRole("region", { name: "1. Add a source" })
-        .getByRole("alert"),
+      page.getByRole("region", { name: "1. Add a source" }).getByRole("alert"),
     ).toContainText(/valid YouTube URL/i);
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
@@ -292,7 +291,7 @@ test.describe("source conversation journey", () => {
 test("keyboard source selection and a suggested question work with a second video", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto(APP_PATH);
   const pdfTab = page.getByRole("tab", { name: "PDF document" });
   const youtubeTab = page.getByRole("tab", { name: "YouTube video" });
   await pdfTab.focus();

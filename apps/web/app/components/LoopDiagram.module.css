@@ -49,7 +49,7 @@
   fill: var(--accent);
 }
 .discStatement {
-  font-family: Georgia, serif;
+  font-family: var(--display);
   font-size: 18px;
   fill: var(--ink);
 }
@@ -91,7 +91,7 @@
   color: var(--paper);
 }
 .label {
-  font-family: Georgia, serif;
+  font-family: var(--display);
   font-size: 14px;
   font-weight: 700;
   fill: var(--muted);
@@ -149,7 +149,7 @@
   font-size: 12px;
 }
 .caption i {
-  font-family: Georgia, serif;
+  font-family: var(--display);
   color: var(--muted);
 }
 @media (max-width: 700px) {

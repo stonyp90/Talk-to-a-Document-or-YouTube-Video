@@ -11,9 +11,16 @@ export type LoopTiming = {
   /** The training stage holds longer: its own loop must close first. */
   innerLoopMultiplier: number;
 };
+/*
+ * The loop is the argument, so it has to be watchable: a full walk of the ten
+ * stages used to take the better part of forty seconds, which is longer than
+ * anyone stands at the top of a page. At this pace the whole lifecycle reads
+ * in about half that, and the travel is quick enough that the eye follows the
+ * dot from one stage to the next rather than losing it between them.
+ */
 export const LOOP_TIMING: LoopTiming = {
-  holdMs: 2600,
-  travelMs: 1100,
+  holdMs: 1500,
+  travelMs: 620,
   innerLoopMultiplier: 2,
 };
 

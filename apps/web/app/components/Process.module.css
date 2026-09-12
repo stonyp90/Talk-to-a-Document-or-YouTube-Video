@@ -1,101 +1,107 @@
-/* One story, one measure: every section of it opens on --section-y. */
-.section {
-  padding: var(--section-y) 0 0;
-  border-top: 1px solid var(--line);
-  scroll-margin-top: var(--space-xl);
-}
-.layout {
+/*
+ * The loop in words, standing beside the loop in pictures on one screen.
+ *
+ * The list used to be ten rows of title and summary a screen below the
+ * drawing, which made it a second telling of the picture rather than the
+ * picture's other half. It is now an index: every stage reachable by keyboard
+ * and readable aloud, in two lines of the page instead of six hundred pixels.
+ */
+.words {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  gap: var(--space-3xl) var(--space-4xl);
-  align-items: start;
-}
-.copy {
-  min-width: 0;
-}
-.heading {
-  margin: var(--space-md) 0 var(--space-xl);
-  font-family: var(--display);
-  font-size: clamp(30px, 3.8vw, 46px);
-  font-weight: 400;
-  letter-spacing: -0.04em;
-  line-height: 1.08;
-}
-.heading span {
-  color: var(--accent);
-}
-.intro {
-  max-width: 560px;
-  margin: 0;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.7;
-}
-.quote {
-  margin: var(--space-2xl) 0 0;
-  padding-left: var(--space-lg);
-  border-left: 2px solid var(--accent-glow);
-  font-family: var(--display);
-  font-size: 21px;
-  font-style: italic;
-  line-height: 1.35;
+  gap: var(--space-xl);
+  align-content: start;
 }
 
-.innerLoopNote {
-  margin: var(--space-2xl) 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-/* The words ------------------------------------------------------------ */
+/* The rail --------------------------------------------------------------
+ *
+ * The film closes its type column with a tick for every scene and the beats
+ * named under them in tracked capitals. This is the same rail: a tick for
+ * every stage of the loop, the walked one lit, and the stage names under it.
+ * It is the page's progress through the argument and the film's own device,
+ * which is why it reads as the film continuing rather than as a tab bar.
+ */
+/* Ten equal columns where the measure allows it, fewer rows of equal columns
+   where it does not. The track floor is the longest stage name at this
+   tracking, so the rail breaks into a second row rather than letting two
+   names run into each other. */
 .steps {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-2xs) var(--space-xl);
-  margin: var(--space-sm) 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: var(--space-sm) var(--space-md);
+  margin: 0;
   padding: 0;
   list-style: none;
 }
+.step {
+  min-width: 0;
+}
 .step button {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
-  column-gap: var(--space-sm);
+  gap: var(--space-sm);
   width: 100%;
   min-height: 0;
-  padding: var(--space-md) var(--space-md);
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: transparent;
+  padding: var(--space-sm) 0 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
   text-align: left;
-  transition:
-    border-color 200ms var(--ease-out),
-    background-color 200ms var(--ease-out);
 }
 .step button:hover {
-  border-color: var(--line-strong);
   box-shadow: none;
   transform: none;
 }
-.step button[aria-current="step"] {
-  border-color: var(--accent-border);
-  background: var(--accent-wash-soft);
+.stepTick {
+  height: 3px;
+  transform-origin: left center;
+  border-radius: var(--radius-xs);
+  background: var(--line-strong);
+  transition: background-color var(--motion-base) var(--ease-out);
+  animation: tick-draw var(--motion-base) var(--ease-out) var(--enter, 0ms) both;
 }
-.stepNumber {
-  padding-top: var(--space-3xs);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: var(--accent);
-  font-size: 11px;
+@keyframes tick-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 .stepTitle {
-  font-size: 14px;
-  font-weight: 650;
-}
-.stepSummary {
-  grid-column: 2;
+  overflow: hidden;
+  animation: rise-in var(--motion-base) var(--ease-out)
+    calc(var(--enter, 0ms) + var(--motion-fast)) both;
   color: var(--muted);
-  font-size: 12.5px;
-  line-height: 1.55;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color var(--motion-base) var(--ease-out);
+}
+.step button:hover .stepTick {
+  background: var(--accent-border);
+}
+.step button:hover .stepTitle {
+  color: var(--ink);
+}
+/* The stage the walk is resting on, lit here exactly as it is lit on the ring. */
+.step button[aria-current="step"] .stepTick {
+  background: var(--accent);
+}
+.step button[aria-current="step"] .stepTitle {
+  color: var(--ink);
+}
+
+/* The line the loop is walked for --------------------------------------- */
+.quote {
+  margin: 0;
+  padding-left: var(--space-lg);
+  border-left: 2px solid var(--accent-glow);
+  font-family: var(--display);
+  font-size: clamp(18px, 1.7vw, 22px);
+  font-style: italic;
+  line-height: 1.35;
 }
 
 /* The mission ---------------------------------------------------------- */
@@ -104,10 +110,9 @@
   grid-template-columns: minmax(0, 1.5fr) auto;
   gap: var(--space-2xl) var(--space-3xl);
   align-items: center;
-  margin-top: var(--space-3xl);
-  padding: var(--space-3xl) var(--space-3xl);
+  padding: var(--space-3xl);
   border: 1px solid var(--accent-border-wash);
-  border-radius: 24px;
+  border-radius: var(--radius-2xl);
   background: linear-gradient(120deg, var(--accent-wash-soft), var(--surface));
 }
 .missionCopy h3 {
@@ -126,33 +131,32 @@
   font-size: 14px;
   line-height: 1.7;
 }
+/* The satellite on the training stage is the most elaborate thing on the ring
+   and the only one the picture never names. This is where it is named. */
+.innerLoopNote {
+  margin: var(--space-lg) 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
 .missionActions {
   display: grid;
   gap: var(--space-md);
   min-width: 200px;
 }
 .missionAction {
+  min-height: 46px;
   text-align: center;
   text-decoration: none;
-  min-height: 46px;
 }
 
 @media (max-width: 900px) {
-  .layout {
-    grid-template-columns: 1fr;
-    gap: var(--space-2xl);
-  }
   .mission {
     grid-template-columns: 1fr;
     padding: var(--space-2xl);
   }
   .missionActions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 700px) {
-  .quote {
-    font-size: 18px;
   }
 }
 @media (max-width: 420px) {

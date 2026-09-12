@@ -65,8 +65,7 @@ export type IntroScene = (typeof INTRO_SCENES)[number];
 export type IntroSceneId = IntroScene["id"];
 
 /** Six seconds a scene, for as many scenes as the argument takes. */
-export const INTRO_DURATION_SECONDS =
-  INTRO_SCENES.length * INTRO_SCENE_SECONDS;
+export const INTRO_DURATION_SECONDS = INTRO_SCENES.length * INTRO_SCENE_SECONDS;
 
 /**
  * The title, as a translation key with the duration filled in, so the number
@@ -88,3 +87,50 @@ export const introVideoPaths = (language: string) => ({
   captions: `/brand/ursly-intro.${language}.vtt`,
   poster: "/brand/social-card.png",
 });
+
+/**
+ * The voice, drawn. The film runs this wave along the top of its type column
+ * in every scene; the landing page draws the same one above its first words,
+ * so the cut from the film to the page lands on a mark that never stopped
+ * moving. The numbers are the film's own, in the film's 1920x1080 frame:
+ * `scripts/brand/intro-copy.mjs` mirrors them for the renderer, which cannot
+ * import TypeScript, and `tests/brand/intro-copy.test.ts` fails the moment the
+ * two disagree.
+ *
+ * A bar's height is `(floor + |sin(t * speed + i * phase)| * swing) * reach`,
+ * where `reach` dissolves the right end into the paper over `fade` units
+ * instead of cutting it off, so the sound reads as arriving from off frame.
+ */
+export const INTRO_WAVE = {
+  bars: 26,
+  /** Centre-to-centre spacing, and the width of a bar. */
+  pitch: 34,
+  bar: 15,
+  /** The first bar starts off the left edge: the sound was already going. */
+  left: -22,
+  /** A bar is never nothing, and never taller than this above the floor. */
+  floor: 12,
+  swing: 168,
+  /** Radians per second, and the phase one bar leads the next by. */
+  speed: 2.4,
+  phase: 0.7,
+  /** How far the right end takes to dissolve into the paper. */
+  fade: 340,
+  /**
+   * How loud the wave is in each scene: loud where the argument is about
+   * voice, quiet where it is about the keyboard voice replaces. One entry per
+   * scene, so the page can open at the loudness the film closed on.
+   */
+  gains: [0.45, 0.6, 1, 0.66, 0.3, 0.5],
+} as const;
+
+/** The loudness the film ends on, and so the loudness the page begins on. */
+export const INTRO_WAVE_CLOSING_GAIN =
+  INTRO_WAVE.gains[INTRO_WAVE.gains.length - 1];
+
+/** Where the wave ends, if nothing faded it. Derived, never typed twice. */
+export const INTRO_WAVE_RIGHT =
+  INTRO_WAVE.left + (INTRO_WAVE.bars - 1) * INTRO_WAVE.pitch + INTRO_WAVE.bar;
+
+/** One full swing of a bar, in seconds: |sin| repeats every half turn. */
+export const INTRO_WAVE_PERIOD_SECONDS = Math.PI / INTRO_WAVE.speed;

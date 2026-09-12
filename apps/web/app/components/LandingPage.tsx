@@ -5,21 +5,18 @@ import {
   useState,
   useSyncExternalStore,
   type ComponentType,
+  type RefObject,
 } from "react";
 import { Applications } from "./Applications";
+import { Arrival } from "./Arrival";
 import { HowItWorks } from "./HowItWorks";
 import { Icon } from "./Icon";
 import { IntroGate, hasSeenIntro } from "./IntroGate";
-import { LoopDiagram } from "./LoopDiagram";
 import { PlatformSection } from "./PlatformSection";
-import { Process } from "./Process";
 import { useLoopWalk, type Loop } from "./useLoopWalk";
 import { SiteFooter } from "./SiteFooter";
 import { TopNav } from "./TopNav";
-import { useHydrated } from "./useHydrated";
 import { useLanguage } from "../i18n/LanguageProvider";
-import { INTRO_DURATION_SECONDS } from "../content/intro-video";
-import { PROCESS_STEP_IDS } from "../content/process";
 import {
   STORY_SECTIONS,
   appHref as appHrefFor,
@@ -36,8 +33,10 @@ type StoryContext = {
   language: string;
   appHref: string;
   onReplayIntro: () => void;
-  /** The one walk around the build loop, drawn at the top of the page. */
+  /** The one walk around the build loop, drawn on the first screen. */
   loop: Loop;
+  /** Where focus lands when the introduction hands the page over. */
+  heroCta: RefObject<HTMLAnchorElement | null>;
 };
 
 /**
@@ -46,8 +45,17 @@ type StoryContext = {
  * a section can never be rendered twice or forgotten.
  */
 const STORY_VIEWS: Record<StorySectionId, ComponentType<StoryContext>> = {
-  "how-we-build": ({ language, appHref, loop }) => (
-    <Process locale={language} appHref={appHref} loop={loop} />
+  // The first screen and the first section are one thing: the film ends on
+  // the loop and the page opens on it, whole, rather than promising it here
+  // and explaining it a screen further down.
+  "how-we-build": ({ language, appHref, loop, onReplayIntro, heroCta }) => (
+    <Arrival
+      language={language}
+      appHref={appHref}
+      loop={loop}
+      onReplayIntro={onReplayIntro}
+      heroCta={heroCta}
+    />
   ),
   platform: ({ appHref, onReplayIntro }) => (
     <PlatformSection appHref={appHref} onReplayIntro={onReplayIntro} />
@@ -67,7 +75,6 @@ const STORY_VIEWS: Record<StorySectionId, ComponentType<StoryContext>> = {
 export default function LandingPage() {
   const { t, language } = useLanguage();
   const appHref = appHrefFor(language);
-  const hydrated = useHydrated();
   const loop = useLoopWalk();
   // The server never shows the intro; a first visit opens it after hydration.
   const firstVisit = useSyncExternalStore(
@@ -106,6 +113,7 @@ export default function LandingPage() {
     appHref,
     onReplayIntro: openIntro,
     loop,
+    heroCta,
   };
 
   return (
@@ -126,48 +134,6 @@ export default function LandingPage() {
 
       <main className="shell" id="main" tabIndex={-1}>
         <div className="container">
-          {/* The loop opens the page: how this is built is the argument, and
-              what it builds is one line under it. */}
-          <section className="hero landing-hero" aria-labelledby="hero-heading">
-            <div className="landing-hero-copy">
-              <span className="eyebrow">
-                {t("The software development lifecycle")}
-              </span>
-              <h1 id="hero-heading">
-                {t("A new way to build software.")}{" "}
-                <span>{t("For tomorrow’s internet.")}</span>
-              </h1>
-              <p className="lede">
-                {t(
-                  "One loop of {count} stages, walked in full before anything ships: concept, tools, tests, security, delivery, production, then what people tell us, and what the models learn from it.",
-                  { count: PROCESS_STEP_IDS.length },
-                )}
-              </p>
-              <div className="hero-actions">
-                <a ref={heroCta} className="primary" href={appHref}>
-                  <Icon name="arrow" /> {t("Open the app")}
-                </a>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={openIntro}
-                  disabled={!hydrated}
-                >
-                  <Icon name="play" /> {t("Watch the intro")} ·{" "}
-                  {INTRO_DURATION_SECONDS} s
-                </button>
-              </div>
-              <p className="hero-note">
-                {t(
-                  "What it does today: bring a PDF or a captioned YouTube video and talk to it. How it is built is the rest of this page.",
-                )}
-              </p>
-            </div>
-            <div className="landing-hero-loop">
-              <LoopDiagram locale={language} loop={loop} />
-            </div>
-          </section>
-
           {STORY_SECTIONS.map((section) => {
             const Section = STORY_VIEWS[section.id];
             return <Section key={section.id} {...story} />;

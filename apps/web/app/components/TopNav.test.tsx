@@ -35,7 +35,11 @@ describe("the fixed top menu", () => {
     landing();
     const indices = navigation().querySelectorAll(".nav-index");
     expect(indices).toHaveLength(MENU_SECTIONS.length);
-    expect([...indices].map((node) => node.textContent)).toEqual(["01", "02"]);
+    // Counted off the menu itself rather than written out here, so a section
+    // joining or leaving the bar needs no edit to this test.
+    expect([...indices].map((node) => node.textContent)).toEqual(
+      MENU_SECTIONS.map((_, position) => String(position + 1).padStart(2, "0")),
+    );
     // Decoration: the accessible name stays the section's own name.
     for (const index of indices) expect(index).toHaveAttribute("aria-hidden");
     expect(

@@ -1,14 +1,23 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import styles from "./Process.module.css";
 import type { Loop } from "./useLoopWalk";
 import { resolveProcessCopy } from "../content/process";
 
 /**
- * How we build, in words: the loop's argument, every stage named and
- * explained, and the mission the loop is walked for. The loop itself is
- * drawn at the top of the page, and this section shares its walk, so a stage
- * chosen here is the stage lit up there.
+ * The loop in words, standing on the same screen as the loop in pictures.
+ *
+ * The picture is drawn for the eye alone: its SVG is hidden from assistive
+ * software and its nodes answer to a pointer. This is the other half of it —
+ * the stage every reader can reach with a keyboard and every screen reader can
+ * read, sharing one walk with the drawing, so a stage chosen here is the stage
+ * lit up there and the other way round.
+ *
+ * Each stage keeps its full summary in the page for anyone reading it aloud.
+ * On screen only the lit stage's summary is shown, by the caption under the
+ * drawing, because ten summaries at once is the list this section used to be:
+ * a second telling of the picture, a screen further down.
  */
 export function Process({
   locale,
@@ -16,54 +25,48 @@ export function Process({
   loop,
 }: {
   locale?: string;
-  /** Where the mission CTA leads. Injected so this section knows no routes. */
+  /** Where the mission's way in leads. Injected so this knows no routes. */
   appHref: string;
   loop: Loop;
 }) {
   const copy = resolveProcessCopy(locale);
-  const number = (index: number) => String(index + 1).padStart(2, "0");
 
   return (
-    <section
-      className={styles.section}
-      id="how-we-build"
-      aria-labelledby="how-we-build-heading"
-    >
-      <div className={styles.layout}>
-        <div className={styles.copy}>
-          <span className="eyebrow">{copy.eyebrow}</span>
-          <h2 id="how-we-build-heading" className={styles.heading}>
-            {copy.heading.lead}
-            <span>{copy.heading.accent}</span>
-            {copy.heading.trail}
-          </h2>
-          <p className={styles.intro}>{copy.intro}</p>
-          <p className={styles.quote}>{copy.quote}</p>
-          <p className={styles.innerLoopNote}>{copy.innerLoop}</p>
-        </div>
+    <div className={`arrival-words ${styles.words}`}>
+      <ol className={styles.steps} aria-label={copy.controls.stepList}>
+        {copy.steps.map((step, index) => (
+          <li
+            key={step.id}
+            className={styles.step}
+            // The rail draws itself left to right as the page arrives, one
+            // stage leading the next, the way the wave's bars do.
+            style={{ "--enter": `${index * 45}ms` } as CSSProperties}
+          >
+            <button
+              type="button"
+              aria-current={index === loop.index ? "step" : undefined}
+              onClick={() => loop.select(index)}
+            >
+              {/* The film closes its column with a tick per scene and the
+                  beats named under them in tracked caps. This is that rail,
+                  with a tick per stage and the walk lighting its own. */}
+              <span className={styles.stepTick} aria-hidden="true" />
+              <span className={styles.stepTitle}>{step.title}</span>
+              {/* Read aloud, and read by the caption on screen. */}
+              <span className="visually-hidden">{step.summary}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
 
-        <ol className={styles.steps} aria-label={copy.controls.stepList}>
-          {copy.steps.map((step, index) => (
-            <li key={step.id} className={styles.step}>
-              <button
-                type="button"
-                aria-current={index === loop.index ? "step" : undefined}
-                onClick={() => loop.select(index)}
-              >
-                <span className={styles.stepNumber}>{number(index)}</span>
-                <span className={styles.stepTitle}>{step.title}</span>
-                <span className={styles.stepSummary}>{step.summary}</span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      </div>
+      <p className={styles.quote}>{copy.quote}</p>
 
       <div className={styles.mission}>
         <div className={styles.missionCopy}>
           <span className="eyebrow">{copy.mission.eyebrow}</span>
           <h3>{copy.mission.heading}</h3>
           <p>{copy.mission.body}</p>
+          <p className={styles.innerLoopNote}>{copy.innerLoop}</p>
         </div>
         <div className={styles.missionActions}>
           <a className={`primary ${styles.missionAction}`} href={appHref}>
@@ -77,6 +80,6 @@ export function Process({
           </a>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -233,6 +233,9 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     "every part of the story offers a way into the application",
     async function () {
       const p = await h.page(this);
+      // The first screen answers to both of the first two names — it is the
+      // hero and it is how we build — so that pair is one element checked
+      // twice, and the day they part again both are already covered.
       for (const selector of [
         ".nav",
         ".landing-hero",

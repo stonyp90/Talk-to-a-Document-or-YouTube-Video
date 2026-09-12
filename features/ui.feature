@@ -65,4 +65,5 @@ Feature: Provide a polished mobile-first conversation UI
     And the build loop names security, compliance and continuous delivery
     And the Ursly mission is stated in plain words
     And the build loop animation can be paused
+    And the loop, every stage of it and the way in stand on one screen
     And the mission call to action opens the app

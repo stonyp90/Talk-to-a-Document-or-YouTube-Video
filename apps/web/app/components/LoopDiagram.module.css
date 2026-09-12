@@ -6,6 +6,12 @@
   justify-items: center;
   min-width: 0;
 }
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+}
 .toggle {
   flex-shrink: 0;
   min-height: 38px;
@@ -23,6 +29,44 @@
   stroke: var(--line-strong);
   stroke-width: 1.2;
 }
+/* The way round. A chevron between every pair of stages, lit behind the walk
+   and quiet ahead of it, so the ring reads as a cycle with a direction rather
+   than as ten things arranged in a circle. */
+.arrow {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    stroke var(--motion-base) var(--ease-out),
+    opacity var(--motion-base) var(--ease-out);
+}
+.arrow[data-passed="true"] {
+  stroke: var(--accent);
+  opacity: 0.85;
+}
+/* The stage the walk has just reached opens once, and is still again. */
+.pulse {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: loop-pulse var(--motion-slow) var(--ease-out) both;
+  pointer-events: none;
+}
+@keyframes loop-pulse {
+  from {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
 .disc {
   fill: var(--surface);
   stroke: var(--line);
@@ -35,7 +79,7 @@
 }
 .discEyebrow,
 .discNote {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono);
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -144,7 +188,7 @@
   animation: arrive 480ms var(--ease-out) both;
 }
 .captionNumber {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono);
   color: var(--accent);
   font-size: 12px;
 }

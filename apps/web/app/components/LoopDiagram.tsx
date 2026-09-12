@@ -1,7 +1,8 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
 import styles from "./LoopDiagram.module.css";
+import { useLoopNarration } from "./useLoopNarration";
 import type { Loop } from "./useLoopWalk";
 import {
   PROCESS_STEP_IDS,
@@ -59,11 +60,22 @@ const ICONS: Record<ProcessStepId, string[]> = {
   ],
 };
 
+/**
+ * Trigonometry to a fixed number of places.
+ *
+ * The last bit of a double does not always survive being printed on the server
+ * and re-read in the browser, and an attribute that differs by that bit is a
+ * hydration mismatch React refuses to patch: the whole tree is thrown away and
+ * drawn again. Rounding here costs nothing anyone can see at this scale and
+ * makes the two renders identical strings.
+ */
+const place = (value: number) => Math.round(value * 1000) / 1000;
+
 function point(degrees: number, radius: number) {
   const radians = (degrees * Math.PI) / 180;
   return {
-    x: GEOMETRY.cx + radius * Math.cos(radians),
-    y: GEOMETRY.cy + radius * Math.sin(radians),
+    x: place(GEOMETRY.cx + radius * Math.cos(radians)),
+    y: place(GEOMETRY.cy + radius * Math.sin(radians)),
   };
 }
 
@@ -96,13 +108,30 @@ const NODES = PROCESS_STEP_IDS.map((id, index) => {
   };
 });
 
+/**
+ * A chevron on the track between every pair of stages, pointing the way the
+ * walk goes. Without them the ring is a diagram of ten things; with them it is
+ * a cycle, and a reader who has never been told what a development lifecycle
+ * is can see that it comes back round to the beginning.
+ */
+const ARROWS = PROCESS_STEP_IDS.map((_, index) => {
+  const degrees = -90 + (index + 0.5) * STEP_DEGREES;
+  const at = point(degrees, GEOMETRY.ring);
+  return {
+    index,
+    ...at,
+    /** Tangent to the ring at that point, so the chevron lies along the track. */
+    rotation: place(degrees + 90),
+  };
+});
+
 /** Where each provider sits on the training loop; the satellite passes them in turn. */
 const PROVIDERS = Array.from({ length: PROVIDER_TURNS }, (_, index) => {
   const radians = ((-90 + (index * 360) / PROVIDER_TURNS) * Math.PI) / 180;
   return {
     index,
-    dx: GEOMETRY.satellite * Math.cos(radians),
-    dy: GEOMETRY.satellite * Math.sin(radians),
+    dx: place(GEOMETRY.satellite * Math.cos(radians)),
+    dy: place(GEOMETRY.satellite * Math.sin(radians)),
   };
 });
 
@@ -125,10 +154,17 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
   const copy = resolveProcessCopy(locale);
   const { index, position, innerTurns, innerActive, playing, reduced, attach } =
     loop;
+  const narration = useLoopNarration(locale ?? "en");
   const { holdMs, travelMs, innerLoopMultiplier } = loop.timing;
   const innerHoldMs = holdMs * innerLoopMultiplier;
   const angle = position * STEP_DEGREES;
   const active = copy.steps[index];
+  // Each stage names itself as the walk reaches it, once, and only while a
+  // reader has asked to hear it.
+  const { say, speaking } = narration;
+  useEffect(() => {
+    if (speaking) say(`${active.title}. ${active.summary}`);
+  }, [say, speaking, active.title, active.summary]);
   const number = String(index + 1).padStart(2, "0");
   const diagramStyle = {
     "--loop-travel": `${travelMs}ms`,
@@ -154,6 +190,15 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
           cy={GEOMETRY.cy}
           r={GEOMETRY.ring}
         />
+        {ARROWS.map((arrow) => (
+          <path
+            key={arrow.index}
+            className={styles.arrow}
+            d="M -4 -5 L 3 0 L -4 5"
+            data-passed={arrow.index < index}
+            transform={`translate(${arrow.x} ${arrow.y}) rotate(${arrow.rotation})`}
+          />
+        ))}
         <circle
           className={styles.discHalo}
           cx={GEOMETRY.cx}
@@ -256,6 +301,17 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
                 </g>
               </>
             )}
+            {node.index === index && (
+              // Keyed on the walk's position rather than on the stage, so the
+              // ring opens again every time round and not only the first.
+              <circle
+                key={position}
+                className={styles.pulse}
+                cx={node.x}
+                cy={node.y}
+                r={GEOMETRY.node}
+              />
+            )}
             <circle cx={node.x} cy={node.y} r={GEOMETRY.node} />
             <svg
               x={node.x - 10}
@@ -295,15 +351,29 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
         <span className={styles.captionNumber}>{number}</span>{" "}
         <b>{active.title}.</b> <i>{active.summary}</i>
       </p>
-      {!reduced && (
-        <button
-          type="button"
-          className={`secondary ${styles.toggle}`}
-          onClick={loop.toggle}
-        >
-          {playing ? copy.controls.pause : copy.controls.play}
-        </button>
-      )}
+      <div className={styles.controls}>
+        {!reduced && (
+          <button
+            type="button"
+            className={`secondary ${styles.toggle}`}
+            onClick={loop.toggle}
+          >
+            {playing ? copy.controls.pause : copy.controls.play}
+          </button>
+        )}
+        {/* The page argues that listening should be an option; here it is one
+            about the page itself. It is silent until it is asked. */}
+        {narration.available && (
+          <button
+            type="button"
+            className={`secondary ${styles.toggle}`}
+            aria-pressed={narration.speaking}
+            onClick={narration.toggle}
+          >
+            {narration.speaking ? copy.controls.silence : copy.controls.narrate}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

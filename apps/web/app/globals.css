@@ -5,6 +5,12 @@
   --paper: #f8f5ef;
   --surface: #fffdf9;
   --surface-soft: #f3efe9;
+  /* The field: the ground the introduction film stands its product on, to the
+     right of the type column. Five parts ink in a hundred parts paper, which
+     is the one step the film takes away from paper and the reason a screen
+     floating on it reads as lifted rather than as cut out. The first screen
+     of the site stands the loop on the same ground. */
+  --field: #eeebe6;
   --line: #e5e0d8;
   --line-strong: #d6d0c7;
   --accent: #a84332;
@@ -27,6 +33,9 @@
   --shadow-lg: #29273524;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  /* A sine in both directions: the curve a swinging thing actually follows,
+     which is what the voice mark's bars are. */
+  --ease-in-out: cubic-bezier(0.37, 0, 0.63, 1);
   --motion-fast: 180ms;
   --motion-base: 420ms;
   --motion-slow: 760ms;
@@ -73,12 +82,21 @@
      screen the bar has no frame, so the line is simply the margin; where the
      bar floats, the line moves inside its frame and the page follows. */
   --measure: var(--gutter);
+  /* The margin the introduction film keeps inside its own frame: ninety-six
+     units of nineteen hundred and twenty. Anything the site stands beside the
+     film stands on it too. */
+  --film-inset: 5%;
   /* The fixed menu: one row on wide screens, brand row plus modes row below. */
   --nav-h: 64px;
   --nav-row: 52px;
   --nav-modes-row: 52px;
   --nav-h-mobile: calc(var(--nav-row) + var(--nav-modes-row));
   --nav-gap: 16px;
+  /* How faint a bar of the voice mark is at the bottom of its swing and at
+     the top of it. The film's own two ends, so the page's wave reads at the
+     same weight as the one the film leaves on screen. */
+  --wave-quiet: 0.34;
+  --wave-loud: 0.8;
   --disabled-ink: #8f8a95;
   /* Corners: square shapes with a modest rounding, never a pill. */
   --radius-xs: 4px;
@@ -86,8 +104,13 @@
   --radius-md: 8px;
   --radius-lg: 10px;
   --radius-xl: 12px;
+  /* The one corner large enough to read as a panel rather than a control. */
+  --radius-2xl: 24px;
   --overlay: #29273599;
   --focus-wash: #a8433220;
+  /* Figures that have to line up in a column: stage numbers, counters, the
+     small print of a measurement. Named once, like the display face. */
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   /* The display face. The introduction film sets every headline in it, so the
      page that follows the film uses the same one and the cut stays invisible.
      Named once here rather than spelled out at each heading. */
@@ -1195,6 +1218,19 @@ h3 {
 .footer a {
   text-underline-offset: 3px;
 }
+/* In the page and in the accessibility tree, but not on screen: for words a
+   sighted reader is already being shown some other way. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 .skip-link {
   position: fixed;
   top: -100px;
@@ -1529,12 +1565,14 @@ h3 {
     pointer-events: none;
   }
 }
+/* The mark is the one thing in the bar that is the product rather than a
+   control, so it is allowed to be the largest thing in it. */
 .nav .brand {
-  font-size: 24px;
+  font-size: 27px;
 }
 .nav .brand-mark {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
 }
 .nav-modes,
 .nav-sections {
@@ -1817,30 +1855,25 @@ h3 {
 }
 .intro-gate-inner {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  /* The title, the film, and the way out of it. Three rows, because the film
+     is the argument and everything else is furniture around it. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: var(--space-lg);
   height: 100%;
-  max-width: 1120px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: calc(12px + var(--safe-top)) var(--gutter)
+  padding: calc(16px + var(--safe-top)) var(--measure)
     calc(16px + var(--safe-bottom));
 }
+/* The film sets its own headline on a margin five parts in a hundred from the
+   edge of the frame. The dialog's title stands on that same margin, so the
+   words above the film and the words burned into it share one left edge. */
 .intro-gate-bar {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-md);
-}
-.intro-gate-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-size: 22px;
-  font-weight: 720;
-  letter-spacing: -1.2px;
-}
-.intro-gate-brand img {
-  border-radius: var(--radius-md);
+  gap: var(--space-2xl);
+  padding-inline: var(--film-inset);
 }
 .intro-skip {
   display: inline-flex;
@@ -1858,19 +1891,16 @@ h3 {
   width: 14px;
   height: 14px;
 }
-.intro-gate-copy h2 {
-  margin: var(--space-sm) 0 var(--space-xs);
-  font-family: var(--display);
-  font-size: clamp(24px, 3.4vw, 36px);
-  font-weight: 400;
-  letter-spacing: -0.03em;
-}
-.intro-gate-copy p {
-  max-width: 640px;
+/* The title of the film, at the film's own scale. It used to sit two sizes
+   under the headline burned into the first frame, which read as a caption
+   apologising for the thing behind it. */
+.intro-gate-bar h2 {
   margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.55;
+  font-family: var(--display);
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 400;
+  letter-spacing: -0.028em;
+  line-height: 1.04;
 }
 .intro-stage {
   display: grid;
@@ -1878,15 +1908,17 @@ h3 {
   place-items: center;
   min-height: 0;
 }
+/* No frame, no corners, no shadow. The film's own first pixel is the same
+   paper the dialog is standing on, so a border and a drop shadow do not lift
+   it off the page — they draw a card around it, and a card is the one thing
+   the introduction must not look like. */
 .intro-player {
   display: block;
   width: 100%;
+  max-width: calc((100vh - 240px) * 16 / 9);
   max-height: 100%;
   aspect-ratio: 16 / 9;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
   background: var(--paper);
-  box-shadow: 0 24px 60px var(--shadow-lg);
   object-fit: cover;
 }
 .intro-play {
@@ -2040,21 +2072,162 @@ h3 {
 .hero {
   padding: var(--section-gap) 0;
 }
-/* The first thing a reader meets is given the most air of anything, and it
-   is the loop: the claim on the left, the loop turning on the right. */
+/* The base heading for any hero. The arrival below re-sets it for the first
+   screen, and does so AFTER this rule: at equal weight the last one wins, and
+   a display size declared above this line would simply never arrive. */
+.hero h1 {
+  margin: var(--space-md) 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+}
+/* The first screen, and the whole of how we build.
+ *
+ * The introduction ends on the loop: the voice running along the top of a
+ * serif headline on warm paper, the ring turning beside it. This is that
+ * frame, alive. The claim and the way in are on the left, the loop on the
+ * right, and every stage of it reads across the bottom, so a reader meets the
+ * argument whole instead of scrolling into a second telling of it.
+ *
+ * Both columns start on the same line. Centring the shorter one used to sink
+ * the page's first word a third of a screen down and leave the menu, the
+ * headline and the ring all disagreeing about where the top is. */
 .landing-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-  align-items: center;
-  gap: var(--space-3xl) var(--space-4xl);
-  padding: calc(var(--section-gap) + var(--space-md)) 0 var(--section-y);
+  /* The film's own measure. Its type column takes forty-four parts of the
+     frame and the field the product stands on begins at fifty-three, so the
+     page divides its first screen the same way and the cut from one to the
+     other lands on the same vertical. */
+  grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+  align-items: start;
+  gap: var(--space-2xl) clamp(32px, 5vw, 72px);
+  padding: var(--space-2xl) 0 var(--section-y);
 }
-.landing-hero-copy,
-.landing-hero-loop {
+.arrival-copy,
+.arrival-loop {
   min-width: 0;
 }
+.arrival-copy {
+  grid-column: 1;
+  grid-row: 1;
+  /* Optically level with the ring's first label rather than with the top of
+     the box the ring is drawn in. */
+  padding-top: var(--space-2xl);
+}
+/* The field: the one step away from paper the film takes, and the reason the
+   thing standing on it reads as lifted rather than as cut out. It runs off the
+   right of the screen exactly as it runs off the right of the frame. */
+.arrival-loop {
+  position: relative;
+  z-index: 0;
+  grid-column: 2;
+  grid-row: 1;
+  padding: var(--space-2xl) 0 var(--space-xl);
+}
+.arrival-loop::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * clamp(16px, 2.5vw, 36px));
+  /* Off the edge of the screen, past the margin the page keeps. */
+  right: calc(-1 * var(--measure));
+  background: var(--field);
+}
+/* The index of the stages runs the full measure under both columns: it is the
+   caption to the whole screen, not a third column beside it. */
+.arrival-words {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+/* The cut.
+ *
+ * The film ends on the loop and the page opens on it, so the page should not
+ * appear all at once like a document loading: it should assemble the way the
+ * last shot resolves. The field arrives first, wiping in from the edge it runs
+ * off; then the column's lines rise in the order they are read; then the ring
+ * settles onto the field it stands on.
+ *
+ * Every one of these runs once and stops. This page's rule is that decorative
+ * motion settles rather than competing with the reader, and the only thing
+ * still moving a second later is the loop, which is the argument itself. The
+ * stylesheet's own reduced-motion rule turns the whole sequence off, and each
+ * element's finished state is its resting state, so nothing has to unwind.
+ */
+.arrival-loop::before {
+  transform-origin: right center;
+  animation: field-wipe var(--motion-slow) var(--ease-out) both;
+}
+@keyframes field-wipe {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.arrival-copy > * {
+  animation: rise-in var(--motion-slow) var(--ease-out) var(--enter, 0ms) both;
+}
+/* The order the eye takes them in: the voice, then who is speaking, then what
+   is said, then what it is for, then the way in. */
+.arrival-copy > :nth-child(2) {
+  --enter: 90ms;
+}
+.arrival-copy > :nth-child(3) {
+  --enter: 160ms;
+}
+.arrival-copy > :nth-child(4) {
+  --enter: 240ms;
+}
+.arrival-copy > :nth-child(5) {
+  --enter: 320ms;
+}
+.arrival-copy > :nth-child(6) {
+  --enter: 400ms;
+}
+.arrival-loop > * {
+  animation: settle-in var(--motion-slow) var(--ease-spring) var(--motion-fast)
+    both;
+}
+/* The ring does not slide in; it settles, the way the film's last frame comes
+   to rest. */
+@keyframes settle-in {
+  from {
+    opacity: 0;
+    transform: scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* The voice, as the film leaves it, above the page's first words. */
+.arrival-wave {
+  --wave-width: min(100%, 300px);
+  /* The film's first bar begins off the left edge of the frame: the sound was
+     already going when the picture started. */
+  margin-left: calc(-1 * var(--space-sm));
+  margin-bottom: var(--space-lg);
+}
+/* The page's first words wear the film's face. Nothing else on this screen is
+   allowed to be louder than them. */
+.landing-hero h1 {
+  margin: var(--space-sm) 0 var(--space-md);
+  font-family: var(--display);
+  font-size: clamp(38px, 4.6vw, 60px);
+  font-weight: 400;
+  letter-spacing: -0.028em;
+  line-height: 1.03;
+}
 .landing-hero .lede {
-  max-width: 640px;
+  max-width: 40ch;
+  /* The film sets its lede at a third of its headline. Anything smaller reads
+     as the caption of a picture rather than the second line of an argument. */
+  font-size: clamp(15px, 1.35vw, 19px);
+  line-height: 1.45;
 }
 /* Stacked, the loop follows the way in: on a phone the point of the page and
    the button that acts on it come first, and the picture is what you scroll
@@ -2064,18 +2237,24 @@ h3 {
     grid-template-columns: 1fr;
     gap: var(--space-2xl);
   }
+  .arrival-copy,
+  .arrival-loop,
+  .arrival-words {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .arrival-copy {
+    padding-top: 0;
+  }
+  .arrival-loop::before {
+    left: calc(-1 * var(--measure));
+  }
 }
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-md);
   margin-top: var(--space-2xl);
-}
-.hero h1 {
-  margin: var(--space-md) 0;
-  font-size: clamp(2rem, 5vw, 3rem);
-  line-height: 1.05;
-  letter-spacing: -0.05em;
 }
 
 /* Voice to action, inside the source card: one microphone, one line of words. */
@@ -2685,7 +2864,7 @@ h3 {
     justify-content: center;
   }
   .intro-gate-inner {
-    grid-template-rows: auto auto auto 1fr;
+    grid-template-rows: auto auto 1fr;
     align-content: start;
     gap: var(--space-md);
   }
@@ -2695,12 +2874,8 @@ h3 {
   .intro-gate-footer {
     align-self: end;
   }
-  .intro-gate-copy p {
-    font-size: 13px;
-  }
   .intro-player {
     aspect-ratio: 16 / 9;
-    border-radius: var(--radius-lg);
   }
   .voice-commands {
     padding: var(--space-md);
@@ -2802,7 +2977,7 @@ h3 {
   border-radius: var(--radius-xs);
   background: var(--surface-soft);
   font-size: 0.92em;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono);
 }
 .markdown pre {
   margin: 0 0 9px;

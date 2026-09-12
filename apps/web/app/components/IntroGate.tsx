@@ -138,7 +138,6 @@ export function IntroGate({
       ref={dialog}
       className="intro-gate"
       aria-labelledby="intro-title"
-      aria-describedby="intro-lede"
       onCancel={(event) => {
         event.preventDefault();
         finish();
@@ -149,12 +148,13 @@ export function IntroGate({
       }}
     >
       <div className="intro-gate-inner">
+        {/* One wordmark on screen, and it is the film's. The bar used to set
+            a second one directly above the product's own, at the same size,
+            so a first visit met the name twice before meeting the argument. */}
         <header className="intro-gate-bar">
-          <span className="intro-gate-brand">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/ursly-mark.svg" width="28" height="28" alt="" />
-            ursly<span className="brand-dot">.</span>
-          </span>
+          <h2 id="intro-title">
+            {t(INTRO_TITLE_KEY, { seconds: INTRO_DURATION_SECONDS })}
+          </h2>
           <button
             type="button"
             className="intro-skip"
@@ -164,18 +164,6 @@ export function IntroGate({
             {t("Skip intro")} <Icon name="close" />
           </button>
         </header>
-
-        <div className="intro-gate-copy">
-          <span className="eyebrow">{t("Welcome")}</span>
-          <h2 id="intro-title">
-            {t(INTRO_TITLE_KEY, { seconds: INTRO_DURATION_SECONDS })}
-          </h2>
-          <p id="intro-lede">
-            {t(
-              "A source, a question, and a conversation that stays grounded in what you brought.",
-            )}
-          </p>
-        </div>
 
         <div className="intro-stage" data-reduced={reduced}>
           {/* The video exists only while the dialog is open, so a returning

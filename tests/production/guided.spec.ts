@@ -23,52 +23,52 @@ async function upload(
 }
 
 // The plain `test` keeps this the real first visit: the intro must play.
-firstVisit("real PDF upload, grounded answer, source preview and replacement", async ({
-  page,
-  request,
-}, testInfo) => {
-  expect(await (await request.get("/api/health")).json()).toMatchObject({
-    ok: true,
-    mode: "live",
-    directUpload: true,
-  });
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(LANDING_PATH);
-  await page.getByRole("button", { name: "Skip intro" }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await expect(page.locator("#workspace")).toHaveCount(0);
-  // The navigation the founder asked for, proven in production.
-  await nav(page).getByRole("link", { name: "Open the app" }).click();
-  await expect(page).toHaveURL(/\/(en|fr)\/app$/);
-  await upload(page);
-  await expect(
-    page.locator('.progress-steps [aria-current="step"]'),
-  ).toHaveText("2 Ask a question");
-  await page
-    .getByLabel("Ask a question", { exact: true })
-    .fill("What is the telescope named?");
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  await expect(page.locator(".message.assistant")).toContainText("Willow");
-  await page.locator(".preview summary").click();
-  await expect(page.locator(".preview-text")).toContainText("Saturn");
-  expect(
-    await page.evaluate(() => document.documentElement.scrollWidth),
-  ).toBeLessThanOrEqual(page.viewportSize()!.width);
-  await page.screenshot({
-    path: testInfo.outputPath("guided-answer.png"),
-    fullPage: true,
-  });
-  await page.getByText("Change source", { exact: true }).click();
-  await upload(page, "The new telescope is named Cedar and studies Jupiter.");
-  await expect(page.locator(".message")).toHaveCount(0);
-  await page
-    .getByLabel("Ask a question", { exact: true })
-    .fill("What is the telescope named?");
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  await expect(page.locator(".message.assistant")).toContainText("Cedar");
-  expect(errors).toEqual([]);
-});
+firstVisit(
+  "real PDF upload, grounded answer, source preview and replacement",
+  async ({ page, request }, testInfo) => {
+    expect(await (await request.get("/api/health")).json()).toMatchObject({
+      ok: true,
+      mode: "live",
+      directUpload: true,
+    });
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(LANDING_PATH);
+    await page.getByRole("button", { name: "Skip intro" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.locator("#workspace")).toHaveCount(0);
+    // The navigation the founder asked for, proven in production.
+    await nav(page).getByRole("link", { name: "Open the app" }).click();
+    await expect(page).toHaveURL(/\/(en|fr)\/app$/);
+    await upload(page);
+    await expect(
+      page.locator('.progress-steps [aria-current="step"]'),
+    ).toHaveText("2 Ask a question");
+    await page
+      .getByLabel("Ask a question", { exact: true })
+      .fill("What is the telescope named?");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(page.locator(".message.assistant")).toContainText("Willow");
+    await page.locator(".preview summary").click();
+    await expect(page.locator(".preview-text")).toContainText("Saturn");
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(page.viewportSize()!.width);
+    await page.screenshot({
+      path: testInfo.outputPath("guided-answer.png"),
+      fullPage: true,
+    });
+    await page.getByText("Change source", { exact: true }).click();
+    await upload(page, "The new telescope is named Cedar and studies Jupiter.");
+    await expect(page.locator(".message")).toHaveCount(0);
+    await page
+      .getByLabel("Ask a question", { exact: true })
+      .fill("What is the telescope named?");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(page.locator(".message.assistant")).toContainText("Cedar");
+    expect(errors).toEqual([]);
+  },
+);
 
 test("invalid source has an understandable recovery path", async ({ page }) => {
   await page.goto(APP_PATH);

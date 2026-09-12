@@ -299,6 +299,9 @@ test.describe("returning visitor", () => {
   }) => {
     await page.goto(LANDING_PATH);
     // A reader who stops anywhere in the story has a way in within reach.
+    // The first screen answers to both of the first two names — it is the
+    // hero and it is how we build — so that pair is one element checked
+    // twice, and the day they part again both are already covered.
     for (const selector of [
       ".nav",
       ".landing-hero",

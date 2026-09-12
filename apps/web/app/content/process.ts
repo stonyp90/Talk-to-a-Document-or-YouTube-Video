@@ -42,7 +42,14 @@ export type ProcessCopy = {
   quote: string;
   target: { eyebrow: string; statement: string[]; note: string };
   innerLoop: string;
-  controls: { pause: string; play: string; stepList: string };
+  controls: {
+    pause: string;
+    play: string;
+    stepList: string;
+    /** Asks the page to name each stage aloud as the walk reaches it. */
+    narrate: string;
+    silence: string;
+  };
   steps: ProcessStepCopy[];
   mission: {
     eyebrow: string;
@@ -75,6 +82,8 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       pause: "Pause the loop",
       play: "Play the loop",
       stepList: "Stages of the loop",
+      narrate: "Hear the loop",
+      silence: "Stop the voice",
     },
     steps: [
       {
@@ -165,6 +174,8 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       pause: "Mettre la boucle en pause",
       play: "Relancer la boucle",
       stepList: "Les étapes de la boucle",
+      narrate: "Écouter la boucle",
+      silence: "Arrêter la voix",
     },
     steps: [
       {

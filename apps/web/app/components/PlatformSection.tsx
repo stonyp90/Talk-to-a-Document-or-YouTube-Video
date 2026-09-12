@@ -140,8 +140,7 @@ export function PlatformSection({
           onClick={onReplayIntro}
           disabled={!hydrated}
         >
-          {t("Watch the intro again")} ·{" "}
-          {INTRO_DURATION_SECONDS} s
+          {t("Watch the intro again")} · {INTRO_DURATION_SECONDS} s
         </button>
       </div>
 

@@ -297,16 +297,17 @@ const TRACK = {
   lift: 0.8,
 };
 
-// The loop, drawn as a loop. Ten stages is what the landing page walks a
-// reader through, and this scene's whole argument is that the number is not
-// decoration: every one of them is walked before anything ships. The ring is
+// The loop, drawn as a loop. The stages are the ones the landing page walks a
+// reader through, read from the copy rather than counted here, and this
+// scene's whole argument is that they are not decoration: every one of them is
+// walked before anything ships. The ring is
 // built from rounded rectangles rather than an arc, because ImageMagick's SVG
 // renderer ignores stroke widths, and from rectangles rather than circles,
 // because it also refuses to apply a group's opacity to a <circle> -- which
 // would leave the ring at full strength inside its own entrance.
 const LOOP = { cx: 1498, cy: 546, radius: 268 };
-// Ten stages, starting at the top and running clockwise, the order the loop is
-// walked in.
+// Every stage, starting at the top and running clockwise, the order the loop
+// is walked in.
 const LOOP_FIRST_ANGLE = -90;
 const LOOP_NODE = 26;
 // The track the stages sit on, as a dotted circle that the sweep lights up
@@ -319,7 +320,7 @@ const LOOP_CENTRE_SIZE = 42;
 const LOOP_CENTRE_LEADING = 54;
 // One revolution, started late enough that the ring is established before
 // anything travels around it and ended early enough that the closed loop, with
-// all ten stages named, is held still for the best part of a second.
+// every stage named, is held still for the best part of a second.
 const LOOP_START = 0.7;
 const LOOP_TRAVEL = 4.4;
 // How far behind the head a stage keeps its highlight, as a fraction of the
@@ -1091,9 +1092,9 @@ function legacy(scene, t, words_, elapsed) {
 /**
  * Scene six: how the next internet actually gets made. Everything before this
  * is a claim about the product; this is the answer to "and why should I
- * believe you". It is not a new claim either -- it is the same ten-stage loop
- * the landing page walks a reader through, drawn as the loop it is, with the
- * mission sitting at the centre of it.
+ * believe you". It is not a new claim either -- it is the same loop the
+ * landing page walks a reader through, stage for stage, drawn as the loop it
+ * is, with the mission sitting at the centre of it.
  *
  * The sweep goes round exactly once and names each stage as it passes, so the
  * ring ends closed and fully labelled instead of asking anyone to read ten
@@ -1155,9 +1156,9 @@ function buildLoop(scene, t, words_, elapsed) {
       const run = Math.cos(radians);
       const rise = Math.sin(radians);
       const anchorPoint = at(angle, LOOP.radius + LOOP_LABEL_GAP);
-      // Eight of the ten stages sit beside the ring rather than above or below
-      // it, and a label centred on its own radial point reaches back over the
-      // node it belongs to. Those grow outwards from the point instead, which
+      // Most stages sit beside the ring rather than above or below it, and a
+      // label centred on its own radial point reaches back over the node it
+      // belongs to. Those grow outwards from the point instead, which
       // is the only placement that keeps the longest translation clear of both
       // its node and the edge of the frame.
       const sideways = Math.abs(run) >= 0.5;

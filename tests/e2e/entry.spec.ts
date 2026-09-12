@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { APP_PATH, LANDING_PATH, appPath } from "../routes";
+import { MENU_SECTIONS } from "../../apps/web/app/content/story";
 
 const INTRO_KEY = "ursly-intro-v1";
 const intro = (page: Page) => page.getByRole("dialog", { name: /Ursly/ });
@@ -275,7 +276,7 @@ test.describe("returning visitor", () => {
     // And it tells the story, in the order it was asked for: the loop that
     // built this first, the product story after it.
     const order = await page.evaluate(() =>
-      ["platform", "how-we-build", "how-it-works", "applications"]
+      ["platform", "how-we-build", "pricing", "how-it-works", "applications"]
         .map(
           (id) =>
             [
@@ -289,6 +290,7 @@ test.describe("returning visitor", () => {
     expect(order).toEqual([
       "how-we-build",
       "platform",
+      "pricing",
       "how-it-works",
       "applications",
     ]);
@@ -304,6 +306,7 @@ test.describe("returning visitor", () => {
       ".landing-hero",
       "#how-we-build",
       "#platform",
+      "#pricing",
       "#how-it-works",
       ".invitation",
       ".footer",
@@ -392,17 +395,21 @@ test.describe("returning visitor", () => {
 
   test("section links land below the fixed menu", async ({ page }) => {
     await page.goto(LANDING_PATH);
-    await nav(page).getByRole("link", { name: "Platform" }).click();
-    const platform = page.locator("#platform");
-    await expect(platform).toBeInViewport();
-    const [top, barHeight] = await Promise.all([
-      platform.evaluate((el) => el.getBoundingClientRect().top),
-      nav(page).evaluate((el) => el.getBoundingClientRect().height),
-    ]);
-    expect(top).toBeGreaterThanOrEqual(barHeight - 1);
-    await expect(
-      nav(page).getByRole("link", { name: "Platform" }),
-    ).toHaveAttribute("aria-current", "location");
+    // Every anchor the bar carries, not just the first one. A narrow bar
+    // drops anchors on purpose; what it still shows has to land correctly.
+    for (const section of MENU_SECTIONS) {
+      const link = nav(page).getByRole("link", { name: section.label });
+      if (!(await link.isVisible())) continue;
+      await link.click();
+      const target = page.locator(`#${section.id}`);
+      await expect(target).toBeInViewport();
+      const [top, barHeight] = await Promise.all([
+        target.evaluate((el) => el.getBoundingClientRect().top),
+        nav(page).evaluate((el) => el.getBoundingClientRect().height),
+      ]);
+      expect(top, section.id).toBeGreaterThanOrEqual(barHeight - 1);
+      await expect(link).toHaveAttribute("aria-current", "location");
+    }
   });
 
   test("keyboard mode keeps the picker in place; voice mode adds one listening button", async ({

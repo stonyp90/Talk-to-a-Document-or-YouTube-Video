@@ -3361,9 +3361,20 @@ h3 {
 .footer-signout:hover {
   border-color: var(--accent-border);
 }
+/* Three anchors is one more than the bar was measured for. The guide is the
+   one that yields first, and it yields early: it is the furthest down the
+   page, so a reader who wants it is already scrolling, and it is the only one
+   of the three whose label does not fit beside a download menu and a language
+   pair on a small tablet. */
+@media (max-width: 720px) {
+  .nav-section-link[data-section="how-it-works"] {
+    display: none;
+  }
+}
+
 /* Small phones: two story anchors and the language pair do not fit beside the
    brand — in French the pair was pushed off the edge. The build loop yields
-   first, because it opens the page anyway: a reader meets it by scrolling,
+   next, because it opens the page anyway: a reader meets it by scrolling,
    with nothing above it to scroll past. The platform anchor is the one worth
    a shortcut, since it sits further down. */
 @media (max-width: 430px) {

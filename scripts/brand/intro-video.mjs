@@ -1094,6 +1094,9 @@ function motion(scene, t, words_, elapsed) {
       words(scene, t) +
       arriving(entered(t, 1.1), chip) +
       staged(scale, horizon + rules + lanes + surfaces + reach),
+    // Every surface in this volume is drawn, not filmed: the product it will
+    // run is not built, so there is no recording to composite into it.
+    screens: [],
   };
 }
 

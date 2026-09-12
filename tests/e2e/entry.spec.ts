@@ -428,3 +428,46 @@ test.describe("returning visitor", () => {
     ).toBeLessThanOrEqual(page.viewportSize()!.width);
   });
 });
+
+test.describe("the bar the film wears", () => {
+  /**
+   * The film's bar and the page's menu are the same panel, so they must stand
+   * on the same two vertical lines. A bar that is even slightly narrower than
+   * the one that replaces it makes the hand-off read as a change of product,
+   * which is the whole reason the film borrowed the site's component.
+   */
+  async function barsAgree(page: Page) {
+    const film = intro(page)
+      .getByRole("navigation", { name: "Primary" })
+      .first();
+    await expect(film).toBeVisible();
+    const filmBar = await film.boundingBox();
+    const filmBrand = await film.locator(".brand").boundingBox();
+    await page.getByRole("button", { name: "Skip intro" }).click();
+    await expect(intro(page)).toHaveCount(0);
+    const pageBar = await nav(page).boundingBox();
+    const pageBrand = await nav(page).locator(".brand").boundingBox();
+    expect(filmBar).not.toBeNull();
+    expect(pageBar).not.toBeNull();
+    expect(filmBrand).not.toBeNull();
+    expect(pageBrand).not.toBeNull();
+    // The panel: the same width, on the same left edge.
+    expect(filmBar!.width).toBeCloseTo(pageBar!.width, 0);
+    expect(filmBar!.x).toBeCloseTo(pageBar!.x, 0);
+    // And the name inside it on the same line, so the padding matches too.
+    expect(filmBrand!.x).toBeCloseTo(pageBrand!.x, 0);
+  }
+
+  test("stands exactly where the menu stands, on a wide screen", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(LANDING_PATH);
+    await barsAgree(page);
+  });
+
+  test("stands exactly where the menu stands, on a phone", async ({ page }) => {
+    await page.goto(LANDING_PATH);
+    await barsAgree(page);
+  });
+});

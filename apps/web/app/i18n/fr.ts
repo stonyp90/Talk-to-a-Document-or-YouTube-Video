@@ -36,7 +36,7 @@ export const french: Dictionary = {
 
   // Introduction
   Welcome: "Bienvenue",
-  "Ursly, in 24 seconds.": "Ursly, en 24 secondes.",
+  "Ursly, in {seconds} seconds.": "Ursly, en {seconds} secondes.",
   "A source, a question, and a conversation that stays grounded in what you brought.":
     "Une source, une question, et une conversation qui reste ancrée dans ce que vous avez apporté.",
   "Skip intro": "Passer l’intro",
@@ -48,12 +48,28 @@ export const french: Dictionary = {
   "Read the intro instead": "Lire l’intro plutôt",
   "The intro is unavailable right now.":
     "L’intro n’est pas disponible pour le moment.",
-  "Ursly. A source. A conversation.": "Ursly. Une source. Une conversation.",
-  "Bring a document or a video. Ursly reads it for you.":
-    "Apportez un document ou une vidéo. Ursly le lit pour vous.",
-  "Ask by voice, by keyboard, and soon by movement.":
-    "Posez vos questions à la voix, au clavier et bientôt par le mouvement.",
-  "Source, question, understanding.": "Source, question, compréhension.",
+
+  // The scenes of the introduction, in the order the film plays them. They are
+  // also the transcript shown in the dialog, so anyone who cannot watch reads
+  // exactly the same argument. "Not a new website. A new way to use one." is
+  // deliberately absent: the platform section below already owns that sentence,
+  // and the film must not say it a second, slightly different way.
+  "The next generation of internet.": "La nouvelle génération d’internet.",
+  "Bring a document or a video.": "Apportez un document ou une vidéo.",
+  "Ursly reads it, and answers only from it.":
+    "Ursly le lit, et ne répond qu’à partir de lui.",
+  "Voice to action.": "Voix vers action.",
+  "Say it, and Ursly does it.": "Dites-le, Ursly le fait.",
+  "Motion to action.": "Mouvement vers action.",
+  "In beta, built for the headsets coming next.":
+    "En bêta, pensé pour les casques qui arrivent.",
+  "The keyboard still works.": "Le clavier fonctionne toujours.",
+  "It is simply no longer the way in.":
+    "Ce n’est simplement plus la porte d’entrée.",
+  "Nothing ships until the loop closes.":
+    "Rien ne sort tant que la boucle n’est pas bouclée.",
+  "Concept to production, tested in production, every cycle.":
+    "Du concept à la production, testé en production, à chaque cycle.",
 
   // Landing hero
   "Voice first": "La voix d’abord",

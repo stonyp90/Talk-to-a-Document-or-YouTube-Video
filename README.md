@@ -69,7 +69,7 @@ It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom vo
 
 ## What a visitor sees
 
-1. **The introduction, once.** A first visit opens a 24-second silent video in the
+1. **The introduction, once.** A first visit opens a 36-second silent video in the
    visitor's language (English or French), with captions, a transcript and a
    _Skip intro_ button from the first frame. It is remembered per browser and can
    be replayed from the top menu.
@@ -87,7 +87,7 @@ It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom vo
 ### Pages
 
 Two pages, deliberately separate. `/<lang>` is the landing page: what Ursly is,
-the 24-second introduction, then the story in one order — how we build, the
+the introduction, then the story in one order — how we build, the
 platform, the guide, and the mobile downloads
 (`apps/web/app/components/LandingPage.tsx`). That order lives in
 `apps/web/app/content/story.ts`, which the page, the fixed menu and the suites
@@ -110,8 +110,36 @@ served under `/en` and `/fr`, prerendered with the right `<html lang>`. The root
 URL follows the browser (`Accept-Language`), and an explicit choice from the menu
 is remembered in a cookie. Interface copy is keyed by its English text in
 `apps/web/app/i18n/fr.ts`; a missing key falls back to English. The intro video
-exists once per language (`scripts/brand/intro-video.mjs` renders both from the
-original recording) because its text is burned into the frames.
+exists once per language (`scripts/brand/intro-video.mjs` renders both) because
+its text is burned into the frames.
+
+### Rebuilding the introduction
+
+The film is six six-second scenes: what Ursly is, a source going in, voice to
+action, motion to action, the keyboard demoted, and the build loop that produces
+all of it. Its words live in
+[`apps/web/app/content/intro-video.ts`](apps/web/app/content/intro-video.ts) —
+which the dialog, the transcript and the captions all read — and are repeated
+for the renderer in `scripts/brand/intro-copy.mjs`, with
+`scripts/brand/intro-copy.test.ts` failing the suite if the two ever disagree.
+The duration is the scene count times the scene length, everywhere, so the film
+is lengthened by adding a scene and nothing else.
+
+Three commands, in order, and only the last is needed if the app's chrome has
+not changed:
+
+```bash
+npm run dev                       # anything serving the app
+node scripts/brand/record-app.mjs # footage of the product actually being used
+node scripts/brand/capture-app.mjs # the committed stills, used as a fallback
+node scripts/brand/intro-video.mjs # draws the frames and writes the .vtt files
+```
+
+Everything it draws comes from this repository: the scenes are SVG rasterised
+with ImageMagick, the product is the recording under `scripts/brand/footage`,
+and ffmpeg cross-fades the six clips into one continuous take. Re-record before
+re-rendering whenever the application's chrome has changed, or the film will
+show an app that no longer exists.
 
 ## How each requirement is met
 

@@ -254,7 +254,7 @@ export const french = {
   "QUICK TOUR": "VISITE GUIDÉE",
   "Pause slides": "Mettre en pause",
   "Resume slides": "Reprendre",
-  "Watch Ursly in 24 seconds": "Voir Ursly en 24 secondes",
+  "Watch the Ursly introduction": "Voir l’introduction d’Ursly",
   "The Ursly story": "L’histoire d’Ursly",
   "A source. A conversation.": "Une source. Une conversation.",
   "A quick, high-level look at how Ursly helps ideas become clear.":
@@ -262,8 +262,8 @@ export const french = {
   "Read the intro instead": "Lire la présentation",
   "The intro is unavailable right now.":
     "La présentation est indisponible pour le moment.",
-  "Ursly turns a document or a captioned video into a conversation. Bring a source, ask by voice or text, and explore what matters. Voice actions help you take the next step. Motion beta previews a future hands-free AR/VR layer without triggering actions from pointer clicks.":
-    "Ursly transforme un document ou une vidéo sous-titrée en conversation. Importez une source, questionnez à la voix ou à l’écrit et explorez l’essentiel. Les actions vocales vous aident à avancer; la bêta Motion présente une future couche mains libres AR/VR sans déclencher d’action par clic.",
+  "The next generation of internet: not a new website, but a new way to use one. Bring a document or a video and Ursly reads it, answering only from it. Say it, and Ursly does it. Motion to action is in beta, built for the headsets coming next. The keyboard still works; it is simply no longer the way in. And nothing ships until the loop closes: concept to production, tested in production, every cycle.":
+    "La nouvelle génération d’internet : pas un nouveau site Web, mais une nouvelle façon de s’en servir. Apportez un document ou une vidéo, Ursly le lit et ne répond qu’à partir de lui. Dites-le, Ursly le fait. Mouvement vers action est en bêta, pensé pour les casques qui arrivent. Le clavier fonctionne toujours ; ce n’est simplement plus la porte d’entrée. Et rien ne sort tant que la boucle n’est pas bouclée : du concept à la production, testé en production, à chaque cycle.",
   STEP: "ÉTAPE",
   "Go to step": "Aller à l’étape",
   "Guide progress": "Progression de la visite",

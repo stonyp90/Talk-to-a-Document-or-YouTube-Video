@@ -32,6 +32,7 @@ jobs:
       # deployment names the gateway's own endpoint; a localhost default here
       # would have deployed an address no caller of this API can reach.
       TF_VAR_app_origin: ${{ vars.APP_ORIGIN }}
+      TF_VAR_auth_mode: ${{ vars.AUTH_MODE || 'required' }}
       TF_VAR_ses_identity_arn: ${{ vars.SES_IDENTITY_ARN }}
       TF_VAR_ses_configuration_set_name: ${{ vars.SES_CONFIGURATION_SET_NAME }}
       TF_VAR_ses_from_address: ${{ vars.SES_FROM_ADDRESS }}

@@ -1,4 +1,5 @@
 import { expect, test } from "./base";
+import { answerStream } from "./voice-harness";
 import { APP_PATH, LANDING_PATH } from "../routes";
 
 test("long source names and unbroken chat text stay inside a mobile viewport", async ({
@@ -18,9 +19,10 @@ test("long source names and unbroken chat text stay inside a mobile viewport", a
       },
     }),
   );
-  await page.route("**/api/text-chat", (route) =>
+  await page.route("**/api/text-chat/stream", (route) =>
     route.fulfill({
-      json: { answer: "https://example.com/" + "x".repeat(500) },
+      contentType: "text/event-stream",
+      body: answerStream(["https://example.com/" + "x".repeat(500)]),
     }),
   );
   await page.goto(APP_PATH);

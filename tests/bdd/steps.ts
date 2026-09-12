@@ -18,9 +18,12 @@ import { fixturePdf } from "./fixtures";
 import { registerLocalChecks } from "./local";
 import { registerResilienceChecks } from "./resilience";
 import { registerArchitectureChecks } from "./architecture";
+import { registerAuthChecks } from "./auth";
 import { registerEntryChecks } from "./entry";
 import { registerPricingChecks } from "./pricing";
 import { registerProcessChecks } from "./process";
+import { registerVideoSearchChecks } from "./videoSearch";
+import { registerConversationChecks } from "./conversation";
 import { registerVoiceChecks } from "./voice";
 import { APP_PATH } from "../routes";
 
@@ -164,7 +167,11 @@ async function session(this: World) {
 async function send(this: World) {
   const p = await page(this);
   this.question = "What is this source about?";
-  const request = p.waitForRequest((r) => r.url().endsWith("/api/text-chat"));
+  // The answer streams now, and only falls back to the blocking route when the
+  // connection cannot carry an event stream. Either one is a question asked.
+  const request = p.waitForRequest((r) =>
+    /\/api\/text-chat(\/stream)?$/.test(new URL(r.url()).pathname),
+  );
   await p.getByLabel("Ask a question", { exact: true }).fill(this.question);
   await p.getByRole("button", { name: "Send", exact: true }).click();
   this.requestBody = (await request).postDataJSON();
@@ -955,8 +962,11 @@ registerLocalChecks(step, {
 });
 registerResilienceChecks(step, { page, openApp, ready, baseURL });
 registerArchitectureChecks(step);
+registerAuthChecks(step);
 registerEntryChecks(step, { page, baseURL });
 registerProcessChecks(step, { page });
+registerVideoSearchChecks(step);
+registerConversationChecks(step);
 registerVoiceChecks(step);
 registerPricingChecks(step, { page });
 

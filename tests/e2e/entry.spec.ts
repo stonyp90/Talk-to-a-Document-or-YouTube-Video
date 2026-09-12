@@ -193,12 +193,19 @@ test.describe("returning visitor", () => {
         (el) => el.getBoundingClientRect().height,
       );
       expect(height).toBeLessThanOrEqual(width <= 960 ? 112 : 72);
-      // In the application the workspace is still the first thing under the
-      // menu, not a billboard: these are the original numbers, unchanged.
-      const workspaceTop = await page
-        .locator("#workspace")
-        .evaluate((el) => el.getBoundingClientRect().top);
-      expect(workspaceTop).toBeLessThanOrEqual(width <= 960 ? 340 : 280);
+      // The controls are the first thing under the menu, not a billboard. In
+      // voice mode the panel leads and the two cards follow it, so the budget
+      // is measured against whichever comes first — the numbers are unchanged.
+      const [panelTop, workspaceTop] = await Promise.all([
+        page
+          .locator(".voice-commands")
+          .evaluate((el) => el.getBoundingClientRect().top),
+        page
+          .locator("#workspace")
+          .evaluate((el) => el.getBoundingClientRect().top),
+      ]);
+      expect(panelTop).toBeLessThanOrEqual(width <= 960 ? 340 : 280);
+      expect(workspaceTop).toBeGreaterThan(panelTop);
       // Where there is room the bar floats a few pixels clear of the edge,
       // so what is asserted is that it does not move, not that it is flush.
       const restingTop = await bar.evaluate(
@@ -411,14 +418,14 @@ test.describe("returning visitor", () => {
     await page.goto(APP_PATH);
     await expect(page.getByLabel("PDF file")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Speak a command" }),
+      page.getByRole("button", { name: "Speak", exact: true }),
     ).toBeVisible();
     await modes(page)
       .getByRole("radio", { name: "Keyboard to action" })
       .click();
     await expect(page.getByLabel("PDF file")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Speak a command" }),
+      page.getByRole("button", { name: "Speak", exact: true }),
     ).toHaveCount(0);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),

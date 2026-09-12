@@ -101,7 +101,7 @@ test("real voice transport connects, answers typed input, mutes and stops", asyn
   );
   await page.goto(APP_PATH);
   await upload(page);
-  await page.getByRole("button", { name: "Start Voice Chat" }).click();
+  await page.getByRole("button", { name: "Start voice chat" }).click();
   await expect(page.locator(".conversation-card .status")).toHaveText(
     "Connected",
   );
@@ -119,7 +119,7 @@ test("real voice transport connects, answers typed input, mutes and stops", asyn
   await page.getByRole("button", { name: "Stop", exact: true }).click();
   await expect(page.locator(".conversation-card .status")).toHaveText("Ended");
   await expect(
-    page.getByRole("button", { name: "Start Voice Chat" }),
+    page.getByRole("button", { name: "Start voice chat" }),
   ).toBeEnabled();
 });
 

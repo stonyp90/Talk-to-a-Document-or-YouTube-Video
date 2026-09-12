@@ -7,21 +7,16 @@ export const DEFAULT_PROCESS_LOCALE: ProcessLocale = "en";
 
 /** The loop, in the order it is walked. */
 export const PROCESS_STEP_IDS = [
-  "concept",
   "plan",
-  "tools",
-  "local",
+  "build",
   "test",
-  "secure",
-  "deliver",
-  "production",
-  "listen",
-  "train",
+  "ship",
+  "learn",
 ] as const;
 export type ProcessStepId = (typeof PROCESS_STEP_IDS)[number];
 
 /** The stage with a loop of its own: local, then beta, then the same loop. */
-export const INNER_LOOP_STEP: ProcessStepId = "train";
+export const INNER_LOOP_STEP: ProcessStepId = "learn";
 
 /**
  * The training stage is a loop of its own, and it leverages every model
@@ -78,61 +73,34 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
     },
     steps: [
       {
-        id: "concept",
-        title: "Concept",
-        summary: "Start from an idea worth building, said plainly.",
-      },
-      {
         id: "plan",
         title: "Plan",
-        summary: "Write down how it will be built before writing any code.",
+        summary:
+          "Start from an idea worth building, said plainly, then write down how it will be built before writing any code.",
       },
       {
-        id: "tools",
-        title: "Tools",
+        id: "build",
+        title: "Build",
         summary:
-          "Choose the best technology for the job, not the most familiar one.",
-      },
-      {
-        id: "local",
-        title: "Local",
-        summary:
-          "Run the whole product on one machine, every dependency included.",
+          "Choose the best technology for the job, not the most familiar one, and run the whole product on one machine, every dependency included.",
       },
       {
         id: "test",
         title: "Test",
         summary:
-          "Behaviour, contract and unit tests on every cycle, so nothing regresses when the next feature lands.",
+          "Behaviour, contract and unit tests on every cycle, so nothing regresses. Security and compliance are the law, so they are proven here rather than added at the end.",
       },
       {
-        id: "secure",
-        title: "Secure",
+        id: "ship",
+        title: "Ship",
         summary:
-          "Security and compliance are the law, so they are built into every cycle rather than added at the end.",
+          "Continuous integration and delivery: every change is checked, then shipped automatically. Go live, then test it in production too.",
       },
       {
-        id: "deliver",
-        title: "Deliver",
+        id: "learn",
+        title: "Learn",
         summary:
-          "Continuous integration and delivery: every change is checked, then shipped automatically.",
-      },
-      {
-        id: "production",
-        title: "Production",
-        summary: "Go live, then test it in production too.",
-      },
-      {
-        id: "listen",
-        title: "Listen",
-        summary:
-          "Gather enough feedback from real people to make the models better each cycle.",
-      },
-      {
-        id: "train",
-        title: "Train",
-        summary:
-          "What the loop learns trains the models, and every model provider gets its turn.",
+          "Real people tell us what to improve, and what the loop learns trains the models, where every model provider gets its turn.",
       },
     ],
     mission: {
@@ -168,61 +136,34 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
     },
     steps: [
       {
-        id: "concept",
-        title: "Concept",
-        summary: "Partir d’une idée qui vaut la peine, dite simplement.",
-      },
-      {
         id: "plan",
         title: "Plan",
-        summary: "Écrire comment elle sera bâtie avant d’écrire du code.",
+        summary:
+          "Partir d’une idée qui vaut la peine, dite simplement, puis écrire comment elle sera bâtie avant d’écrire du code.",
       },
       {
-        id: "tools",
-        title: "Outils",
+        id: "build",
+        title: "Construction",
         summary:
-          "Choisir la meilleure technologie pour la tâche, pas la plus familière.",
-      },
-      {
-        id: "local",
-        title: "Local",
-        summary:
-          "Faire tourner tout le produit sur une seule machine, dépendances comprises.",
+          "Choisir la meilleure technologie pour la tâche, pas la plus familière, et faire tourner tout le produit sur une seule machine, dépendances comprises.",
       },
       {
         id: "test",
         title: "Tests",
         summary:
-          "Tests de comportement, de contrat et unitaires à chaque cycle, pour qu’aucune régression ne passe quand la prochaine fonctionnalité arrive.",
+          "Tests de comportement, de contrat et unitaires à chaque cycle, pour qu’aucune régression ne passe. La sécurité et la conformité sont la loi : elles se prouvent ici au lieu d’être ajoutées à la fin.",
       },
       {
-        id: "secure",
-        title: "Sécurité",
-        summary:
-          "La sécurité et la conformité sont la loi ; elles font partie de chaque cycle au lieu d’être ajoutées à la fin.",
-      },
-      {
-        id: "deliver",
+        id: "ship",
         title: "Livraison",
         summary:
-          "Intégration et livraison continues : chaque changement est vérifié, puis expédié automatiquement.",
+          "Intégration et livraison continues : chaque changement est vérifié, puis expédié automatiquement. Mettre en ligne, puis tester en production aussi.",
       },
       {
-        id: "production",
-        title: "Production",
-        summary: "Mettre en ligne, puis tester en production aussi.",
-      },
-      {
-        id: "listen",
-        title: "Écoute",
+        id: "learn",
+        title: "Apprentissage",
         summary:
-          "Recueillir assez de retours de vraies personnes pour améliorer les modèles à chaque cycle.",
-      },
-      {
-        id: "train",
-        title: "Entraînement",
-        summary:
-          "Ce que la boucle apprend entraîne les modèles, et chaque fournisseur de modèles a son tour.",
+          "De vraies personnes nous disent quoi améliorer, et ce que la boucle apprend entraîne les modèles, où chaque fournisseur de modèles a son tour.",
       },
     ],
     mission: {

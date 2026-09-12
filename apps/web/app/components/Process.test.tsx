@@ -83,32 +83,31 @@ describe("Process", () => {
 
   it("lets a reader pick a stage, which pauses the walk", () => {
     render(<Process appHref="/en/app" timing={timing} />);
-    const secure = PROCESS_STEP_IDS.indexOf("secure");
-    fireEvent.click(within(stepItems()[secure]).getByRole("button"));
-    expect(current()).toBe(secure);
+    const test = PROCESS_STEP_IDS.indexOf("test");
+    fireEvent.click(within(stepItems()[test]).getByRole("button"));
+    expect(current()).toBe(test);
     expect(
       screen.getByRole("button", { name: copy.controls.play }),
     ).toBeInTheDocument();
     walk();
-    expect(current()).toBe(secure);
+    expect(current()).toBe(test);
     fireEvent.click(screen.getByRole("button", { name: copy.controls.play }));
     walk();
-    expect(current()).toBe(secure + 1);
+    expect(current()).toBe(test + 1);
   });
 
   it("waits for the inner loop before leaving the training stage", () => {
     render(<Process appHref="/en/app" timing={timing} />);
-    const train = PROCESS_STEP_IDS.indexOf(INNER_LOOP_STEP);
-    const listen = train - 1;
-    fireEvent.click(within(stepItems()[listen]).getByRole("button"));
+    const learn = PROCESS_STEP_IDS.indexOf(INNER_LOOP_STEP);
+    fireEvent.click(within(stepItems()[learn - 1]).getByRole("button"));
     fireEvent.click(screen.getByRole("button", { name: copy.controls.play }));
     walk();
-    expect(current()).toBe(train);
+    expect(current()).toBe(learn);
     const diagram = screen.getByTestId("loop-diagram");
     expect(diagram).toHaveAttribute("data-inner-loop", "active");
     // A normal stage would have moved on by now; training holds for its loop.
     walk();
-    expect(current()).toBe(train);
+    expect(current()).toBe(learn);
     walk(timing.holdMs * (timing.innerLoopMultiplier - 1) - timing.travelMs);
     expect(current()).toBe(0);
     expect(diagram).toHaveAttribute("data-inner-loop", "idle");

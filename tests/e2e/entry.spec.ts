@@ -252,7 +252,7 @@ test.describe("returning visitor", () => {
       page.locator("#workspace"),
       page.getByLabel("PDF file"),
       page.getByLabel("Ask a question", { exact: true }),
-      page.getByRole("button", { name: "Start Voice Chat" }),
+      page.getByRole("button", { name: "Start voice chat" }),
       page.locator(".conversation-card"),
       page.locator(".source-card"),
     ])

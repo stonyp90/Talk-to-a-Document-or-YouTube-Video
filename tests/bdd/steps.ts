@@ -276,7 +276,7 @@ step("I cannot start a voice session for that source", async function () {
   await expect(
     (await page(this))
       .locator(".voice-controls button")
-      .filter({ hasText: "Start Voice Chat" }),
+      .filter({ hasText: "Start voice chat" }),
   ).toBeDisabled();
 });
 step(
@@ -433,7 +433,7 @@ step(
     await expect(
       (await page(this))
         .locator(".voice-controls button")
-        .filter({ hasText: "Start Voice Chat" }),
+        .filter({ hasText: "Start voice chat" }),
     ).toBeEnabled();
   },
 );
@@ -515,7 +515,7 @@ step("microphone permission is denied", async function () {
 step("I try to start voice chat", async function () {
   await (await page(this))
     .locator(".voice-controls button")
-    .filter({ hasText: "Start Voice Chat" })
+    .filter({ hasText: "Start voice chat" })
     .click();
 });
 step("I see instructions for enabling microphone access", async function () {
@@ -594,7 +594,7 @@ step("I see an explanatory empty state", async function () {
     p.getByText("We’ll read it for you. Then you can ask about it."),
   ).toBeVisible();
   await expect(
-    p.locator(".voice-controls button").filter({ hasText: "Start Voice Chat" }),
+    p.locator(".voice-controls button").filter({ hasText: "Start voice chat" }),
   ).toBeDisabled();
 });
 step("I see how to upload a PDF or enter a YouTube URL", async function () {
@@ -621,7 +621,7 @@ step(
     const p = await page(this);
     await p
       .locator(".voice-controls button")
-      .filter({ hasText: "Start Voice Chat" })
+      .filter({ hasText: "Start voice chat" })
       .click();
     await p
       .getByRole("button", { name: "Mute microphone", exact: true })
@@ -734,7 +734,7 @@ step(
 step("I select the retry action", async function () {
   const p = await page(this);
   await expect(
-    p.locator(".voice-controls button").filter({ hasText: "Start Voice Chat" }),
+    p.locator(".voice-controls button").filter({ hasText: "Start voice chat" }),
   ).toBeDisabled();
   this.gate = new Promise<void>((resolve) => {
     this.release = resolve;
@@ -745,7 +745,7 @@ step("I select the retry action", async function () {
   await p.getByRole("button", { name: /Retry|Continue to questions/ }).click();
   await request;
   await expect(
-    p.locator(".voice-controls button").filter({ hasText: "Start Voice Chat" }),
+    p.locator(".voice-controls button").filter({ hasText: "Start voice chat" }),
   ).toBeDisabled();
   await expect(p.locator("details.preview")).toHaveCount(0);
   await expect(
@@ -765,7 +765,7 @@ step(
     await expect(
       (await page(this))
         .locator(".voice-controls button")
-        .filter({ hasText: "Start Voice Chat" }),
+        .filter({ hasText: "Start voice chat" }),
     ).toBeEnabled();
   },
 );

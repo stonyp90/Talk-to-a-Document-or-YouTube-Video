@@ -51,11 +51,6 @@ const GEOMETRY = {
 };
 
 const ICONS: Record<ProcessStepId, string[]> = {
-  concept: [
-    "M9 18h6",
-    "M10 21h4",
-    "M12 3a6 6 0 0 0-3.5 10.9c.7.6 1 1.3 1 2.1h5c0-.8.3-1.5 1-2.1A6 6 0 0 0 12 3Z",
-  ],
   plan: [
     "M8 6h12",
     "M8 12h12",
@@ -64,16 +59,10 @@ const ICONS: Record<ProcessStepId, string[]> = {
     "M4 12h.01",
     "M4 18h.01",
   ],
-  tools: ["m12 3-9 5 9 5 9-5-9-5Z", "m3 13 9 5 9-5", "m3 18 9 5 9-5"],
-  local: ["M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v11H4V5Z", "M2 19h20"],
+  build: ["m12 3-9 5 9 5 9-5-9-5Z", "m3 13 9 5 9-5", "m3 18 9 5 9-5"],
   test: ["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z", "m8.5 12 2.5 2.5 4.5-5"],
-  secure: ["M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z", "m9 12 2 2 4-4"],
-  deliver: [
-    "M18.2 8.2a3.8 3.8 0 1 1 0 7.6c-3.8 0-8.6-7.6-12.4-7.6a3.8 3.8 0 1 0 0 7.6c3.8 0 8.6-7.6 12.4-7.6Z",
-  ],
-  production: ["M7 17 17 7", "M8 7h9v9"],
-  listen: ["M4 5h16v11H9l-5 4V5Z"],
-  train: [
+  ship: ["M7 17 17 7", "M8 7h9v9"],
+  learn: [
     "M4 12a8 8 0 0 1 14-5.3",
     "M18 3v4h-4",
     "M20 12a8 8 0 0 1-14 5.3",
@@ -289,10 +278,29 @@ export function Process({
           </h2>
           <p className={styles.intro}>{copy.intro}</p>
           <p className={styles.quote}>{copy.quote}</p>
+
+          {/* The five stages, in the left column the picture used to leave
+              empty. This list carries the words: the diagram is aria-hidden,
+              so it is the only accessible way to reach a stage. */}
+          <ol className={styles.steps} aria-label={copy.controls.stepList}>
+            {copy.steps.map((step, index) => (
+              <li key={step.id} className={styles.step}>
+                <button
+                  type="button"
+                  aria-current={index === walk.index ? "step" : undefined}
+                  onClick={() => select(index)}
+                >
+                  <span className={styles.stepNumber}>{number(index)}</span>
+                  <span className={styles.stepTitle}>{step.title}</span>
+                  <span className={styles.stepSummary}>{step.summary}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
         </div>
 
         <div className={styles.stage} ref={stage}>
-          {/* The list below carries the words; the picture is for the eye. */}
+          {/* The list beside this carries the words; the picture is for the eye. */}
           <svg
             className={styles.diagram}
             viewBox={`0 0 ${GEOMETRY.width} ${GEOMETRY.height}`}
@@ -440,9 +448,11 @@ export function Process({
             ))}
           </svg>
 
+          {/* The list beside the picture carries the summary, so the caption
+              only names what the traveller is resting on. */}
           <p className={styles.caption} key={walk.index} aria-hidden="true">
             <span className={styles.captionNumber}>{number(walk.index)}</span>{" "}
-            <b>{active.title}.</b> <i>{active.summary}</i>
+            <b>{active.title}.</b>
           </p>
           <div className={styles.controls}>
             {!reduced && (
@@ -457,22 +467,6 @@ export function Process({
             <p className={styles.innerLoopNote}>{copy.innerLoop}</p>
           </div>
         </div>
-
-        <ol className={styles.steps} aria-label={copy.controls.stepList}>
-          {copy.steps.map((step, index) => (
-            <li key={step.id} className={styles.step}>
-              <button
-                type="button"
-                aria-current={index === walk.index ? "step" : undefined}
-                onClick={() => select(index)}
-              >
-                <span className={styles.stepNumber}>{number(index)}</span>
-                <span className={styles.stepTitle}>{step.title}</span>
-                <span className={styles.stepSummary}>{step.summary}</span>
-              </button>
-            </li>
-          ))}
-        </ol>
       </div>
 
       <div className={styles.mission}>

@@ -216,7 +216,7 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   step("I start voice chat with the realtime mock", async function () {
     await h.ready.call(this);
     await (await h.page(this))
-      .getByRole("button", { name: "Start Voice Chat" })
+      .getByRole("button", { name: "Start voice chat" })
       .click();
   });
   step("a deterministic session is established", async function () {

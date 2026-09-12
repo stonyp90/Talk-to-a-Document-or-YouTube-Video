@@ -572,7 +572,7 @@ export const pendingSteps: Array<[string, string]> = [
     "Requires native simulator UI automation; Chromium is not simulator evidence. mobile-smoke.feature: Use text fallback on the simulator",
   ],
   [
-    'I select "Start Voice Chat"',
+    'I select "Start voice chat"',
     "Requires real WebRTC media/provider integration; mock does not establish WebRTC. realtime.feature: Start a voice chat and establish WebRTC",
   ],
   [

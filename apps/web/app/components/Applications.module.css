@@ -10,7 +10,7 @@
   margin-bottom: 26px;
 }
 .heading h2 {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: clamp(28px, 3vw, 36px);
   font-weight: 400;
   margin: 14px 0 12px;

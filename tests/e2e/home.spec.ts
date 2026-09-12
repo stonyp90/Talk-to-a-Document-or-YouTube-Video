@@ -51,7 +51,7 @@ test.describe("source conversation journey", () => {
     page,
   }) => {
     await expect(
-      page.getByRole("button", { name: "Start Voice Chat" }),
+      page.getByRole("button", { name: "Start voice chat" }),
     ).toBeHidden();
     // The composer is on screen from the start; only sending waits for a source.
     await expect(
@@ -70,7 +70,7 @@ test.describe("source conversation journey", () => {
       conversation(page).getByText("observatory.pdf", { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Start Voice Chat" }),
+      page.getByRole("button", { name: "Start voice chat" }),
     ).toBeEnabled();
     await page.locator(".preview summary").click();
     await expect(page.locator(".preview-text")).toBeHidden();
@@ -96,7 +96,7 @@ test.describe("source conversation journey", () => {
     await expect(alert).not.toBeEmpty();
     await expect(page.locator(".preview-text")).toHaveCount(0);
     await expect(
-      page.getByRole("button", { name: "Start Voice Chat" }),
+      page.getByRole("button", { name: "Start voice chat" }),
     ).toBeHidden();
     // The composer is on screen from the start; only sending waits for a source.
     await expect(
@@ -121,7 +121,7 @@ test.describe("source conversation journey", () => {
       page.getByRole("region", { name: "1. Add a source" }).getByRole("alert"),
     ).toContainText(/valid YouTube URL/i);
     await expect(
-      page.getByRole("button", { name: "Start Voice Chat" }),
+      page.getByRole("button", { name: "Start voice chat" }),
     ).toBeHidden();
     // The composer is on screen from the start; only sending waits for a source.
     await expect(
@@ -176,13 +176,13 @@ test.describe("source conversation journey", () => {
     page,
   }) => {
     await uploadPdf(page);
-    await page.getByRole("button", { name: "Start Voice Chat" }).click();
+    await page.getByRole("button", { name: "Start voice chat" }).click();
     await expect(status(page)).toHaveText("Connected");
     await expect(conversation(page).getByRole("status")).toContainText(
       "Demo simulation",
     );
     await expect(
-      page.getByRole("button", { name: "Start Voice Chat" }),
+      page.getByRole("button", { name: "Start voice chat" }),
     ).toBeDisabled();
     await page
       .getByLabel("Ask a question", { exact: true })
@@ -215,7 +215,7 @@ test.describe("source conversation journey", () => {
       page.getByRole("button", { name: "Mute microphone", exact: true }),
     ).toBeHidden();
     await expect(conversation(page).locator(".message-text")).toHaveCount(2);
-    await page.getByRole("button", { name: "Start Voice Chat" }).click();
+    await page.getByRole("button", { name: "Start voice chat" }).click();
     await expect(status(page)).toHaveText("Connected");
   });
 
@@ -223,7 +223,7 @@ test.describe("source conversation journey", () => {
     page,
   }) => {
     await uploadPdf(page);
-    await page.getByRole("button", { name: "Start Voice Chat" }).click();
+    await page.getByRole("button", { name: "Start voice chat" }).click();
     await expect(status(page)).toHaveText("Connected");
     await page
       .getByLabel("Ask a question", { exact: true })
@@ -245,7 +245,7 @@ test.describe("source conversation journey", () => {
     ).toBeHidden();
     await expect(conversation(page).locator(".message-text")).toHaveCount(0);
     await expect(
-      page.getByRole("button", { name: "Start Voice Chat" }),
+      page.getByRole("button", { name: "Start voice chat" }),
     ).toBeEnabled();
     // Subsequent text must use fallback HTTP, not the previous voice client.
     await page

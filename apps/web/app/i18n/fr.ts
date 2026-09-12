@@ -27,7 +27,7 @@ export const french: Dictionary = {
   Apps: "Apps",
   "Watch the intro": "Voir l’intro",
   Language: "Langue",
-  "Skip to workspace": "Aller à l’atelier",
+  "Skip to the app": "Aller à l’application",
   "Skip to content": "Aller au contenu",
   "Open the app": "Ouvrir l’application",
   App: "App",
@@ -93,7 +93,7 @@ export const french: Dictionary = {
     "Choisissez un PDF ou une vidéo pour commencer",
   "Adding a new source starts a new conversation.":
     "Ajouter une nouvelle source démarre une nouvelle conversation.",
-  "We’ll read it for you. Then you can ask about it.":
+  "Ursly reads it for you. Then you can ask about it.":
     "Nous le lisons pour vous. Ensuite, vous pouvez poser vos questions.",
   "Source type": "Type de source",
   "PDF document": "Document PDF",
@@ -210,11 +210,11 @@ export const french: Dictionary = {
     "Les commandes vocales n’ont pas pu démarrer. Vérifiez l’accès au microphone et réessayez.",
   "Voice actions need microphone access. Check the browser permission and try again.":
     "Les commandes vocales ont besoin du microphone. Vérifiez l’autorisation du navigateur et réessayez.",
-  "Voice recognition stopped unexpectedly. Press Arm voice actions to try again.":
+  "Voice recognition stopped unexpectedly. Press Speak a command to try again.":
     "La reconnaissance vocale s’est arrêtée de façon inattendue. Appuyez sur Dire une commande pour réessayer.",
   "Voice actions are reconnecting to the microphone…":
     "Les commandes vocales se reconnectent au microphone…",
-  "Voice actions stopped. Press Arm voice actions to restart them.":
+  "Voice actions stopped. Press Speak a command to restart them.":
     "Les commandes vocales se sont arrêtées. Appuyez sur Dire une commande pour les relancer.",
   "Voice actions stopped after 30 seconds for your privacy.":
     "Les commandes vocales se sont arrêtées après 30 secondes, pour votre confidentialité.",
@@ -250,7 +250,6 @@ export const french: Dictionary = {
   Exploring: "Exploration de",
   "Demo simulation: AI replies are simulated; microphone audio is not sent to AI. Use live mode for real answers and voice.":
     "Démonstration : les réponses de l’IA sont simulées et l’audio du microphone n’est pas envoyé à l’IA. Utilisez le mode réel pour de vraies réponses et la voix.",
-  "Start Voice Chat": "Démarrer la conversation vocale",
   "Mute microphone": "Couper le micro",
   "Unmute microphone": "Réactiver le micro",
   Stop: "Arrêter",
@@ -293,7 +292,7 @@ export const french: Dictionary = {
     "Les réponses viennent de votre source. Vérifiez les détails importants dans « Voir le texte de la source ».",
   "Add a PDF or YouTube source before sending so answers stay grounded.":
     "Ajoutez un PDF ou une source YouTube avant d’envoyer, pour que les réponses restent ancrées.",
-  "Voice session setup timed out. Check your connection and retry Start Voice Chat.":
+  "Voice session setup timed out. Check your connection and retry Start voice chat.":
     "La préparation de la session vocale a expiré. Vérifiez votre connexion et réessayez Démarrer la conversation vocale.",
   "Microphone access is unavailable. You can type your question instead.":
     "Le microphone n’est pas accessible. Vous pouvez écrire votre question à la place.",
@@ -355,7 +354,7 @@ export const french: Dictionary = {
   "Choose a text-based PDF up to 25 MB or a captioned YouTube video, then check the extracted text in the preview.":
     "Choisissez un PDF avec du texte, jusqu’à 25 Mo, ou une vidéo YouTube sous-titrée, puis vérifiez le texte extrait dans l’aperçu.",
   "Start talking": "Commencez à parler",
-  "Select Start Voice Chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want; typing is always available.":
+  "Select Start voice chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want; typing is always available.":
     "Choisissez Démarrer la conversation vocale, autorisez le microphone et posez votre question à voix haute. Interrompez ou coupez le micro quand vous voulez; l’écriture reste toujours disponible.",
   "Go a little deeper": "Allez un peu plus loin",
   "Use a suggestion or ask a follow-up in your own words. Keep the source nearby to check important details.":

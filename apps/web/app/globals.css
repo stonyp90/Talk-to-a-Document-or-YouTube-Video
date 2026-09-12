@@ -48,6 +48,8 @@
   --radius-xl: 12px;
   --overlay: #29273599;
   --focus-wash: #a8433220;
+  /* The pulse a live control emits: --accent-glow, carried at low alpha. */
+  --accent-signal: #f4776255;
   font-family:
     Inter,
     ui-sans-serif,
@@ -56,6 +58,9 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+  /* Headlines on both pages, and the numerals that count a sequence. */
+  --font-serif: Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 [hidden] {
   display: none !important;
@@ -905,7 +910,7 @@ h3 {
 }
 .empty-chat h3 {
   margin: 8px 0 7px;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: clamp(22px, 3vw, 30px);
   font-weight: 400;
 }
@@ -1084,7 +1089,7 @@ h3 {
 }
 .guide-heading h2 {
   margin: 11px 0 22px;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 31px;
   font-weight: 400;
   letter-spacing: -0.04em;
@@ -1232,7 +1237,7 @@ h3 {
 }
 @keyframes signal {
   0% {
-    box-shadow: 0 0 0 0 #f2756155;
+    box-shadow: 0 0 0 0 var(--accent-signal);
   }
   75% {
     box-shadow: 0 0 0 5px transparent;
@@ -1638,7 +1643,7 @@ h3 {
 }
 .intro-gate-copy h2 {
   margin: 8px 0 6px;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: clamp(24px, 3.4vw, 36px);
   font-weight: 400;
   letter-spacing: -0.03em;
@@ -1747,7 +1752,7 @@ h3 {
   max-width: 760px;
   text-wrap: balance;
   margin: 0;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: clamp(1.9rem, 3.4vw, 2.7rem);
   font-weight: 400;
   line-height: 1.05;
@@ -1830,11 +1835,16 @@ h3 {
   gap: 12px;
   margin-top: 22px;
 }
+/* The landing headline and the app's title are the same tier: one family,
+   one weight and one letter-spacing, so crossing between the two pages does
+   not change typeface. Only the size differs, the landing being the louder. */
 .hero h1 {
   margin: 10px 0;
+  font-family: var(--font-serif);
   font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 400;
   line-height: 1.05;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.035em;
 }
 
 /* Voice to action, inside the source card: one microphone, one line of words. */
@@ -2034,7 +2044,7 @@ h3 {
   max-width: 820px;
   text-wrap: balance;
   margin: 10px 0 12px;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: clamp(28px, 4vw, 42px);
   font-weight: 400;
   line-height: 1.08;
@@ -2179,7 +2189,7 @@ h3 {
 }
 .platform-closing {
   margin: 26px 0 0;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif);
   font-size: clamp(20px, 2.6vw, 27px);
   letter-spacing: -0.03em;
 }

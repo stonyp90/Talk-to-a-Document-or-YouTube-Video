@@ -475,7 +475,7 @@ export function VoiceActions({
     setPhrase("");
     setEditingId(null);
     setNotice(
-      `${editingId ? "Updated" : "Saved"} trigger: ${nextPhrase}. Arm voice actions and say it to run the action.`,
+      `${editingId ? "Updated" : "Saved"} trigger: ${nextPhrase}. Press Speak a command and say it to run the action.`,
     );
   }
 
@@ -559,7 +559,7 @@ export function VoiceActions({
       stopListening(
         error === "not-allowed" || error === "service-not-allowed"
           ? "Voice actions need microphone access. Check the browser permission and try again."
-          : "Voice recognition stopped unexpectedly. Press Arm voice actions to try again.",
+          : "Voice recognition stopped unexpectedly. Press Speak a command to try again.",
       );
     };
     instance.onend = () => {
@@ -582,7 +582,7 @@ export function VoiceActions({
           instance.start();
         } catch {
           stopListening(
-            "Voice actions stopped. Press Arm voice actions to restart them.",
+            "Voice actions stopped. Press Speak a command to restart them.",
           );
         }
       }, RESTART_DELAY_MS);

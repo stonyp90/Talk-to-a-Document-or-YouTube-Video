@@ -10,7 +10,7 @@ const STEPS = [
   },
   {
     title: "Start talking",
-    text: "Select Start Voice Chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want; typing is always available.",
+    text: "Select Start voice chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want; typing is always available.",
   },
   {
     title: "Go a little deeper",

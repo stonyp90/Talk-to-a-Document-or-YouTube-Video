@@ -30,7 +30,7 @@ test.beforeEach(async ({ page }) => {
     "Transport test source",
   );
   await page
-    .getByRole("button", { name: "Start Voice Chat", exact: true })
+    .getByRole("button", { name: "Start voice chat", exact: true })
     .click();
   await expect
     .poll(async () => (await harness.snapshot()).remoteDescriptions)
@@ -74,7 +74,7 @@ test("live client recovers transport and preserves transcript and mute state", a
   await harness.setConnection("disconnected");
   await expect(status(page)).toHaveText("Reconnecting");
   await expect(
-    page.getByRole("button", { name: "Start Voice Chat", exact: true }),
+    page.getByRole("button", { name: "Start voice chat", exact: true }),
   ).toBeDisabled();
   await harness.setConnection("connected");
   await page.clock.fastForward(15001);
@@ -126,7 +126,7 @@ test("failed transport preserves transcript and permits restart", async ({
   await expect(page.locator(".message-text")).toHaveCount(2);
   expect((await harness.snapshot()).tracks[0].stopped).toBe(true);
   await page
-    .getByRole("button", { name: "Start Voice Chat", exact: true })
+    .getByRole("button", { name: "Start voice chat", exact: true })
     .click();
   await expect
     .poll(async () => (await harness.snapshot()).remoteDescriptions)

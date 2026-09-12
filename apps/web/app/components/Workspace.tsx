@@ -428,7 +428,7 @@ export default function Workspace() {
         controller,
         SESSION_DEADLINE_MS,
         t(
-          "Voice session setup timed out. Check your connection and retry Start Voice Chat.",
+          "Voice session setup timed out. Check your connection and retry Start voice chat.",
         ),
         () =>
           withSession((body) =>
@@ -726,7 +726,7 @@ export default function Workspace() {
         onChange={onFile}
       />
       <a className="skip-link" href="#workspace">
-        {t("Skip to workspace")}
+        {t("Skip to the app")}
       </a>
       <TopNav page="app" mode={entryMode} onModeChange={switchEntryMode} />
 
@@ -847,7 +847,7 @@ export default function Workspace() {
                 <p className="section-intro">
                   {source
                     ? t("Adding a new source starts a new conversation.")
-                    : t("We’ll read it for you. Then you can ask about it.")}
+                    : t("Ursly reads it for you. Then you can ask about it.")}
                 </p>
                 <div className="source-controls">
                   <div
@@ -960,9 +960,9 @@ export default function Workspace() {
                       </label>
                     ) : (
                       <div className="field full" key="youtube">
-                        <span className="upload-icon">
-                          <Icon name="video" />
-                        </span>
+                        {/* No icon here: the drop target's bordered square
+                            reads as a button when it sits beside a plain
+                            field, and this field needs only its label. */}
                         <label htmlFor="youtube-url">{t("YouTube URL")}</label>
                         <input
                           id="youtube-url"
@@ -1147,7 +1147,7 @@ export default function Workspace() {
                     onClick={startVoice}
                     type="button"
                   >
-                    <Icon name="voice" /> {t("Start Voice Chat")}
+                    <Icon name="voice" /> {t("Start voice chat")}
                   </button>
                   <button
                     className="secondary"

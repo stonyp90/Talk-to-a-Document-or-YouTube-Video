@@ -8,7 +8,7 @@ Feature: Have a live voice conversation
     Given a source has been ingested successfully
 
   Scenario: Start a voice chat and establish WebRTC
-    When I select "Start Voice Chat"
+    When I select "Start voice chat"
     Then the client requests a Realtime session from the backend
     And the browser establishes a WebRTC connection
     And the connection status becomes "Connected"

@@ -27,7 +27,7 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     const p = await setup(w);
     await p
       .locator(".voice-controls button")
-      .filter({ hasText: "Start Voice Chat" })
+      .filter({ hasText: "Start voice chat" })
       .click();
     await expect
       .poll(async () => (await controls.get(w)!.snapshot()).remoteDescriptions)
@@ -114,7 +114,7 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     );
     await p
       .locator(".voice-controls button")
-      .filter({ hasText: "Start Voice Chat" })
+      .filter({ hasText: "Start voice chat" })
       .click();
   });
   step("the timeout error is displayed", async function () {
@@ -126,7 +126,7 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     await expect(
       (await h.page(this))
         .locator(".voice-controls button")
-        .filter({ hasText: "Start Voice Chat" }),
+        .filter({ hasText: "Start voice chat" }),
     ).toBeEnabled();
   });
   step(
@@ -165,7 +165,7 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     await expect(
       (await h.page(this))
         .locator(".voice-controls button")
-        .filter({ hasText: "Start Voice Chat" }),
+        .filter({ hasText: "Start voice chat" }),
     ).toBeDisabled();
   });
   step(
@@ -175,7 +175,7 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
       const status = p.locator(".conversation-card .status"),
         start = p
           .locator(".voice-controls button")
-          .filter({ hasText: "Start Voice Chat" }),
+          .filter({ hasText: "Start voice chat" }),
         stop = p
           .locator(".voice-controls button")
           .filter({ hasText: /^Stop$/ });
@@ -229,7 +229,7 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     await expect(
       p
         .locator(".voice-controls button")
-        .filter({ hasText: "Start Voice Chat" }),
+        .filter({ hasText: "Start voice chat" }),
     ).toBeEnabled();
     await expect(
       p.locator(".voice-controls button").filter({ hasText: /^Stop$/ }),

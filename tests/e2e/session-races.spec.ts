@@ -35,7 +35,7 @@ test.use({
 });
 const status = (page: Page) => page.locator(".conversation-card .status");
 const start = (page: Page) =>
-  page.getByRole("button", { name: "Start Voice Chat", exact: true });
+  page.getByRole("button", { name: "Start voice chat", exact: true });
 const stop = (page: Page) =>
   page.getByRole("button", { name: "Stop", exact: true });
 

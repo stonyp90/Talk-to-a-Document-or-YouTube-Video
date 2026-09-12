@@ -63,7 +63,7 @@ it("offers voice without hiding it behind a disclosure", async () => {
     }),
   );
   // The brief makes voice the product; it must be reachable without hunting.
-  const start = await screen.findByRole("button", { name: "Start Voice Chat" });
+  const start = await screen.findByRole("button", { name: "Start voice chat" });
   await waitFor(() => expect(start).toBeEnabled());
   expect(start.closest("details")).toBeNull();
   expect(screen.getByLabelText("Ask a question")).toBeEnabled();
@@ -93,7 +93,7 @@ it("unmount aborts session setup and ignores its eventual response", async () =>
     screen.getByRole("button", { name: "Continue to questions" }),
   );
 
-  const start = await screen.findByRole("button", { name: "Start Voice Chat" });
+  const start = await screen.findByRole("button", { name: "Start voice chat" });
   await waitFor(() => expect(start).toBeEnabled());
   fireEvent.click(start);
   await waitFor(() => expect(sessionSignal).toBeDefined());

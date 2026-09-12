@@ -668,8 +668,12 @@ h3 {
   width: 100%;
 }
 @media (min-width: 781px) {
+  /* The source column ends where its content ends. It used to stretch to the
+     conversation beside it and push the way forward to the far bottom edge,
+     which left the drop target and a band of empty card owning the panel. */
   .source-card {
     display: flex;
+    align-self: start;
     flex-direction: column;
   }
   .source-picker[open] {
@@ -696,7 +700,6 @@ h3 {
     flex-direction: column;
   }
   .source-picker[open] .source-grid .actions {
-    margin-top: auto;
     padding-top: 18px;
   }
 }
@@ -2382,9 +2385,6 @@ h3 {
     align-items: flex-start;
     gap: 12px;
     padding: 16px 0 12px;
-  }
-  .workspace-heading h1 {
-    font-size: 1.7rem;
   }
   .progress-steps {
     display: none;

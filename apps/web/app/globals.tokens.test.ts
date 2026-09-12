@@ -151,10 +151,32 @@ describe("design tokens", () => {
   });
 
   it("leaves no flat heading size to escape that ceiling", () => {
-    for (const selector of [".guide-heading h2 {", ".hero h1 {"]) {
-      const at = globals.indexOf(selector);
-      const rule = globals.slice(at, globals.indexOf("}", at));
-      expect(rule, selector).toMatch(/font-size:\s*clamp\(/);
+    // A media query used to reset the app's title to a flat 1.7rem, which
+    // jumped it back above the wordmark on exactly the narrow screens the
+    // clamp was there to handle. Every h1 size must stay a clamp.
+    const headings = [
+      ...globals.matchAll(/([^{}]*\bh1)\s*\{([^}]*)\}/g),
+    ].filter(([, , body]) => /font-size:/.test(body));
+    expect(headings.length).toBeGreaterThan(0);
+    for (const [, selector, body] of headings) {
+      const size = body.match(/font-size:\s*([^;]+);/)![1].trim();
+      expect(size, selector.trim()).toMatch(/^clamp\(/);
     }
+  });
+
+  it("lets the source column end where its content ends", () => {
+    // Stretching it to the conversation's height left a band of empty card
+    // between the drop target and the way forward.
+    const at = globals.indexOf(
+      ".source-card {",
+      globals.indexOf("@media (min-width: 781px)"),
+    );
+    expect(at).toBeGreaterThan(-1);
+    expect(globals.slice(at, globals.indexOf("}", at))).toMatch(
+      /align-self:\s*start/,
+    );
+    expect(globals).not.toMatch(
+      /\.source-picker\[open\] \.source-grid \.actions \{[^}]*margin-top:\s*auto/,
+    );
   });
 });

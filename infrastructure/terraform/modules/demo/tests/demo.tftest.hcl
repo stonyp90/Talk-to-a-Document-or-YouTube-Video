@@ -140,7 +140,9 @@ run "the_function_is_told_the_public_origin_it_is_reached_on" {
     error_message = "The browser origin the app is served on must be allowed to call the API."
   }
   assert {
-    condition     = contains(aws_s3_bucket_cors_configuration.uploads.cors_rule[0].allowed_origins, "https://ursly.io")
+    # cors_rule is a set of objects, which has no addressable keys: ask whether
+    # any rule allows the origin rather than reaching for the first one.
+    condition     = anytrue([for rule in aws_s3_bucket_cors_configuration.uploads.cors_rule : contains(rule.allowed_origins, "https://ursly.io")])
     error_message = "The browser origin the app is served on must be allowed to upload."
   }
 }

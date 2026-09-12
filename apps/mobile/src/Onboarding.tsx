@@ -3,9 +3,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   Animated,
   Easing,
+  Linking,
   Modal,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -21,42 +23,56 @@ import {
   serif,
 } from "./design";
 import { IntroVideo } from "./IntroVideo";
+import { planOffer, pricingCopy } from "./pricing";
 
 const storageKey = "ursly-mobile-onboarding-v1";
 const slideDuration = 5600;
 
-type Step = {
-  label: TranslationKey;
-  title: TranslationKey;
-  body: TranslationKey;
-  note: TranslationKey;
-};
+/**
+ * Four slides share one layout: art above, copy below. "What it costs" needs
+ * two plans side by side and more words than a slide holds, so it carries its
+ * own scrolling layout and only borrows the rail label.
+ */
+type Step =
+  | {
+      kind: "guide";
+      label: TranslationKey;
+      title: TranslationKey;
+      body: TranslationKey;
+      note: TranslationKey;
+    }
+  | { kind: "pricing"; label: TranslationKey };
 
 const steps: Step[] = [
   {
+    kind: "guide",
     label: "Bring a source",
     title: "Start with something worth understanding.",
     body: "Choose a PDF or a captioned YouTube video. Ursly reads it so you can focus on the ideas.",
     note: "PDF up to 25 MB · captioned videos",
   },
   {
+    kind: "guide",
     label: "Ask naturally",
     title: "Use your voice when the thought arrives.",
     body: "Start a voice conversation, interrupt freely, or type whenever it feels easier.",
     note: "Voice or text · always in control",
   },
   {
+    kind: "guide",
     label: "Go deeper",
     title: "Turn information into your next aha.",
     body: "Ask a follow-up, challenge an idea, or make it simpler. Every answer stays grounded in your source.",
     note: "Ask · follow up · understand",
   },
   {
+    kind: "guide",
     label: "Choose your flow",
     title: "Voice, text, or a glimpse of what’s next.",
     body: "Voice is the default way to move through Ursly. Text is always ready, and Motion beta previews a future hands-free AR/VR layer without activating sensors.",
     note: "Voice to action · text fallback · motion beta",
   },
+  { kind: "pricing", label: "What it costs" },
 ];
 
 type Props = {
@@ -133,6 +149,7 @@ export function MobileOnboarding({ motion, language, t }: Props) {
   }, [copyOffset, copyOpacity, motion, step, visible]);
 
   if (!ready) return null;
+  const current = steps[step];
 
   return (
     <Modal
@@ -170,30 +187,40 @@ export function MobileOnboarding({ motion, language, t }: Props) {
             { opacity: copyOpacity, transform: [{ translateY: copyOffset }] },
           ]}
         >
-          <View style={s.artFrame}>
-            {step === 0 ? (
-              <SourceArt t={t} />
-            ) : step === 1 ? (
-              <VoiceArt motion={motion} t={t} />
-            ) : step === 2 ? (
-              <ChatArt t={t} />
-            ) : (
-              <ModeArt motion={motion} t={t} />
-            )}
-          </View>
-          <View style={s.copy}>
-            <Text style={s.stepLabel}>
-              {t("STEP")} {step + 1} · {t(steps[step].label).toUpperCase()}
-            </Text>
-            <Text accessibilityRole="header" style={s.title}>
-              {t(steps[step].title)}
-            </Text>
-            <Text style={s.body}>{t(steps[step].body)}</Text>
-            <View style={s.noteRow}>
-              <View style={s.noteDot} />
-              <Text style={s.note}>{t(steps[step].note)}</Text>
-            </View>
-          </View>
+          {current.kind === "pricing" ? (
+            <PricingPanel
+              label={`${t("STEP")} ${step + 1} · ${t(current.label).toUpperCase()}`}
+              onStartFree={finish}
+              t={t}
+            />
+          ) : (
+            <>
+              <View style={s.artFrame}>
+                {step === 0 ? (
+                  <SourceArt t={t} />
+                ) : step === 1 ? (
+                  <VoiceArt motion={motion} t={t} />
+                ) : step === 2 ? (
+                  <ChatArt t={t} />
+                ) : (
+                  <ModeArt motion={motion} t={t} />
+                )}
+              </View>
+              <View style={s.copy}>
+                <Text style={s.stepLabel}>
+                  {t("STEP")} {step + 1} · {t(current.label).toUpperCase()}
+                </Text>
+                <Text accessibilityRole="header" style={s.title}>
+                  {t(current.title)}
+                </Text>
+                <Text style={s.body}>{t(current.body)}</Text>
+                <View style={s.noteRow}>
+                  <View style={s.noteDot} />
+                  <Text style={s.note}>{t(current.note)}</Text>
+                </View>
+              </View>
+            </>
+          )}
         </Animated.View>
 
         <View style={s.footer}>
@@ -259,6 +286,85 @@ export function MobileOnboarding({ motion, language, t }: Props) {
         </View>
       </SafeAreaView>
     </Modal>
+  );
+}
+
+/**
+ * The price, in the same words as the web section. The figure and the sign-up
+ * link are configuration: until both exist there is no button and no number,
+ * only the standing line that billing is not open and everyone is on the free
+ * terms. "Start free" needs no destination here because the reader is already
+ * in the app, so it simply ends the tour.
+ */
+function PricingPanel({
+  label,
+  onStartFree,
+  t,
+}: { label: string; onStartFree: () => void } & Pick<Props, "t">) {
+  return (
+    <ScrollView
+      style={p.scroll}
+      contentContainerStyle={p.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={s.stepLabel}>{label}</Text>
+      <Text accessibilityRole="header" style={p.heading}>
+        {t(pricingCopy.heading)}
+      </Text>
+      <Text style={s.body}>{t(pricingCopy.intro)}</Text>
+
+      <View
+        accessibilityRole="list"
+        accessibilityLabel={t(pricingCopy.planListLabel)}
+        style={p.plans}
+      >
+        {pricingCopy.plans.map((plan) => {
+          const paid = plan.id === "paid";
+          const offer = planOffer(plan);
+          return (
+            <View
+              key={plan.id}
+              style={[p.plan, paid ? p.paidPlan : p.freePlan]}
+            >
+              <Text style={p.name}>{t(plan.name).toUpperCase()}</Text>
+              <Text style={[p.amount, offer.announced && p.announced]}>
+                {offer.amount ?? t(plan.amount)}
+              </Text>
+              <Text style={p.cadence}>{t(plan.cadence)}</Text>
+              <Text style={p.deal}>{t(plan.deal)}</Text>
+              <View style={p.points}>
+                {plan.points.map((point) => (
+                  <View key={point} style={p.point}>
+                    <View style={p.bullet} />
+                    <Text style={p.pointText}>{t(point)}</Text>
+                  </View>
+                ))}
+              </View>
+              {offer.pending ? (
+                <Text style={p.pending}>{t(pricingCopy.pending)}</Text>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t(plan.action)}
+                  onPress={() =>
+                    offer.href
+                      ? void Linking.openURL(offer.href).catch(() => undefined)
+                      : onStartFree()
+                  }
+                  style={[p.action, paid ? p.paidAction : p.freeAction]}
+                >
+                  <Text style={p.actionText}>{t(plan.action)}</Text>
+                </Pressable>
+              )}
+              <Text style={p.note}>{t(plan.note)}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      <Text style={p.promise}>{t(pricingCopy.promise)}</Text>
+      <Text style={p.switchNote}>{t(pricingCopy.switchNote)}</Text>
+    </ScrollView>
   );
 }
 
@@ -436,6 +542,77 @@ const s = StyleSheet.create({
   },
   primaryText: { color: c.ink, fontSize: 14, fontWeight: "800" },
   arrow: { color: c.ink, fontSize: 19 },
+});
+
+const p = StyleSheet.create({
+  scroll: { flex: 1 },
+  scrollContent: { gap: 12, paddingVertical: 10, paddingBottom: 24 },
+  heading: {
+    color: c.ink,
+    fontFamily: serif,
+    fontSize: 27,
+    lineHeight: 32,
+    letterSpacing: -0.8,
+  },
+  plans: { gap: 12, marginTop: 6 },
+  plan: {
+    borderRadius: 18,
+    padding: 16,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  freePlan: { backgroundColor: c.peach },
+  paidPlan: { backgroundColor: c.lavender },
+  name: {
+    color: c.muted,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    fontWeight: "800",
+  },
+  amount: {
+    color: c.ink,
+    fontFamily: serif,
+    fontSize: 25,
+    letterSpacing: -0.6,
+  },
+  // A figure nobody can pay yet is a sentence, not a headline.
+  announced: { fontSize: 15, lineHeight: 20 },
+  cadence: { color: c.muted, fontSize: 11 },
+  deal: { color: c.ink, fontSize: 13, fontWeight: "700", marginTop: 4 },
+  points: { gap: 8, marginTop: 6 },
+  point: { flexDirection: "row", gap: 8 },
+  bullet: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: c.coral,
+    marginTop: 7,
+  },
+  pointText: { flex: 1, color: c.muted, fontSize: 12, lineHeight: 18 },
+  action: {
+    minHeight: 46,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  freeAction: { backgroundColor: c.coral },
+  paidAction: { backgroundColor: c.white, borderWidth: 1, borderColor: c.ink },
+  actionText: { color: c.ink, fontSize: 13, fontWeight: "800" },
+  pending: {
+    color: c.ink,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "600",
+    backgroundColor: c.white,
+    borderRadius: 12,
+    padding: 11,
+    marginTop: 10,
+  },
+  note: { color: c.muted, fontSize: 11, lineHeight: 16, marginTop: 6 },
+  promise: { color: c.ink, fontSize: 12, lineHeight: 19, marginTop: 6 },
+  switchNote: { color: c.muted, fontSize: 11, lineHeight: 17 },
 });
 
 const art = StyleSheet.create({

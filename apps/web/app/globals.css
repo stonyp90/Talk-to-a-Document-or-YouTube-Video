@@ -3142,13 +3142,17 @@ h3 {
 .footer-signout:hover {
   border-color: var(--accent-border);
 }
-/* Small phones: two story anchors and the language pair do not fit beside the
-   brand — in French the pair was pushed off the edge. The build loop yields
-   first, because it opens the page anyway: a reader meets it by scrolling,
-   with nothing above it to scroll past. The platform anchor is the one worth
-   a shortcut, since it sits further down. */
+/* Small phones: the story anchors and the language pair do not all fit beside
+   the brand — in French the pair was pushed off the edge. They yield whole
+   rather than clipped, in the order the page makes them redundant. The build
+   loop goes first, because it opens the page anyway: a reader meets it by
+   scrolling, with nothing above it to scroll past. What it costs goes next,
+   and stays reachable by scrolling and from the footer, which names it on
+   every page. The platform anchor is the one that keeps the shortcut: it sits
+   in the middle of the story, with no edge of the page to find it by. */
 @media (max-width: 430px) {
-  .nav-section-link[data-section="how-we-build"] {
+  .nav-section-link[data-section="how-we-build"],
+  .nav-section-link[data-section="pricing"] {
     display: none;
   }
 }

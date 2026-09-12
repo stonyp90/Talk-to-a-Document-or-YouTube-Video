@@ -34,6 +34,7 @@ describe("process copy", () => {
       "secure",
       "deliver",
       "production",
+      "sustain",
       "listen",
       "train",
     ]);
@@ -77,6 +78,24 @@ describe("process copy", () => {
       /sécurité et la conformité/i,
     );
     expect(step(processCopy.fr, "deliver")).toMatch(/livraison continues?/i);
+  });
+
+  it("puts the money question inside the loop, with both answers", () => {
+    const step = (copy: ProcessCopy, id: string) =>
+      copy.steps.find((candidate) => candidate.id === id)!;
+    expect(step(processCopy.en, "sustain").summary).toMatch(
+      /nobody builds software for free/i,
+    );
+    expect(step(processCopy.en, "sustain").summary).toMatch(/free/i);
+    expect(step(processCopy.en, "sustain").summary).toMatch(/paid/i);
+    expect(step(processCopy.en, "sustain").summary).toMatch(/train/i);
+    expect(step(processCopy.fr, "sustain").summary).toMatch(/gratuit/i);
+    expect(step(processCopy.fr, "sustain").summary).toMatch(/payant/i);
+    expect(step(processCopy.fr, "sustain").summary).toMatch(/entraîn/i);
+    // The loop only trains on what the free plan agreed to hand over.
+    expect(step(processCopy.en, "train").summary).toMatch(/free/i);
+    expect(step(processCopy.en, "train").summary).toMatch(/paid/i);
+    expect(step(processCopy.fr, "train").summary).toMatch(/gratuit/i);
   });
 
   it("states the mission as a bridge between today's and tomorrow's internet", () => {

@@ -11,6 +11,7 @@ import { HowItWorks } from "./HowItWorks";
 import { Icon } from "./Icon";
 import { IntroGate, hasSeenIntro } from "./IntroGate";
 import { PlatformSection } from "./PlatformSection";
+import { Pricing } from "./Pricing";
 import { Process } from "./Process";
 import { SiteFooter } from "./SiteFooter";
 import { TopNav } from "./TopNav";
@@ -46,6 +47,9 @@ const STORY_VIEWS: Record<StorySectionId, ComponentType<StoryContext>> = {
   ),
   platform: ({ appHref, onReplayIntro }) => (
     <PlatformSection appHref={appHref} onReplayIntro={onReplayIntro} />
+  ),
+  pricing: ({ language, appHref }) => (
+    <Pricing locale={language} appHref={appHref} />
   ),
   "how-it-works": ({ appHref }) => <HowItWorks appHref={appHref} />,
   applications: () => <Applications />,

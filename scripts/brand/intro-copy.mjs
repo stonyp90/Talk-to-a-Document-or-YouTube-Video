@@ -10,8 +10,8 @@
 // Where a line comes from, so a translator changes it in the right place:
 //   scenes  -> apps/web/app/content/intro-video.ts (English) and
 //              apps/web/app/i18n/fr.ts (French, under the English key)
-//   loop    -> apps/web/app/content/process.ts, the ten stages of the build
-//              loop and the mission at the centre of it, verbatim
+//   loop    -> apps/web/app/content/process.ts, every stage of the build loop
+//              and the mission at the centre of it, verbatim
 // The French carries typographic apostrophes because the page does, and a
 // test that compares the two strings counts a straight quote as a difference.
 
@@ -32,6 +32,7 @@ export const introCopy = {
         "Secure",
         "Deliver",
         "Production",
+        "Sustain",
         "Listen",
         "Train",
       ],
@@ -85,6 +86,7 @@ export const introCopy = {
         "Sécurité",
         "Livraison",
         "Production",
+        "Financement",
         "Écoute",
         "Entraînement",
       ],

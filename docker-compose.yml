@@ -83,6 +83,10 @@ x-app-environment: &app-environment
   SES_REGION: ${SES_REGION:-}
   SES_FROM_ADDRESS: ${SES_FROM_ADDRESS:-}
   SES_CONFIGURATION_SET: ${SES_CONFIGURATION_SET:-}
+  # Empty until billing opens: the pricing card then says so instead of
+  # printing a figure nobody can pay.
+  NEXT_PUBLIC_PAID_PLAN_PRICE: ${NEXT_PUBLIC_PAID_PLAN_PRICE:-}
+  NEXT_PUBLIC_PAID_PLAN_URL: ${NEXT_PUBLIC_PAID_PLAN_URL:-}
 
 services:
   # Next.js owns both the frontend and API routes; there is no unused second API.
@@ -95,6 +99,9 @@ services:
         # may only reach the object store the image was built for. It must be
         # the same address the runtime hands out for presigned uploads.
         OBJECT_STORE_PUBLIC_ENDPOINT: ${OBJECT_STORE_PUBLIC_ENDPOINT:-http://localhost:9002}
+        # The paid figure is inlined into the bundle, so the build needs it too.
+        NEXT_PUBLIC_PAID_PLAN_PRICE: ${NEXT_PUBLIC_PAID_PLAN_PRICE:-}
+        NEXT_PUBLIC_PAID_PLAN_URL: ${NEXT_PUBLIC_PAID_PLAN_URL:-}
     environment:
       <<: *app-environment
       PORT: 3000

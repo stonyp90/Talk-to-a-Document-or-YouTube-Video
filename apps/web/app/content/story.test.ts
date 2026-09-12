@@ -7,6 +7,7 @@ describe("the story order", () => {
     expect(STORY_SECTIONS.map((section) => section.id)).toEqual([
       "how-we-build",
       "platform",
+      "pricing",
       "how-it-works",
       "applications",
     ]);
@@ -21,6 +22,7 @@ describe("the story order", () => {
     expect(MENU_SECTIONS.map((section) => section.id)).toEqual([
       "how-we-build",
       "platform",
+      "pricing",
     ]);
     for (const section of MENU_SECTIONS)
       expect(section.short.length).toBeLessThanOrEqual(section.label.length);

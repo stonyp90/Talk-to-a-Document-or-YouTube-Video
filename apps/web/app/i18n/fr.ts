@@ -241,9 +241,10 @@ export const french: Dictionary = {
     "Autorisez le microphone quand on vous le demande, puis parlez. Vous pouvez couper le micro ou arrêter à tout moment, et l’écriture fonctionne toujours.",
   "Voice chat opens as soon as your source is ready. Typing always works too.":
     "La conversation vocale s’ouvre dès que votre source est prête. L’écriture fonctionne aussi.",
-  "Adapting to your voice": "Adaptation à votre voix",
-  "Learning your accent, pace and words from this session. Nothing is kept without your say.":
-    "Apprend votre accent, votre débit et vos mots pendant cette session. Rien n’est conservé sans votre accord.",
+  "Answering in Ursly’s preset voice":
+    "Réponse avec la voix par défaut d’Ursly",
+  "Talking here teaches Ursly nothing about your voice. Lending it yours is a separate, deliberate step.":
+    "Parler ici n’apprend rien à Ursly sur votre voix. Lui prêter la vôtre est une démarche distincte et délibérée.",
   Conversation: "Conversation",
   "What are you curious about?": "Qu’est-ce qui vous intrigue?",
   "Your voice is the shortcut.": "Votre voix est le raccourci.",
@@ -350,4 +351,34 @@ export const french: Dictionary = {
     "Ursly · Conçu pour votre prochain déclic.",
   "How it works": "Comment ça marche",
   "Applications & GitHub": "Applications et GitHub",
+
+  // Lending a voice. Everything below is said while a microphone is open or
+  // just after, so it stays literal: what is happening, what is kept, and what
+  // is not.
+  "How Ursly answers": "Comment Ursly répond",
+  "Ursly answers in a preset voice, and that asks nothing of you. You can lend it yours instead.":
+    "Ursly répond avec une voix par défaut, et cela ne vous demande rien. Vous pouvez plutôt lui prêter la vôtre.",
+  "Lend Ursly your voice": "Prêter votre voix à Ursly",
+  "Ursly starts recording only after you press this, and keeps the recording only if you approve it.":
+    "Ursly n’enregistre qu’après votre appui sur ce bouton, et ne conserve l’enregistrement que si vous l’approuvez.",
+  "Ursly is recording your voice": "Ursly enregistre votre voix",
+  "Ursly keeps this recording only if you approve it, so it can learn your voice. It has not been sent anywhere.":
+    "Ursly ne conserve cet enregistrement que si vous l’approuvez, pour pouvoir apprendre votre voix. Il n’a été envoyé nulle part.",
+  "Recorded so far: {seconds} s. That is enough to keep.":
+    "Enregistré jusqu’ici : {seconds} s. C’est assez pour le conserver.",
+  "Recorded so far: {seconds} s. Keep talking — Ursly needs at least {minimum} s.":
+    "Enregistré jusqu’ici : {seconds} s. Continuez de parler — Ursly a besoin d’au moins {minimum} s.",
+  "Keep the recording": "Conserver l’enregistrement",
+  "Discard it": "Le supprimer",
+  "Recording discarded. Nothing was kept.":
+    "Enregistrement supprimé. Rien n’a été conservé.",
+  "Ursly kept {seconds} seconds of your voice, in this browser and for as long as this page is open. Nothing was sent anywhere, and Ursly still answers in its preset voice: lending it a voice for real is a separate, deliberate step.":
+    "Ursly a conservé {seconds} secondes de votre voix, dans ce navigateur et tant que cette page reste ouverte. Rien n’a été envoyé nulle part, et Ursly répond toujours avec sa voix par défaut : lui prêter une voix pour de bon est une démarche distincte et délibérée.",
+  "Delete the recording": "Supprimer l’enregistrement",
+  "Voice sample deleted. Ursly answers in its preset voice again.":
+    "Échantillon vocal supprimé. Ursly répond de nouveau avec sa voix par défaut.",
+  "The microphone handed back no audio, so nothing was kept. Lend your voice again to try once more.":
+    "Le microphone n’a rendu aucun son, donc rien n’a été conservé. Prêtez votre voix de nouveau pour réessayer.",
+  "Ursly could not open the microphone. Check the microphone permission in your browser and try again.":
+    "Ursly n’a pas pu ouvrir le microphone. Vérifiez l’autorisation du microphone dans votre navigateur, puis réessayez.",
 };

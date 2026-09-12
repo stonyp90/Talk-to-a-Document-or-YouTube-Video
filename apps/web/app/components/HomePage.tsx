@@ -20,6 +20,7 @@ import { PlatformSection } from "./PlatformSection";
 import { Process } from "./Process";
 import { TopNav } from "./TopNav";
 import { VoiceActions, type VoiceActionId } from "./VoiceActions";
+import { VoiceLending } from "./VoiceLending";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   conversationReducer,
@@ -1141,18 +1142,19 @@ export default function HomePage() {
               </div>
 
               {/*
-                A quiet, honest signal that the voice model is learning from
-                this person while they talk: present, never in the way, and
-                one tap from the consent story.
+                Talking to Ursly teaches it nothing about how you sound, and
+                saying otherwise here would make the consent below meaningless.
+                So the badge says which voice is answering, and points at the
+                one control that changes it.
               */}
               {sessionLive && state.status === "connected" && (
-                <a className="voice-learning" href="#platform">
+                <a className="voice-learning" href="#voice-lending">
                   <span className="voice-learning-dot" aria-hidden="true" />
                   <span>
-                    <strong>{t("Adapting to your voice")}</strong>
+                    <strong>{t("Answering in Ursly’s preset voice")}</strong>
                     <small>
                       {t(
-                        "Learning your accent, pace and words from this session. Nothing is kept without your say.",
+                        "Talking here teaches Ursly nothing about your voice. Lending it yours is a separate, deliberate step.",
                       )}
                     </small>
                   </span>
@@ -1231,6 +1233,8 @@ export default function HomePage() {
                           )}
                 </p>
               </div>
+
+              {entryMode === "voice" && <VoiceLending />}
 
               <div
                 className="chat"

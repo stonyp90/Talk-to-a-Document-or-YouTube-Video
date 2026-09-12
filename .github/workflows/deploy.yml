@@ -58,7 +58,7 @@ jobs:
           REGISTRY="$DEPLOY_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com"
           aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
           if ! aws ecr describe-images --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$TESTED_SHA" >/dev/null 2>&1; then
-            docker build --platform linux/amd64 --provenance=false --sbom=false --target runtime --label org.opencontainers.image.revision="$TESTED_SHA" -t "$REGISTRY/$ECR_REPOSITORY:$TESTED_SHA" .
+            docker build --platform linux/amd64 --provenance=false --sbom=false --target runtime --build-arg NEXT_PUBLIC_PAID_PLAN_PRICE="${{ vars.PAID_PLAN_PRICE }}" --build-arg NEXT_PUBLIC_PAID_PLAN_URL="${{ vars.PAID_PLAN_URL }}" --label org.opencontainers.image.revision="$TESTED_SHA" -t "$REGISTRY/$ECR_REPOSITORY:$TESTED_SHA" .
             docker push "$REGISTRY/$ECR_REPOSITORY:$TESTED_SHA"
           fi
           if ! aws ecr describe-images --repository-name talk-to-a-document-transcript --image-ids imageTag="$TESTED_SHA" >/dev/null 2>&1; then

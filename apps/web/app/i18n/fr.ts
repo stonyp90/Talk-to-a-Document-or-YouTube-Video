@@ -395,6 +395,8 @@ export const french: Dictionary = {
   // Footer
   "Ursly · Made for your next “aha”.":
     "Ursly · Conçu pour votre prochain déclic.",
+  Pricing: "Tarifs",
+  Price: "Prix",
   "How it works": "Comment ça marche",
   "Applications & GitHub": "Applications et GitHub",
 };

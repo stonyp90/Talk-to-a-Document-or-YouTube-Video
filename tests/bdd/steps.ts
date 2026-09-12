@@ -19,6 +19,7 @@ import { registerLocalChecks } from "./local";
 import { registerResilienceChecks } from "./resilience";
 import { registerArchitectureChecks } from "./architecture";
 import { registerEntryChecks } from "./entry";
+import { registerPricingChecks } from "./pricing";
 import { registerProcessChecks } from "./process";
 import { registerVoiceChecks } from "./voice";
 import { APP_PATH } from "../routes";
@@ -957,6 +958,7 @@ registerArchitectureChecks(step);
 registerEntryChecks(step, { page, baseURL });
 registerProcessChecks(step, { page });
 registerVoiceChecks(step);
+registerPricingChecks(step, { page });
 
 // Static inventory: unsupported steps are PENDING, never successful. Newly added
 // phrases without implementations remain undefined and fail the default gate.

@@ -369,6 +369,19 @@ export function registerLocalChecks(step: Step, h: Helpers) {
       );
     },
   );
+  step("the free and paid ways to use Ursly are documented", function () {
+    contains(this, /## What it costs/, /NEXT_PUBLIC_PAID_PLAN_PRICE/);
+  });
+  step(
+    "the training condition attached to the free way is stated",
+    function () {
+      contains(
+        this,
+        /Helping train the models is the price of the free plan/,
+        /never used for training/,
+      );
+    },
+  );
   step(
     "a walkthrough script covers source ingestion, preview, voice, fallback, tests, and deployment decisions",
     async function () {

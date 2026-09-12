@@ -198,10 +198,15 @@ test.describe("returning visitor", () => {
         .locator("#workspace")
         .evaluate((el) => el.getBoundingClientRect().top);
       expect(workspaceTop).toBeLessThanOrEqual(width <= 960 ? 340 : 280);
+      // Where there is room the bar floats a few pixels clear of the edge,
+      // so what is asserted is that it does not move, not that it is flush.
+      const restingTop = await bar.evaluate(
+        (el) => el.getBoundingClientRect().top,
+      );
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await page.waitForTimeout(150);
       expect(await bar.evaluate((el) => el.getBoundingClientRect().top)).toBe(
-        0,
+        restingTop,
       );
       expect(await bar.getAttribute("data-scrolled")).toBe("true");
       expect(
@@ -235,10 +240,13 @@ test.describe("returning visitor", () => {
         (el) => el.getBoundingClientRect().bottom,
       );
       expect(ctaBottom).toBeLessThanOrEqual(900);
+      const restingTop = await bar.evaluate(
+        (el) => el.getBoundingClientRect().top,
+      );
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await page.waitForTimeout(150);
       expect(await bar.evaluate((el) => el.getBoundingClientRect().top)).toBe(
-        0,
+        restingTop,
       );
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),

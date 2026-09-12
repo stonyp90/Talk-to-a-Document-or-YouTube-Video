@@ -1591,15 +1591,22 @@ h3 {
   inset: 0;
   border: 1px solid currentColor;
   border-radius: 50%;
-  /* The resting state a reader who asked for no motion is left with: two
-     quiet rings around the core rather than a frozen frame of the pulse. */
+  /* The state the rings settle into, and the one a reader who asked for no
+     motion is left with: two quiet rings around the core. Decorative motion
+     on this page announces itself and stops; only a hover asks for more. */
   opacity: 0.34;
   transform: scale(0.98);
-  animation: nav-orb-pulse 2600ms var(--ease-out) infinite;
+  animation: nav-orb-pulse 1800ms var(--ease-out) 2;
 }
 .nav-orb::after {
   transform: scale(0.62);
-  animation-delay: 1300ms;
+  animation-delay: 900ms;
+}
+.nav-cta:hover .nav-orb::before,
+.nav-cta:focus-visible .nav-orb::before,
+.nav-cta:hover .nav-orb::after,
+.nav-cta:focus-visible .nav-orb::after {
+  animation-iteration-count: infinite;
 }
 @keyframes nav-orb-pulse {
   0% {
@@ -2451,8 +2458,22 @@ h3 {
      the story index — so a page carrying neither must be told the bar is one
      row tall: redefining the variable fixes all four consumers at once. Where
      :has() is unsupported the cost is extra padding, never a broken page. */
-  :root:not(:has(.nav-modes, .nav-sections)) {
+  :root:not(:has(.nav-modes)) {
     --nav-h-mobile: var(--nav-row);
+  }
+  /* Only the application has a second row to fill. On the story the index
+     shares the single row with the brand and the way in, which is why the
+     bar there is held to one row's height at every phone size. */
+  .nav[data-page="landing"] .nav-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  .nav[data-page="landing"] .nav-sections {
+    flex: 0 1 auto;
+  }
+  .nav[data-page="landing"] .nav-actions {
+    margin-left: auto;
   }
   body {
     padding-top: calc(var(--nav-h-mobile) + var(--safe-top));
@@ -2678,5 +2699,22 @@ h3 {
   line-height: 1.4;
 }
 
-/* The story index has a row of its own below this width, so both anchors
-   stay in the bar at every phone size: nothing has to yield to the way in. */
+/* Small phones: two story anchors and the language pair do not fit beside the
+   brand — in French the pair was pushed off the edge. The build loop yields
+   first, because it opens the page anyway: a reader meets it by scrolling,
+   with nothing above it to scroll past. The platform anchor is the one worth
+   a shortcut, since it sits further down. */
+@media (max-width: 430px) {
+  .nav-section-link[data-section="how-we-build"] {
+    display: none;
+  }
+}
+
+/* The narrowest phones: the bar keeps the brand, the way in or out, and the
+   language, and the story anchors yield to the primary action. Both sections
+   stay reachable by scrolling and from the footer. */
+@media (max-width: 380px) {
+  .nav-section-link {
+    display: none;
+  }
+}

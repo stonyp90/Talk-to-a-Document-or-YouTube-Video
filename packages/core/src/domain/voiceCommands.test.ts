@@ -134,14 +134,27 @@ describe("matching a command inside real speech", () => {
     expect(matches).toHaveLength(1);
     expect(matches[0].trigger.action).toBe("summarize");
     expect(matches[0].confidence).toBe("near");
-    expect(matchCommands("peux-tu résumer ça", [])).toEqual([]);
   });
 
-  it("tolerates a mis-heard word", () => {
-    const matches = matchCommands("bak", []);
+  it("hears a command in either language, whichever the interface is in", () => {
+    // A bilingual speaker switches without noticing, and being refused for it
+    // is the kind of thing that teaches someone to stop speaking to a product.
+    expect(actionsOf("go back please", "fr")).toEqual(["back"]);
+    expect(actionsOf("résume ça", "en")).toEqual(["summarize"]);
+  });
+
+  it("tolerates a mis-heard word once the phrase is long enough to be sure", () => {
+    const matches = matchCommands("sumary", []);
     expect(matches).toHaveLength(1);
-    expect(matches[0].trigger.action).toBe("back");
+    expect(matches[0].trigger.action).toBe("summarize");
     expect(matches[0].confidence).toBe("near");
+  });
+
+  it("refuses to guess at a short word", () => {
+    // "bak" could be almost anything. Waiting to be asked again costs less
+    // than running a command nobody said.
+    expect(actionsOf("bak")).toEqual([]);
+    expect(actionsOf("je lisais le backlog hier", "fr")).toEqual([]);
   });
 
   it("tolerates an inflected ending", () => {

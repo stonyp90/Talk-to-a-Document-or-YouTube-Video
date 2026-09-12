@@ -53,8 +53,13 @@ export const VOICE_ACTIONS: readonly VoiceActionId[] = [
   "cancel",
 ];
 
-/** Below this length a single edit is most of the word, so it proves nothing. */
-const NEAR_MISS_MIN_PHRASE_LENGTH = 4;
+/**
+ * Below this length a phrase is too short to be forgiving about. "Backlog" is
+ * "back" plus three letters, and "je lisais le backlog hier" is not a request
+ * to go back — a command that fires on a word nobody said costs more than one
+ * that waits to be repeated.
+ */
+const NEAR_MISS_MIN_PHRASE_LENGTH = 6;
 /** One mis-heard letter is a recognizer slip; two is a different word. */
 const NEAR_MISS_MAX_EDITS = 1;
 /** How much a spoken ending may add to a phrase: "résumer", "cancelled". */
@@ -144,6 +149,11 @@ export function defaultPhrases(
  * The set a reader starts from, one trigger per action. The first phrase of
  * each list is the one worth showing: the others exist for the microphone.
  */
+/** The language a bilingual speaker is most likely to slip into. */
+function otherLanguage(language: VoiceLanguage): VoiceLanguage {
+  return language === "fr" ? "en" : "fr";
+}
+
 export function defaultTriggers(language: VoiceLanguage): VoiceTrigger[] {
   const phrases = defaultPhrases(language);
   return VOICE_ACTIONS.map((action) => ({
@@ -277,7 +287,11 @@ export function matchCommands(
   const includeDefaults = options.includeDefaults ?? true;
   const words = spokenWords(transcript);
   if (words.length === 0) return [];
+  // A bilingual speaker switches language mid-sentence without thinking about
+  // it, so the other language's wordings are accepted too. The interface
+  // language is listed first, which is what settles a tie between them.
   const phrases = defaultPhrases(language);
+  const alternates = defaultPhrases(otherLanguage(language));
 
   const candidates: Candidate[] = [];
   for (const action of VOICE_ACTIONS) {
@@ -287,7 +301,7 @@ export function matchCommands(
       (trigger) => trigger.action === action,
     );
     if (includeDefaults)
-      for (const phrase of phrases[action])
+      for (const phrase of [...phrases[action], ...alternates[action]])
         spoken.push({ id: `default-${action}`, phrase });
 
     let best: { hearing: Hearing; id: string; phrase: string } | null = null;

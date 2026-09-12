@@ -26,6 +26,8 @@ import { registerVideoSearchChecks } from "./videoSearch";
 import { registerConversationChecks } from "./conversation";
 import { registerVoiceChecks } from "./voice";
 import { APP_PATH } from "../routes";
+import { registerDiscoverabilityChecks } from "./discoverability";
+import { registerVoiceConsentChecks } from "./voice-consent";
 
 setDefaultTimeout(120_000);
 const baseURL = process.env.BDD_BASE_URL ?? "http://localhost:3000";
@@ -969,6 +971,8 @@ registerVideoSearchChecks(step);
 registerConversationChecks(step);
 registerVoiceChecks(step);
 registerPricingChecks(step, { page });
+registerDiscoverabilityChecks(step);
+registerVoiceConsentChecks(step);
 
 // Static inventory: unsupported steps are PENDING, never successful. Newly added
 // phrases without implementations remain undefined and fail the default gate.

@@ -143,6 +143,30 @@ and ffmpeg cross-fades the six clips into one continuous take. Re-record before
 re-rendering whenever the application's chrome has changed, or the film will
 show an app that no longer exists.
 
+### Being found and quoted
+
+A product explained by a short film is invisible to any reader that cannot
+watch one, and search engines and assistants never can. The same film is
+therefore published three more ways. Each language page carries a `schema.org`
+graph naming the organization, the site, the application and the introduction
+as a `VideoObject` with its duration, its captions and its full transcript.
+`/sitemap.xml` lists both languages with `hreflang` alternates, `/robots.txt`
+welcomes crawlers and keeps `/api/` out, and `/llms.txt` is a plain reading of
+the product and the words of the video, for the models that answer questions
+without ever rendering a page.
+
+The graph is built by `packages/core/src/domain/discoverability.ts`, which is
+pure: it reads a profile and returns linked data. Where that profile comes from
+is `apps/web/app/seo/profile.ts`, the only place that touches the environment.
+
+Publishing the introduction on YouTube adds one thing the origin cannot: a copy
+on a host every answer engine already crawls. Set `INTRO_VIDEO_YOUTUBE_ID_EN`
+and `INTRO_VIDEO_YOUTUBE_ID_FR` once the videos are up and the graph points at
+them, with the self-hosted file kept as `contentUrl`. Leave them empty and
+nothing breaks: the graph simply describes the file this origin serves. The
+values are read when the pages are prerendered, so they are build arguments,
+not runtime settings.
+
 ## What it costs
 
 Nobody builds software for free, so the product says how it is paid for — on the
@@ -403,6 +427,7 @@ docker compose --env-file .env.local logs --tail=100 dev transcript
 
 - [Architecture](ARCHITECTURE.md) · [Terraform setup](infrastructure/terraform/README.md) · [Service setup](SERVICE-SETUP.md)
 - [Walkthrough script](WALKTHROUGH.md) · [Native client](apps/mobile/README.md) · [Expo EAS builds](apps/mobile/EAS.md)
+- [Publishing the introduction on YouTube](YOUTUBE.md)
 
 ## AI-assisted development
 

@@ -2,24 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import "../globals.css";
 import { LANGUAGES, isLanguage, type Language } from "../i18n/languages";
-
-const copy: Record<
-  Language,
-  { title: string; description: string; social: string }
-> = {
-  en: {
-    title: "Ursly — The joy of understanding",
-    description:
-      "Your sources. Your questions. A real conversation. Explore PDFs and captioned YouTube videos with voice or text.",
-    social: "Explore your documents and videos through conversation.",
-  },
-  fr: {
-    title: "Ursly — Le plaisir de comprendre",
-    description:
-      "Vos sources. Vos questions. Une vraie conversation. Explorez des PDF et des vidéos YouTube sous-titrées, à la voix ou au clavier.",
-    social: "Explorez vos documents et vos vidéos en conversant.",
-  },
-};
+import { SITE_COPY } from "../content/site";
+import { siteProfile } from "../seo/profile";
+import {
+  structuredDataDocument,
+  videoFor,
+  videoLinks,
+} from "@/packages/core/src/domain/discoverability";
 
 export const dynamicParams = false;
 
@@ -35,9 +24,12 @@ export async function generateMetadata({
 }: LanguageParams): Promise<Metadata> {
   const { lang } = await params;
   const language: Language = isLanguage(lang) ? lang : "en";
-  const text = copy[language];
+  const text = SITE_COPY[language];
+  const profile = siteProfile(language);
+  const intro = videoFor(profile, language);
+  const watchUrl = intro ? videoLinks(profile, intro).watchUrl : undefined;
   return {
-    metadataBase: new URL("https://ursly.io"),
+    metadataBase: new URL(profile.siteUrl),
     title: { default: text.title, template: "%s | Ursly" },
     applicationName: "Ursly",
     description: text.description,
@@ -48,6 +40,7 @@ export async function generateMetadata({
     appleWebApp: { capable: true, title: "Ursly", statusBarStyle: "default" },
     openGraph: {
       type: "website",
+      url: `/${language}`,
       siteName: "Ursly",
       locale: language === "fr" ? "fr_CA" : "en_US",
       title: text.title,
@@ -60,6 +53,8 @@ export async function generateMetadata({
           alt: text.title,
         },
       ],
+      // Only once the introduction is published somewhere a card can play it.
+      ...(watchUrl ? { videos: [{ url: watchUrl }] } : {}),
     },
     twitter: {
       card: "summary_large_image",
@@ -81,7 +76,17 @@ export default async function RootLayout({
   if (!isLanguage(lang)) notFound();
   return (
     <html lang={lang}>
-      <body>{children}</body>
+      <body>
+        {/* What the page means, for the readers that never see it render.
+            `ld+json` is data, not code, so nothing here executes. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: structuredDataDocument(siteProfile(lang), lang),
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

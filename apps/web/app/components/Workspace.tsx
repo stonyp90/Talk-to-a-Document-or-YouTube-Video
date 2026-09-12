@@ -19,6 +19,7 @@ import { TopNav } from "./TopNav";
 import { Markdown } from "./Markdown";
 import { VoiceActions, type VoiceActionId } from "./VoiceActions";
 import { defaultPhrases } from "@/packages/core/src/domain/voiceCommands";
+import { VoiceLending } from "./VoiceLending";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   conversationReducer,
@@ -899,8 +900,12 @@ export default function Workspace() {
     setError("");
     setVoiceActionNotice(
       mode === "voice"
-        ? t("Voice to action: say a command, or use the controls as usual.")
-        : t("Keyboard to action: everything works by typing and clicking."),
+        ? t(
+            "Voice to action: the way in. Say a command, or use the controls as usual.",
+          )
+        : t(
+            "Keyboard to action: the old way in, still complete. Everything works by typing and clicking.",
+          ),
     );
   }
 
@@ -1073,7 +1078,7 @@ export default function Workspace() {
                       "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.",
                     )
                   : t(
-                      "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.",
+                      "Add a PDF or a captioned YouTube video, then ask about it by typing. This is the old way in, and it still does everything. Voice is one tap away.",
                     )}
               </p>
             </div>
@@ -1467,18 +1472,19 @@ export default function Workspace() {
               </div>
 
               {/*
-                A quiet, honest signal that the voice model is learning from
-                this person while they talk: present, never in the way, and
-                one tap from the consent story.
+                Talking to Ursly teaches it nothing about how you sound, and
+                saying otherwise here would make the consent below meaningless.
+                So the badge says which voice is answering, and points at the
+                one control that changes it.
               */}
               {sessionLive && state.status === "connected" && (
-                <a className="voice-learning" href={`/${language}#platform`}>
+                <a className="voice-learning" href="#voice-lending">
                   <span className="voice-learning-dot" aria-hidden="true" />
                   <span>
-                    <strong>{t("Adapting to your voice")}</strong>
+                    <strong>{t("Answering in Ursly’s preset voice")}</strong>
                     <small>
                       {t(
-                        "Learning your accent, pace and words from this session. Nothing is kept without your say.",
+                        "Talking here teaches Ursly nothing about your voice. Lending it yours is a separate, deliberate step.",
                       )}
                     </small>
                   </span>
@@ -1557,6 +1563,8 @@ export default function Workspace() {
                           )}
                 </p>
               </div>
+
+              {entryMode === "voice" && <VoiceLending />}
 
               <div className="chat-anchor">
                 <div

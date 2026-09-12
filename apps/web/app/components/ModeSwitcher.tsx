@@ -16,8 +16,15 @@ type Mode = {
   detail: string;
   icon: IconName;
   available: boolean;
+  /** The previous generation of input: kept and supported, no longer the door. */
+  legacy?: boolean;
 };
 
+/**
+ * Read left to right, this is the argument: you speak today, you will move
+ * tomorrow, and the keyboard is what the internet used to ask of you. The
+ * order is the message, so it is fixed here and nowhere else.
+ */
 const MODES: readonly Mode[] = [
   {
     id: "voice",
@@ -28,14 +35,6 @@ const MODES: readonly Mode[] = [
     available: true,
   },
   {
-    id: "text",
-    label: "Keyboard to action",
-    short: "Keyboard",
-    detail: "",
-    icon: "document",
-    available: true,
-  },
-  {
     id: "motion",
     label: "Motion to action",
     short: "Motion",
@@ -43,8 +42,22 @@ const MODES: readonly Mode[] = [
     icon: "motion",
     available: false,
   },
+  {
+    id: "text",
+    label: "Keyboard to action",
+    short: "Keyboard",
+    detail: "Legacy",
+    icon: "document",
+    available: true,
+    legacy: true,
+  },
 ];
 
+/**
+ * The modes a person can actually land on, in the order they are drawn. The
+ * beta sits between them, so this list is derived rather than written down:
+ * the arrow keys walk these two and step over whatever is not ready.
+ */
 const SELECTABLE = MODES.filter((mode) => mode.available).map(
   (mode) => mode.id as EntryMode,
 );
@@ -109,7 +122,7 @@ export function ModeSwitcher({
             id={`mode-${item.id}`}
             type="button"
             role="radio"
-            className={`mode mode-${item.id}`}
+            className={`mode mode-${item.id}${item.legacy ? " mode-legacy" : ""}`}
             aria-checked={checked}
             aria-label={t(item.label)}
             aria-disabled={item.available ? undefined : true}
@@ -135,7 +148,7 @@ export function ModeSwitcher({
       })}
       <span id={tooltipId} role="tooltip" className="mode-tooltip">
         {t(
-          "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.",
+          "Motion to action is what comes next: control by movement, built for VR and AR headsets. It is not available yet. Voice works today, and the keyboard is still there.",
         )}
       </span>
     </div>

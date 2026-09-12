@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState, type CSSProperties, type RefObject } from "react";
 import { usePathname } from "next/navigation";
 import { Icon } from "./Icon";
 import { ModeSwitcher, type EntryMode } from "./ModeSwitcher";
@@ -21,7 +21,18 @@ const SECTION_IDS = SECTIONS.map((section) => section.id);
 
 function subscribeToScroll(notify: () => void) {
   window.addEventListener("scroll", notify, { passive: true });
-  return () => window.removeEventListener("scroll", notify);
+  window.addEventListener("resize", notify, { passive: true });
+  return () => {
+    window.removeEventListener("scroll", notify);
+    window.removeEventListener("resize", notify);
+  };
+}
+
+/** How much of the page is behind the reader, from 0 at the top to 1 at the end. */
+function readProgress(): number {
+  const travel = document.documentElement.scrollHeight - window.innerHeight;
+  if (travel <= 0) return 0;
+  return Math.min(1, Math.max(0, window.scrollY / travel));
 }
 
 /** Which linked section currently owns the viewport, for `aria-current`. */
@@ -74,20 +85,15 @@ type TopNavProps =
     };
 
 /**
- * The story anchors and the intro replay: landing-page furniture, in its own
- * component so the button's ref arrives as a plain parameter rather than
- * being read off a narrowed props object during render.
+ * The index of the story, in the middle of the bar. It holds the same slot
+ * the control modes hold in the application: whatever the page is really
+ * about sits at the centre of the instrument, never off to one side.
  */
-function StoryNavControls({
-  onReplayIntro,
-  replayButton,
-  active,
-}: StoryControls & { active?: string }) {
+function StorySectionRail({ active }: { active?: string }) {
   const { t } = useLanguage();
-  const hydrated = useHydrated();
   return (
-    <>
-      {SECTIONS.map((section) => (
+    <div className="nav-sections">
+      {SECTIONS.map((section, position) => (
         <a
           key={section.id}
           className="nav-link nav-section-link"
@@ -96,27 +102,48 @@ function StoryNavControls({
           aria-label={t(section.label)}
           aria-current={active === section.id ? "location" : undefined}
         >
+          {/* The bar reads as an index of the story rather than a row of
+              links, so each anchor wears its number. Decoration only: the
+              accessible name stays the section's real name. */}
+          <span className="nav-index" aria-hidden="true">
+            {String(position + 1).padStart(2, "0")}
+          </span>
           {/* The full label where the bar is wide, the short one where it is
-              not: the accessible name stays the section's real name. */}
+              not. */}
           <span className="nav-section-full">{t(section.label)}</span>
           <span className="nav-section-short" aria-hidden="true">
             {t(section.short)}
           </span>
         </a>
       ))}
-      <button
-        ref={replayButton}
-        type="button"
-        className="nav-link nav-intro"
-        onClick={onReplayIntro}
-        disabled={!hydrated}
-        aria-label={t("Watch the intro")}
-        title={t("Watch the intro")}
-      >
-        <Icon name="play" />
-        <span className="nav-intro-label">{t("Watch the intro")}</span>
-      </button>
-    </>
+    </div>
+  );
+}
+
+/**
+ * Replaying the introduction: landing-page furniture, in its own component so
+ * the button's ref arrives as a plain parameter rather than being read off a
+ * narrowed props object during render.
+ */
+function IntroReplayButton({
+  onReplayIntro,
+  replayButton,
+}: Omit<StoryControls, "page">) {
+  const { t } = useLanguage();
+  const hydrated = useHydrated();
+  return (
+    <button
+      ref={replayButton}
+      type="button"
+      className="nav-link nav-intro"
+      onClick={onReplayIntro}
+      disabled={!hydrated}
+      aria-label={t("Watch the intro")}
+      title={t("Watch the intro")}
+    >
+      <Icon name="play" />
+      <span className="nav-intro-label">{t("Watch the intro")}</span>
+    </button>
   );
 }
 
@@ -132,12 +159,16 @@ export function TopNav(props: TopNavProps) {
   const { language, t } = useLanguage();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
+  const [progress, setProgress] = useState(0);
   const active = useActiveSection(
     page === "landing" ? SECTION_IDS : NO_SECTIONS,
   );
 
   useEffect(() => {
-    const update = () => setScrolled(window.scrollY > 4);
+    const update = () => {
+      setScrolled(window.scrollY > 4);
+      setProgress(readProgress());
+    };
     update();
     return subscribeToScroll(update);
   }, []);
@@ -160,61 +191,85 @@ export function TopNav(props: TopNavProps) {
         };
 
   return (
-    <nav
-      className="nav"
-      aria-label={t("Primary")}
-      data-scrolled={scrolled}
-      data-page={page}
-    >
-      <div className="nav-inner">
-        <a className="brand" href={`/${language}`} aria-label={t("Ursly home")}>
-          {/* A vector stays crisp at every screen density. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className="brand-mark"
-            src="/brand/ursly-mark.svg"
-            width="32"
-            height="32"
-            alt=""
-          />
-          ursly<span className="brand-dot">.</span>
-        </a>
-
-        {props.page === "app" && (
-          <div className="nav-modes">
-            <ModeSwitcher mode={props.mode} onChange={props.onModeChange} />
-          </div>
-        )}
-
-        <div className="nav-actions">
-          {story && <StoryNavControls {...story} active={active} />}
+    <>
+      {/* Where the bar floats, the page still scrolls past it on every side.
+          This fades that strip into the paper so nothing reads through. */}
+      <span className="nav-scrim" aria-hidden="true" />
+      <nav
+        className="nav"
+        aria-label={t("Primary")}
+        data-scrolled={scrolled}
+        data-page={page}
+        style={{ "--nav-progress": String(progress) } as CSSProperties}
+      >
+        <div className="nav-inner">
           <a
-            className={`${route.className} nav-cta`}
-            href={route.href}
-            aria-label={t(route.full)}
+            className="brand"
+            href={`/${language}`}
+            aria-label={t("Ursly home")}
           >
-            <span className="nav-cta-full">{t(route.full)}</span>
-            <span className="nav-cta-short" aria-hidden="true">
-              {t(route.short)}
-            </span>
+            {/* A vector stays crisp at every screen density. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="brand-mark"
+              src="/brand/ursly-mark.svg"
+              width="32"
+              height="32"
+              alt=""
+            />
+            ursly<span className="brand-dot">.</span>
           </a>
-          <div className="nav-languages" aria-label={t("Language")}>
-            {LANGUAGES.map((code) => (
-              <a
-                key={code}
-                className="nav-language"
-                href={withLanguage(pathname, code)}
-                hrefLang={code}
-                lang={code}
-                aria-label={LANGUAGE_NAMES[code]}
-                aria-current={code === language ? "true" : undefined}
-              >
-                {code.toUpperCase()}
-              </a>
-            ))}
+
+          {props.page === "app" ? (
+            <div className="nav-modes">
+              <ModeSwitcher mode={props.mode} onChange={props.onModeChange} />
+            </div>
+          ) : (
+            <StorySectionRail active={active} />
+          )}
+
+          <div className="nav-actions">
+            {story && (
+              <IntroReplayButton
+                onReplayIntro={story.onReplayIntro}
+                replayButton={story.replayButton}
+              />
+            )}
+            <a
+              className={`${route.className} nav-cta`}
+              href={route.href}
+              aria-label={t(route.full)}
+            >
+              {/* A speaking mark rather than an arrow: the way in is a voice,
+                  and the rings are drawn, not written. */}
+              <span className="nav-orb" aria-hidden="true">
+                <span className="nav-orb-core" />
+              </span>
+              <span className="nav-cta-full">{t(route.full)}</span>
+              <span className="nav-cta-short" aria-hidden="true">
+                {t(route.short)}
+              </span>
+            </a>
+            <div className="nav-languages" aria-label={t("Language")}>
+              {LANGUAGES.map((code) => (
+                <a
+                  key={code}
+                  className="nav-language"
+                  href={withLanguage(pathname, code)}
+                  hrefLang={code}
+                  lang={code}
+                  aria-label={LANGUAGE_NAMES[code]}
+                  aria-current={code === language ? "true" : undefined}
+                >
+                  {code.toUpperCase()}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+        {/* How far the story has been read, drawn along the edge of the bar. */}
+        <span className="nav-progress" aria-hidden="true" />
+      </nav>
+    </>
   );
 }

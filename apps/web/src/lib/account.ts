@@ -18,8 +18,11 @@ const json = (body: unknown): RequestInit & { retries?: number } => ({
 });
 
 /** Asks for a one-time code. It answers the same way whether or not the address is known. */
-export async function requestSignInCode(email: string): Promise<void> {
-  await requestJson<void>("/api/auth/request-code", json({ email }));
+export async function requestSignInCode(
+  email: string,
+  language?: string,
+): Promise<void> {
+  await requestJson<void>("/api/auth/request-code", json({ email, language }));
 }
 
 export async function confirmSignInCode(

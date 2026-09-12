@@ -6,6 +6,7 @@ import {
   type Account,
   type UsageWindow,
 } from "../../core/src/domain/account";
+import { signInEmail, type BrandedEmail } from "../../core/src/domain/email";
 import type {
   AccountChallenge,
   AccountSession,
@@ -212,24 +213,36 @@ function fallbackPepper(): string {
   return processPepper;
 }
 
-const SIGN_IN_SUBJECT = "Your Ursly sign-in code";
-
-const signInBody = (code: string, ttlMinutes: number) =>
-  [
-    `Your Ursly sign-in code is ${code}.`,
-    "",
-    `It is valid for ${ttlMinutes} minutes and can be used once.`,
-    "If you did not ask to sign in, you can ignore this message.",
-  ].join("\n");
-
 /**
  * How the code reaches the reader. Local and test deployments write it to the
  * server log so the flow can be completed without any mail infrastructure;
  * `EMAIL_MODE=ses` sends it through Amazon SES instead. The mode is read here,
  * in the adapter, and never anywhere above it.
  */
+/**
+ * How a message leaves the process. There is exactly one of these, whatever
+ * the message is: the words are rendered by the one template in the domain
+ * and handed here already written, so a new kind of mail cannot invent its
+ * own transport, its own subject line or its own look.
+ */
+type Delivery = (to: string, message: BrandedEmail) => Promise<void>;
+
 export function createEmailNotifier(): NotifierPort {
-  return process.env.EMAIL_MODE === "ses" ? sesNotifier() : logNotifier();
+  const deliver: Delivery =
+    process.env.EMAIL_MODE === "ses" ? sendThroughSes : writeToLog;
+  return {
+    async sendSignInCode(email, code, locale) {
+      await deliver(
+        email,
+        signInEmail({
+          code,
+          ttlMinutes: ttlMinutes(),
+          locale,
+          origin: process.env.APP_ORIGIN,
+        }),
+      );
+    },
+  };
 }
 
 function ttlMinutes(): number {
@@ -238,15 +251,16 @@ function ttlMinutes(): number {
   );
 }
 
-function logNotifier(): NotifierPort {
-  return {
-    async sendSignInCode(email, code) {
-      // Deliberate and local only: the developer completes the sign-in from the
-      // server log. A deployment that sets EMAIL_MODE=ses never reaches this.
-      console.info(`[accounts] local sign-in code for ${email}: ${code}`);
-    },
-  };
-}
+/**
+ * Deliberate and local only: the developer reads the message from the server
+ * log, in the words it would have been mailed in. A deployment that sets
+ * EMAIL_MODE=ses never reaches this.
+ */
+const writeToLog: Delivery = async (to, message) => {
+  console.info(
+    `[accounts] local sign-in code for ${to}\n${message.subject}\n${message.text}`,
+  );
+};
 
 /* ------------------------------------------------------------------------- *
  * SES adapter. The repository does not depend on an AWS SES SDK, so the v2
@@ -346,52 +360,46 @@ function authorization(
   };
 }
 
-function sesNotifier(): NotifierPort {
+const sendThroughSes: Delivery = async (to, message) => {
   const path = "/v2/email/outbound-emails";
-  return {
-    async sendSignInCode(email, code) {
-      const configuration = sesConfiguration();
-      const host = `email.${configuration.region}.amazonaws.com`;
-      const body = JSON.stringify({
-        FromEmailAddress: configuration.from,
-        Destination: { ToAddresses: [email] },
-        ...(configuration.configurationSet
-          ? { ConfigurationSetName: configuration.configurationSet }
-          : {}),
-        Content: {
-          Simple: {
-            Subject: { Data: SIGN_IN_SUBJECT, Charset: "UTF-8" },
-            Body: {
-              Text: {
-                Data: signInBody(code, ttlMinutes()),
-                Charset: "UTF-8",
-              },
-            },
-          },
+  const configuration = sesConfiguration();
+  const host = `email.${configuration.region}.amazonaws.com`;
+  const body = JSON.stringify({
+    FromEmailAddress: configuration.from,
+    Destination: { ToAddresses: [to] },
+    ...(configuration.configurationSet
+      ? { ConfigurationSetName: configuration.configurationSet }
+      : {}),
+    Content: {
+      Simple: {
+        Subject: { Data: message.subject, Charset: "UTF-8" },
+        Body: {
+          Text: { Data: message.text, Charset: "UTF-8" },
+          Html: { Data: message.html, Charset: "UTF-8" },
         },
-      });
-      const amzDate = new Date().toISOString().replace(/[-:]|\.\d{3}/g, "");
-      const signed = authorization(configuration, path, body, amzDate, host);
-
-      const response = await fetch(`https://${host}${path}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Host: host,
-          "X-Amz-Date": amzDate,
-          ...(configuration.sessionToken
-            ? { "X-Amz-Security-Token": configuration.sessionToken }
-            : {}),
-          Authorization: signed.Authorization,
-        },
-        body,
-      });
-      // The provider's own message can name accounts and quotas, and the code
-      // is in the request; only the status is worth repeating.
-      if (!response.ok)
-        throw new Error(
-          `The sign-in email could not be sent (SES replied ${response.status}).`,
-        );
+      },
     },
-  };
-}
+  });
+  const amzDate = new Date().toISOString().replace(/[-:]|\.\d{3}/g, "");
+  const signed = authorization(configuration, path, body, amzDate, host);
+
+  const response = await fetch(`https://${host}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Host: host,
+      "X-Amz-Date": amzDate,
+      ...(configuration.sessionToken
+        ? { "X-Amz-Security-Token": configuration.sessionToken }
+        : {}),
+      Authorization: signed.Authorization,
+    },
+    body,
+  });
+  // The provider's own message can name accounts and quotas, and the code is
+  // in the request; only the status is worth repeating.
+  if (!response.ok)
+    throw new Error(
+      `The sign-in email could not be sent (SES replied ${response.status}).`,
+    );
+};

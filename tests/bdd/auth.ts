@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { After } from "@cucumber/cucumber";
 import type { IngestedSource } from "../../packages/core/src/domain/ingestion";
+import { DEFAULT_CODE_TTL_MS } from "../../packages/core/src/domain/account";
+import { signInEmail } from "../../packages/core/src/domain/email";
 import type { Step, World } from "./steps";
 import { POST as postRequestCode } from "../../apps/web/app/api/auth/request-code/route";
 import { POST as postConfirm } from "../../apps/web/app/api/auth/confirm/route";
@@ -20,6 +22,7 @@ type State = {
   cookie?: string;
   email?: string;
   code?: string;
+  language?: string;
   mailbox: string[];
 };
 
@@ -80,15 +83,21 @@ function gateIsRequired(): void {
   process.env.RATE_LIMIT_DISABLED = "true";
 }
 
-async function requestCode(world: World): Promise<void> {
+async function requestCode(world: World, language?: string): Promise<void> {
   const current = state(world);
   current.email = `reader-${Date.now()}@example.com`;
+  current.language = language;
   const response = await withMailbox(world, () =>
-    post(postRequestCode, "/api/auth/request-code", { email: current.email }),
+    post(postRequestCode, "/api/auth/request-code", {
+      email: current.email,
+      ...(language ? { language } : {}),
+    }),
   );
   current.status = response.status;
   current.text = await response.text();
-  current.code = current.mailbox.join("\n").match(/code for \S+: (\d+)/)?.[1];
+  // The local mailbox is the message itself, so the code is read out of it
+  // the way a reader would: the one line that is nothing but digits.
+  current.code = current.mailbox.join("\n").match(/^\s*(\d{4,12})\s*$/m)?.[1];
 }
 
 async function signIn(world: World): Promise<void> {
@@ -147,6 +156,46 @@ export function registerAuthChecks(step: Step) {
 
   step("a client asks for a sign-in code", async function () {
     await requestCode(this);
+  });
+
+  step("a French reader asks for a sign-in code", async function () {
+    gateIsRequired();
+    await requestCode(this, "fr-CA");
+  });
+
+  step("the message is the one branded template, word for word", function () {
+    const current = state(this);
+    assert.ok(current.code, "The notifier must have delivered a code");
+    const expected = signInEmail({
+      code: current.code!,
+      ttlMinutes: Math.round(
+        (Number(process.env.SIGN_IN_CODE_TTL_MS) || DEFAULT_CODE_TTL_MS) /
+          60_000,
+      ),
+      locale: current.language,
+      origin: process.env.APP_ORIGIN,
+    });
+    const delivered = current.mailbox.join("\n");
+    assert.ok(
+      delivered.includes(expected.subject),
+      "The subject must come from the template",
+    );
+    assert.ok(
+      delivered.includes(expected.text),
+      "The words must come from the template, unchanged",
+    );
+  });
+
+  step("it is written in the reader's language", function () {
+    assert.match(state(this).mailbox.join("\n"), /code de connexion/i);
+  });
+
+  step("it carries no way in but the code", function () {
+    const delivered = state(this).mailbox.join("\n");
+    // A link that signs somebody in is a second credential sitting in a
+    // mailbox. There is one credential, and it is typed in by hand.
+    assert.ok(!/token=|code=\d/.test(delivered));
+    assert.ok(!new RegExp(`https?://\\S*${state(this).code}`).test(delivered));
   });
 
   step("the request is refused as unauthenticated", function () {

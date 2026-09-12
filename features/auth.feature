@@ -27,3 +27,10 @@ Feature: Require an account and cap what it can spend
     When a client asks for a sign-in code
     Then the reply carries no body at all
     And the code reaches the reader only through the notifier
+
+  Scenario: Send one branded message, in the reader's language
+    Given the sign-in gate is required
+    When a French reader asks for a sign-in code
+    Then the message is the one branded template, word for word
+    And it is written in the reader's language
+    And it carries no way in but the code

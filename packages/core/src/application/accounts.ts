@@ -75,7 +75,10 @@ export function createAccounts({
      * mailed — it is never returned, never logged and never persisted in clear,
      * so possession of the mailbox is the only way to complete the flow.
      */
-    async requestSignIn(rawEmail: string): Promise<{ email: string }> {
+    async requestSignIn(
+      rawEmail: string,
+      locale?: string,
+    ): Promise<{ email: string }> {
       const email = normalizeEmail(rawEmail);
       await findOrCreate(email);
       const code = tokens.randomCode();
@@ -84,7 +87,7 @@ export function createAccounts({
         issuedAt: now(),
         attempts: 0,
       });
-      await notifier.sendSignInCode(email, code);
+      await notifier.sendSignInCode(email, code, locale);
       return { email };
     },
 

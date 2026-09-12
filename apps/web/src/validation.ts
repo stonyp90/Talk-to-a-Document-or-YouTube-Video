@@ -154,6 +154,13 @@ export const apiErrorSchema = z.object({
  */
 export const signInRequestSchema = z.object({
   email: z.string().trim().min(3).max(254),
+  /**
+   * The language the reader asked from, so the code arrives written the way
+   * the page they are looking at is. Anything the template does not speak
+   * falls back to English rather than being refused, so an old client or a
+   * new locale never costs somebody their sign-in.
+   */
+  language: z.string().trim().max(16).optional(),
 });
 
 export const signInConfirmSchema = z.object({

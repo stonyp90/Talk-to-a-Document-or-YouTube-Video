@@ -208,9 +208,9 @@ if (process.env.NEXT_PHASE !== "phase-production-build")
 // The two calls that hash a one-time code wait for the pepper to arrive from
 // the secret store, so nothing is ever hashed against a value that is about to
 // be replaced. Everything else — sessions, the ledger — holds no hashed code.
-export const requestSignInCode = async (email: string) => {
+export const requestSignInCode = async (email: string, locale?: string) => {
   await ensureSignInConfigured();
-  return accounts.requestSignIn(email);
+  return accounts.requestSignIn(email, locale);
 };
 export const confirmSignInCode = async (email: string, code: string) => {
   await ensureSignInConfigured();

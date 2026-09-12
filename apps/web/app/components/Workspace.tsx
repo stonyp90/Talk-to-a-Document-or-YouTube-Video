@@ -13,7 +13,7 @@ import {
 } from "react";
 import { Icon } from "./Icon";
 import type { EntryMode } from "./ModeSwitcher";
-import { SignInPanel } from "./SignInPanel";
+import { SignInGate } from "./SignInGate";
 import { SiteFooter } from "./SiteFooter";
 import { TopNav } from "./TopNav";
 import { Markdown } from "./Markdown";
@@ -182,9 +182,9 @@ export default function Workspace() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   /** The last question asked, so "Try again" can ask it once more. */
   const [lastAsked, setLastAsked] = useState("");
-  // Undefined until the first answer comes back, so the workspace is not
-  // flashed at a reader who is about to be asked to sign in, and the sign-in is
-  // not flashed at one who is already signed in.
+  // Undefined until the session call comes back, so the gate is not flashed
+  // at a reader who is already signed in. The workspace itself stays on the
+  // page throughout: the gate stands over it rather than replacing it.
   const [account, setAccount] = useState<string | null | undefined>(undefined);
   const [videoQuery, setVideoQuery] = useState("");
   const [videoChoices, setVideoChoices] = useState<VideoResult[]>([]);
@@ -1107,12 +1107,15 @@ export default function Workspace() {
           {/*
             The workspace spends money on every source and every answer, so it
             opens for a signed-in reader only. The gate is the same one the API
-            applies; showing it here means a refusal is something the reader can
-            act on rather than an error they meet halfway through a question.
+            applies; standing it over the workspace as a modal means a reader
+            sees what they are signing in for, and cannot reach any of it —
+            not by tabbing, not by Escape — before they have.
           */}
-          {account === null && (
-            <SignInPanel onSignedIn={(email) => setAccount(email)} />
-          )}
+          <SignInGate
+            open={account === null}
+            onSignedIn={(email) => setAccount(email)}
+            storyHref={`/${language}`}
+          />
 
           {account !== null && voiceActions}
 
@@ -1120,7 +1123,6 @@ export default function Workspace() {
             className="workspace"
             id="workspace"
             tabIndex={-1}
-            hidden={account === null}
             data-mode={entryMode}
           >
             <section

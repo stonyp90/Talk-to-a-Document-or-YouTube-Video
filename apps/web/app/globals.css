@@ -3074,10 +3074,45 @@ h3 {
    the workspace card rather than inventing a second visual language: the form
    classes above do the work, and only the panel's own rhythm is set here.
    --------------------------------------------------------------------------- */
+/* The gate: a dialog centred over the workspace, with the page dimmed behind
+   it. Nothing here closes it, so it carries the one way out that is not
+   signing in. */
+.sign-in-gate {
+  width: min(440px, calc(100vw - var(--gutter) * 2));
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+}
+.sign-in-gate::backdrop {
+  background: var(--overlay);
+  backdrop-filter: blur(3px);
+}
+.sign-in-gate-inner {
+  display: grid;
+  gap: var(--space-md);
+}
+/* This line sits on the dimmed page, not on the card, so it takes the paper
+   colour rather than the muted ink that would disappear into the backdrop. */
+.sign-in-gate-exit {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--paper);
+}
+.sign-in-gate-exit a {
+  color: var(--paper);
+  text-underline-offset: 3px;
+}
 .sign-in {
   display: grid;
   gap: 12px;
   max-width: 420px;
+}
+/* Inside the gate the card is the dialog, so it fills it. */
+.sign-in-gate .sign-in {
+  max-width: none;
 }
 .sign-in-title {
   margin: 0;

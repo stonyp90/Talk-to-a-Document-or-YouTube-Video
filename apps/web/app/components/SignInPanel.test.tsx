@@ -49,7 +49,8 @@ it("asks for an address, then for the code that was mailed to it", async () => {
 
   fill("Email address", "reader@example.com");
   press("Send me a code");
-  expect(requestSignInCode).toHaveBeenCalledWith("reader@example.com");
+  // The language travels with the address, so the code is mailed in it.
+  expect(requestSignInCode).toHaveBeenCalledWith("reader@example.com", "en");
 
   fireEvent.change(await screen.findByLabelText("Your code"), {
     target: { value: "123456" },

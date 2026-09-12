@@ -33,14 +33,15 @@ Feature: Welcome each visitor once, then keep the way in one tap away
   Scenario: Keep the control modes in a fixed top menu while scrolling
     When I open the application
     Then the top menu stays fixed while I scroll
+    And the control modes read voice first, motion next and keyboard last
     And voice to action is the selected control mode
-    And keyboard to action can be selected
-    And motion to action is shown as a beta that is not yet available
+    And motion to action is shown as the beta that comes next for headsets
+    And keyboard to action is marked legacy and can still be selected
 
   Scenario: Reach the platform section from the top menu
     When I open the landing page
     And I choose Platform in the top menu
-    Then the platform section explains voice, movement and keyboard control
+    Then the platform section explains voice now, movement next and the keyboard as the old way
     And the platform section explains connected objects, 3D objects and voice adaptation
 
   Scenario: Open the story on how we build, before anything else

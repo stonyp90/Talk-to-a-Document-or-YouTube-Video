@@ -15,8 +15,12 @@ variable "openai_secret_arn" {
   }
 }
 variable "app_origin" {
+  # The public origin the site is served on, when it is not the gateway's own
+  # endpoint: the custom domain mapped to this API in the operator-owned root.
+  # Empty means there is no separate site origin yet, and the deployment names
+  # the gateway endpoint to callers instead of guessing at a domain.
   type    = string
-  default = "http://localhost:3000"
+  default = ""
 }
 
 # YouTube refuses caption requests from cloud address ranges. Routing the caption

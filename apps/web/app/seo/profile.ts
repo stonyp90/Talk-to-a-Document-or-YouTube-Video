@@ -2,8 +2,8 @@ import {
   INTRO_DESCRIPTION,
   INTRO_DURATION_SECONDS,
   INTRO_PUBLISHED_ON,
-  INTRO_TITLE,
-  INTRO_TRANSCRIPT,
+  INTRO_SCENES,
+  INTRO_TITLE_KEY,
   introVideoPaths,
 } from "../content/intro-video";
 import { SITE_COPY, SITE_NAME } from "../content/site";
@@ -52,9 +52,17 @@ function introVideo(language: Language): IntroVideo {
   return {
     language,
     // The heading ends in a full stop on the page; a title does not.
-    name: t(INTRO_TITLE).replace(/\.$/, ""),
+    name: t(INTRO_TITLE_KEY, { seconds: INTRO_DURATION_SECONDS }).replace(
+      /\.$/,
+      "",
+    ),
     description: t(INTRO_DESCRIPTION),
-    transcript: INTRO_TRANSCRIPT.map((line) => t(line)).join(" "),
+    // Each half is keyed on its own in the dictionary, so the halves are
+    // translated and then joined. Translating the joined line would ask for a
+    // sentence no translator has seen, and answer engines would read English.
+    transcript: INTRO_SCENES.map(
+      (scene) => `${t(scene.headline)} ${t(scene.lede)}`,
+    ).join(" "),
     durationSeconds: INTRO_DURATION_SECONDS,
     publishedOn: process.env.INTRO_VIDEO_PUBLISHED_ON || INTRO_PUBLISHED_ON,
     contentPath: paths.mp4,

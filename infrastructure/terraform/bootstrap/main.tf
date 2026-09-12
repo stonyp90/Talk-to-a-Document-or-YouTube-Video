@@ -32,6 +32,20 @@ variable "openai_secret_arn" {
     error_message = "Provide the exact existing secret ARN, without wildcards or secret contents."
   }
 }
+
+# The signing pepper, by the same rule as the provider key: the operator creates
+# the secret and supplies its exact ARN. The boundary below is why it belongs
+# here as well as in the application module — a grant the boundary does not
+# allow is a grant the task does not have, and sign-in would fail with an AWS
+# denial nobody is looking for.
+variable "auth_pepper_secret_arn" {
+  type = string
+  validation {
+    condition     = can(regex("^arn:aws:secretsmanager:${var.region}:${var.account_id}:secret:[^*?]+$", var.auth_pepper_secret_arn))
+    error_message = "Provide the exact existing secret ARN, without wildcards or secret contents."
+  }
+}
+
 variable "github_subject_prefix" {
   type    = string
   default = null
@@ -41,6 +55,45 @@ variable "github_subject_prefix" {
       replace(var.github_subject_prefix, "/@[0-9]+/", "") == "repo:${var.github_repository}"
     )
     error_message = "Use the exact sub_claim_prefix reported by GitHub for this repository, without wildcards or environment suffix."
+  }
+}
+# Transactional email is operator-owned: environments/email verifies the domain
+# identity and creates the configuration set. Naming them here, with the one
+# mailbox the application sends as, lets the boundary cap what a runtime role
+# can ever send. Empty leaves runtime sending impossible.
+variable "ses_identity_arn" {
+  type    = string
+  default = ""
+  validation {
+    condition     = var.ses_identity_arn == "" || can(regex("^arn:aws:ses:${var.region}:${var.account_id}:identity/[a-z0-9.-]+$", var.ses_identity_arn))
+    error_message = "Provide the exact verified domain identity ARN from the email root, without wildcards."
+  }
+}
+variable "ses_configuration_set_name" {
+  type    = string
+  default = ""
+  validation {
+    condition     = (var.ses_configuration_set_name == "") == (var.ses_identity_arn == "")
+    error_message = "Set the SES identity ARN, configuration set name and From address together, or none of them."
+  }
+  validation {
+    condition     = var.ses_configuration_set_name == "" || can(regex("^[A-Za-z0-9_-]{1,64}$", var.ses_configuration_set_name))
+    error_message = "Configuration set names accept letters, digits, dashes and underscores only."
+  }
+}
+# The pin to a single sender belongs here, not only in the api role policy: CI
+# writes that policy through iam:PutRolePolicy, so a policy-level pin caps
+# nothing against the deploy role. The boundary is operator-owned and does.
+variable "ses_from_address" {
+  type    = string
+  default = ""
+  validation {
+    condition     = (var.ses_from_address == "") == (var.ses_identity_arn == "")
+    error_message = "Set the SES identity ARN, configuration set name and From address together, or none of them."
+  }
+  validation {
+    condition     = var.ses_from_address == "" || endswith(var.ses_from_address, "@${local.ses_domain}")
+    error_message = "Send only from a mailbox on the verified identity domain."
   }
 }
 variable "existing_oidc_provider_arn" {
@@ -57,6 +110,20 @@ locals {
   runtime_arns  = ["arn:aws:iam::${var.account_id}:role/${local.name}-runtime", "arn:aws:iam::${var.account_id}:role/${local.name}-transcript-runtime"]
   function_arns = [for name in ["api", "transcript"] : "arn:aws:lambda:${var.region}:${var.account_id}:function:${local.name}-${name}"]
   log_arns      = [for name in ["api", "transcript"] : "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/${local.name}-${name}"]
+  ses_domain    = trimprefix(var.ses_identity_arn, "arn:aws:ses:${var.region}:${var.account_id}:identity/")
+  # The ceiling on sending, mirroring the grant the application module writes.
+  # SendEmail is authorized against the identity and, when the call names one,
+  # the configuration set, so the cap has to list both ARNs. The boundary limits
+  # runtime roles to that identity, that set and exactly one From address; the
+  # api role policy in modules/demo repeats the same pin as defense in depth.
+  # Changing the sender therefore takes an operator bootstrap apply, on purpose.
+  # Raw MIME sending would need ses:SendRawEmail added here deliberately.
+  ses_statements = var.ses_identity_arn == "" ? [] : [{
+    Effect    = "Allow"
+    Action    = ["ses:SendEmail"]
+    Resource  = [var.ses_identity_arn, "arn:aws:ses:${var.region}:${var.account_id}:configuration-set/${var.ses_configuration_set_name}"]
+    Condition = { StringEquals = { "ses:FromAddress" = var.ses_from_address } }
+  }]
 }
 resource "aws_s3_bucket" "state" {
   bucket = "${local.name}-tfstate-${var.account_id}-${var.region}"
@@ -117,11 +184,11 @@ resource "aws_iam_policy" "runtime_boundary" {
   name = "${local.name}-runtime-boundary"
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat([
       { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = ["${local.bucket_arn}/uploads/*"] },
-      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn] },
+      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn, var.auth_pepper_secret_arn] },
       { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = [for arn in local.log_arns : "${arn}:*"] }
-    ]
+    ], local.ses_statements)
   })
   lifecycle { prevent_destroy = true }
 }

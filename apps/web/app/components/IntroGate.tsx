@@ -4,10 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
-  INTRO_DESCRIPTION,
   INTRO_DURATION_SECONDS,
-  INTRO_TITLE,
-  INTRO_TRANSCRIPT,
+  INTRO_SCENES,
+  INTRO_TITLE_KEY,
   introVideoPaths,
 } from "../content/intro-video";
 
@@ -37,11 +36,13 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * The 24-second introduction, shown once on a first visit and on request from
- * the menu. A native dialog keeps focus inside and the page inert behind it.
- * The video is silent and muted, so it may start on its own; anyone who would
- * rather not watch has a skip control from the first frame, and people who ask
- * their system for less motion get a poster, a play button and the text.
+ * The introduction, shown once on a first visit and on request from the menu.
+ * Its length, its title and its transcript all come from the content file, so
+ * the film can gain or lose a scene without anyone editing this component.
+ * A native dialog keeps focus inside and the page inert behind it. The video
+ * is silent and muted, so it may start on its own; anyone who would rather not
+ * watch has a skip control from the first frame, and people who ask their
+ * system for less motion get a poster, a play button and the text.
  */
 export function IntroGate({
   open,
@@ -55,7 +56,14 @@ export function IntroGate({
   onClosed?: () => void;
 }) {
   const { language, t } = useLanguage();
-  const media = introVideoPaths(language);
+  const sources = introVideoPaths(language);
+  // The same sentences the film puts on screen, for anyone who cannot watch
+  // it. Each half is translated on its own because that is how the dictionary
+  // keys them: asking for the joined line would be asking for a sentence no
+  // translator has ever seen, and a French reader would quietly get English.
+  const transcript = INTRO_SCENES.map(
+    (scene) => `${t(scene.headline)} ${t(scene.lede)}`,
+  );
   const dialog = useRef<HTMLDialogElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const [reduced, setReduced] = useState(false);
@@ -159,8 +167,14 @@ export function IntroGate({
 
         <div className="intro-gate-copy">
           <span className="eyebrow">{t("Welcome")}</span>
-          <h2 id="intro-title">{t(INTRO_TITLE)}</h2>
-          <p id="intro-lede">{t(INTRO_DESCRIPTION)}</p>
+          <h2 id="intro-title">
+            {t(INTRO_TITLE_KEY, { seconds: INTRO_DURATION_SECONDS })}
+          </h2>
+          <p id="intro-lede">
+            {t(
+              "A source, a question, and a conversation that stays grounded in what you brought.",
+            )}
+          </p>
         </div>
 
         <div className="intro-stage" data-reduced={reduced}>
@@ -175,7 +189,7 @@ export function IntroGate({
               playsInline
               preload="auto"
               controls={reduced || autoplayBlocked}
-              poster={media.poster}
+              poster={sources.poster}
               onTimeUpdate={(event) => {
                 const player = event.currentTarget;
                 if (player.duration)
@@ -185,12 +199,12 @@ export function IntroGate({
               onEnded={finish}
               onError={() => setFailed(true)}
             >
-              <source src={media.webm} type="video/webm" />
-              <source src={media.mp4} type="video/mp4" />
+              <source src={sources.webm} type="video/webm" />
+              <source src={sources.mp4} type="video/mp4" />
               <track
                 kind="captions"
                 srcLang={language}
-                src={media.captions}
+                src={sources.captions}
                 label={language === "fr" ? "Français" : "English"}
               />
             </video>
@@ -198,8 +212,8 @@ export function IntroGate({
             <div className="intro-fallback" role="status">
               <strong>{t("The intro is unavailable right now.")}</strong>
               <ol className="intro-transcript-list">
-                {INTRO_TRANSCRIPT.map((line) => (
-                  <li key={line}>{t(line)}</li>
+                {transcript.map((line) => (
+                  <li key={line}>{line}</li>
                 ))}
               </ol>
             </div>
@@ -232,14 +246,14 @@ export function IntroGate({
           </div>
           <p className="intro-timing">
             {reduced || autoplayBlocked || failed
-              ? t("Skip whenever you like. The app is right behind this.")
-              : t("Continues to the app in {seconds} s", { seconds })}
+              ? t("Skip whenever you like. Ursly is right behind this.")
+              : t("Continues in {seconds} s", { seconds })}
           </p>
           <details className="intro-transcript" open={reduced}>
             <summary>{t("Read the intro instead")}</summary>
             <ol className="intro-transcript-list">
-              {INTRO_TRANSCRIPT.map((line) => (
-                <li key={line}>{t(line)}</li>
+              {transcript.map((line) => (
+                <li key={line}>{line}</li>
               ))}
             </ol>
           </details>

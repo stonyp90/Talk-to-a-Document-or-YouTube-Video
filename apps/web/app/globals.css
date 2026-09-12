@@ -30,9 +30,40 @@
   --motion-fast: 180ms;
   --motion-base: 420ms;
   --motion-slow: 760ms;
+  /* Spacing scale. Every padding, margin and gap in the interface is one of
+     these steps, so the whole surface keeps one rhythm instead of a hundred
+     hand-picked numbers. Add a step here rather than a literal in a rule. */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 6px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 48px;
+  --space-5xl: 64px;
+  --space-6xl: 96px;
+  /* The air between two sections of the story, and between a section's
+     heading and its body: the page breathes on one measure at every width. */
+  --section-y: clamp(56px, 7vw, 104px);
+  --section-gap: clamp(28px, 4vw, 48px);
   --gutter: clamp(16px, 3vw, 40px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+  /* The fixed menu reads as an instrument: paper seen through glass, an
+     aurora along its length, and a lit edge that measures the story. */
+  --nav-glass: #f8f5efd4;
+  /* Floating: how far the panel sits from the top, and how tall it is. Both
+     stay inside --nav-h, so the space the page reserves never changes. */
+  --nav-float: 8px;
+  --nav-float-h: 52px;
+  --nav-glass-strong: #f8f5eff2;
+  --nav-aurora: #f477621f;
+  --nav-edge: #e0d8cd;
+  --nav-glow: #f4776240;
+  --nav-index-ink: #9a94a1;
   /* The fixed menu: one row on wide screens, brand row plus modes row below. */
   --nav-h: 64px;
   --nav-row: 52px;
@@ -181,7 +212,7 @@ a {
 .brand-mark {
   width: 32px;
   height: 32px;
-  margin-right: 9px;
+  margin-right: var(--space-sm);
   border-radius: var(--radius-md);
   transition: transform 420ms var(--ease-spring);
 }
@@ -201,14 +232,14 @@ h2 {
   letter-spacing: -0.025em;
 }
 h3 {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-sm);
   font-size: 22px;
   font-weight: 520;
   letter-spacing: -0.035em;
 }
 .lede {
   max-width: 620px;
-  margin: 9px 0 0;
+  margin: var(--space-sm) 0 0;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.55;
@@ -216,7 +247,7 @@ h3 {
 .eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   color: var(--accent);
   font-size: 10px;
   font-weight: 700;
@@ -234,8 +265,8 @@ h3 {
   flex-shrink: 0;
 }
 .banner {
-  margin: 0 0 12px;
-  padding: 10px 14px;
+  margin: 0 0 var(--space-md);
+  padding: var(--space-md) var(--space-lg);
   border: 1px solid var(--notice-ink);
   border-radius: var(--radius-lg);
   background: var(--notice-wash);
@@ -260,9 +291,9 @@ h3 {
   z-index: 30;
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   max-width: min(360px, calc(100vw - 32px));
-  padding: 10px 10px 10px 14px;
+  padding: var(--space-md) var(--space-md) var(--space-md) var(--space-lg);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-xl);
   background: var(--ink);
@@ -291,17 +322,17 @@ h3 {
 }
 .voice-trigger-builder {
   display: grid;
-  gap: 13px;
+  gap: var(--space-md);
   width: 100%;
   min-width: 0;
-  padding: 15px;
+  padding: var(--space-lg);
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   animation: guide-in 420ms var(--ease-spring) both;
 }
 .voice-trigger-builder-copy h3 {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-2xs);
   font-size: 15px;
   font-weight: 650;
 }
@@ -316,7 +347,7 @@ h3 {
   display: grid;
   grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.3fr) auto;
   align-items: end;
-  gap: 9px;
+  gap: var(--space-sm);
   width: 100%;
   min-width: 0;
 }
@@ -325,7 +356,7 @@ h3 {
 }
 .voice-trigger-field {
   display: grid;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 .voice-trigger-field label {
   font-size: 11px;
@@ -335,7 +366,7 @@ h3 {
 .voice-trigger-field select {
   width: 100%;
   min-height: 40px;
-  padding: 9px 10px;
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -350,7 +381,7 @@ h3 {
 }
 .saved-trigger-list {
   display: grid;
-  gap: 6px;
+  gap: var(--space-xs);
   width: 100%;
   min-width: 0;
 }
@@ -358,11 +389,11 @@ h3 {
   display: grid;
   grid-template-columns: minmax(90px, 0.45fr) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-md);
   width: 100%;
   min-width: 0;
   min-height: 36px;
-  padding: 7px 9px;
+  padding: var(--space-sm) var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface-soft);
@@ -381,14 +412,14 @@ h3 {
 .saved-trigger-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   min-width: max-content;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 .saved-trigger-remove {
   min-height: 28px;
-  padding: 4px 6px;
+  padding: var(--space-2xs) var(--space-xs);
   border: 0;
   color: var(--danger);
   font-size: 10px;
@@ -402,20 +433,20 @@ h3 {
   transform: none;
 }
 .voice-support-note {
-  padding-top: 3px;
+  padding-top: var(--space-2xs);
 }
 .workspace {
   display: grid;
   grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.35fr);
   align-items: stretch;
-  gap: 14px;
+  gap: var(--space-lg);
   min-height: min(650px, calc(100svh - 236px));
   perspective: 1200px;
 }
 .card {
   min-width: 0;
   min-height: 0;
-  padding: 20px;
+  padding: var(--space-xl);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--surface) 94%, transparent);
@@ -436,7 +467,7 @@ h3 {
   flex-direction: column;
 }
 @media (hover: hover) and (min-width: 701px) {
-.card:hover {
+  .card:hover {
     border-color: var(--line-strong);
     box-shadow: 0 14px 36px var(--shadow-md);
     transform: translateY(-2px);
@@ -446,8 +477,8 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 .status-row > * {
   min-width: 0;
@@ -456,7 +487,7 @@ h3 {
 .status {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-sm);
   color: var(--accent);
   font-size: 11px;
   white-space: nowrap;
@@ -498,7 +529,7 @@ h3 {
     transform var(--motion-base) var(--ease-out);
 }
 .conversation-source {
-  margin: -4px 0 12px;
+  margin: -4px 0 var(--space-md);
   color: var(--muted);
   font-size: 12px;
   overflow-wrap: anywhere;
@@ -509,16 +540,16 @@ h3 {
 }
 .source-picker > summary {
   min-height: 34px;
-  padding: 5px 0;
+  padding: var(--space-xs) 0;
   color: var(--accent);
   cursor: pointer;
   font-size: 13px;
 }
 .source-picker[open] > summary {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-md);
 }
 .section-intro {
-  margin: 0 0 13px;
+  margin: 0 0 var(--space-md);
   color: var(--muted);
   font-size: 12px;
   line-height: 1.5;
@@ -526,9 +557,9 @@ h3 {
 .tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 4px;
-  margin-bottom: 12px;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
+  margin-bottom: var(--space-md);
   border-radius: var(--radius-lg);
   background: var(--surface-soft);
 }
@@ -536,9 +567,9 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: var(--space-sm);
   min-height: 40px;
-  padding: 8px 6px;
+  padding: var(--space-sm) var(--space-xs);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--muted);
@@ -557,14 +588,14 @@ h3 {
 }
 .source-grid {
   display: grid;
-  gap: 10px;
+  gap: var(--space-md);
 }
 .dropzone {
   display: flex;
   position: relative;
   flex-direction: column;
   align-items: center;
-  padding: 21px 14px 15px;
+  padding: var(--space-xl) var(--space-lg) var(--space-lg);
   border: 1px dashed var(--violet-line);
   border-radius: var(--radius-xl);
   background: var(--violet-tint-alt);
@@ -591,7 +622,7 @@ h3 {
   place-items: center;
   width: 40px;
   height: 40px;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-md);
   border: 1px solid var(--violet-line);
   border-radius: var(--radius-lg);
   color: var(--accent);
@@ -620,8 +651,8 @@ h3 {
 }
 .field {
   display: grid;
-  gap: 7px;
-  padding-top: 2px;
+  gap: var(--space-sm);
+  padding-top: var(--space-3xs);
 }
 .field label,
 .question-label {
@@ -629,10 +660,11 @@ h3 {
   font-weight: 650;
 }
 .field input,
-.composer input {
+.composer input,
+.composer textarea {
   width: 100%;
   min-width: 0;
-  padding: 11px 12px;
+  padding: var(--space-md) var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -640,7 +672,8 @@ h3 {
   font-size: 14px;
 }
 .field input:focus,
-.composer input:focus {
+.composer input:focus,
+.composer textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--focus-wash);
   outline: none;
@@ -652,50 +685,50 @@ h3 {
   line-height: 1.6;
 }
 .dropzone .hint {
-  margin-top: 5px;
+  margin-top: var(--space-xs);
 }
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: var(--space-sm);
 }
 .source-grid .actions {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 .source-grid .primary {
   width: 100%;
 }
 @media (min-width: 781px) {
-.source-card {
+  .source-card {
     display: flex;
     flex-direction: column;
   }
-.source-picker[open] {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-height: 0;
-  }
-.source-picker[open]::details-content {
+  .source-picker[open] {
     display: flex;
     flex: 1;
     flex-direction: column;
     min-height: 0;
   }
-.source-picker[open] .source-controls {
+  .source-picker[open]::details-content {
     display: flex;
     flex: 1;
     flex-direction: column;
     min-height: 0;
   }
-.source-picker[open] .source-grid {
+  .source-picker[open] .source-controls {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .source-picker[open] .source-grid {
     display: flex;
     flex: 1;
     flex-direction: column;
   }
-.source-picker[open] .source-grid .actions {
+  .source-picker[open] .source-grid .actions {
     margin-top: auto;
-    padding-top: 18px;
+    padding-top: var(--space-xl);
   }
 }
 .primary,
@@ -704,9 +737,9 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: var(--space-sm);
   min-height: 40px;
-  padding: 9px 13px;
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-md);
   font-size: 12px;
@@ -734,9 +767,9 @@ h3 {
 .source-ready {
   display: flex;
   align-items: center;
-  gap: 11px;
-  margin: 0 0 12px;
-  padding: 11px 12px;
+  gap: var(--space-md);
+  margin: 0 0 var(--space-md);
+  padding: var(--space-md) var(--space-md);
   border: 1px solid var(--violet-line);
   border-radius: var(--radius-lg);
   background: var(--violet-tint);
@@ -755,16 +788,16 @@ h3 {
   font-size: 12px;
 }
 .source-ready span {
-  margin-top: 3px;
+  margin-top: var(--space-2xs);
   color: var(--muted);
   font-size: 10px;
 }
 .source-next-step {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: var(--space-md);
   margin-top: auto;
-  padding: 14px 0 2px;
+  padding: var(--space-lg) 0 var(--space-3xs);
   border-top: 1px solid var(--line);
 }
 .source-next-step-number {
@@ -792,13 +825,13 @@ h3 {
   font-size: 12px;
 }
 .source-next-step span {
-  margin-top: 3px;
+  margin-top: var(--space-2xs);
   color: var(--muted);
   font-size: 11px;
   line-height: 1.45;
 }
 .error {
-  padding: 10px 12px;
+  padding: var(--space-md) var(--space-md);
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-md);
   background: var(--accent-wash-soft);
@@ -807,8 +840,8 @@ h3 {
   line-height: 1.5;
 }
 .preview {
-  margin-top: 13px;
-  padding-top: 11px;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
   border-top: 1px solid var(--line);
 }
 .preview summary {
@@ -819,7 +852,7 @@ h3 {
 }
 .preview-text {
   max-height: 210px;
-  margin-top: 9px;
+  margin-top: var(--space-sm);
   overflow: auto;
   color: var(--muted);
   font-size: 11px;
@@ -831,8 +864,8 @@ h3 {
 .progress {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-top: 10px;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
 }
 .progress-track {
   height: 5px;
@@ -848,15 +881,15 @@ h3 {
   transition: width 200ms ease-out;
 }
 .context-note {
-  margin-top: 9px;
-  padding: 9px 11px;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--violet-line);
   border-radius: var(--radius-md);
   background: var(--violet-tint-alt);
 }
 .voice-panel {
-  margin: 0 0 10px;
-  padding: 11px;
+  margin: 0 0 var(--space-md);
+  padding: var(--space-md);
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-lg);
   background: var(--accent-wash-soft);
@@ -873,7 +906,7 @@ h3 {
   margin-top: 0;
 }
 .voice-panel .voice-controls {
-  gap: 7px;
+  gap: var(--space-sm);
   margin: 0;
 }
 .voice-panel .voice-start {
@@ -882,20 +915,20 @@ h3 {
 }
 .voice-controls .secondary,
 .voice-controls .danger {
-  padding-inline: 11px;
+  padding-inline: var(--space-md);
   font-size: 11px;
 }
 .voice-hint {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
 }
 .chat {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-md);
   min-height: 170px;
   max-height: none;
-  padding: 4px 2px;
+  padding: var(--space-2xs) var(--space-3xs);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -907,11 +940,11 @@ h3 {
   align-items: center;
   justify-content: center;
   min-height: 170px;
-  padding: 16px 10px;
+  padding: var(--space-lg) var(--space-md);
   text-align: center;
 }
 .empty-chat h3 {
-  margin: 8px 0 7px;
+  margin: var(--space-sm) 0 var(--space-sm);
   font-family: Georgia, serif;
   font-size: clamp(22px, 3vw, 30px);
   font-weight: 400;
@@ -925,7 +958,7 @@ h3 {
   place-items: center;
   width: 55px;
   height: 55px;
-  margin-bottom: 7px;
+  margin-bottom: var(--space-sm);
   border: 1px solid var(--violet-line);
   border-radius: 50%;
   background: radial-gradient(circle, var(--accent-wash), transparent);
@@ -951,10 +984,10 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-sm);
   width: 100%;
   max-width: 620px;
-  margin-top: 9px;
+  margin-top: var(--space-sm);
 }
 .command-rail {
   flex-wrap: wrap;
@@ -962,8 +995,8 @@ h3 {
 .command-rail span {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 8px 10px;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--accent-border-wash);
   border-radius: var(--radius-xl);
   background: var(--surface);
@@ -990,15 +1023,15 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px;
-  margin-top: 13px;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
 }
 .suggestion {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-sm);
   min-height: 34px;
-  padding: 7px 9px;
+  padding: var(--space-sm) var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   color: var(--muted);
@@ -1017,7 +1050,7 @@ h3 {
 }
 .message {
   max-width: 90%;
-  padding: 10px 12px;
+  padding: var(--space-md) var(--space-md);
   border-radius: var(--radius-lg);
   font-size: 13px;
   line-height: 1.6;
@@ -1040,7 +1073,7 @@ h3 {
 }
 .message-author {
   display: block;
-  margin-bottom: 3px;
+  margin-bottom: var(--space-2xs);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -1049,8 +1082,8 @@ h3 {
 .answer-pending {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 6px 0 0;
+  gap: var(--space-sm);
+  margin: var(--space-xs) 0 0;
   color: var(--muted);
   font-size: 11px;
 }
@@ -1066,31 +1099,30 @@ h3 {
 }
 .question-label {
   display: block;
-  margin-top: 10px;
+  margin-top: var(--space-md);
 }
 .composer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 7px;
-  margin-top: 7px;
-  padding-top: 11px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-md);
   border-top: 1px solid var(--line);
 }
 .composer .secondary {
   min-width: 70px;
 }
 .answer-note {
-  margin-top: 7px;
+  margin-top: var(--space-sm);
 }
 .how-it-works {
-  margin-top: 34px;
-  padding: 42px 0 18px;
+  padding: var(--section-y) 0 0;
   border-top: 1px solid var(--line);
   scroll-margin-top: calc(var(--nav-h) + var(--safe-top) + var(--nav-gap));
   animation: rise-in 680ms var(--ease-out) 520ms both;
 }
 .guide-heading h2 {
-  margin: 11px 0 22px;
+  margin: var(--space-md) 0 var(--space-2xl);
   font-family: Georgia, serif;
   font-size: 31px;
   font-weight: 400;
@@ -1099,11 +1131,11 @@ h3 {
 .guide-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  gap: var(--space-2xl);
 }
 .guide-grid article {
   min-height: 176px;
-  padding: 18px;
+  padding: var(--space-xl);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--surface) 82%, var(--violet-tint));
@@ -1120,7 +1152,7 @@ h3 {
   font-size: 10px;
 }
 .guide-grid h3 {
-  margin: 10px 0 6px;
+  margin: var(--space-md) 0 var(--space-xs);
   font-size: 16px;
   font-weight: 650;
 }
@@ -1132,8 +1164,8 @@ h3 {
   line-height: 1.65;
 }
 .help-detail {
-  margin-top: 24px;
-  padding: 15px 0;
+  margin-top: var(--space-2xl);
+  padding: var(--space-lg) 0;
   border-block: 1px solid var(--line);
 }
 .help-detail summary {
@@ -1142,13 +1174,13 @@ h3 {
 }
 .help-detail p {
   max-width: 760px;
-  margin-top: 10px;
+  margin-top: var(--space-md);
 }
 .footer {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  padding: 18px 0 8px;
+  gap: var(--space-lg);
+  padding: var(--section-gap) 0 var(--space-2xl);
   color: var(--muted);
   font-size: 11px;
 }
@@ -1160,7 +1192,7 @@ h3 {
   top: -100px;
   left: 16px;
   z-index: 60;
-  padding: 12px 16px;
+  padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-md);
   background: var(--ink);
   color: var(--paper);
@@ -1256,106 +1288,107 @@ h3 {
   }
 }
 @media (max-width: 900px) {
-.workspace {
+  .workspace {
     grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
   }
-.voice-trigger-form {
+  .voice-trigger-form {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
   }
-.voice-trigger-form .primary {
+  .voice-trigger-form .primary {
     grid-column: 1 / -1;
     width: 100%;
   }
 }
 @media (max-width: 700px) {
-.shell {
+  .shell {
     /* The container already owns the mobile gutter; avoid doubling it. */
     padding-inline: 0;
     padding-bottom: calc(112px + var(--safe-bottom));
   }
-.brand {
+  .brand {
     font-size: 23px;
   }
-.brand-mark {
+  .brand-mark {
     width: 29px;
     height: 29px;
-    margin-right: 7px;
+    margin-right: var(--space-sm);
   }
-.lede {
+  .lede {
     font-size: 13px;
   }
-.voice-trigger-form {
+  .voice-trigger-form {
     grid-template-columns: 1fr;
   }
-.voice-trigger-form .primary {
+  .voice-trigger-form .primary {
     width: 100%;
   }
-.saved-trigger {
+  .saved-trigger {
     grid-template-columns: minmax(0, 1fr);
   }
-.saved-trigger-action {
+  .saved-trigger-action {
     grid-column: 1;
   }
-.saved-trigger-actions {
+  .saved-trigger-actions {
     min-width: 0;
     grid-column: 1;
     grid-row: auto;
     justify-content: flex-start;
   }
-.workspace {
+  .workspace {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: var(--space-md);
     min-height: auto;
   }
-.card {
-    padding: 16px;
+  .card {
+    padding: var(--space-lg);
     border-radius: var(--radius-xl);
   }
-.conversation-card {
+  .conversation-card {
     min-height: 480px;
   }
-.chat {
+  .chat {
     max-height: 55svh;
   }
-.primary,
+  .primary,
   .secondary,
   .danger,
   .tab,
   .suggestion {
     min-height: 42px;
   }
-.field input,
-  .composer input {
+  .field input,
+  .composer input,
+  .composer textarea {
     font-size: 16px;
   }
-.guide-grid {
+  .guide-grid {
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: var(--space-xl);
   }
-.guide-grid article {
+  .guide-grid article {
     display: grid;
     grid-template-columns: 30px 1fr;
-    column-gap: 10px;
+    column-gap: var(--space-md);
   }
-.guide-number {
+  .guide-number {
     grid-row: span 2;
   }
-.guide-grid h3 {
-    margin-top: 2px;
+  .guide-grid h3 {
+    margin-top: var(--space-3xs);
   }
-.guide-grid p {
+  .guide-grid p {
     grid-column: 2;
   }
-.guide-heading h2 {
+  .guide-heading h2 {
     font-size: 27px;
   }
-.footer {
+  .footer {
     flex-direction: column;
-    gap: 7px;
+    gap: var(--space-sm);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-*,
+  *,
   *::before,
   *::after {
     animation: none !important;
@@ -1367,9 +1400,11 @@ h3 {
 /* ---------------------------------------------------------------------------
  * Fixed top menu
  *
- * Brand, the control modes, the platform story, the intro replay and the
- * language: five things, always one tap away, on an opaque bar so the content
- * passing underneath never competes with it.
+ * Brand, the control modes, the story index, the intro replay, the way
+ * between the two pages and the language. It is not a row of links: it is the
+ * instrument the page is read through. Paper seen through glass, an aurora
+ * along its length, numbered anchors, a speaking mark on the way in, and a
+ * lit edge that measures how much of the story is behind the reader.
  * ------------------------------------------------------------------------- */
 .nav {
   position: fixed;
@@ -1378,14 +1413,96 @@ h3 {
   left: 0;
   z-index: 40;
   padding-top: var(--safe-top);
-  border-bottom: 1px solid var(--line);
-  background: var(--paper);
-  transition: box-shadow var(--motion-fast) ease;
+  border-bottom: 1px solid var(--nav-edge);
+  background: var(--nav-glass);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  transition:
+    box-shadow var(--motion-fast) ease,
+    background var(--motion-base) var(--ease-out);
 }
+/* The same light the page carries, held still along the bar. */
+.nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    var(--nav-aurora) 42%,
+    transparent 78%
+  );
+}
+/* Once the reader has left the top, the glass thickens so the story passing
+   underneath never competes with the bar. */
 .nav[data-scrolled="true"] {
+  background: var(--nav-glass-strong);
   box-shadow: 0 10px 28px var(--shadow-sm);
 }
+/* How much of the story is behind the reader, drawn along the lit edge. */
+.nav-progress {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  transform: scaleX(var(--nav-progress, 0));
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--accent), var(--accent-glow));
+  box-shadow: 0 0 12px var(--nav-glow);
+  transition: transform 120ms linear;
+}
+/* The application is not a story, so it has no length to measure. */
+.nav[data-page="app"] .nav-progress {
+  display: none;
+}
+/* Only the floating bar needs a scrim; against the edge there is nothing to
+   scroll past it. */
+.nav-scrim {
+  display: none;
+}
+/* Where there is room, the bar leaves the edge of the screen and floats: a
+   panel over the page rather than a lid on it. It stays inside the height the
+   layout already reserves for it, so nothing below has to move. */
+@media (min-width: 961px) {
+  .nav {
+    top: calc(var(--safe-top) + var(--nav-float));
+    /* The panel keeps the page's own measure, so its edge and the text
+       below it answer to the same margin. */
+    right: var(--gutter);
+    left: var(--gutter);
+    padding-top: 0;
+    border: 1px solid var(--nav-edge);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 18px 40px var(--shadow-sm);
+    /* So the lit edge and the aurora end where the corners do. */
+    overflow: hidden;
+  }
+  .nav[data-scrolled="true"] {
+    box-shadow: 0 22px 48px var(--shadow-md);
+  }
+  .nav-inner {
+    height: var(--nav-float-h);
+    padding-inline: var(--space-xl);
+  }
+  .nav-progress {
+    bottom: 0;
+  }
+  .nav-scrim {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 39;
+    height: calc(var(--safe-top) + var(--nav-h));
+    background: linear-gradient(to bottom, var(--paper) 58%, transparent);
+    pointer-events: none;
+  }
+}
 .nav-inner {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -1400,22 +1517,24 @@ h3 {
   width: 30px;
   height: 30px;
 }
-.nav-modes {
+.nav-modes,
+.nav-sections {
   display: flex;
+  gap: var(--space-2xs);
   justify-content: center;
   min-width: 0;
 }
 .nav-actions {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 .nav-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   min-height: 38px;
-  padding: 8px 12px;
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid transparent;
   border-radius: var(--radius-xl);
   color: var(--ink);
@@ -1430,19 +1549,107 @@ h3 {
   box-shadow: none;
   transform: none;
 }
+/* The section that owns the viewport is lit along its lower edge, the way a
+   selected channel is lit on an instrument. */
 .nav-link[aria-current="location"] {
-  border-color: var(--accent-border);
+  border-color: var(--accent-border-wash);
   background: var(--accent-wash-soft);
+  box-shadow: inset 0 -2px 0 var(--accent);
+  color: var(--accent);
+}
+.nav-section-link {
+  gap: var(--space-sm);
+}
+/* Each anchor wears its number, so the bar reads as an index of the story. */
+.nav-index {
+  color: var(--nav-index-ink);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  transition: color var(--motion-fast) ease;
+}
+.nav-link:hover .nav-index,
+.nav-link[aria-current="location"] .nav-index {
   color: var(--accent);
 }
 .nav-intro .icon {
   width: 14px;
   height: 14px;
 }
+/* A speaking mark on the way between the two pages: a core and two rings
+   leaving it, the shape of a voice rather than an arrow. It borrows the
+   colour it stands on, so it reads on the accent button and on the bar. */
+.nav-orb {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+}
+.nav-orb-core {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.nav-orb::before,
+.nav-orb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  /* The state the rings settle into, and the one a reader who asked for no
+     motion is left with: two quiet rings around the core. Decorative motion
+     on this page announces itself and stops; only a hover asks for more. */
+  opacity: 0.34;
+  transform: scale(0.98);
+  animation: nav-orb-pulse 1800ms var(--ease-out) 2;
+}
+.nav-orb::after {
+  transform: scale(0.62);
+  animation-delay: 900ms;
+}
+.nav-cta:hover .nav-orb::before,
+.nav-cta:focus-visible .nav-orb::before,
+.nav-cta:hover .nav-orb::after,
+.nav-cta:focus-visible .nav-orb::after {
+  animation-iteration-count: infinite;
+}
+@keyframes nav-orb-pulse {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.4);
+  }
+  70% {
+    opacity: 0.12;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+/* The way between the story and the app: sized like the rest of the bar,
+   weighted by whichever of .primary or .nav-link it is worn over. */
+.nav-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 38px;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nav-cta-short {
+  display: none;
+}
 .nav-languages {
   display: inline-flex;
-  margin-left: 4px;
-  padding: 3px;
+  margin-left: var(--space-2xs);
+  padding: var(--space-2xs);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-xl);
   background: var(--surface);
@@ -1460,17 +1667,18 @@ h3 {
   text-decoration: none;
 }
 .nav-language[aria-current="true"] {
-  box-shadow: inset 0 0 0 1px var(--ink);
-  color: var(--ink);
+  background: var(--accent-wash-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+  color: var(--accent);
 }
 
 /* The mode switcher: a radio group that looks like a segmented control. */
 .modes {
   position: relative;
   display: inline-flex;
-  gap: 4px;
+  gap: var(--space-2xs);
   max-width: 100%;
-  padding: 4px;
+  padding: var(--space-2xs);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-xl);
   background: var(--surface);
@@ -1478,9 +1686,9 @@ h3 {
 .mode {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-sm);
   min-height: 38px;
-  padding: 6px 12px;
+  padding: var(--space-xs) var(--space-md);
   border: 1px solid transparent;
   border-radius: var(--radius-xl);
   color: var(--muted);
@@ -1496,7 +1704,7 @@ h3 {
   display: none;
 }
 .mode-detail {
-  padding: 2px 6px;
+  padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--radius-xl);
   background: var(--surface-soft);
   color: var(--badge-ink);
@@ -1569,9 +1777,9 @@ h3 {
   top: calc(100% + 10px);
   left: 50%;
   z-index: 50;
-  width: var(--tooltip-width);
-  margin-left: calc(var(--tooltip-width) / -2);
-  padding: 10px 12px;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: var(--space-md) var(--space-md);
   border-radius: var(--radius-md);
   background: var(--ink);
   color: var(--paper);
@@ -1624,22 +1832,23 @@ h3 {
 .intro-gate-inner {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  gap: 14px;
+  gap: var(--space-lg);
   height: 100%;
   max-width: 1120px;
   margin: 0 auto;
-  padding: calc(12px + var(--safe-top)) var(--gutter) calc(16px + var(--safe-bottom));
+  padding: calc(12px + var(--safe-top)) var(--gutter)
+    calc(16px + var(--safe-bottom));
 }
 .intro-gate-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
 }
 .intro-gate-brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   font-size: 22px;
   font-weight: 720;
   letter-spacing: -1.2px;
@@ -1650,9 +1859,9 @@ h3 {
 .intro-skip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   min-height: 44px;
-  padding: 10px 16px;
+  padding: var(--space-md) var(--space-lg);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-xl);
   background: var(--surface);
@@ -1664,7 +1873,7 @@ h3 {
   height: 14px;
 }
 .intro-gate-copy h2 {
-  margin: 8px 0 6px;
+  margin: var(--space-sm) 0 var(--space-xs);
   font-family: Georgia, serif;
   font-size: clamp(24px, 3.4vw, 36px);
   font-weight: 400;
@@ -1697,14 +1906,14 @@ h3 {
 .intro-play {
   position: absolute;
   min-height: 48px;
-  padding-inline: 20px;
+  padding-inline: var(--space-xl);
   border-radius: var(--radius-lg);
   background: var(--paper);
   box-shadow: 0 12px 30px var(--shadow-lg);
 }
 .intro-fallback {
   width: 100%;
-  padding: 24px;
+  padding: var(--space-2xl);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   background: var(--surface);
@@ -1713,12 +1922,12 @@ h3 {
 }
 .intro-fallback strong {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
   color: var(--ink);
 }
 .intro-gate-footer {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 .intro-progress {
   height: 4px;
@@ -1749,11 +1958,11 @@ h3 {
   font-weight: 650;
 }
 .intro-transcript-list {
-  margin: 8px 0 0;
-  padding-left: 18px;
+  margin: var(--space-sm) 0 0;
+  padding-left: var(--space-xl);
 }
 .intro-transcript-list li + li {
-  margin-top: 3px;
+  margin-top: var(--space-2xs);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1763,8 +1972,8 @@ h3 {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24px;
-  padding: 26px 0 18px;
+  gap: var(--space-2xl);
+  padding: var(--space-2xl) 0 var(--space-xl);
   animation: rise-in var(--motion-slow) var(--ease-out) both;
 }
 .workspace-heading-copy {
@@ -1782,15 +1991,15 @@ h3 {
 }
 .workspace-heading .lede {
   max-width: 640px;
-  margin-top: 8px;
+  margin-top: var(--space-sm);
   font-size: 14px;
 }
 .progress-steps {
   display: inline-flex;
   flex-shrink: 0;
-  gap: 6px;
+  gap: var(--space-xs);
   margin: 0;
-  padding: 4px;
+  padding: var(--space-2xs);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   background: var(--surface);
@@ -1799,9 +2008,9 @@ h3 {
 .progress-steps li {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   min-height: 32px;
-  padding: 4px 12px 4px 5px;
+  padding: var(--space-2xs) var(--space-md) var(--space-2xs) var(--space-xs);
   border-radius: var(--radius-xl);
   color: var(--muted);
   font-size: 12px;
@@ -1843,10 +2052,23 @@ h3 {
   display: none;
 }
 .hero {
-  padding: 32px 0;
+  padding: var(--section-gap) 0;
+}
+/* The first thing a reader meets is given the most air of anything. */
+.landing-hero {
+  padding: calc(var(--section-gap) + var(--space-md)) 0 var(--section-y);
+}
+.landing-hero .lede {
+  max-width: 640px;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-top: var(--space-2xl);
 }
 .hero h1 {
-  margin: 10px 0;
+  margin: var(--space-md) 0;
   font-size: clamp(2rem, 5vw, 3rem);
   line-height: 1.05;
   letter-spacing: -0.05em;
@@ -1855,9 +2077,9 @@ h3 {
 /* Voice to action, inside the source card: one microphone, one line of words. */
 .voice-commands {
   display: grid;
-  gap: 12px;
-  margin: 0 0 16px;
-  padding: 14px;
+  gap: var(--space-md);
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-lg);
   border: 1px solid var(--accent-border-wash);
   border-radius: var(--radius-xl);
   background:
@@ -1867,16 +2089,16 @@ h3 {
 .voice-commands-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-lg);
 }
 .voice-mic {
   display: inline-flex;
   position: relative;
   flex: 0 0 auto;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-md);
   min-height: 48px;
-  padding: 6px 18px 6px 6px;
+  padding: var(--space-xs) var(--space-xl) var(--space-xs) var(--space-xs);
   border: 1.5px solid var(--accent);
   border-radius: var(--radius-lg);
   background: transparent;
@@ -1888,7 +2110,7 @@ h3 {
   display: grid;
   width: 36px;
   height: 36px;
-  padding: 9px;
+  padding: var(--space-sm);
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-sm);
 }
@@ -1919,7 +2141,7 @@ h3 {
   font-size: 13px;
 }
 .voice-commands-status span {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
@@ -1928,11 +2150,11 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   width: 100%;
 }
 .voice-example-say {
-  margin-right: 4px;
+  margin-right: var(--space-2xs);
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
@@ -1941,7 +2163,7 @@ h3 {
 }
 .voice-example {
   min-height: 32px;
-  padding: 6px 11px;
+  padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--accent-border-wash);
   border-radius: var(--radius-xl);
   background: var(--surface);
@@ -1964,7 +2186,7 @@ h3 {
   font-weight: 650;
 }
 .voice-customize[open] > summary {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-md);
 }
 .voice-heard {
   margin: 0;
@@ -2098,8 +2320,8 @@ h3 {
 
 /* The dropzone is a real target, with a button for people who prefer one. */
 .dropzone {
-  gap: 4px;
-  padding: 26px 16px 20px;
+  gap: var(--space-2xs);
+  padding: var(--space-2xl) var(--space-lg) var(--space-xl);
   border-width: 1.5px;
 }
 .dropzone[data-dragging="true"] {
@@ -2117,21 +2339,21 @@ h3 {
   color: var(--success);
 }
 .dropzone-button {
-  margin-top: 12px;
+  margin-top: var(--space-md);
   pointer-events: none;
 }
 
 /* The orb is the stage of the conversation card. */
 .empty-chat {
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 .empty-chat h3 {
-  margin-top: 16px;
+  margin-top: var(--space-lg);
 }
 .voice-orbit {
   width: 96px;
   height: 96px;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-2xs);
   border-color: var(--accent-border-wash);
   background:
     radial-gradient(circle at 35% 30%, var(--accent-wash), transparent 60%),
@@ -2164,15 +2386,14 @@ h3 {
  * Platform: the static story behind the product.
  * ------------------------------------------------------------------------- */
 .platform {
-  margin-top: 40px;
-  padding: 44px 0 26px;
+  padding: var(--section-y) 0 0;
   border-top: 1px solid var(--line);
   scroll-margin-top: calc(var(--nav-h) + var(--safe-top) + var(--nav-gap));
 }
 .platform-heading h2 {
   max-width: 820px;
   text-wrap: balance;
-  margin: 10px 0 12px;
+  margin: var(--space-md) 0 var(--space-md);
   font-family: Georgia, serif;
   font-size: clamp(28px, 4vw, 42px);
   font-weight: 400;
@@ -2189,11 +2410,11 @@ h3 {
 .platform-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  margin-top: 28px;
+  gap: var(--space-lg);
+  margin-top: var(--space-3xl);
 }
 .platform-card {
-  padding: 20px;
+  padding: var(--space-xl);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--surface) 86%, var(--violet-tint));
@@ -2209,7 +2430,7 @@ h3 {
   color: var(--accent);
 }
 .platform-card h3 {
-  margin: 12px 0 6px;
+  margin: var(--space-md) 0 var(--space-xs);
   font-size: 17px;
   font-weight: 650;
   letter-spacing: -0.02em;
@@ -2223,16 +2444,16 @@ h3 {
 .roadmap {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  margin: 28px 0 0;
+  gap: var(--space-md);
+  margin: var(--space-3xl) 0 0;
   padding: 0;
   list-style: none;
 }
 .roadmap-item {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   align-content: start;
-  padding: 16px;
+  padding: var(--space-lg);
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius-xl);
 }
@@ -2244,7 +2465,7 @@ h3 {
 .roadmap-stage {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   color: var(--accent);
   font-size: 10px;
   font-weight: 700;
@@ -2272,7 +2493,7 @@ h3 {
 .roadmap-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   width: fit-content;
   color: var(--accent);
   font-size: 12px;
@@ -2289,7 +2510,7 @@ h3 {
 }
 .roadmap-note {
   max-width: 760px;
-  margin: 12px 0 0;
+  margin: var(--space-md) 0 0;
   color: var(--muted);
   font-size: 12px;
   line-height: 1.55;
@@ -2297,9 +2518,9 @@ h3 {
 .platform-proof {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 18px;
-  margin-top: 22px;
-  padding-top: 16px;
+  gap: var(--space-sm) var(--space-xl);
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
   border-top: 1px solid var(--line);
   font-size: 12px;
 }
@@ -2317,17 +2538,117 @@ h3 {
   transform: none;
 }
 .platform-closing {
-  margin: 26px 0 0;
+  margin: var(--space-2xl) 0 0;
   font-family: Georgia, serif;
   font-size: clamp(20px, 2.6vw, 27px);
   letter-spacing: -0.03em;
 }
 .footer-links {
   display: inline-flex;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+}
+
+/* The story anchors carry their full label where the bar is wide and a short
+   one where it is not. The accessible name is the section's real name at
+   every width, so the menu reads the same to a screen reader as to an eye. */
+.nav-section-short {
+  display: none;
+}
+
+/* A line under the hero that says what this page is, and where the app is. */
+.hero-note {
+  max-width: 620px;
+  margin: var(--space-lg) 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* The way into the app at the end of the guide, and at the end of the story. */
+.guide-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-2xl) 0 0;
+}
+.guide-action-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+.platform-way-in {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.platform-way-in .icon {
+  width: 13px;
+  height: 13px;
+}
+.invitation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xl);
+  margin: var(--section-y) 0 var(--space-sm);
+  padding: var(--space-2xl) var(--gutter);
+  border: 1px solid var(--accent-border-wash);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 0% 0%, var(--accent-wash), transparent 60%),
+    var(--accent-wash-soft);
+}
+.invitation-copy {
+  max-width: 560px;
+}
+.invitation-copy h2 {
+  margin: var(--space-sm) 0 0;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  letter-spacing: -0.035em;
+}
+.invitation-copy p {
+  margin: var(--space-sm) 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.invitation-action {
+  flex: none;
 }
 
 @media (max-width: 960px) {
+  /* Below this width the bar is a two-row grid whose height feeds the body
+     padding, the scroll padding and every scroll margin. Both pages fill the
+     second row — the app page with its control modes, the landing page with
+     the story index — so a page carrying neither must be told the bar is one
+     row tall: redefining the variable fixes all four consumers at once. Where
+     :has() is unsupported the cost is extra padding, never a broken page. */
+  :root:not(:has(.nav-modes)) {
+    --nav-h-mobile: var(--nav-row);
+  }
+  /* Only the application has a second row to fill. On the story the index
+     shares the single row with the brand and the way in, which is why the
+     bar there is held to one row's height at every phone size. */
+  .nav[data-page="landing"] .nav-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  /* Never squeezed to a clipped label: where the row runs out the anchors
+     yield whole, at the widths below. */
+  .nav[data-page="landing"] .nav-sections {
+    flex: none;
+  }
+  /* The speaking mark is the panel's flourish. On a phone row every pixel is
+     spoken for, so the way in keeps its word and drops the mark. */
+  .nav-cta .nav-orb {
+    display: none;
+  }
+  .nav[data-page="landing"] .nav-actions {
+    margin-left: auto;
+  }
   body {
     padding-top: calc(var(--nav-h-mobile) + var(--safe-top));
   }
@@ -2336,7 +2657,8 @@ h3 {
   }
   .workspace,
   .platform,
-  .how-it-works {
+  .how-it-works,
+  .invitation {
     scroll-margin-top: calc(var(--nav-h-mobile) + var(--safe-top) + 12px);
   }
   .nav-inner {
@@ -2346,7 +2668,7 @@ h3 {
     grid-template-columns: auto 1fr;
     height: var(--nav-h-mobile);
     row-gap: 0;
-    column-gap: 8px;
+    column-gap: var(--space-sm);
   }
   .nav .brand {
     grid-area: brand;
@@ -2355,33 +2677,66 @@ h3 {
   .nav .brand-mark {
     width: 26px;
     height: 26px;
-    margin-right: 6px;
+    margin-right: var(--space-xs);
   }
   .nav-actions {
     grid-area: actions;
     justify-self: end;
-    gap: 4px;
+    gap: var(--space-2xs);
   }
   .nav-link {
     min-height: 36px;
-    padding: 6px 9px;
+    padding: var(--space-xs) var(--space-sm);
     font-size: 11px;
   }
-  .nav-intro-label {
+  .nav-cta {
+    min-height: 36px;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 11px;
+  }
+  .nav-cta-full {
     display: none;
   }
-  .nav-intro {
+  .nav-cta-short {
+    display: inline;
+  }
+  .nav-section-full {
+    display: none;
+  }
+  .nav-section-short {
+    display: inline;
+  }
+  .nav-intro-label,
+  .nav-download-label {
+    display: none;
+  }
+  .nav-intro,
+  .nav-download {
     width: 36px;
     justify-content: center;
-    padding: 6px;
+    padding: var(--space-xs);
+  }
+  /* A menu anchored to the right edge of a narrow screen must not push the
+     page sideways, so it spans the gutter instead of hanging off it. */
+  .nav-download-menu {
+    right: 0;
+    left: auto;
+    max-width: calc(100vw - var(--gutter) * 2);
   }
   .nav-languages {
-    margin-left: 2px;
+    margin-left: var(--space-3xs);
   }
   .nav-language {
     min-width: 30px;
     min-height: 28px;
     font-size: 10px;
+  }
+  .nav-sections {
+    grid-area: modes;
+    align-self: start;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
   .nav-modes {
     grid-area: modes;
@@ -2392,7 +2747,7 @@ h3 {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
-    padding: 3px;
+    padding: var(--space-2xs);
     border-radius: var(--radius-lg);
   }
   /* A third of a phone is not wide enough for a word and a badge side by
@@ -2403,10 +2758,11 @@ h3 {
     align-items: center;
     align-content: center;
     justify-content: center;
-    gap: 5px;
+    column-gap: var(--space-xs);
+    /* The badge sits directly under the label it belongs to. */
     row-gap: 1px;
     min-height: 44px;
-    padding: 4px 6px;
+    padding: var(--space-2xs) var(--space-xs);
     border-radius: var(--radius-md);
     font-size: 11px;
     text-align: center;
@@ -2430,7 +2786,7 @@ h3 {
     display: inline;
   }
   .mode-detail {
-    padding: 1px 4px;
+    padding: var(--space-3xs) var(--space-2xs);
     font-size: 7.5px;
     letter-spacing: 0.04em;
   }
@@ -2440,8 +2796,8 @@ h3 {
   .workspace-heading {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
-    padding: 16px 0 12px;
+    gap: var(--space-md);
+    padding: var(--space-lg) 0 var(--space-md);
   }
   .workspace-heading h1 {
     font-size: 1.7rem;
@@ -2462,7 +2818,7 @@ h3 {
   .intro-gate-inner {
     grid-template-rows: auto auto auto 1fr;
     align-content: start;
-    gap: 12px;
+    gap: var(--space-md);
   }
   .intro-stage {
     align-self: start;
@@ -2478,22 +2834,22 @@ h3 {
     border-radius: var(--radius-lg);
   }
   .voice-commands {
-    padding: 10px;
+    padding: var(--space-md);
   }
   .voice-commands-arm {
     width: 100%;
   }
   .platform {
-    margin-top: 28px;
-    padding-top: 32px;
+    margin-top: var(--space-3xl);
+    padding-top: var(--space-3xl);
   }
   .platform-grid,
   .roadmap {
-    gap: 10px;
+    gap: var(--space-md);
   }
   .footer-links {
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-xs);
   }
 }
 
@@ -2501,9 +2857,9 @@ h3 {
 .voice-learning {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: -4px 0 10px;
-  padding: 8px 10px;
+  gap: var(--space-md);
+  margin: -4px 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--violet-line);
   border-radius: var(--radius-md);
   background: var(--violet-tint-alt);
@@ -2531,8 +2887,467 @@ h3 {
   font-size: 11px;
 }
 .voice-learning small {
-  margin-top: 1px;
+  margin-top: var(--space-3xs);
   color: var(--muted);
   font-size: 10px;
   line-height: 1.4;
+}
+
+/* ── A conversation, not a form ──────────────────────────────────────────── */
+
+/* An answer arrives as prose, lists and code. Rendering the marks instead of
+   printing them is the difference between reading and decoding. */
+.markdown > *:first-child {
+  margin-top: 0;
+}
+.markdown > *:last-child {
+  margin-bottom: 0;
+}
+.markdown p {
+  margin: 0 0 9px;
+}
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 14px 0 6px;
+  font-family: Georgia, serif;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.markdown ul,
+.markdown ol {
+  margin: 0 0 9px;
+  padding-left: 20px;
+}
+.markdown li {
+  margin-bottom: 4px;
+}
+.markdown li::marker {
+  color: var(--accent);
+}
+.markdown code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--surface-soft);
+  font-size: 0.92em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.markdown pre {
+  margin: 0 0 9px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+.markdown pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.markdown a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Markdown owns its own spacing, so the message must not also preserve the
+   newlines the parser has already read. */
+.message-text.rendered {
+  white-space: normal;
+}
+
+/* A caret while the words are still arriving: the answer is being written, not
+   stalled. It follows the last character rather than sitting on its own line. */
+.message[data-streaming="true"] .message-text::after {
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 2px;
+  transform: translateY(2px);
+  background: var(--accent);
+  content: "";
+  animation: caret 1s steps(2, start) infinite;
+}
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Message actions stay out of the way until the message is under the pointer
+   or holds focus, and stay permanently visible to a touch or keyboard reader. */
+.message-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity var(--motion-fast) ease;
+}
+.message:hover .message-actions,
+.message:focus-within .message-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .message-actions {
+    opacity: 1;
+  }
+}
+.message-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+.message-action:not(:disabled):hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.message-action .icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* Reading back through a conversation should not mean losing the live answer. */
+.chat-anchor {
+  position: relative;
+}
+.chat-jump {
+  display: inline-flex;
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+  box-shadow: 0 6px 20px var(--shadow-md);
+  animation: rise-in var(--motion-fast) var(--ease-out) both;
+}
+
+/* A question is often longer than one line. The box grows with it, and Enter
+   still sends, because a conversation is not a document. */
+.composer {
+  align-items: end;
+}
+.composer textarea {
+  min-height: 44px;
+  max-height: 168px;
+  padding: 11px 12px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+}
+.composer-buttons {
+  display: flex;
+  gap: 6px;
+}
+.composer-hint {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* ── Voice to action ─────────────────────────────────────────────────────── */
+
+/* Whatever has been dictated so far, before it is sent. Seeing the words land
+   is what makes speaking feel like typing rather than like guessing. */
+.voice-draft {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--accent-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.voice-draft-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.voice-draft-text {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.voice-draft-text em {
+  color: var(--muted);
+  font-style: normal;
+}
+.voice-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Armed is a state worth seeing from across the room. */
+.voice-commands[data-armed="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-wash);
+}
+.voice-commands[data-compact="true"] {
+  margin: 0 0 12px;
+  padding: 12px;
+}
+.voice-commands-status [data-hint] {
+  color: var(--muted);
+}
+.voice-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 11px;
+}
+
+/* Alternatives to a video found by voice. The first result is usually right;
+   when it is not, correcting it should cost one press, not a retyped search. */
+.video-choices {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.video-choices-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.video-choice {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  text-align: left;
+}
+.video-choice:not(:disabled):hover {
+  border-color: var(--accent-border);
+  background: var(--accent-wash-soft);
+}
+.video-choice strong {
+  color: var(--ink);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.video-choice span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* ── The apps, one press from the top menu ───────────────────────────────── */
+
+.nav-downloads {
+  position: relative;
+  display: inline-flex;
+}
+.nav-download .icon {
+  width: 14px;
+  height: 14px;
+}
+.nav-download[aria-expanded="true"] {
+  border-color: var(--accent-border);
+  background: var(--accent-wash-soft);
+  color: var(--accent);
+}
+.nav-download-menu {
+  display: grid;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  gap: 2px;
+  width: max-content;
+  min-width: 232px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 18px 44px var(--shadow-lg);
+  animation: rise-in var(--motion-fast) var(--ease-out) both;
+}
+.nav-download-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  text-decoration: none;
+}
+.nav-download-item:hover,
+.nav-download-more:hover {
+  background: var(--accent-wash-soft);
+}
+.nav-download-item .brand-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+.nav-download-item strong,
+.nav-download-item small {
+  display: block;
+}
+.nav-download-item strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+.nav-download-item small {
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.nav-download-more {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.nav-download-more .icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   Sign-in panel. The gate is the first thing a new reader meets, so it borrows
+   the workspace card rather than inventing a second visual language: the form
+   classes above do the work, and only the panel's own rhythm is set here.
+   --------------------------------------------------------------------------- */
+.sign-in {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+}
+.sign-in-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.sign-in-form {
+  display: grid;
+  gap: 10px;
+}
+.sign-in-form .actions {
+  margin-top: 2px;
+}
+/* The code is short and read back digit by digit; give it room to breathe. */
+.sign-in-form input[name="code"] {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.22em;
+}
+.sign-in-error {
+  margin: 0;
+}
+
+/* A conversation has to stay a conversation. Left unbounded, the log grows
+   until the page itself scrolls: the composer walks off the bottom of the
+   screen, following the newest words does nothing, and the reader has to hunt
+   for the box to type in. Bounding the log restores the shape every chat has —
+   the question stays under your hands and the answer scrolls above it. The
+   narrow-screen rule already does this and is left alone. */
+@media (min-width: 701px) {
+  .chat {
+    max-height: min(52vh, 560px);
+  }
+  /* The card no longer needs to reserve room it may not use. */
+  .conversation-card {
+    max-height: calc(100svh - var(--nav-h) - var(--safe-top) - var(--gutter));
+  }
+}
+
+/* Whoever is signed in, and the way back out. A reader who cannot sign out
+   cannot hand the machine to anyone else. */
+.footer-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.footer-signout {
+  min-height: 26px;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+}
+.footer-signout:hover {
+  border-color: var(--accent-border);
+}
+/* Small phones: two story anchors and the language pair do not fit beside the
+   brand — in French the pair was pushed off the edge. The build loop yields
+   first, because it opens the page anyway: a reader meets it by scrolling,
+   with nothing above it to scroll past. The platform anchor is the one worth
+   a shortcut, since it sits further down. */
+@media (max-width: 430px) {
+  .nav-section-link[data-section="how-we-build"] {
+    display: none;
+  }
+}
+
+/* The narrowest phones: the bar keeps the brand, the way in or out, and the
+   language, and the story anchors yield to the primary action. Both sections
+   stay reachable by scrolling and from the footer. */
+@media (max-width: 380px) {
+  .nav-section-link {
+    display: none;
+  }
+}
+
+/* The bar was measured before it carried an apps menu. Between the mode
+   switcher and the way in there is no room for one more word, so the menu
+   drops to its icon earlier than the other actions do — it is the newest
+   control on the bar, and the one whose name is least missed. */
+@media (max-width: 1180px) {
+  .nav-download-label {
+    display: none;
+  }
+  .nav-download {
+    width: 36px;
+    justify-content: center;
+    padding: var(--space-xs);
+  }
 }

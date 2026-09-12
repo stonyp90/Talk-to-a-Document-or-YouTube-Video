@@ -13,7 +13,10 @@ export const LANGUAGE_COOKIE = "ursly-language";
 export const LANGUAGE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 export function isLanguage(value: unknown): value is Language {
-  return typeof value === "string" && (LANGUAGES as readonly string[]).includes(value);
+  return (
+    typeof value === "string" &&
+    (LANGUAGES as readonly string[]).includes(value)
+  );
 }
 
 /** The language named by a path such as `/fr` or `/en/`, if any. */
@@ -38,8 +41,12 @@ function parseAcceptLanguage(header: string): Preference[] {
       const quality = q ? Number.parseFloat(q.slice(2)) : 1;
       return { tag, quality: Number.isFinite(quality) ? quality : 0, order };
     })
-    .filter((item): item is Preference => item !== undefined && item.quality > 0)
-    .sort((left, right) => right.quality - left.quality || left.order - right.order);
+    .filter(
+      (item): item is Preference => item !== undefined && item.quality > 0,
+    )
+    .sort(
+      (left, right) => right.quality - left.quality || left.order - right.order,
+    );
 }
 
 /**
@@ -60,4 +67,21 @@ export function negotiateLanguage({
     if (isLanguage(primary)) return primary;
   }
   return DEFAULT_LANGUAGE;
+}
+
+/**
+ * The same page in another language. A leading language segment is replaced
+ * rather than stacked, so the language switch works from any depth and from
+ * either URL shape: the browser may show `/app` (the root rewrite left the
+ * address alone) or `/en/app` (an explicit choice), and both must become
+ * `/fr/app` rather than `/fr/en/app`. A missing path means the root, because
+ * `usePathname` has nothing to report outside a router.
+ */
+export function withLanguage(
+  pathname: string | null | undefined,
+  language: Language,
+): string {
+  const segments = (pathname ?? "/").split("/").filter(Boolean);
+  if (isLanguage(segments[0])) segments.shift();
+  return `/${[language, ...segments].join("/")}`;
 }

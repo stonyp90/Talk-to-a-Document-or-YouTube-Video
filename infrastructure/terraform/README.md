@@ -11,6 +11,16 @@ created, replaced, or deleted by this change.
 - `modules/demo/`: reusable AWS application module (two Docker Lambdas, HTTP API,
   private temporary-upload bucket, per-function IAM roles and seven-day logs).
 - `environments/demo/`: deployable root; only this state is writable by GitHub CI.
+- `modules/email/`: reusable SES module for transactional mail (domain identity with
+  2048-bit Easy DKIM, custom MAIL FROM, TLS-required configuration set, CloudWatch
+  bounce/complaint events and alarms on the account-level bounce and complaint rates
+  at the AWS review thresholds). It creates no DNS and no IAM: it outputs the records.
+- `environments/domain/`: operator-owned root owning the `ursly.io` custom domain
+  and apex alias. CI cannot read this state or change DNS.
+- `environments/email/`: operator-owned root that applies `modules/email`, publishes
+  its DKIM and MAIL FROM records in the existing hosted zone and adopts the zone's
+  existing DMARC record. The account already holds SES production access; [its
+  README](environments/email/README.md) records what was verified against AWS.
 
 No VPC, NAT Gateway, ALB, ECS service, Step Functions, or persistent database is
 required for the intermittent demo. Lambda scales to zero; existing memory,
@@ -25,12 +35,14 @@ These tests verify planned configuration, not real AWS authorization or deployme
 
 ```sh
 terraform fmt -check -recursive infrastructure/terraform
-for target in bootstrap modules/demo environments/demo; do
+for target in bootstrap modules/demo modules/email environments/demo environments/domain environments/email; do
   terraform -chdir="infrastructure/terraform/$target" init -backend=false -lockfile=readonly
   terraform -chdir="infrastructure/terraform/$target" validate
 done
 terraform -chdir=infrastructure/terraform/bootstrap test
 terraform -chdir=infrastructure/terraform/modules/demo test
+terraform -chdir=infrastructure/terraform/modules/email test
+terraform -chdir=infrastructure/terraform/environments/email test
 node --test infrastructure/tests/*.test.cjs
 ```
 
@@ -84,14 +96,83 @@ These repository settings require owner access and are not silently changed here
 
 Set these production environment **variables** (none contain secret values):
 
-| Variable            | Value                                                             |
-| ------------------- | ----------------------------------------------------------------- |
-| `AWS_REGION`        | Bootstrap region                                                  |
-| `AWS_ACCOUNT_ID`    | Intended 12-digit AWS account                                     |
-| `AWS_ROLE_ARN`      | Bootstrap `github_role_arn` output                                |
-| `TF_STATE_BUCKET`   | Bootstrap `state_bucket` output                                   |
-| `OPENAI_SECRET_ARN` | Exact pre-existing provider secret ARN                            |
-| `APP_ORIGIN`        | Optional additional browser origin; defaults to local development |
+| Variable                     | Value                                                             |
+| ---------------------------- | ----------------------------------------------------------------- |
+| `AWS_REGION`                 | Bootstrap region                                                  |
+| `AWS_ACCOUNT_ID`             | Intended 12-digit AWS account                                     |
+| `AWS_ROLE_ARN`               | Bootstrap `github_role_arn` output                                |
+| `TF_STATE_BUCKET`            | Bootstrap `state_bucket` output                                   |
+| `OPENAI_SECRET_ARN`          | Exact pre-existing provider secret ARN                            |
+| `AUTH_PEPPER_SECRET_ARN`     | Exact pre-existing sign-in pepper secret ARN                      |
+| `SES_IDENTITY_ARN`           | `environments/email` `identity_arn` output                        |
+| `SES_CONFIGURATION_SET_NAME` | That root's `configuration_set_name` output                       |
+| `SES_FROM_ADDRESS`           | The single mailbox the api function may send as                   |
+| `APP_ORIGIN`                 | Optional additional browser origin; defaults to local development |
+
+`AUTH_PEPPER_SECRET_ARN` and all three `SES_` variables are checked by `test -n`
+before any AWS call, exactly as `OPENAI_SECRET_ARN` is. A deployment missing any
+of them fails as a red workflow and production keeps serving the previous image.
+
+The three `SES_` variables are set together or not at all, and must match what
+bootstrap was applied with: the runtime permissions boundary pins that one sender
+and caps SES away otherwise, so a mismatch asks for a permission the boundary
+denies. They are not optional for a production deployment — the gate is closed by
+default, so a reader who cannot be sent a code cannot sign in. The only deployment
+that may leave them unset is one that also sets `email_mode = "log"`, which writes
+sign-in codes to CloudWatch and is for a laptop, not for production; `modules/demo`
+refuses to plan with `email_mode = "ses"` and no identity.
+
+## Sign-in: what an operator must do by hand
+
+The application gate fails shut: an unset or unrecognised `AUTH_MODE` means
+`required`, and Terraform defaults it to `required` too. A deployment that comes
+up without these refuses every paid endpoint **and** cannot sign anybody in, so
+the four steps below are prerequisites, not follow-up work. Terraform performs
+none of them from CI: they are operator applies and console steps, and
+`environments/demo` only consumes their results.
+
+1. **Create the pepper secret.** In Secrets Manager, in the deployment account
+   and region, create a secret holding a high-entropy value — either the bare
+   value or a JSON document `{"AUTH_HASH_PEPPER": "…"}`. Never commit it, never
+   put it in a `.tfvars` file, never paste it into a workflow. Keep the ARN.
+   _If missing:_ the deploy workflow fails at the configuration check. Were it
+   ever to reach the task, the application refuses sign-in rather than generate
+   a per-process pepper, because a pepper that changes on every cold start
+   invalidates every outstanding code and reads as "your code is wrong".
+2. **Apply `environments/email` as the operator.** That root creates the domain
+   identity with 2048-bit Easy DKIM, the custom MAIL FROM subdomain and the
+   TLS-required configuration set, and publishes the DKIM, MAIL FROM and DMARC
+   records in the operator-owned zone. Nothing here is a console step any more:
+   verifying the identity and publishing its DNS is what this root is. Keep its
+   `identity_arn` and `configuration_set_name` outputs. See
+   [its README](environments/email/README.md). _If missing:_ SES answers 403 and
+   no code is ever delivered.
+3. **Leave the SES sandbox.** Request production access for the sending region.
+   This one is still a console request and a human decision; the account already
+   holds production access, and a new account would not. _If missing:_ SES accepts
+   only pre-verified recipients, so every reader who is not already verified asks
+   for a code that never arrives, with nothing in the application log to explain it.
+4. **Re-run bootstrap with the new variables.** The runtime permissions boundary
+   is operator-owned, and effective permissions are the intersection of the
+   boundary and the grant. Set `auth_pepper_secret_arn`, `ses_identity_arn`,
+   `ses_configuration_set_name` and `ses_from_address` in
+   `bootstrap/terraform.tfvars`, then plan and apply with the operator identity.
+   _If missing:_ this is the dangerous one. The deploy succeeds, the task comes
+   up, and the first sign-in fails with an AWS `AccessDenied` on the secret read
+   or the send — configuration that looks correct everywhere but in IAM.
+
+Do all four before setting the GitHub variables, and set the GitHub variables
+before the change merges.
+
+The identity is regional and the boundary derives its ARNs from the deployment
+region, so the sending identity lives in the deployment region; there is no
+separate SES region to configure.
+
+The gate, the allowance and the mail mode are Terraform variables with safe
+defaults (`auth_mode = "required"`, `usage_limit_units = 300`,
+`usage_window_ms = 86400000`, `email_mode = "ses"`) and are deliberately not
+wired to GitHub variables: opening the gate or silencing real mail in production
+takes a reviewed change, not an edit to a repository setting.
 
 The deploy workflow runs only after successful CI for a push to main in this
 repository. It checks out the exact tested SHA, exchanges GitHub OIDC for a
@@ -108,6 +189,18 @@ may receive those roles through PassRole. The transcript role only writes logs.
 Global-resource exceptions are ECR login and log-group discovery. API Gateway
 management is region-wide under `/apis` and `/tags` because AWS assigns API IDs;
 do not describe it as exact-resource isolation. Use a dedicated demo account.
+`iam:UpdateAssumeRolePolicy` is deliberately absent from the deployment policy:
+IAM has no condition key for the contents of a trust policy, so that action on a
+runtime role is a way to take the role itself. Terraform needs it only to correct
+drift, which an operator repairs by hand.
+
+What none of that caps is sending volume. The deploy role ships the code the api
+function runs, so once `environments/email` and bootstrap have been applied with an
+identity, a holder of that role can cause mail as the one pinned From address, up to
+the account's shared SES quota, and the bounces or complaints it earns land on the
+account-and-region reputation every identity in that region shares. The boundary
+pins who the mail is from, not how much of it there is; the account-level bounce and
+complaint alarms in `modules/email` are what bounds the rest.
 
 ## Existing CDK resources: operator-reviewed migration
 

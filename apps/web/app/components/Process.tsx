@@ -205,9 +205,12 @@ function readsReducedMotion() {
 
 export function Process({
   locale,
+  appHref,
   timing = LOOP_TIMING,
 }: {
   locale?: string;
+  /** Where the mission CTA leads. Injected so this section knows no routes. */
+  appHref: string;
   timing?: LoopTiming;
 }) {
   const copy = resolveProcessCopy(locale);
@@ -479,7 +482,7 @@ export function Process({
           <p>{copy.mission.body}</p>
         </div>
         <div className={styles.missionActions}>
-          <a className={`primary ${styles.missionAction}`} href="#workspace">
+          <a className={`primary ${styles.missionAction}`} href={appHref}>
             {copy.mission.primary}
           </a>
           <a

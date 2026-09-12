@@ -1,4 +1,4 @@
-// Draws the twenty-four second introduction, in both languages, from nothing
+// Draws the thirty-six second introduction, in both languages, from nothing
 // but this repository:
 //
 //   node scripts/brand/intro-video.mjs
@@ -8,18 +8,19 @@
 // could not be rebuilt in CI at all. Every frame is now drawn here as SVG and
 // rasterised with ImageMagick (`magick`), with the running app composited in
 // where the argument is about the product rather than about the idea. ffmpeg
-// assembles the frames and cross-fades the four scenes into one continuous
+// assembles the frames and cross-fades the six scenes into one continuous
 // take.
 //
 // What goes on the screen is a recording of the application actually being
 // driven -- scripts/brand/footage, one continuous take per surface per
-// language: the workspace, a PDF going in, the real extraction, a question
-// typed a character at a time, the answer coming back. A screenshot of a
-// product is a claim about it; the product moving is the thing itself. The
-// committed screenshots under scripts/brand/stills remain the fallback, and
-// the render says so on the way past when a recording is missing.
+// language: the workspace, a PDF going in, the real extraction, a voice
+// session opening and listening, a question, and the answer coming back from
+// that source. A screenshot of a product is a claim about it; the product
+// moving is the thing itself. The committed screenshots under
+// scripts/brand/stills remain the fallback, and the render says so on the way
+// past when a recording is missing.
 //
-// The frame is one composition rather than four cards: paper on the left holds
+// The frame is one composition rather than six cards: paper on the left holds
 // the type, a softly tinted field on the right holds the product, and the
 // product runs off the right edge and off the bottom of the frame. A screen
 // that continues past the edge is a place you are sitting in front of; a card
@@ -28,12 +29,13 @@
 // the wave along the top of the type, and the slow push on the product -- so
 // the cross-fades carry the frame through instead of resetting it.
 //
-// The argument the video makes is not invented here. It lives in
-// apps/web/app/content/intro-video.ts, which the page, the structured data and
-// the transcript all read; the English below is that file's wording verbatim,
-// the French is its translation. This is a build script and cannot import the
-// app's TypeScript dictionary, so the two have to be kept in step by hand --
-// which is also why this script now writes the .vtt captions instead of
+// The argument the film makes is not invented here. It lives in
+// apps/web/app/content/intro-video.ts, which the dialog, the landing page and
+// the transcript all read. This is a build script and cannot import the app's
+// TypeScript, so the words are repeated in scripts/brand/intro-copy.mjs, and
+// tests/brand/intro-copy.test.ts fails the suite the moment the two disagree
+// -- against the content file for English and against the interface dictionary
+// for French. It is also why this script writes the .vtt captions rather than
 // leaving them hand-maintained beside the video, free to drift.
 //
 // Outputs, unchanged in name and shape from the previous renderer plus the
@@ -52,17 +54,20 @@ import {
 import { tmpdir, cpus } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { introCopy } from "./intro-copy.mjs";
 
 const run = promisify(execFile);
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
 
-// Four scenes of six seconds, the same numbers INTRO_SCENE_SECONDS and
-// INTRO_DURATION_SECONDS give the page, so the captions, the schema.org
-// duration and the frames can never disagree.
+// Six seconds a scene, for as many scenes as the argument takes. The count is
+// read off the copy rather than typed, the same way INTRO_SCENE_SECONDS and
+// INTRO_DURATION_SECONDS work on the page, so the captions, the ticks, the
+// schema.org duration and the frames cannot disagree about how long the film
+// is or how many parts it has.
 const SCENE_SECONDS = 6;
-const SCENES = 4;
+const SCENES = introCopy.en.scenes.length;
 const DURATION_SECONDS = SCENE_SECONDS * SCENES;
 
 // One frame drawn is one frame delivered, at the rate the footage was
@@ -158,10 +163,13 @@ const TYPE_BAND_TOP = 336;
 const TYPE_BAND_BOTTOM = 880;
 const TYPE_BALANCE = 0.12;
 
-// Which scenes hang a badge under their lede. The two that do not end at the
-// lede, and the balance above knows it, so neither is left holding a gap where
-// a badge would have gone.
-const FEATURE_SCENES = [false, false, true, true];
+// Which scenes hang a badge under their lede: the beta mark under motion, the
+// three mode pills under the keyboard. Named by scene rather than numbered by
+// position, so inserting a scene ahead of them cannot quietly move a badge
+// onto the wrong one. The scenes that carry no badge end at the lede, and the
+// balance below knows it, so none is left holding a gap where one would have
+// gone.
+const FEATURE_SCENES = new Set(["motion", "keyboard"]);
 
 const RAIL_Y = 962;
 const RAIL_SIZE = 18;
@@ -176,7 +184,7 @@ const SITE_SIZE = 28;
 const SITE_Y = 924;
 
 // The wave that used to belong to scene two alone. It now runs along the top
-// of the type column in all four scenes, off the left edge of the frame, and
+// of the type column in every scene, off the left edge of the frame, and
 // it is the answer to the dead band the removed wordmark left behind: a mark
 // would have been a static label, and this is the product's own voice, moving.
 // Its shape is a function of elapsed time rather than scene time, so the two
@@ -197,7 +205,7 @@ const WAVE_FADE = 340;
 // Loud where the argument is about voice, quiet where it is about the keyboard
 // that voice replaces. The gain is interpolated across the whole film, not
 // switched at a boundary, so a cross-fade never shows two waves at once.
-const WAVE_GAINS = [0.5, 1, 0.66, 0.32];
+const WAVE_GAINS = [0.45, 0.6, 1, 0.66, 0.3, 0.5];
 const WAVE_RIGHT = WAVE_LEFT + (WAVE_BARS - 1) * WAVE_PITCH + WAVE_BAR;
 
 // The stage the product occupies. It overhangs the right edge of the frame and
@@ -289,6 +297,36 @@ const TRACK = {
   lift: 0.8,
 };
 
+// The loop, drawn as a loop. Ten stages is what the landing page walks a
+// reader through, and this scene's whole argument is that the number is not
+// decoration: every one of them is walked before anything ships. The ring is
+// built from rounded rectangles rather than an arc, because ImageMagick's SVG
+// renderer ignores stroke widths, and from rectangles rather than circles,
+// because it also refuses to apply a group's opacity to a <circle> -- which
+// would leave the ring at full strength inside its own entrance.
+const LOOP = { cx: 1498, cy: 546, radius: 268 };
+// Ten stages, starting at the top and running clockwise, the order the loop is
+// walked in.
+const LOOP_FIRST_ANGLE = -90;
+const LOOP_NODE = 26;
+// The track the stages sit on, as a dotted circle that the sweep lights up
+// behind itself. A dotted arc is an arc this renderer can actually draw.
+const LOOP_TRACK_DOTS = 96;
+const LOOP_TRACK_DOT = 8;
+const LOOP_LABEL_GAP = 34;
+const LOOP_LABEL_SIZE = 21;
+const LOOP_CENTRE_SIZE = 42;
+const LOOP_CENTRE_LEADING = 54;
+// One revolution, started late enough that the ring is established before
+// anything travels around it and ended early enough that the closed loop, with
+// all ten stages named, is held still for the best part of a second.
+const LOOP_START = 0.7;
+const LOOP_TRAVEL = 4.4;
+// How far behind the head a stage keeps its highlight, as a fraction of the
+// whole revolution: long enough to read as a comet, short enough that the ring
+// is not simply all lit at once.
+const LOOP_TAIL = 0.16;
+
 // The keyboard is an object standing in front of the product, not a diagram
 // beside it: it sits over the screen and runs off two edges of the frame.
 const KEYBOARD = { x: 1104, y: 600, width: 1010, height: 560, r: 36 };
@@ -309,72 +347,39 @@ const STILLS = "scripts/brand/stills";
 const FOOTAGE = "scripts/brand/footage";
 
 // Where in the recorded take each scene picks the film up. The recording is
-// one continuous journey, and the video is four arguments, so each scene is
-// cut from the stretch of the journey that argues what it is arguing rather
-// than every scene restarting the recording from zero: the PDF going in and
-// the extraction for the claim, the question being typed and the answer
-// arriving for the voice, and the answer at rest behind the keyboard. A null
-// is a scene that does not show that surface at all.
+// one continuous journey through the product, and the film is six arguments,
+// so each scene is cut from the stretch of the journey that argues what it is
+// arguing rather than every scene restarting the recording from zero: the
+// workspace at rest for the claim, the PDF going in and the extraction
+// arriving for the source, the question being typed and the answer coming back
+// for the voice, and the answer at rest behind the keyboard. A null is a scene
+// that does not show that surface at all -- motion and the loop are drawn
+// rather than recorded, because neither is something the product does on a
+// screen today.
+//
+// The numbers are offsets in seconds into scripts/brand/footage, and they are
+// the one thing in this script that has to be checked against the recording by
+// eye whenever scripts/brand/record-app.mjs runs again.
 const SURFACES = {
-  desktop: { clip: "app-desktop", spec: PICTURE, cues: [0.2, 5.2, null, 11.9] },
+  desktop: {
+    clip: "app-desktop",
+    spec: PICTURE,
+    // Rest, the source going in, the voice session answering, and the answer
+    // still standing behind the keyboard.
+    cues: [0.3, 6.3, 16.2, null, 22.0, null],
+  },
   phone: {
     clip: "app-phone",
     spec: PHONE_SCREEN,
-    cues: [null, 6.4, null, null],
+    // The phone is the only surface that shows the whole exchange at once, so
+    // it is cut to the six seconds that contain the payoff: the last of the
+    // question being typed, the send, the answer arriving, and the answer held
+    // long enough to be recognised as one.
+    cues: [null, null, 21.0, null, null, null],
   },
 };
 const WEB = "apps/web/public/brand";
 const MOBILE = "apps/mobile/assets";
-
-// English is the source language; French is the translation the site ships,
-// worded exactly as the page words it -- typographic apostrophes included,
-// because the page's transcript and these captions are two renderings of one
-// sentence and anything that compares them will call a straight quote a
-// difference.
-const copy = {
-  en: {
-    rail: "SOURCE  →  QUESTION  →  UNDERSTANDING",
-    beta: "BETA",
-    modes: { voice: "Voice", motion: "Motion", keyboard: "Keyboard" },
-    site: "ursly.io",
-    scenes: [
-      {
-        headline: "The next generation of internet.",
-        lede: "Internet without a keyboard and a mouse.",
-      },
-      { headline: "Voice to action.", lede: "Say it, and Ursly does it." },
-      {
-        headline: "Motion to action.",
-        lede: "In beta, built for the headsets coming next.",
-      },
-      {
-        headline: "The keyboard still works.",
-        lede: "It is simply no longer the way in.",
-      },
-    ],
-  },
-  fr: {
-    rail: "SOURCE  →  QUESTION  →  COMPRÉHENSION",
-    beta: "BÊTA",
-    modes: { voice: "Voix", motion: "Mouvement", keyboard: "Clavier" },
-    site: "ursly.io",
-    scenes: [
-      {
-        headline: "La nouvelle génération d’internet.",
-        lede: "Internet sans clavier ni souris.",
-      },
-      { headline: "Voix vers action.", lede: "Dites-le, Ursly le fait." },
-      {
-        headline: "Mouvement vers action.",
-        lede: "En bêta, pensé pour les casques qui arrivent.",
-      },
-      {
-        headline: "Le clavier fonctionne toujours.",
-        lede: "Ce n’est simplement plus la porte d’entrée.",
-      },
-    ],
-  },
-};
 
 const number = (value) => Math.round(value * 100) / 100;
 // Math.round hands back a negative zero, which prints without its sign.
@@ -504,12 +509,12 @@ async function wrap(value, font, size, limit) {
  */
 async function layout(language) {
   const scenes = [];
-  for (const [index, scene] of copy[language].scenes.entries()) {
+  for (const scene of introCopy[language].scenes) {
     const { size, headline } = await fitted(scene.headline);
     const leading = Math.round(size * HEADLINE_LEADING_RATIO);
     const cap = Math.round(size * HEADLINE_CAP_RATIO);
     const lede = await wrap(scene.lede, SANS, LEDE_SIZE, COLUMN);
-    const feature = FEATURE_SCENES[index];
+    const feature = FEATURE_SCENES.has(scene.id);
     // The block's own height, from the top of the capitals to the bottom of
     // whatever it ends on, so a translation that wraps one line longer is
     // placed knowing it rather than pushed down into the rail.
@@ -526,6 +531,7 @@ async function layout(language) {
       cap;
     const ledeTop = headlineTop + (headline.length - 1) * leading + ledeGap;
     scenes.push({
+      id: scene.id,
       headline,
       size,
       leading,
@@ -571,7 +577,7 @@ function gain(elapsed) {
   );
 }
 
-/** The voice, along the top of the type column, for all twenty-four seconds. */
+/** The voice, along the top of the type column, for the whole film. */
 function wave(elapsed) {
   const loudness = gain(elapsed);
   return Array.from({ length: WAVE_BARS }, (_, i) => {
@@ -592,7 +598,7 @@ function wave(elapsed) {
   }).join("");
 }
 
-/** The wave, the rail and the four scene ticks: on screen for all 24s. */
+/** The wave, the rail and one tick per scene: on screen for the whole film. */
 function furniture(words_, index, t, elapsed) {
   const ticks = Array.from({ length: SCENES }, (_, i) => {
     const x = MARGIN + i * (TICK_WIDTH + TICK_GAP);
@@ -672,7 +678,7 @@ function words(scene, t, start = 0.1) {
 }
 
 /**
- * The screen the product is shown on, which three of the four scenes share. It
+ * The screen the product is shown on, which four of the six scenes share. It
  * is drawn from elapsed time alone and carries no entrance of its own after
  * the first scene, so the cut from the claim to the voice leaves it exactly
  * where it was: the same screen, still being pushed into, with a phone now
@@ -741,10 +747,29 @@ function claim(scene, t, words_, elapsed) {
 }
 
 /**
- * Scene two: voice, and the phone that hears it. The screen from scene one is
- * still there and still moving; the wave along the top of the column, which
- * has been idling since the first frame, swells to full here. The voice is a
- * thing that is happening, and it is the through-line of the whole film.
+ * Scene two: the source going in. Deliberately the same frame as scene one --
+ * the same screen, in the same place, under the same push, with no entrance of
+ * its own -- because the argument here is not a new idea but the product
+ * continuing to work. The recording is cut to the stretch where the PDF is
+ * chosen and the real extraction comes back, so what proves the sentence is
+ * the application doing it, not a drawing of the application doing it.
+ */
+function ingest(scene, t, words_, elapsed) {
+  const scale = pushed(elapsed);
+  return {
+    back: device(scale) + words(scene, t),
+    screens: [
+      { surface: "desktop", rect: inStage(PICTURE, scale), opacity: 1 },
+    ],
+  };
+}
+
+/**
+ * Scene three: voice, and the phone that hears it. The screen from the two
+ * scenes before is still there and still moving; the wave along the top of the
+ * column, which has been idling since the first frame, swells to full here.
+ * The voice is a thing that is happening, and it is the through-line of the
+ * whole film.
  */
 function voice(scene, t, words_, elapsed) {
   const scale = pushed(elapsed);
@@ -766,7 +791,7 @@ function voice(scene, t, words_, elapsed) {
 }
 
 /**
- * Scene three: what comes after voice. A headset and a gesture, drawn rather
+ * Scene four: what comes after voice. A headset and a gesture, drawn rather
  * than photographed, because this one is honestly still in beta and a
  * screenshot would claim more than we can. The field it sits in carries a
  * volume of tracking points rather than flat tint: the three scenes around it
@@ -955,7 +980,7 @@ function motion(scene, t, words_, elapsed) {
 }
 
 /**
- * Scene four: the keyboard, named for what it now is. The screen from the
+ * Scene five: the keyboard, named for what it now is. The screen from the
  * first two scenes comes back behind it -- the product did not go anywhere --
  * and the keyboard stands in front of it in the muted grey everything
  * secondary is drawn in, struck through as the scene settles, while voice and
@@ -1060,8 +1085,119 @@ function legacy(scene, t, words_, elapsed) {
       scale,
       arriving(arrival, box({ ...KEYBOARD, fill: slab }) + keys + strike),
     ),
+  };
+}
+
+/**
+ * Scene six: how the next internet actually gets made. Everything before this
+ * is a claim about the product; this is the answer to "and why should I
+ * believe you". It is not a new claim either -- it is the same ten-stage loop
+ * the landing page walks a reader through, drawn as the loop it is, with the
+ * mission sitting at the centre of it.
+ *
+ * The sweep goes round exactly once and names each stage as it passes, so the
+ * ring ends closed and fully labelled instead of asking anyone to read ten
+ * words in six seconds. The product is not on screen here: this scene is about
+ * the process, and putting a screenshot behind it would only say that the two
+ * are the same argument, which is the one thing it is trying to disprove.
+ */
+function buildLoop(scene, t, words_, elapsed) {
+  const arrival = entered(t, 0.3);
+  const swept = smooth(clamp((t - LOOP_START) / LOOP_TRAVEL));
+  const stages = words_.loop.stages;
+  const at = (angle, radius) => ({
+    x: LOOP.cx + Math.cos((angle * Math.PI) / 180) * radius,
+    y: LOOP.cy + Math.sin((angle * Math.PI) / 180) * radius,
+  });
+  const dot = (point, size, fill, opacity) =>
+    box({
+      x: point.x - size / 2,
+      y: point.y - size / 2,
+      width: size,
+      height: size,
+      r: size / 2,
+      fill,
+      opacity,
+    });
+
+  // The track the stages stand on, lit behind the head so the arc closes.
+  const track = Array.from({ length: LOOP_TRACK_DOTS }, (_, i) => {
+    const progress = i / LOOP_TRACK_DOTS;
+    const passed = progress <= swept;
+    return dot(
+      at(LOOP_FIRST_ANGLE + progress * 360, LOOP.radius),
+      LOOP_TRACK_DOT,
+      passed ? accent : muted,
+      passed ? 0.55 : 0.18,
+    );
+  }).join("");
+
+  const nodes = stages
+    .map((label, i) => {
+      const progress = i / stages.length;
+      const angle = LOOP_FIRST_ANGLE + progress * 360;
+      const point = at(angle, LOOP.radius);
+      const passed = swept >= progress;
+      // How long ago the head went past, which is all the highlight is.
+      const heat = passed ? 1 - clamp((swept - progress) / LOOP_TAIL) : 0;
+      const halo =
+        heat > 0.01
+          ? dot(point, LOOP_NODE + 34 * heat, accent, 0.22 * heat)
+          : "";
+      const body = dot(
+        point,
+        LOOP_NODE + 6 * heat,
+        passed ? accent : muted,
+        passed ? 1 : 0.26,
+      );
+      // A stage names itself as the loop reaches it, and keeps its name.
+      const radians = (angle * Math.PI) / 180;
+      const run = Math.cos(radians);
+      const rise = Math.sin(radians);
+      const anchorPoint = at(angle, LOOP.radius + LOOP_LABEL_GAP);
+      // Eight of the ten stages sit beside the ring rather than above or below
+      // it, and a label centred on its own radial point reaches back over the
+      // node it belongs to. Those grow outwards from the point instead, which
+      // is the only placement that keeps the longest translation clear of both
+      // its node and the edge of the frame.
+      const sideways = Math.abs(run) >= 0.5;
+      const name = text({
+        x: anchorPoint.x,
+        // Optical rather than geometric: a baseline placed on the radius alone
+        // sits too high under the ring and too low over it.
+        y: anchorPoint.y + (sideways ? 7 : rise > 0 ? 20 : -4),
+        value: label,
+        size: LOOP_LABEL_SIZE,
+        fill: passed ? ink : muted,
+        weight: passed ? "700" : undefined,
+        anchor: sideways ? (run > 0 ? "start" : "end") : "middle",
+        opacity: passed ? 1 : 0.3,
+      });
+      return halo + body + name;
+    })
+    .join("");
+
+  // The mission, verbatim from the page, inside the loop that delivers it.
+  const centre = words_.loop.centre
+    .map((line, i) =>
+      text({
+        x: LOOP.cx,
+        y: LOOP.cy - 12 + i * LOOP_CENTRE_LEADING,
+        value: line,
+        size: LOOP_CENTRE_SIZE,
+        font: SERIF,
+        anchor: "middle",
+      }),
+    )
+    .join("");
+
+  return {
+    back: arriving(arrival, track + nodes + centre) + words(scene, t),
+    screens: [],
+    // The last frame of the film is the only place the address is spoken, and
+    // it arrives once the loop has closed behind it.
     site: arriving(
-      entered(t, 2.6),
+      entered(t, 4.9),
       text({
         x: MARGIN + COLUMN,
         y: SITE_Y,
@@ -1075,7 +1211,7 @@ function legacy(scene, t, words_, elapsed) {
   };
 }
 
-const painters = [claim, voice, motion, legacy];
+const painters = [claim, ingest, voice, motion, legacy, buildLoop];
 
 function frame(index, scene, t, words_) {
   // Elapsed time in the finished film, not in this clip. Everything that has
@@ -1200,7 +1336,7 @@ async function measure(source) {
  * Cuts the stretches of the recording the scenes ask for, in one pass over it,
  * and writes them as a single numbered sequence at the size the stage draws
  * them at. Splitting the decoded stream and concatenating the windows keeps
- * this to one decode and one filter graph: four scenes are not four reasons to
+ * this to one decode and one filter graph: six scenes are not six reasons to
  * read the same file four times. `tpad` clones the last frame behind each
  * window so a cue near the end of the take still yields a full scene, and the
  * frame-exact trim after it means the windows line up end to end.
@@ -1297,8 +1433,8 @@ async function main() {
     mkdirSync(directory, { recursive: true });
 
   // Each clip carries half a cross-fade past its own six seconds at every edge
-  // it shares with a neighbour, which is what makes the four clips add up to
-  // exactly twenty-four seconds once ffmpeg has overlapped them.
+  // it shares with a neighbour, which is what makes the clips add up to exactly
+  // DURATION_SECONDS once ffmpeg has overlapped them.
   const clips = Array.from({ length: SCENES }, (_, i) => {
     const lead = i === 0 ? 0 : CROSSFADE_SECONDS / 2;
     const tail = i === SCENES - 1 ? 0 : CROSSFADE_SECONDS / 2;
@@ -1309,7 +1445,7 @@ async function main() {
   const bezel = join(work, "phone-bezel.png");
   await prepareBezel(bezel);
 
-  for (const [language, words_] of Object.entries(copy)) {
+  for (const [language, words_] of Object.entries(introCopy)) {
     const scenes = await layout(language);
     // What each scene gets handed for a given frame: a frame of the recording
     // where there is one, and the committed screenshot -- the same image every

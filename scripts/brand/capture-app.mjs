@@ -4,8 +4,10 @@
 // repository alone: nobody should need a screen recorder, a device, or a live
 // server to rebuild the video, and CI has none of the three.
 //
-//   npm run dev            # anything serving the app, by default on :3100
-//   node scripts/brand/capture-app.mjs
+//   YOUTUBE_TRANSCRIPT_MODE=mock npm run dev -- --port 3400
+//   URSLY_CAPTURE_ORIGIN=http://localhost:3400 node scripts/brand/capture-app.mjs
+//
+// URSLY_CAPTURE_SURFACES=desktop shoots one surface instead of every surface.
 //
 // Re-run it when the workspace visibly changes, look at the PNGs, and commit
 // them with the change that moved them.
@@ -36,17 +38,27 @@ const LANGUAGES = ["en", "fr"];
 // Two shapes, because the video argues that Ursly is the way in on whatever
 // you are holding. Each is captured above its own size in the frame so text
 // stays crisp when the renderer scales it down, and no further, because these
-// PNGs are committed and every wasted pixel is carried forever.
+// PNGs are committed and every wasted pixel is carried forever. The sizes are
+// the ones record-app.mjs films at: a still stands in for its own surface's
+// footage when that footage is missing, and a stand-in that is framed
+// differently from the thing it replaces announces itself as a stand-in.
 const VIEWPORTS = [
-  { name: "desktop", width: 1440, height: 900, scale: 1.5 },
-  { name: "phone", width: 375, height: 812, scale: 2 },
+  { name: "desktop", width: 1100, height: 900, scale: 1.5 },
+  { name: "phone", width: 390, height: 844, scale: 2 },
 ];
+
+// Which surfaces this run photographs, so that re-shooting the one that moved
+// leaves the other one's committed PNG untouched rather than rewriting it.
+const ONLY = process.env.URSLY_CAPTURE_SURFACES?.split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
 
 await mkdir(STILLS, { recursive: true });
 const browser = await chromium.launch();
 
 try {
   for (const viewport of VIEWPORTS) {
+    if (ONLY && !ONLY.includes(viewport.name)) continue;
     const context = await browser.newContext({
       viewport: { width: viewport.width, height: viewport.height },
       deviceScaleFactor: viewport.scale,
@@ -69,7 +81,10 @@ try {
 
     for (const language of LANGUAGES) {
       const page = await context.newPage();
-      const url = `${ORIGIN}/${language}`;
+      // The app moved to its own route when the landing page became the story:
+      // `/<lang>` now argues for the product and `/<lang>/app` is the product,
+      // and it is the product these stills stand in for.
+      const url = `${ORIGIN}/${language}/app`;
       const response = await page.goto(url, { waitUntil: "networkidle" });
       if (!response?.ok()) {
         throw new Error(`${url} answered ${response?.status() ?? "nothing"}`);

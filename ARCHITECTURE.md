@@ -23,8 +23,9 @@ Next.js, React, AWS SDKs, PDF.js, OpenAI, environment variables or network clien
 only decode/validate HTTP inputs and call that assembly point. Shared source
 models remain in the core and are imported by both clients.
 
-`PdfTextPort`, `TranscriptPort`, `TemporaryUploadPort`, `ConversationPort` and
-`CredentialPort` define replaceable boundaries. To replace S3, implement the
+`PdfTextPort`, `TranscriptPort`, `VideoSearchPort`, `TemporaryUploadPort`,
+`ConversationPort`, `CredentialPort`, `AccountStorePort`, `NotifierPort` and `SecureTokenPort`
+define replaceable boundaries. To replace S3, implement the
 temporary-upload port and change composition. To replace the conversation vendor,
 implement the conversation port and supply its credential adapter. Keep provider
 payloads and SDK types out of the domain. The current presigned-upload contract
@@ -32,10 +33,54 @@ is an HTTP multipart POST with URL/fields; a provider that uses a different uplo
 protocol needs a translating adapter or an explicit versioned API contract change.
 Ports avoid business-model coupling; they do not make every transport interchangeable.
 
+`VideoSearchPort` exists because a spoken source is named, not spelled: the
+speaker says an artist and the application has to turn that into a video. The
+core owns only the rules — the query is trimmed to one phrase and bounded, the
+list is capped, de-duplicated by video id, and entries with no id or no link are
+dropped — while `packages/adapters/src/videoSearch.ts` owns the YouTube Data API
+call, its deadline, its key and its `videoCaption=closedCaption` filter. That
+filter is a product rule enforced at the boundary: this application can only
+talk about a video it can read, so an uncaptioned result is not a source. The
+same adapter returns deterministic fixtures when the mode is `mock` or no key is
+configured, announcing it once, so local runs and the acceptance suites exercise
+the spoken entry path without quota or network.
+
+The voice vocabulary is domain, not interface. `packages/core/src/domain/voiceCommands.ts`
+imports nothing and owns normalization, the per-language phrase sets, matching
+with near-miss tolerance, and the separation of a command from the words spoken
+around it. The browser engine is wrapped in `apps/web/src/lib/speech.ts`, which
+hands each new phrase over once and says whether the engine has settled on it;
+`VoiceActions` only decides what to do with what it is told. That split is why
+the same rules can be tested without a microphone and why a recogniser quirk is
+an adapter concern rather than a product one.
+
+Streaming is a port method, not a transport detail. `ConversationPort.streamTextAnswer`
+yields text deltas; the application validates the question before the first one
+escapes, the OpenAI adapter turns the provider's own event stream into those
+deltas, and the route re-frames them as server-sent events. Nothing above the
+adapter knows the provider's event names, and the non-streaming method stays for
+callers and contracts that do not want a stream.
+
+Accounts follow the same split. `packages/core/src/domain/account.ts` owns email
+normalization, the one-time-code rules and `chargeUsage`, the pure spend cap that
+rolls its window over and refuses without touching the ledger.
+`packages/core/src/application/accounts.ts` sequences sign-in, session lookup and
+charging over the three account ports. Randomness, hashing, the server-side
+pepper, mail delivery and storage are adapters in `packages/adapters/src/accounts.ts`:
+an in-memory store with the same eviction discipline and the same per-process
+caveat as the session store, plus a notifier that writes the code to the server
+log locally and signs a SES v2 request when `EMAIL_MODE=ses`. The gate itself —
+cookie, `requireAccount`, `guard` and the unit cost table — is an inbound HTTP
+concern in `apps/web/src/auth.ts`, assembled through the composition root like
+every other adapter. `AUTH_MODE` is read there and nowhere else, and anything
+but the exact word `disabled` means the gate is required, so a misconfigured
+deployment fails closed.
+
 PDF signature/size checks, normalization, caption URL validation, context limits,
-question validation and upload deletion orchestration are application/domain work.
-S3 object I/O, PDF parsing, caption HTTP calls, model HTTP payloads and credential
-retrieval are adapters. Temporary object cleanup runs in the use case's `finally`
+question validation, the spend cap and upload deletion orchestration are
+application/domain work.
+S3 object I/O, PDF parsing, caption HTTP calls, model HTTP payloads, credential
+retrieval, code generation, hashing and mail are adapters. Temporary object cleanup runs in the use case's `finally`
 block, including parser failures. No extracted-text database is introduced.
 
 The root npm workspace covers `apps/web` and `packages/*` with a single lockfile

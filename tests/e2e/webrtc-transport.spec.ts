@@ -5,6 +5,7 @@ import {
   type RealtimeHarness,
 } from "../support/realtime-harness";
 import { pdfFixture } from "../pdf-fixture";
+import { APP_PATH } from "../routes";
 test.use({
   baseURL:
     process.env.TRANSPORT_BASE_URL ??
@@ -18,7 +19,7 @@ const status = (page: Page) => page.locator(".conversation-card .status");
 
 test.beforeEach(async ({ page }) => {
   harness = await installRealtimeHarness(page);
-  await page.goto("/");
+  await page.goto(APP_PATH);
   await page.getByLabel("PDF file").setInputFiles({
     name: "transport.pdf",
     mimeType: "application/pdf",

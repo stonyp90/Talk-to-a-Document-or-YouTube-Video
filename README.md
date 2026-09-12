@@ -22,11 +22,12 @@ cp .env.example .env.local && npm ci
 docker compose --env-file .env.local --profile dev up --build dev
 ```
 
-Open **[localhost:3000](http://localhost:3000)**. The defaults run in `mock` mode, which needs no OpenAI key, no AWS account and no network: PDF extraction is real, and provider replies are deterministic stand-ins.
+Open **[localhost:3000](http://localhost:3000)** for the landing page, or **[localhost:3000/app](http://localhost:3000/app)** to go straight to the application. The defaults run in `mock` mode, which needs no OpenAI key, no AWS account and no network: PDF extraction is real, and provider replies are deterministic stand-ins.
 
 | Service                | Address                                                           |
 | ---------------------- | ----------------------------------------------------------------- |
-| Web and API            | [localhost:3000](http://localhost:3000)                           |
+| Landing page           | [localhost:3000](http://localhost:3000)                           |
+| Application            | [localhost:3000/app](http://localhost:3000/app)                   |
 | API health             | [localhost:3000/api/health](http://localhost:3000/api/health)     |
 | OpenAPI document       | [localhost:3000/api/openapi](http://localhost:3000/api/openapi)   |
 | Caption service health | [localhost:3010/health](http://localhost:3010/health)             |
@@ -46,11 +47,29 @@ OPENAI_API_KEY=<your-project-key>
 
 Full environment reference: [`.env.example`](.env.example) and [service setup](SERVICE-SETUP.md).
 
+### Choose the voice that answers
+
+`OPENAI_REALTIME_VOICE` selects it. The default is `marin`, one of the two voices trained for the realtime model; `OPENAI_REALTIME_VOICE_SPEED`, `OPENAI_REALTIME_TURN_DETECTION`, `OPENAI_REALTIME_TURN_EAGERNESS` and `OPENAI_REALTIME_NOISE_REDUCTION` tune the rest of the exchange.
+
+To answer in **your own voice**, the provider has to mint a custom voice from two recordings of you, and that identifier then replaces the voice name. The helper tells you what to record:
+
+```sh
+npm run voice:enroll -- --language fr
+```
+
+It prints the consent sentence you must read word for word, and what the speech sample needs to contain. Record both, then:
+
+```sh
+npm run voice:enroll -- --name my-voice --language fr --consent consent.wav --sample sample.wav
+```
+
+It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom voices are limited to eligible OpenAI accounts, and no phrase spoken inside the application can clone a voice: the enrolment is deliberate, consented and done once.
+
 ---
 
 ## What a visitor sees
 
-1. **The introduction, once.** A first visit opens a 24-second silent video in the
+1. **The introduction, once.** A first visit opens a 36-second silent video in the
    visitor's language (English or French), with captions, a transcript and a
    _Skip intro_ button from the first frame. It is remembered per browser and can
    be replayed from the top menu.
@@ -65,6 +84,25 @@ Full environment reference: [`.env.example`](.env.example) and [service setup](S
    keyboard, and the surfaces to come (connected objects, 3D objects), with a
    dateless roadmap.
 
+### Pages
+
+Two pages, deliberately separate. `/<lang>` is the landing page: what Ursly is,
+the introduction, then the story in one order — how we build, the
+platform, the guide, and the mobile downloads
+(`apps/web/app/components/LandingPage.tsx`). That order lives in
+`apps/web/app/content/story.ts`, which the page, the fixed menu and the suites
+all read, so it changes in one place. The build loop leads: how this was made is
+the first thing a reader meets, before any claim about the product.
+
+`/<lang>/app` is the application: add a source, ask a question, by voice or
+keyboard (`apps/web/app/components/Workspace.tsx`). It is not on the landing
+page at all, and it is never far from it — the fixed menu, the hero, the end of
+every story section, a closing invitation and the footer each carry the way in.
+The two components share only that menu, the footer and the language provider —
+the landing page holds no conversation state and the application holds none of
+the story. The bare `/app` is rewritten to the negotiated language, so an
+installed app (`start_url: "/app"`) opens the tool.
+
 ### Languages
 
 English is the source language; French is a full translation. Every page is
@@ -72,21 +110,48 @@ served under `/en` and `/fr`, prerendered with the right `<html lang>`. The root
 URL follows the browser (`Accept-Language`), and an explicit choice from the menu
 is remembered in a cookie. Interface copy is keyed by its English text in
 `apps/web/app/i18n/fr.ts`; a missing key falls back to English. The intro video
-exists once per language (`scripts/brand/intro-video.mjs` draws both, and their
-captions, from committed inputs alone) because its text is burned into the
-frames.
+exists once per language (`scripts/brand/intro-video.mjs` renders both) because
+its text is burned into the frames.
+
+### Rebuilding the introduction
+
+The film is six six-second scenes: what Ursly is, a source going in, voice to
+action, motion to action, the keyboard demoted, and the build loop that produces
+all of it. Its words live in
+[`apps/web/app/content/intro-video.ts`](apps/web/app/content/intro-video.ts) —
+which the dialog, the transcript and the captions all read — and are repeated
+for the renderer in `scripts/brand/intro-copy.mjs`, with
+`scripts/brand/intro-copy.test.ts` failing the suite if the two ever disagree.
+The duration is the scene count times the scene length, everywhere, so the film
+is lengthened by adding a scene and nothing else.
+
+Three commands, in order, and only the last is needed if the app's chrome has
+not changed:
+
+```bash
+npm run dev                       # anything serving the app
+node scripts/brand/record-app.mjs # footage of the product actually being used
+node scripts/brand/capture-app.mjs # the committed stills, used as a fallback
+node scripts/brand/intro-video.mjs # draws the frames and writes the .vtt files
+```
+
+Everything it draws comes from this repository: the scenes are SVG rasterised
+with ImageMagick, the product is the recording under `scripts/brand/footage`,
+and ffmpeg cross-fades the six clips into one continuous take. Re-record before
+re-rendering whenever the application's chrome has changed, or the film will
+show an app that no longer exists.
 
 ### Being found and quoted
 
-A product explained by a twenty-four second video is invisible to any reader
-that cannot watch one, and search engines and assistants never can. The same
-twenty-four seconds are therefore published three more ways. Each language page
-carries a `schema.org` graph naming the organization, the site, the application
-and the introduction as a `VideoObject` with its duration, its captions and its
-full transcript. `/sitemap.xml` lists both languages with `hreflang`
-alternates, `/robots.txt` welcomes crawlers and keeps `/api/` out, and
-`/llms.txt` is a plain reading of the product and the words of the video, for
-the models that answer questions without ever rendering a page.
+A product explained by a short film is invisible to any reader that cannot
+watch one, and search engines and assistants never can. The same film is
+therefore published three more ways. Each language page carries a `schema.org`
+graph naming the organization, the site, the application and the introduction
+as a `VideoObject` with its duration, its captions and its full transcript.
+`/sitemap.xml` lists both languages with `hreflang` alternates, `/robots.txt`
+welcomes crawlers and keeps `/api/` out, and `/llms.txt` is a plain reading of
+the product and the words of the video, for the models that answer questions
+without ever rendering a page.
 
 The graph is built by `packages/core/src/domain/discoverability.ts`, which is
 pure: it reads a profile and returns linked data. Where that profile comes from
@@ -132,7 +197,47 @@ features/, tests/         Gherkin acceptance, unit, browser and architecture tes
 
 **Hexagonal, and enforced.** Dependencies point inward: inbound adapters → application → domain. The core imports no framework, no SDK, no environment variable and no network client. [`apps/web/src/composition.ts`](apps/web/src/composition.ts) is the only place concrete adapters are assembled, and [`tests/architecture.test.ts`](tests/architecture.test.ts) fails the build if a route reaches past it. Replacing S3, the caption source or the model vendor means writing one adapter and editing one file. Details in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-**Voice path.** The browser asks the backend for a Realtime session. The backend primes it with the source text and returns only a short-lived client secret, then steps aside: the browser negotiates SDP straight with OpenAI and media never transits our servers. Server-side voice activity detection is what lets a caller cut in mid-answer; the client closes its own caption on the same event so the transcript matches what was actually heard.
+**Voice path.** The browser asks the backend for a Realtime session. The backend primes it with the source text and returns only a short-lived client secret, then steps aside: the browser negotiates SDP straight with OpenAI and media never transits our servers. Provider-side voice activity detection is what lets a caller cut in mid-answer; the client closes its own caption on the same event so the transcript matches what was actually heard. Detection is semantic by default, so it waits for a finished thought rather than a silent gap and does not cut off a caller who pauses to think.
+
+**Spoken answers are written to be heard.** The session carries delivery guidance on top of the source: short sentences, no markup a listener cannot hear, two or three sentences before handing the floor back, and the caller's own language. A blocked autoplay no longer ends a working call — the next tap starts the audio.
+
+**Signing in is the budget control.** Every endpoint that calls a provider —
+ingestion, uploads, extraction, typed questions, the streamed answer, a voice
+session and the turn recorder — requires a session cookie, and charges a
+per-account allowance on top. Login alone would not have solved the problem it
+exists for: whoever signs up can still spend the money. Sign-in is a mailed
+one-time code, so there is no password to store; the code is hashed with a
+server-side pepper and never logged, returned or kept in clear. `/api/health`
+and `/api/openapi` stay open. See [The gate](#the-gate) below.
+
+**A spoken source is searched, not spelled.** Nobody dictates "watch question mark v equals". Saying "YouTube, Miles Davis" posts the words to `POST /api/videos/search`, which asks the YouTube Data API only for videos that carry closed captions — an uncaptioned result would be a source that fails at the next step — and returns the best matches. The client opens the first and keeps the rest as alternatives. `VideoSearchPort` is the boundary: with `YOUTUBE_SEARCH_MODE=mock`, or with no `YOUTUBE_API_KEY` at all, the adapter returns deterministic fixtures derived from the query and says so in the log, so the spoken entry path works locally and in CI with no quota and no network.
+
+**Speaking is the interface, not a shortcut.** Listening is continuous: the
+browser engine hangs up by itself after a pause and the panel picks the
+microphone back up, so a reader is not re-arming it between sentences. Only
+settled speech runs a command — acting on a hypothesis fires "back" on the way
+to "backpack" — while the interim text is shown so the reader can see they are
+heard. Anything that is not a command becomes the question, sent after a pause
+or when they say "send it". Adding words to a built-in command sends their
+words instead of its: "summarize this" runs the shortcut, "summarize this in
+three short points" asks for exactly that. `packages/core/src/domain/voiceCommands.ts`
+owns the whole vocabulary — folding accents so French reaches its phrases,
+matching a command anywhere in a sentence, tolerating one mis-heard word, and
+separating the command from what was said around it. Saved phrases add to the
+built-in wordings rather than replacing them, so customising one action never
+breaks another.
+
+**The answer arrives as it is written.** `POST /api/text-chat/stream` sends the
+answer as server-sent events and the interface renders each delta, so a reader
+watches words appear instead of a spinner. Send becomes Stop while it runs, and
+stopping keeps what already arrived — it is the reader's decision, not a
+failure. A runtime or proxy that cannot stream answers `STREAM_UNSUPPORTED`,
+and the client falls back to the blocking endpoint rather than failing. Answers
+are parsed to a description of the text and rendered as elements, never as
+HTML, so a source that quotes markup renders it as words. Voice turns are
+posted to `POST /api/conversation/turns`, which is what keeps one thread of
+memory: a typed follow-up knows what was said out loud, and the other way
+round.
 
 **Sources live on the server.** Ingestion returns an opaque `sourceId`, and later requests carry that id instead of the whole extraction. If the server has forgotten the session — a cold start, or another instance — the client resends the source once and the conversation continues. Storage is in-memory with a TTL and a cap, which the assessment names as sufficient; a shared store is a one-adapter swap.
 
@@ -144,6 +249,51 @@ features/, tests/         Gherkin acceptance, unit, browser and architecture tes
 
 ---
 
+## The gate
+
+| Caller               | `/api/health`, `/api/openapi` | Paid endpoints                       |
+| -------------------- | ----------------------------- | ------------------------------------ |
+| Anonymous            | 200                           | `401 UNAUTHENTICATED`                |
+| Signed in, under cap | 200                           | 200, and the allowance is charged    |
+| Signed in, over cap  | 200                           | `429 USAGE_LIMIT` with `Retry-After` |
+
+429 rather than 402: nothing is for sale, so "payment required" would be a lie,
+and `Retry-After` tells the reader exactly when their allowance reopens. The
+streamed answer runs the gate _before_ the event stream opens, so a refusal is
+an ordinary JSON reply the client can act on rather than an error frame. The
+gate also runs before each route validates its body, which means a malformed
+request still costs its units — the price of letting nothing at all slip in
+front of it, and bounded by the same per-address limiter.
+
+What each call costs, against an allowance of `USAGE_LIMIT_UNITS` (300) per
+`USAGE_WINDOW_MS` (24 h). Every number is configuration with a named default:
+
+| Endpoint                            | Units | Why                                           |
+| ----------------------------------- | ----- | --------------------------------------------- |
+| `POST /api/realtime/session`        | 50    | A voice session bills for as long as it lives |
+| `POST /api/ingest`                  | 10    | A whole document extracted and primed         |
+| `POST /api/uploads/extract`         | 10    | The same work, after a direct upload          |
+| `POST /api/text-chat`, `.../stream` | 5     | One question against the source               |
+| `POST /api/uploads`                 | 1     | Only a presigned form, but not a free-for-all |
+| `POST /api/videos/search`           | 2     | Third-party search quota, not model tokens    |
+| `POST /api/conversation/turns`      | 1     | Bookkeeping; it calls no provider             |
+
+**Signing in.** `POST /api/auth/request-code` mails a code and answers `204`
+whether or not the address is known, so it cannot be used to find out who has an
+account. `POST /api/auth/confirm` exchanges the code for an `HttpOnly`,
+`SameSite=Lax`, `Secure` session cookie. `GET /api/auth/session` reports the
+signed-in address; `DELETE` on the same path signs out. Locally, `EMAIL_MODE`
+defaults to `log`: the code appears in the server log as a `local sign-in code`
+line, so the flow can be completed with no mail infrastructure. `EMAIL_MODE=ses`
+sends it through Amazon SES instead.
+
+**The escape hatch fails closed.** `AUTH_MODE=disabled` resolves every request
+to one fixed local account, which is what keeps Compose, the acceptance suite
+and the browser suite running. Any other value — including an unset one and a
+typo — means `required`, so a misconfigured deployment is shut, never open.
+
+---
+
 ## Trade-offs
 
 - **Lambda over ECS.** Scale-to-zero and per-request billing fit a demo. The costs are cold starts, a 29-second API Gateway ceiling, and no shared process memory — which is exactly why sessions carry a rehydration fallback.
@@ -151,7 +301,9 @@ features/, tests/         Gherkin acceptance, unit, browser and architecture tes
 - **Window the context rather than chunk it.** The brief asks for no chunking, summarization or citations. Head-and-tail windowing keeps that promise and is honest with the reader about what the model can see. A long middle section is genuinely out of reach; retrieval would be the next step.
 - **Two turns of context, not a full memory.** Recent exchanges are kept per session so follow-ups read naturally, capped so a long conversation cannot grow the prompt without limit.
 - **A separate Python caption service.** `youtube-transcript-api` is the mature client for an endpoint with no official API. It costs a second runtime and a second Dockerfile, and buys a clean port boundary and a component that can be proxied or replaced on its own.
-- **Fixed-window rate limiting, per process.** Enough to stop a public, unauthenticated, billable endpoint being trivially abused. Not a substitute for authentication or a shared limiter.
+- **Fixed-window rate limiting, per process.** It bounds one address; a handful of addresses walk around it, which is why the paid endpoints now sit behind a session and a per-account cap as well. Still not a shared limiter.
+- **Accounts and ledgers in memory, like sessions.** The same trade as the session store, and the same caveat: a restart forgets who is signed in and what they have spent, and a second instance counts on its own. A shared store is a one-adapter swap, and it is the first thing to do before running more than one instance.
+- **A mailed code instead of a password.** No password to store, to leak or to reuse from somewhere less careful, and the mailbox is the proof. The cost is a mail dependency in production and a code with a short life.
 - **Content Security Policy keeps `unsafe-inline`.** Next.js inlines its own bootstrap. The directives that matter against injection and clickjacking are still enforced; nonce-based scripts would be the stricter next step.
 - **No OCR.** A scanned PDF with no text layer is rejected with an explanation rather than silently producing nothing.
 - **An Expo client is in the repository.** It is extra scope beyond the brief. The web application is the deliverable; the native client shares the same core and backend.

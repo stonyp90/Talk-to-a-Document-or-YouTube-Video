@@ -4,9 +4,11 @@ github_repository  = "OWNER/REPO"
 openai_secret_arn  = "arn:aws:secretsmanager:us-east-1:123456789012:secret:talk-openai-abcdef"
 # The signing pepper secret, created by hand. The ARN, never the value.
 auth_pepper_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:talk-auth-pepper-abcdef"
-# The sender for sign-in mail, on an identity already verified in SES. Leave it
-# empty and the boundary permits no sending at all.
-ses_from_address   = "no-reply@example.com"
-# ses_region and ses_configuration_set are optional.
 # Set this if GitHub's account-wide OIDC provider already exists.
 # existing_oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+# Set all three after applying environments/email, then re-apply bootstrap so
+# runtime roles may send as exactly this mailbox. Leave them out to keep the
+# account unable to send. The GitHub SES_FROM_ADDRESS variable must match.
+# ses_identity_arn           = "arn:aws:ses:us-east-1:123456789012:identity/example.com"
+# ses_configuration_set_name = "talk-to-a-document-transactional"
+# ses_from_address           = "no-reply@example.com"

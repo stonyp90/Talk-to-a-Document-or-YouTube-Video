@@ -49,7 +49,15 @@ variable "email_mode" {
   type    = string
   default = "ses"
 }
-variable "ses_region" {
+
+# Empty until the operator has applied environments/email and copied its outputs
+# into the production environment variables; sending stays impossible until then,
+# and EMAIL_MODE=ses refuses to plan without them.
+variable "ses_identity_arn" {
+  type    = string
+  default = ""
+}
+variable "ses_configuration_set_name" {
   type    = string
   default = ""
 }
@@ -57,26 +65,22 @@ variable "ses_from_address" {
   type    = string
   default = ""
 }
-variable "ses_configuration_set" {
-  type    = string
-  default = ""
-}
 
 module "demo" {
-  source                 = "../../modules/demo"
-  region                 = var.region
-  account_id             = var.account_id
-  image_tag              = var.image_tag
-  openai_secret_arn      = var.openai_secret_arn
-  auth_pepper_secret_arn = var.auth_pepper_secret_arn
-  app_origin             = var.app_origin
-  auth_mode              = var.auth_mode
-  usage_limit_units      = var.usage_limit_units
-  usage_window_ms        = var.usage_window_ms
-  email_mode             = var.email_mode
-  ses_region             = var.ses_region
-  ses_from_address       = var.ses_from_address
-  ses_configuration_set  = var.ses_configuration_set
+  source                     = "../../modules/demo"
+  region                     = var.region
+  account_id                 = var.account_id
+  image_tag                  = var.image_tag
+  openai_secret_arn          = var.openai_secret_arn
+  auth_pepper_secret_arn     = var.auth_pepper_secret_arn
+  app_origin                 = var.app_origin
+  auth_mode                  = var.auth_mode
+  usage_limit_units          = var.usage_limit_units
+  usage_window_ms            = var.usage_window_ms
+  email_mode                 = var.email_mode
+  ses_identity_arn           = var.ses_identity_arn
+  ses_configuration_set_name = var.ses_configuration_set_name
+  ses_from_address           = var.ses_from_address
 }
 output "public_url" { value = module.demo.public_url }
 output "upload_bucket" { value = module.demo.upload_bucket }

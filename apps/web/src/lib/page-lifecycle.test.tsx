@@ -16,10 +16,11 @@ vi.mock("./realtimeClient", () => ({
     stop = vi.fn();
   },
 }));
-import HomePage from "../../app/components/HomePage";
+import Workspace from "../../app/components/Workspace";
 
 beforeEach(() => {
-  // These cases exercise the workspace, not the first-visit introduction.
+  // The app route carries no introduction; the key is set only because the
+  // mode switcher and the workspace share this browser with the landing page.
   localStorage.setItem("ursly-intro-v1", "seen");
 });
 
@@ -42,7 +43,7 @@ const envelope = {
 
 async function ingestFixture(request: ReturnType<typeof vi.fn>): Promise<void> {
   vi.stubGlobal("fetch", request);
-  render(<HomePage />);
+  render(<Workspace />);
   // The picker is on screen from the start: no disclosure to open first.
   fireEvent.click(screen.getByRole("tab", { name: "YouTube video" }));
   fireEvent.change(screen.getByLabelText("YouTube URL"), {
@@ -87,7 +88,7 @@ it("unmount aborts session setup and ignores its eventual response", async () =>
     throw new Error(`Unexpected request ${url}`);
   });
   vi.stubGlobal("fetch", request);
-  const view = render(<HomePage />);
+  const view = render(<Workspace />);
   fireEvent.click(screen.getByRole("tab", { name: "YouTube video" }));
   fireEvent.change(screen.getByLabelText("YouTube URL"), {
     target: { value: "https://youtu.be/dQw4w9WgXcQ" },

@@ -1,5 +1,11 @@
 name: talk-to-a-document
 
+# MinIO no longer publishes to Docker Hub, where the pull is now denied; quay
+# is where the same releases live. Written once and referenced by both the
+# server and the bucket-creating init container, so the two can never drift.
+x-object-store-image: &object-store-image
+  ${OBJECT_STORE_IMAGE:-quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z}
+
 x-app-environment: &app-environment
   PROVIDER_MODE: ${PROVIDER_MODE:-mock}
   YOUTUBE_TRANSCRIPT_MODE: live
@@ -27,6 +33,14 @@ x-app-environment: &app-environment
   OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com}
   OPENAI_REALTIME_MODEL: ${OPENAI_REALTIME_MODEL:-gpt-realtime}
   OPENAI_TEXT_MODEL: ${OPENAI_TEXT_MODEL:-gpt-4.1-mini}
+  # How the spoken answer sounds. A custom voice id here makes the assistant
+  # answer in an enrolled person's voice; see `npm run voice:enroll`.
+  OPENAI_REALTIME_VOICE: ${OPENAI_REALTIME_VOICE:-marin}
+  OPENAI_REALTIME_VOICE_SPEED: ${OPENAI_REALTIME_VOICE_SPEED:-1}
+  OPENAI_REALTIME_TURN_DETECTION: ${OPENAI_REALTIME_TURN_DETECTION:-semantic_vad}
+  OPENAI_REALTIME_TURN_EAGERNESS: ${OPENAI_REALTIME_TURN_EAGERNESS:-auto}
+  OPENAI_REALTIME_NOISE_REDUCTION: ${OPENAI_REALTIME_NOISE_REDUCTION:-near_field}
+  OPENAI_TRANSCRIBE_MODEL: ${OPENAI_TRANSCRIBE_MODEL:-gpt-4o-transcribe}
   APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
   CONTEXT_CHARACTER_BUDGET: ${CONTEXT_CHARACTER_BUDGET:-120000}
   SESSION_TTL_MS: ${SESSION_TTL_MS:-3600000}
@@ -139,7 +153,7 @@ services:
       transcript: { condition: service_healthy }
 
   object-store:
-    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    image: *object-store-image
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: local-minio
@@ -158,7 +172,7 @@ services:
       retries: 12
 
   object-store-init:
-    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    image: *object-store-image
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |

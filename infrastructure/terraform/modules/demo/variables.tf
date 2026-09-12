@@ -92,7 +92,10 @@ variable "usage_window_ms" {
 # --- Sign-in email --------------------------------------------------------
 # A deployment defaults to real mail. The application's own default is the log
 # notifier, which is right for a laptop and wrong here: a one-time code written
-# to CloudWatch is a code anybody with log access can use.
+# to CloudWatch is a code anybody with log access can use. Real mail needs the
+# operator-owned identity below, so the two are checked against each other: a
+# deployment either sends through the verified identity or says out loud, by
+# setting log, that its sign-in codes are going to a log group.
 variable "email_mode" {
   type    = string
   default = "ses"
@@ -100,37 +103,52 @@ variable "email_mode" {
     condition     = contains(["ses", "log"], var.email_mode)
     error_message = "EMAIL_MODE is ses or log; log writes sign-in codes to CloudWatch and is not for production."
   }
-}
-
-# Empty means the deployment region. SES identities are regional, so a sender
-# verified elsewhere needs this set.
-variable "ses_region" {
-  type    = string
-  default = ""
   validation {
-    condition     = var.ses_region == "" || can(regex("^[a-z]{2}(-gov)?-[a-z]+-[0-9]$", var.ses_region))
-    error_message = "Supply an AWS region such as us-east-1, or leave it empty to use the deployment region."
+    condition     = var.email_mode != "ses" || var.ses_identity_arn != ""
+    error_message = "EMAIL_MODE=ses needs the identity, configuration set and From address the operator gets from environments/email."
   }
 }
 
-# The verified sender. Terraform does not create or verify it: the operator owns
-# the domain root, and SES verification and the sandbox exit are human steps.
+# Transactional email. The identity and configuration set are created by the
+# operator-owned environments/email root, never by CI, and are named here so the
+# api function can send and the runtime role can be scoped to exactly that.
+# They are regional, and the boundary in bootstrap pins the same three values,
+# so the identity has to live in the deployment region.
+variable "ses_identity_arn" {
+  type    = string
+  default = ""
+  validation {
+    condition     = var.ses_identity_arn == "" || can(regex("^arn:aws:ses:${var.region}:${var.account_id}:identity/[a-z0-9.-]+$", var.ses_identity_arn))
+    error_message = "Provide the exact verified domain identity ARN from the email root, without wildcards."
+  }
+}
+# A configuration set is how bounces and complaints get recorded; without one,
+# SES still sends and the reputation signals go nowhere. environments/email
+# always creates one, so it is required alongside the identity rather than
+# optional.
+variable "ses_configuration_set_name" {
+  type    = string
+  default = ""
+  validation {
+    condition     = (var.ses_configuration_set_name == "") == (var.ses_identity_arn == "")
+    error_message = "Set the SES identity ARN, configuration set name and From address together, or none of them."
+  }
+  validation {
+    condition     = var.ses_configuration_set_name == "" || can(regex("^[A-Za-z0-9_-]{1,64}$", var.ses_configuration_set_name))
+    error_message = "Configuration set names accept letters, digits, dashes and underscores only."
+  }
+}
+# The verified sender. Terraform does not verify it here: the identity belongs
+# to the operator-owned email root, and the SES sandbox exit is a human step.
 variable "ses_from_address" {
   type    = string
   default = ""
   validation {
-    condition     = var.email_mode != "ses" || can(regex("^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$", var.ses_from_address))
-    error_message = "EMAIL_MODE=ses needs SES_FROM_ADDRESS set to an address on an identity already verified in SES."
+    condition     = (var.ses_from_address == "") == (var.ses_identity_arn == "")
+    error_message = "Set the SES identity ARN, configuration set name and From address together, or none of them."
   }
-}
-
-# Optional. A configuration set is how bounces and complaints get recorded;
-# without one, SES still sends and the reputation signals go nowhere.
-variable "ses_configuration_set" {
-  type    = string
-  default = ""
   validation {
-    condition     = var.ses_configuration_set == "" || can(regex("^[A-Za-z0-9_-]{1,64}$", var.ses_configuration_set))
-    error_message = "Use an existing SES configuration set name, or leave it empty."
+    condition     = var.ses_from_address == "" || endswith(var.ses_from_address, "@${trimprefix(var.ses_identity_arn, "arn:aws:ses:${var.region}:${var.account_id}:identity/")}")
+    error_message = "Send only from a mailbox on the verified identity domain."
   }
 }

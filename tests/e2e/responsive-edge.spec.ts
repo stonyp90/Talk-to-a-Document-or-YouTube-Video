@@ -1,5 +1,6 @@
 import { expect, test } from "./base";
 import { answerStream } from "./voice-harness";
+import { APP_PATH, LANDING_PATH } from "../routes";
 
 test("long source names and unbroken chat text stay inside a mobile viewport", async ({
   page,
@@ -24,7 +25,7 @@ test("long source names and unbroken chat text stay inside a mobile viewport", a
       body: answerStream(["https://example.com/" + "x".repeat(500)]),
     }),
   );
-  await page.goto(process.env.E2E_BASE_URL ?? "http://localhost:3000");
+  await page.goto(APP_PATH);
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
   await page.getByRole("button", { name: "Continue to questions" }).click();
@@ -44,9 +45,9 @@ test("long source names and unbroken chat text stay inside a mobile viewport", a
 for (const width of [320, 390, 768, 1440]) {
   test(`workspace navigation and source controls fit at ${width}px`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
+    await page.goto(APP_PATH);
     await expect(page.locator("#workspace")).toBeVisible();
     await page.getByRole("tab", { name: "PDF document" }).focus();
     await page.keyboard.press("ArrowRight");
@@ -58,15 +59,45 @@ for (const width of [320, 390, 768, 1440]) {
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(width);
     await page.screenshot({
-      path: `/tmp/ursly-workspace-${width}.png`,
+      path: testInfo.outputPath(`ursly-workspace-${width}.png`),
       fullPage: true,
     });
+    // The guide lives on the landing page now, so the footer link is a
+    // cross-page journey: following it proves the application is never a dead
+    // end, which is more than the old in-page jump proved.
     await page.getByRole("link", { name: /How it works/ }).click();
+    await expect(page).toHaveURL(/\/(en|fr)#how-it-works$/);
+    await expect(page.locator("#how-it-works")).toBeInViewport();
     await page
       .getByText("Having trouble with a source or your microphone?")
       .click();
     await expect(
       page.getByText("Scanned PDFs need a text layer", { exact: false }),
     ).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+  });
+
+  test(`the landing story fits at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(LANDING_PATH);
+    await expect(page.locator("#workspace")).toHaveCount(0);
+    for (const id of [
+      "platform",
+      "how-we-build",
+      "how-it-works",
+      "applications",
+    ]) {
+      await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+      await expect(page.locator(`#${id}`)).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+    }
+    await page.screenshot({
+      path: testInfo.outputPath(`ursly-landing-${width}.png`),
+      fullPage: true,
+    });
   });
 }

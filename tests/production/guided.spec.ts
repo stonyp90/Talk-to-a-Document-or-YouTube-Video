@@ -1,6 +1,7 @@
 import { test as firstVisit, type Page } from "@playwright/test";
 import { expect, test } from "./base";
 import { pdfFixture } from "../pdf-fixture";
+import { APP_PATH, LANDING_PATH } from "../routes";
 
 const nav = (page: Page) => page.getByRole("navigation", { name: "Primary" });
 
@@ -33,8 +34,13 @@ firstVisit("real PDF upload, grounded answer, source preview and replacement", a
   });
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await page.goto(LANDING_PATH);
   await page.getByRole("button", { name: "Skip intro" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.locator("#workspace")).toHaveCount(0);
+  // The navigation the founder asked for, proven in production.
+  await nav(page).getByRole("link", { name: "Open the app" }).click();
+  await expect(page).toHaveURL(/\/(en|fr)\/app$/);
   await upload(page);
   await expect(
     page.locator('.progress-steps [aria-current="step"]'),
@@ -65,7 +71,7 @@ firstVisit("real PDF upload, grounded answer, source preview and replacement", a
 });
 
 test("invalid source has an understandable recovery path", async ({ page }) => {
-  await page.goto("/");
+  await page.goto(APP_PATH);
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://example.com/not-a-video");
   await page.getByRole("button", { name: "Continue to questions" }).click();
@@ -75,7 +81,10 @@ test("invalid source has an understandable recovery path", async ({ page }) => {
   await page.getByRole("button", { name: "Use a PDF instead" }).click();
   await expect(page.getByLabel("PDF file")).toBeVisible();
   await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
-  await page.reload();
+  // From the application, the way back to the story is one tap, and the
+  // introduction is replayable once there.
+  await nav(page).getByRole("link", { name: "Back to the story" }).click();
+  await expect(page).toHaveURL(/\/(en|fr)$/);
   await nav(page).getByRole("button", { name: "Watch the intro" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("button", { name: "Skip intro" })).toBeFocused();
@@ -90,7 +99,7 @@ test("real voice transport connects, answers typed input, mutes and stops", asyn
     testInfo.project.name === "mobile",
     "Real WebRTC checked in desktop Chromium; physical mobile audio requires a device.",
   );
-  await page.goto("/");
+  await page.goto(APP_PATH);
   await upload(page);
   await page.getByRole("button", { name: "Start Voice Chat" }).click();
   await expect(page.locator(".conversation-card .status")).toHaveText(
@@ -126,7 +135,11 @@ test("a fresh browser loads every app asset and hydrates the controls", async ({
     if (request.url().includes("/_next/static/"))
       failedAssets.push(request.url());
   });
-  await page.goto("/");
+  // Asset-loading regressions are possible on two pages now, so check both.
+  await page.goto(LANDING_PATH);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.locator("#how-we-build")).toBeVisible();
+  await page.goto(APP_PATH);
   await expect(
     page.getByRole("radio", { name: "Voice to action" }),
   ).toBeVisible();

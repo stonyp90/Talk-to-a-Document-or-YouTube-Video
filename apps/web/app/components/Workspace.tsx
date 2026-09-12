@@ -11,17 +11,14 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { Applications } from "./Applications";
-import { HowItWorks } from "./HowItWorks";
 import { Icon } from "./Icon";
-import { IntroGate, hasSeenIntro } from "./IntroGate";
 import type { EntryMode } from "./ModeSwitcher";
-import { PlatformSection } from "./PlatformSection";
-import { Process } from "./Process";
 import { SignInPanel } from "./SignInPanel";
+import { SiteFooter } from "./SiteFooter";
 import { TopNav } from "./TopNav";
 import { Markdown } from "./Markdown";
 import { VoiceActions, type VoiceActionId } from "./VoiceActions";
+import { defaultPhrases } from "@/packages/core/src/domain/voiceCommands";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   conversationReducer,
@@ -145,8 +142,17 @@ function readSavedMode(): EntryMode {
   }
 }
 
-export default function HomePage() {
+/**
+ * The application itself, at `/<lang>/app`: add a source, then ask about it.
+ * It holds every piece of conversation state and nothing about the story —
+ * the pitch, the introduction and the platform sections live on the landing
+ * page, one tap away through the menu.
+ */
+export default function Workspace() {
   const { t, language } = useLanguage();
+  /** The wording this language listens for, so a notice never quotes another. */
+  const spokenPhrase = (action: VoiceActionId) =>
+    defaultPhrases(language)[action][0] ?? "";
   // The chosen mode is remembered per browser. The server snapshot is voice,
   // so hydration has nothing to reconcile; a choice made here wins over it.
   const savedMode = useSyncExternalStore(
@@ -193,16 +199,6 @@ export default function HomePage() {
     () => navigator.onLine,
     () => true,
   );
-  // The server never shows the intro; a first visit opens it after hydration.
-  const firstVisit = useSyncExternalStore(
-    subscribeToStorage,
-    () => !hasSeenIntro(),
-    () => false,
-  );
-  const [introOverride, setIntroOverride] = useState<boolean | null>(null);
-  const introOpen = introOverride ?? firstVisit;
-  const introOrigin = useRef<"first" | "replay">("first");
-  const replayButton = useRef<HTMLButtonElement>(null);
   const [state, dispatch] = useReducer(
     conversationReducer,
     initialConversationState,
@@ -249,6 +245,15 @@ export default function HomePage() {
     if (followMessages.current && chatLog.current)
       chatLog.current.scrollTop = chatLog.current.scrollHeight;
   }, [state.messages]);
+
+  // A reader can choose a PDF before this page's script has run, and the
+  // change event is lost because React was not listening yet: the picker
+  // holds a file the page does not know about, and the way forward stays
+  // disabled. Adopt whatever is already there the moment we can see it.
+  useEffect(() => {
+    const chosen = fileInput.current?.files?.[0];
+    if (chosen) setFile((current) => current ?? chosen);
+  }, []);
 
   useEffect(() => {
     let current = true;
@@ -349,29 +354,6 @@ export default function HomePage() {
     [file, tab, url],
   );
   const sessionLive = LIVE_STATUSES.includes(state.status);
-
-  function openIntro() {
-    introOrigin.current = "replay";
-    setIntroOverride(true);
-  }
-
-  function closeIntro() {
-    setIntroOverride(false);
-  }
-
-  // Land where the work is: the workspace on a first visit, the menu button
-  // that opened the replay otherwise. Runs once the dialog has closed, after
-  // the browser has restored focus to whatever had it before.
-  function focusAfterIntro() {
-    if (introOrigin.current === "replay") {
-      replayButton.current?.focus();
-      return;
-    }
-    const first =
-      document.querySelector<HTMLElement>("#workspace .voice-mic") ??
-      fileInput.current;
-    (first ?? document.getElementById("workspace"))?.focus();
-  }
 
   /**
    * Calls an endpoint with the opaque session id, and resends the whole source
@@ -950,7 +932,9 @@ export default function HomePage() {
     if (action === "voice") {
       if (!source) {
         setVoiceActionNotice(
-          t("Add a PDF or YouTube source first, then say “let’s talk” again."),
+          t("Add a PDF or YouTube source first, then say “{phrase}” again.", {
+            phrase: spokenPhrase("voice"),
+          }),
         );
         return;
       }
@@ -960,9 +944,9 @@ export default function HomePage() {
     if (action === "summarize") {
       if (!source) {
         setVoiceActionNotice(
-          t(
-            "Add a PDF or YouTube source first, then say “summarize this” again.",
-          ),
+          t("Add a PDF or YouTube source first, then say “{phrase}” again.", {
+            phrase: spokenPhrase("summarize"),
+          }),
         );
         return;
       }
@@ -1066,17 +1050,7 @@ export default function HomePage() {
       <a className="skip-link" href="#workspace">
         {t("Skip to workspace")}
       </a>
-      <TopNav
-        mode={entryMode}
-        onModeChange={switchEntryMode}
-        onReplayIntro={openIntro}
-        replayButton={replayButton}
-      />
-      <IntroGate
-        open={introOpen}
-        onClose={closeIntro}
-        onClosed={focusAfterIntro}
-      />
+      <TopNav page="app" mode={entryMode} onModeChange={switchEntryMode} />
 
       <main className="shell">
         <div className="container app-frame">
@@ -1091,7 +1065,7 @@ export default function HomePage() {
           <div className="workspace-heading">
             <div className="workspace-heading-copy">
               <h1>
-                {t("Less scrolling.")} <span>{t("More understanding.")}</span>
+                {t("Your source.")} <span>{t("Your questions.")}</span>
               </h1>
               <p className="lede">
                 {entryMode === "voice"
@@ -1498,7 +1472,7 @@ export default function HomePage() {
                 one tap from the consent story.
               */}
               {sessionLive && state.status === "connected" && (
-                <a className="voice-learning" href="#platform">
+                <a className="voice-learning" href={`/${language}#platform`}>
                   <span className="voice-learning-dot" aria-hidden="true" />
                   <span>
                     <strong>{t("Adapting to your voice")}</strong>
@@ -1806,38 +1780,30 @@ export default function HomePage() {
               </p>
             </section>
           </div>
-        </div>
 
-        <div className="container">
-          <PlatformSection onReplayIntro={openIntro} />
-          <Process locale={language} />
-          <HowItWorks />
-          <Applications />
-          <footer className="footer">
-            <span>{t("Ursly · Made for your next “aha”.")}</span>
-            {account && (
-              <span className="footer-account">
-                {t("Signed in as {email}", { email: account })}
-                <button
-                  type="button"
-                  className="footer-signout"
-                  onClick={() => {
-                    setAccount(null);
-                    void signOut().catch(() => {
-                      // The cookie is gone either way; a failed call must not
-                      // leave the reader looking signed in when they are not.
-                    });
-                  }}
-                >
-                  {t("Sign out")}
-                </button>
-              </span>
-            )}
-            <span className="footer-links">
-              <a href="#how-it-works">{t("How it works")} ↓</a>
-              <a href="#applications">{t("Applications & GitHub")} ↗</a>
-            </span>
-          </footer>
+          {/*
+            Who is signed in, and the way back out. A reader who cannot sign out
+            cannot hand the machine to anyone else.
+          */}
+          {account && (
+            <p className="footer-account">
+              {t("Signed in as {email}", { email: account })}
+              <button
+                type="button"
+                className="footer-signout"
+                onClick={() => {
+                  setAccount(null);
+                  void signOut().catch(() => {
+                    // The cookie is gone either way; a failed call must not
+                    // leave the reader looking signed in when they are not.
+                  });
+                }}
+              >
+                {t("Sign out")}
+              </button>
+            </p>
+          )}
+          <SiteFooter page="app" />
         </div>
       </main>
     </>

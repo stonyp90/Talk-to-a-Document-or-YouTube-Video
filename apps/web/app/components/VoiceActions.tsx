@@ -27,6 +27,10 @@ import {
   type VoiceTrigger,
 } from "@/packages/core/src/domain/voiceCommands";
 import {
+  SPEECH_DELIVERY,
+  selectSpeechVoice,
+} from "@/apps/web/src/lib/speechVoice";
+import {
   createSpeechListener,
   speechRecognitionSupported,
   type SpeechErrorReason,
@@ -225,6 +229,12 @@ export function VoiceActions({
   );
 
   useEffect(() => {
+    // Installed voices load lazily, and the list is empty until something asks
+    // for it. Asking on mount means the first spoken reply already has one.
+    window.speechSynthesis?.getVoices();
+  }, []);
+
+  useEffect(() => {
     if (!editedTriggers) return;
     try {
       localStorage.setItem(
@@ -240,7 +250,19 @@ export function VoiceActions({
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     if (typeof SpeechSynthesisUtterance === "undefined") return;
     const utterance = new SpeechSynthesisUtterance(reply);
-    utterance.lang = SPEECH_LOCALES[latest.current.language];
+    const locale = SPEECH_LOCALES[latest.current.language];
+    utterance.lang = locale;
+    // The browser default is whichever voice was installed first, and it is
+    // often the small robotic one. Voices also arrive asynchronously, so an
+    // empty list here simply means the default is used this once.
+    const chosen = selectSpeechVoice(
+      window.speechSynthesis.getVoices(),
+      locale,
+    );
+    if (chosen) utterance.voice = chosen;
+    utterance.rate = SPEECH_DELIVERY.rate;
+    utterance.pitch = SPEECH_DELIVERY.pitch;
+    utterance.volume = SPEECH_DELIVERY.volume;
     // The reply comes out of the speakers and straight back into the
     // microphone. Rather than closing the microphone — which loses the next
     // sentence — the guard makes listening ignore what it hears meanwhile.

@@ -35,6 +35,8 @@ const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
 
 const CONNECT_TIMEOUT_MS = 30000;
 const RECOVERY_TIMEOUT_MS = 15000;
+/** How long a blocked answer waits for the gesture that lets it be heard. */
+const PLAYBACK_GESTURE_TIMEOUT_MS = 8000;
 
 export class RealtimeClient {
   private peer?: RTCPeerConnection;
@@ -49,6 +51,7 @@ export class RealtimeClient {
   private activity: VoiceActivity = "idle";
   private timers = new Set<ReturnType<typeof setTimeout>>();
   private recoveryTimer?: ReturnType<typeof setTimeout>;
+  private playbackTimer?: ReturnType<typeof setTimeout>;
   private messages = new Map<
     string,
     { role: "user" | "assistant"; complete: boolean }
@@ -105,10 +108,7 @@ export class RealtimeClient {
         if (current() && this.output) {
           this.output.srcObject =
             event.streams[0] ?? new MediaStream([event.track]);
-          void this.output.play().catch(() => {
-            if (current())
-              this.fail("Audio playback was blocked. Restart voice chat.", true);
-          });
+          void this.startPlayback(current);
         }
       };
       this.microphone
@@ -274,6 +274,8 @@ export class RealtimeClient {
     this.timers.clear();
     clearTimeout(this.recoveryTimer);
     this.recoveryTimer = undefined;
+    clearTimeout(this.playbackTimer);
+    this.playbackTimer = undefined;
     this.microphone?.getTracks().forEach((track) => track.stop());
     this.microphone = undefined;
     if (this.dataChannel)
@@ -293,6 +295,44 @@ export class RealtimeClient {
       this.output.remove();
       this.output = undefined;
     }
+  }
+
+  /**
+   * A browser refuses to play sound that did not follow a user gesture. The
+   * call itself is healthy, so the next tap or key press is used to start the
+   * audio rather than throwing away a connected session; only silence that
+   * nobody reacts to is reported as a failure.
+   */
+  private async startPlayback(current: () => boolean): Promise<void> {
+    try {
+      await this.output?.play();
+      return;
+    } catch {
+      if (!current()) return;
+    }
+    const blocked = "Audio playback was blocked. Restart voice chat.";
+    const listeners = ["pointerdown", "keydown"];
+    const give = () => {
+      listeners.forEach((name) =>
+        document.removeEventListener(name, retry as EventListener),
+      );
+      clearTimeout(this.playbackTimer);
+      this.playbackTimer = undefined;
+    };
+    const retry = () => {
+      give();
+      if (!current()) return;
+      void this.output?.play().catch(() => {
+        if (current()) this.fail(blocked, true);
+      });
+    };
+    listeners.forEach((name) =>
+      document.addEventListener(name, retry as EventListener, { once: true }),
+    );
+    this.playbackTimer = setTimeout(() => {
+      give();
+      if (current()) this.fail(blocked, true);
+    }, PLAYBACK_GESTURE_TIMEOUT_MS);
   }
 
   private fail(error: string, retryable = false): void {

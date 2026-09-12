@@ -55,6 +55,8 @@ const output = {
   pause: vi.fn(),
   remove: vi.fn(),
 };
+/** Document-level listeners the client waits on when playback is blocked. */
+const gestures = new Map<string, () => void>();
 const getUserMedia = vi.fn();
 const request = vi.fn();
 const events = vi.fn();
@@ -75,7 +77,13 @@ beforeEach(() => {
   request.mockResolvedValue({ ok: true, text: async () => "answer-sdp" });
   vi.stubGlobal("RTCPeerConnection", FakePeer);
   vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
-  vi.stubGlobal("document", { createElement: () => output });
+  gestures.clear();
+  vi.stubGlobal("document", {
+    createElement: () => output,
+    addEventListener: (name: string, listener: () => void) =>
+      gestures.set(name, listener),
+    removeEventListener: (name: string) => gestures.delete(name),
+  });
   vi.stubGlobal("window", globalThis);
   vi.stubGlobal("fetch", request);
   client = new RealtimeClient(source, events, "live", "ephemeral-secret");
@@ -263,6 +271,35 @@ describe("Realtime WebRTC client", () => {
     expect(track.stop).toHaveBeenCalledOnce();
     expect(request).not.toHaveBeenCalled();
     expect(events).toHaveBeenLastCalledWith({ type: "ended" });
+  });
+  it("starts blocked audio on the next tap instead of ending a working call", async () => {
+    output.play.mockRejectedValueOnce(new Error("NotAllowedError"));
+    await connected();
+    peer().ontrack?.({ streams: [stream] });
+    await Promise.resolve();
+    expect(events).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error" }),
+    );
+    gestures.get("pointerdown")?.();
+    await Promise.resolve();
+    expect(output.play).toHaveBeenCalledTimes(2);
+    expect(events).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error" }),
+    );
+  });
+  it("explains blocked audio when no gesture ever arrives", async () => {
+    vi.useFakeTimers();
+    output.play.mockRejectedValueOnce(new Error("NotAllowedError"));
+    await connected();
+    peer().ontrack?.({ streams: [stream] });
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(events).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "error",
+        error: expect.stringMatching(/playback was blocked/i),
+        retryable: true,
+      }),
+    );
   });
   it("stops idempotently, detaches audio, and ignores late events", async () => {
     await connected();

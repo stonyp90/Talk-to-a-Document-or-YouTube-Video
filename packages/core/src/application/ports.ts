@@ -128,3 +128,22 @@ export type VideoCandidate = {
 export interface VideoSearchPort {
   search(query: string, limit: number): Promise<VideoCandidate[]>;
 }
+
+/** One audio file handed to a provider, named so the provider can type it. */
+export type VoiceRecording = { bytes: Uint8Array; filename: string };
+
+/**
+ * Lending a voice to the assistant: a recording of the speaker consenting, and
+ * a sample of the same speaker to model. Both belong to the same person, and
+ * the consent wording is the provider's to dictate.
+ */
+export type VoiceEnrollmentRequest = {
+  name: string;
+  language: string;
+  consentRecording: VoiceRecording;
+  sample: VoiceRecording;
+};
+export type EnrolledVoice = { id: string; consentId: string };
+export interface VoiceEnrollmentPort {
+  enroll(request: VoiceEnrollmentRequest): Promise<EnrolledVoice>;
+}

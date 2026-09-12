@@ -8,6 +8,7 @@ import type {
   CredentialPort,
   RealtimeSession,
 } from "../../core/src/application/ports";
+import { realtimeAudioConfig } from "./realtimeAudio";
 
 export function createConversationAdapter(
   credentials: CredentialPort,
@@ -18,15 +19,10 @@ export function createConversationAdapter(
       type: "realtime",
       model: process.env.OPENAI_REALTIME_MODEL ?? "gpt-realtime",
       output_modalities: ["audio"],
-      audio: {
-        input: {
-          // Server-side voice activity detection is what lets the caller cut in
-          // mid-answer; the client stops its own captions on the same event.
-          turn_detection: { type: "server_vad" },
-          transcription: { model: "gpt-4o-mini-transcribe" },
-        },
-      },
-      instructions: buildContextInstructions(source, contextBudget),
+      // Provider-side voice activity detection is what lets the caller cut in
+      // mid-answer; the client stops its own captions on the same event.
+      audio: realtimeAudioConfig(process.env),
+      instructions: buildContextInstructions(source, contextBudget, "voice"),
     };
   }
 

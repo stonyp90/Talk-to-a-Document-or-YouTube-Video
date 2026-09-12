@@ -8,6 +8,7 @@ import {
   installSpeech,
   spokenReplies,
 } from "./voice-harness";
+import { APP_PATH, appPath } from "../routes";
 
 const nav = (page: Page) => page.getByRole("navigation", { name: "Primary" });
 const modes = (page: Page) =>
@@ -29,7 +30,7 @@ const question = (page: Page) =>
   page.getByLabel("Ask a question", { exact: true });
 
 async function openClean(page: Page) {
-  await page.goto("/");
+  await page.goto(APP_PATH);
   await page.evaluate(() => localStorage.removeItem("ursly-voice-triggers-v1"));
   await page.reload();
 }
@@ -384,7 +385,7 @@ test("a built-in command is heard inside an ordinary sentence", async ({
 
 test("French voice commands work on the French route", async ({ page }) => {
   await installSpeech(page);
-  await page.goto("/fr");
+  await page.goto(appPath("fr"));
   await page.evaluate(() => localStorage.removeItem("ursly-voice-triggers-v1"));
   await page.reload();
 

@@ -29,9 +29,13 @@ assert(base && /^https?:\/\//.test(base), "An application URL is required");
 const health = await fetch(new URL("/api/health", base), { signal: AbortSignal.timeout(30000) });
 assert.equal(health.status, 200);
 assert.equal((await health.json()).ok, true);
-const page = await fetch(base, { signal: AbortSignal.timeout(30000) });
-assert.equal(page.status, 200);
-assert.match(page.headers.get("content-type") ?? "", /text\/html/);
+// Both halves of the site: the landing page at the root and the application
+// at /app, which the locale proxy rewrites to the negotiated language.
+for (const path of ["/", "/app"]) {
+  const page = await fetch(new URL(path, base), { signal: AbortSignal.timeout(30000) });
+  assert.equal(page.status, 200, `${path} did not serve`);
+  assert.match(page.headers.get("content-type") ?? "", /text\/html/);
+}
 const post = (path, body) => fetch(new URL(path, base), {
   method: "POST", headers: { "content-type": "application/json" },
   body: JSON.stringify(body), signal: AbortSignal.timeout(30000),

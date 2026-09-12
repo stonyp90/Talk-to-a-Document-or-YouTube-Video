@@ -21,35 +21,66 @@ export const french: Dictionary = {
   "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.":
     "Le mouvement n’est pas encore disponible. Nous y travaillons. La voix et le clavier sont prêts dès aujourd’hui.",
   Platform: "Plateforme",
+  "How we build": "Notre façon de bâtir",
+  Build: "Bâtir",
+  Guide: "Guide",
+  Apps: "Apps",
   "Watch the intro": "Voir l’intro",
   Language: "Langue",
   "Skip to workspace": "Aller à l’atelier",
+  "Skip to content": "Aller au contenu",
+  "Open the app": "Ouvrir l’application",
+  App: "App",
+  "Back to the story": "Retour à l’histoire",
+  Story: "Histoire",
 
   // Introduction
   Welcome: "Bienvenue",
-  "Ursly, in 24 seconds.": "Ursly, en 24 secondes.",
+  "Ursly, in {seconds} seconds.": "Ursly, en {seconds} secondes.",
   "A source, a question, and a conversation that stays grounded in what you brought.":
     "Une source, une question, et une conversation qui reste ancrée dans ce que vous avez apporté.",
   "Skip intro": "Passer l’intro",
   "Play the intro": "Lire l’intro",
   "Intro progress": "Progression de l’intro",
-  "Continues to the app in {seconds} s":
-    "L’application s’ouvre dans {seconds} s",
-  "Skip whenever you like. The app is right behind this.":
-    "Passez quand vous voulez. L’application est juste derrière.",
+  "Continues in {seconds} s": "Suite dans {seconds} s",
+  "Skip whenever you like. Ursly is right behind this.":
+    "Passez quand vous voulez. Ursly est juste derrière.",
   "Read the intro instead": "Lire l’intro plutôt",
   "The intro is unavailable right now.":
     "L’intro n’est pas disponible pour le moment.",
-  "Ursly. A source. A conversation.": "Ursly. Une source. Une conversation.",
-  "Bring a document or a video. Ursly reads it for you.":
-    "Apportez un document ou une vidéo. Ursly le lit pour vous.",
-  "Ask by voice, by keyboard, and soon by movement.":
-    "Posez vos questions à la voix, au clavier et bientôt par le mouvement.",
-  "Source, question, understanding.": "Source, question, compréhension.",
 
-  // Workspace heading
+  // The scenes of the introduction, in the order the film plays them. They are
+  // also the transcript shown in the dialog, so anyone who cannot watch reads
+  // exactly the same argument. "Not a new website. A new way to use one." is
+  // deliberately absent: the platform section below already owns that sentence,
+  // and the film must not say it a second, slightly different way.
+  "The next generation of internet.": "La nouvelle génération d’internet.",
+  "Bring a document or a video.": "Apportez un document ou une vidéo.",
+  "Ursly reads it, and answers only from it.":
+    "Ursly le lit, et ne répond qu’à partir de lui.",
+  "Voice to action.": "Voix vers action.",
+  "Say it, and Ursly does it.": "Dites-le, Ursly le fait.",
+  "Motion to action.": "Mouvement vers action.",
+  "In beta, built for the headsets coming next.":
+    "En bêta, pensé pour les casques qui arrivent.",
+  "The keyboard still works.": "Le clavier fonctionne toujours.",
+  "It is simply no longer the way in.":
+    "Ce n’est simplement plus la porte d’entrée.",
+  "Nothing ships until the loop closes.":
+    "Rien ne sort tant que la boucle n’est pas bouclée.",
+  "Concept to production, tested in production, every cycle.":
+    "Du concept à la production, testé en production, à chaque cycle.",
+
+  // Landing hero
+  "Voice first": "La voix d’abord",
   "Less scrolling.": "Moins défiler.",
   "More understanding.": "Mieux comprendre.",
+  "Bring a PDF or a captioned YouTube video, ask by voice or keyboard, and get answers that stay anchored to your source.":
+    "Apportez un PDF ou une vidéo YouTube sous-titrée, posez vos questions à la voix ou au clavier, et obtenez des réponses qui restent ancrées dans votre source.",
+
+  // Workspace heading
+  "Your source.": "Votre source.",
+  "Your questions.": "Vos questions.",
   "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.":
     "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis parlez-lui. Dites une commande, posez votre question à voix haute ou écrivez quand vous préférez.",
   "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.":
@@ -116,8 +147,19 @@ export const french: Dictionary = {
   "Speak a command": "Dire une commande",
   "Stop listening": "Arrêter l’écoute",
   "Listening for a command": "À l’écoute d’une commande",
-  "Press once, then say a command such as “upload” or “YouTube”.":
-    "Appuyez une fois, puis dites une commande comme « téléverser » ou « YouTube ».",
+  "Press once, then say a command such as “{first}” or “{second}”.":
+    "Appuyez une fois, puis dites une commande comme « {first} » ou « {second} ».",
+  "Triggered “{phrase}” · {action}.": "Déclenché « {phrase} » · {action}.",
+
+  // Spoken confirmations: these are read out loud by the browser voice.
+  "Opening the YouTube source tab.": "J’ouvre l’onglet source YouTube.",
+  "Opening the PDF upload picker.": "J’ouvre le sélecteur de PDF.",
+  "Starting voice chat.": "Je démarre la conversation vocale.",
+  "Preparing a key-ideas summary.": "Je prépare un résumé des idées clés.",
+  "Going back and undoing the last step.":
+    "Je reviens en arrière et j’annule la dernière étape.",
+  "Moving forward to the next step.": "Je passe à l’étape suivante.",
+  "Cancelling the current action.": "J’annule l’action en cours.",
   Say: "Dites",
   "Voice command examples": "Exemples de commandes vocales",
   YouTube: "YouTube",
@@ -170,10 +212,8 @@ export const french: Dictionary = {
     "Les commandes vocales sont en pause pendant qu’Ursly termine une autre action.",
   "Voice actions stopped when this page was hidden.":
     "Les commandes vocales se sont arrêtées quand la page a été masquée.",
-  "Add a PDF or YouTube source first, then say “let’s talk” again.":
-    "Ajoutez d’abord un PDF ou une source YouTube, puis redites « parlons-en ».",
-  "Add a PDF or YouTube source first, then say “summarize this” again.":
-    "Ajoutez d’abord un PDF ou une source YouTube, puis redites « résume ceci ».",
+  "Add a PDF or YouTube source first, then say “{phrase}” again.":
+    "Ajoutez d’abord un PDF ou une source YouTube, puis redites « {phrase} ».",
   "Voice actions are preparing for the next command.":
     "Les commandes vocales se préparent pour la prochaine commande.",
   "Use at least one letter or number in the trigger phrase.":
@@ -313,7 +353,7 @@ export const french: Dictionary = {
     "Des profils vocaux qui s’adaptent à chaque personne, avec consentement et suppression d’un seul geste. Le mouvement, en version bêta.",
   "Connected objects, 3D objects and other surfaces. Whole industries, not only websites.":
     "Objets connectés, objets 3D et autres surfaces. Des industries entières, pas seulement des sites Web.",
-  "Try it above": "Essayez-le ci-dessus",
+  "Try it now": "Essayez-le maintenant",
   "No dates. We publish what ships, and we revise this as we learn. Not on the list: replacing your keyboard, or acting without asking.":
     "Sans dates. Nous publions ce qui est livré et nous révisons ce plan à mesure que nous apprenons. Pas au programme : remplacer votre clavier, ou agir sans demander.",
   "Open source": "Code source ouvert",
@@ -386,6 +426,16 @@ export const french: Dictionary = {
     "La connexion n’a pas pu être menée à terme.",
   "The sign-out could not be completed.":
     "La déconnexion n’a pas pu être menée à terme.",
+  // The story, and the invitation that closes it
+  "The story first: how this was built, what it is, and how to use it. The app is one tap away from anywhere on this page.":
+    "L’histoire d’abord : comment ceci a été bâti, ce que c’est et comment s’en servir. L’application est à un seul geste, depuis n’importe où sur cette page.",
+  "Your turn": "À votre tour",
+  "That is the story. Now bring a document.":
+    "Voilà l’histoire. Apportez maintenant un document.",
+  "A PDF or a captioned YouTube video, a question out loud, and an answer that stays anchored to what you brought.":
+    "Un PDF ou une vidéo YouTube sous-titrée, une question à voix haute, et une réponse qui reste ancrée dans ce que vous avez apporté.",
+  "Three steps, about a minute. Nothing to install.":
+    "Trois étapes, environ une minute. Rien à installer.",
 
   // Footer
   "Ursly · Made for your next “aha”.":

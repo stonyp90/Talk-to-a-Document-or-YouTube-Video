@@ -62,18 +62,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.14.7
       - run: terraform fmt -check -recursive infrastructure/terraform
       - name: Validate and test Terraform without cloud credentials
         run: |
-          for target in bootstrap modules/demo environments/demo environments/domain; do
+          for target in bootstrap modules/demo modules/email environments/demo environments/domain environments/email; do
             terraform -chdir="infrastructure/terraform/$target" init -backend=false -lockfile=readonly
             terraform -chdir="infrastructure/terraform/$target" validate
           done
           terraform -chdir=infrastructure/terraform/bootstrap test
           terraform -chdir=infrastructure/terraform/modules/demo test
+          terraform -chdir=infrastructure/terraform/modules/email test
+          terraform -chdir=infrastructure/terraform/environments/email test
   containers:
     runs-on: ubuntu-latest
     steps:

@@ -17,7 +17,12 @@ variables {
   image_tag              = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   openai_secret_arn      = "arn:aws:secretsmanager:us-east-1:123456789012:secret:fixture-abcdef"
   auth_pepper_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:fixture-pepper-abcdef"
-  ses_from_address       = "no-reply@fixture.example"
+  # A deployment sends real mail, so the fixture carries what the operator-owned
+  # email root hands over. The runs below take them away again to prove what an
+  # account without a verified identity is and is not allowed to do.
+  ses_identity_arn           = "arn:aws:ses:us-east-1:123456789012:identity/fixture.example"
+  ses_configuration_set_name = "talk-to-a-document-transactional"
+  ses_from_address           = "no-reply@fixture.example"
 }
 run "demo_security_and_cost_contract" {
   # In-memory mock apply resolves computed members of route-settings sets.
@@ -98,6 +103,17 @@ run "reject_sending_mail_with_no_verified_sender" {
   variables { ses_from_address = "" }
   expect_failures = [var.ses_from_address]
 }
+# The gate is closed by default, so sign-in needs mail that reaches a reader.
+# EMAIL_MODE=ses with no identity would come up sending nothing at all.
+run "reject_real_mail_with_no_identity_behind_it" {
+  command = plan
+  variables {
+    ses_identity_arn           = ""
+    ses_configuration_set_name = ""
+    ses_from_address           = ""
+  }
+  expect_failures = [var.email_mode]
+}
 run "reject_an_unrecognised_gate_mode" {
   command = plan
   variables { auth_mode = "off" }
@@ -107,4 +123,67 @@ run "reject_mutable_image_tag" {
   command = plan
   variables { image_tag = "latest" }
   expect_failures = [var.image_tag]
+}
+run "no_email_permission_before_the_operator_verifies_the_domain" {
+  command = apply
+  variables {
+    # log is the only mode available before environments/email is applied, and
+    # naming it is the deployment admitting its sign-in codes go to CloudWatch.
+    email_mode                 = "log"
+    ses_identity_arn           = ""
+    ses_configuration_set_name = ""
+    ses_from_address           = ""
+  }
+  assert {
+    condition     = length(jsondecode(aws_iam_role_policy.runtime["api"].policy).Statement) == 3 && alltrue([for statement in jsondecode(aws_iam_role_policy.runtime["api"].policy).Statement : !anytrue([for action in statement.Action : startswith(action, "ses:")])])
+    error_message = "Without a verified identity the api role must hold no email permission at all."
+  }
+  assert {
+    condition     = !contains(keys(aws_lambda_function.runtime["api"].environment[0].variables), "SES_FROM_ADDRESS")
+    error_message = "An unconfigured deployment must keep exactly today's function environment."
+  }
+}
+run "email_permission_scoped_to_one_identity_and_one_sender" {
+  command = apply
+  variables {
+    ses_identity_arn           = "arn:aws:ses:us-east-1:123456789012:identity/example.test"
+    ses_configuration_set_name = "talk-to-a-document-transactional"
+    ses_from_address           = "no-reply@example.test"
+  }
+  assert {
+    condition = length([for statement in jsondecode(aws_iam_role_policy.runtime["api"].policy).Statement : statement if try(
+      statement.Action == ["ses:SendEmail"] &&
+      statement.Condition.StringEquals["ses:FromAddress"] == "no-reply@example.test" &&
+      contains(statement.Resource, "arn:aws:ses:us-east-1:123456789012:identity/example.test") &&
+      contains(statement.Resource, "arn:aws:ses:us-east-1:123456789012:configuration-set/talk-to-a-document-transactional"),
+    false)]) == 1
+    error_message = "Sending must be one statement pinned to the identity, the configuration set and the single From address."
+  }
+  assert {
+    condition     = length(jsondecode(aws_iam_role_policy.runtime["transcript"].policy).Statement) == 1
+    error_message = "Transcript processing may only write its logs; it never sends mail."
+  }
+  assert {
+    condition     = aws_lambda_function.runtime["api"].environment[0].variables["SES_FROM_ADDRESS"] == "no-reply@example.test" && aws_lambda_function.runtime["api"].environment[0].variables["SES_CONFIGURATION_SET"] == "talk-to-a-document-transactional"
+    error_message = "The api function needs the From address and configuration set it is authorized to use."
+  }
+}
+run "reject_sender_outside_the_verified_domain" {
+  command = plan
+  variables {
+    ses_identity_arn           = "arn:aws:ses:us-east-1:123456789012:identity/example.test"
+    ses_configuration_set_name = "talk-to-a-document-transactional"
+    ses_from_address           = "no-reply@attacker.test"
+  }
+  expect_failures = [var.ses_from_address]
+}
+run "reject_identity_without_configuration_set_and_sender" {
+  command = plan
+  # Explicitly empty, because the file-level fixture supplies all three.
+  variables {
+    ses_identity_arn           = "arn:aws:ses:us-east-1:123456789012:identity/example.test"
+    ses_configuration_set_name = ""
+    ses_from_address           = ""
+  }
+  expect_failures = [var.ses_configuration_set_name, var.ses_from_address]
 }

@@ -9,7 +9,7 @@ import type { Step, World } from "./steps";
 type Helpers = {
   page: (w: World) => Promise<Page>;
   ready: (this: World) => Promise<void>;
-  open: (this: World) => Promise<void>;
+  openApp: (this: World) => Promise<void>;
   baseURL: string;
 };
 const controls = new WeakMap<World, RealtimeHarness>();
@@ -138,7 +138,7 @@ export function registerResilienceChecks(step: Step, h: Helpers) {
     },
   );
   step("extraction fails after a source is submitted", async function () {
-    await h.open.call(this);
+    await h.openApp.call(this);
     const p = await h.page(this);
     await p.route("**/api/ingest", (route) =>
       route.fulfill({

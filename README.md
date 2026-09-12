@@ -22,11 +22,12 @@ cp .env.example .env.local && npm ci
 docker compose --env-file .env.local --profile dev up --build dev
 ```
 
-Open **[localhost:3000](http://localhost:3000)**. The defaults run in `mock` mode, which needs no OpenAI key, no AWS account and no network: PDF extraction is real, and provider replies are deterministic stand-ins.
+Open **[localhost:3000](http://localhost:3000)** for the landing page, or **[localhost:3000/app](http://localhost:3000/app)** to go straight to the application. The defaults run in `mock` mode, which needs no OpenAI key, no AWS account and no network: PDF extraction is real, and provider replies are deterministic stand-ins.
 
 | Service                | Address                                                           |
 | ---------------------- | ----------------------------------------------------------------- |
-| Web and API            | [localhost:3000](http://localhost:3000)                           |
+| Landing page           | [localhost:3000](http://localhost:3000)                           |
+| Application            | [localhost:3000/app](http://localhost:3000/app)                   |
 | API health             | [localhost:3000/api/health](http://localhost:3000/api/health)     |
 | OpenAPI document       | [localhost:3000/api/openapi](http://localhost:3000/api/openapi)   |
 | Caption service health | [localhost:3010/health](http://localhost:3010/health)             |
@@ -46,11 +47,29 @@ OPENAI_API_KEY=<your-project-key>
 
 Full environment reference: [`.env.example`](.env.example) and [service setup](SERVICE-SETUP.md).
 
+### Choose the voice that answers
+
+`OPENAI_REALTIME_VOICE` selects it. The default is `marin`, one of the two voices trained for the realtime model; `OPENAI_REALTIME_VOICE_SPEED`, `OPENAI_REALTIME_TURN_DETECTION`, `OPENAI_REALTIME_TURN_EAGERNESS` and `OPENAI_REALTIME_NOISE_REDUCTION` tune the rest of the exchange.
+
+To answer in **your own voice**, the provider has to mint a custom voice from two recordings of you, and that identifier then replaces the voice name. The helper tells you what to record:
+
+```sh
+npm run voice:enroll -- --language fr
+```
+
+It prints the consent sentence you must read word for word, and what the speech sample needs to contain. Record both, then:
+
+```sh
+npm run voice:enroll -- --name my-voice --language fr --consent consent.wav --sample sample.wav
+```
+
+It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom voices are limited to eligible OpenAI accounts, and no phrase spoken inside the application can clone a voice: the enrolment is deliberate, consented and done once.
+
 ---
 
 ## What a visitor sees
 
-1. **The introduction, once.** A first visit opens a 24-second silent video in the
+1. **The introduction, once.** A first visit opens a 36-second silent video in the
    visitor's language (English or French), with captions, a transcript and a
    _Skip intro_ button from the first frame. It is remembered per browser and can
    be replayed from the top menu.
@@ -65,6 +84,25 @@ Full environment reference: [`.env.example`](.env.example) and [service setup](S
    keyboard, and the surfaces to come (connected objects, 3D objects), with a
    dateless roadmap.
 
+### Pages
+
+Two pages, deliberately separate. `/<lang>` is the landing page: what Ursly is,
+the introduction, then the story in one order — how we build, the
+platform, the guide, and the mobile downloads
+(`apps/web/app/components/LandingPage.tsx`). That order lives in
+`apps/web/app/content/story.ts`, which the page, the fixed menu and the suites
+all read, so it changes in one place. The build loop leads: how this was made is
+the first thing a reader meets, before any claim about the product.
+
+`/<lang>/app` is the application: add a source, ask a question, by voice or
+keyboard (`apps/web/app/components/Workspace.tsx`). It is not on the landing
+page at all, and it is never far from it — the fixed menu, the hero, the end of
+every story section, a closing invitation and the footer each carry the way in.
+The two components share only that menu, the footer and the language provider —
+the landing page holds no conversation state and the application holds none of
+the story. The bare `/app` is rewritten to the negotiated language, so an
+installed app (`start_url: "/app"`) opens the tool.
+
 ### Languages
 
 English is the source language; French is a full translation. Every page is
@@ -72,8 +110,36 @@ served under `/en` and `/fr`, prerendered with the right `<html lang>`. The root
 URL follows the browser (`Accept-Language`), and an explicit choice from the menu
 is remembered in a cookie. Interface copy is keyed by its English text in
 `apps/web/app/i18n/fr.ts`; a missing key falls back to English. The intro video
-exists once per language (`scripts/brand/intro-video.mjs` renders both from the
-original recording) because its text is burned into the frames.
+exists once per language (`scripts/brand/intro-video.mjs` renders both) because
+its text is burned into the frames.
+
+### Rebuilding the introduction
+
+The film is six six-second scenes: what Ursly is, a source going in, voice to
+action, motion to action, the keyboard demoted, and the build loop that produces
+all of it. Its words live in
+[`apps/web/app/content/intro-video.ts`](apps/web/app/content/intro-video.ts) —
+which the dialog, the transcript and the captions all read — and are repeated
+for the renderer in `scripts/brand/intro-copy.mjs`, with
+`scripts/brand/intro-copy.test.ts` failing the suite if the two ever disagree.
+The duration is the scene count times the scene length, everywhere, so the film
+is lengthened by adding a scene and nothing else.
+
+Three commands, in order, and only the last is needed if the app's chrome has
+not changed:
+
+```bash
+npm run dev                       # anything serving the app
+node scripts/brand/record-app.mjs # footage of the product actually being used
+node scripts/brand/capture-app.mjs # the committed stills, used as a fallback
+node scripts/brand/intro-video.mjs # draws the frames and writes the .vtt files
+```
+
+Everything it draws comes from this repository: the scenes are SVG rasterised
+with ImageMagick, the product is the recording under `scripts/brand/footage`,
+and ffmpeg cross-fades the six clips into one continuous take. Re-record before
+re-rendering whenever the application's chrome has changed, or the film will
+show an app that no longer exists.
 
 ## How each requirement is met
 
@@ -107,7 +173,9 @@ features/, tests/         Gherkin acceptance, unit, browser and architecture tes
 
 **Hexagonal, and enforced.** Dependencies point inward: inbound adapters → application → domain. The core imports no framework, no SDK, no environment variable and no network client. [`apps/web/src/composition.ts`](apps/web/src/composition.ts) is the only place concrete adapters are assembled, and [`tests/architecture.test.ts`](tests/architecture.test.ts) fails the build if a route reaches past it. Replacing S3, the caption source or the model vendor means writing one adapter and editing one file. Details in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-**Voice path.** The browser asks the backend for a Realtime session. The backend primes it with the source text and returns only a short-lived client secret, then steps aside: the browser negotiates SDP straight with OpenAI and media never transits our servers. Server-side voice activity detection is what lets a caller cut in mid-answer; the client closes its own caption on the same event so the transcript matches what was actually heard.
+**Voice path.** The browser asks the backend for a Realtime session. The backend primes it with the source text and returns only a short-lived client secret, then steps aside: the browser negotiates SDP straight with OpenAI and media never transits our servers. Provider-side voice activity detection is what lets a caller cut in mid-answer; the client closes its own caption on the same event so the transcript matches what was actually heard. Detection is semantic by default, so it waits for a finished thought rather than a silent gap and does not cut off a caller who pauses to think.
+
+**Spoken answers are written to be heard.** The session carries delivery guidance on top of the source: short sentences, no markup a listener cannot hear, two or three sentences before handing the floor back, and the caller's own language. A blocked autoplay no longer ends a working call — the next tap starts the audio.
 
 **Signing in is the budget control.** Every endpoint that calls a provider —
 ingestion, uploads, extraction, typed questions, the streamed answer, a voice

@@ -179,6 +179,7 @@ export const pendingSteps: Array<[string, string]> = [
     "Release/reviewer evidence or repository assertions not yet implemented. delivery.feature: Provide a publicly hosted working web application",
   ],
   [
+    // Since the split this means the landing page; the application is at /app.
     "the mobile-first web application loads",
     "Release/reviewer evidence or repository assertions not yet implemented. delivery.feature: Provide a publicly hosted working web application",
   ],

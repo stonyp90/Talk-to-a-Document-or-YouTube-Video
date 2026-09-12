@@ -8,37 +8,38 @@ locals {
     api        = { memory = 1024, timeout = 28, concurrency = 20, role = "${local.name}-runtime" }
     transcript = { memory = 256, timeout = 20, concurrency = 2, role = "${local.name}-transcript-runtime" }
   }
+  # Transactional email is operator-owned: environments/email verifies the domain
+  # identity and creates the configuration set, and this module only consumes
+  # them. Sending is all the api task may ever do -- from one address, on one
+  # identity. It may not verify an identity, read a quota, or change SES at all.
+  #
+  # SendEmail is authorized against the identity and, when the call names one,
+  # the configuration set, so both ARNs are listed. The FromAddress condition is
+  # what stops a compromised function sending as any other mailbox on the domain;
+  # a bare identity grant would hand it the whole domain. The configuration set
+  # is also attached to the identity itself, so bounce and complaint events are
+  # published even if a caller omits the parameter.
+  ses_sending = var.email_mode == "ses" && var.ses_identity_arn != ""
+  ses_statements = local.ses_sending ? [{
+    Effect    = "Allow"
+    Action    = ["ses:SendEmail"]
+    Resource  = [var.ses_identity_arn, "arn:aws:ses:${var.region}:${var.account_id}:configuration-set/${var.ses_configuration_set_name}"]
+    Condition = { StringEquals = { "ses:FromAddress" = var.ses_from_address } }
+  }] : []
+  # These are the names the application itself reads (packages/adapters/src/
+  # accounts.ts): SES_CONFIGURATION_SET, not the Terraform variable's spelling.
+  # The identity ARN is not passed: the task never names the identity, it sends
+  # from the address, and the grant above is what ties the two together.
+  ses_environment = local.ses_sending ? {
+    SES_REGION            = var.region
+    SES_FROM_ADDRESS      = var.ses_from_address
+    SES_CONFIGURATION_SET = var.ses_configuration_set_name
+  } : {}
   paid_routes = toset(["POST /api/realtime/session", "POST /api/realtime/connect", "POST /api/text-chat", "POST /api/uploads", "POST /api/uploads/extract"])
   routes = merge(
     { "ANY /" = "api", "ANY /{proxy+}" = "api", "GET /transcript/{videoId}" = "transcript" },
     { for route in local.paid_routes : route => "api" }
   )
-
-  # SES identities are regional and owned by the operator. Terraform reads them,
-  # it never creates them, so everything below is derived from the sender that
-  # was verified by hand rather than from a resource in this state.
-  ses_region   = var.ses_region == "" ? var.region : var.ses_region
-  ses_domain   = var.ses_from_address == "" ? "" : element(split("@", var.ses_from_address), 1)
-  ses_identity = "arn:aws:ses:${local.ses_region}:${var.account_id}:identity"
-  ses_sending  = var.email_mode == "ses"
-  # Sending is all the task may do, from one address, on one identity. It may
-  # not verify an identity, read a quota, or change SES in any way. Filtered
-  # rather than branched so the statement keeps one shape either way.
-  ses_statements = [
-    for statement in [{
-      Effect    = "Allow"
-      Action    = ["ses:SendEmail"]
-      Resource  = local.ses_send_scope
-      Condition = { StringEquals = { "ses:FromAddress" = var.ses_from_address } }
-    }] : statement if local.ses_sending
-  ]
-  ses_send_scope = local.ses_sending ? compact([
-    # Whichever of the two the operator verified is the one that exists; naming
-    # both keeps the grant exact rather than widening it to identity/*.
-    "${local.ses_identity}/${var.ses_from_address}",
-    "${local.ses_identity}/${local.ses_domain}",
-    var.ses_configuration_set == "" ? "" : "arn:aws:ses:${local.ses_region}:${var.account_id}:configuration-set/${var.ses_configuration_set}",
-  ]) : []
 }
 resource "aws_apigatewayv2_api" "http" {
   name          = "${local.name}-api"
@@ -144,7 +145,7 @@ resource "aws_lambda_function" "runtime" {
   timeout                        = each.value.timeout
   reserved_concurrent_executions = each.value.concurrency
   environment {
-    variables = each.key == "api" ? {
+    variables = each.key == "api" ? merge({
       PORT                     = "3000", HOSTNAME = "0.0.0.0", PROVIDER_MODE = "live"
       OPENAI_SECRET_ARN        = var.openai_secret_arn
       UPLOAD_BUCKET            = aws_s3_bucket.uploads.id
@@ -156,16 +157,14 @@ resource "aws_lambda_function" "runtime" {
       CONTEXT_CHARACTER_BUDGET = tostring(var.context_character_budget)
       # The gate, the allowance, and the two things without which nobody can
       # sign in. The pepper arrives as an ARN and is read at runtime, exactly
-      # like the provider key beside it; its value is never in this file.
+      # like the provider key beside it; its value is never in this file. The
+      # SES names arrive only once the operator has applied environments/email.
       AUTH_MODE              = var.auth_mode
       AUTH_PEPPER_SECRET_ARN = var.auth_pepper_secret_arn
       USAGE_LIMIT_UNITS      = tostring(var.usage_limit_units)
       USAGE_WINDOW_MS        = tostring(var.usage_window_ms)
       EMAIL_MODE             = var.email_mode
-      SES_REGION             = local.ses_region
-      SES_FROM_ADDRESS       = var.ses_from_address
-      SES_CONFIGURATION_SET  = var.ses_configuration_set
-      } : merge(
+      }, local.ses_environment) : merge(
       { PORT = "3010", TRANSCRIPT_MODE = "live", UPSTREAM_TIMEOUT_SECONDS = "10" },
       var.transcript_proxy_url == "" ? {} : { TRANSCRIPT_PROXY_URL = var.transcript_proxy_url }
     )

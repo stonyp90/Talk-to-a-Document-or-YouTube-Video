@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
 
 const STEPS = [
@@ -17,10 +18,14 @@ const STEPS = [
   },
 ] as const;
 
-export function HowItWorks() {
+export function HowItWorks({ appHref }: { appHref: string }) {
   const { t } = useLanguage();
   return (
-    <section className="how-it-works" id="how-it-works" aria-labelledby="how-heading">
+    <section
+      className="how-it-works"
+      id="how-it-works"
+      aria-labelledby="how-heading"
+    >
       <div className="guide-heading">
         <span className="eyebrow">{t("A little guidance")}</span>
         <h2 id="how-heading">{t("From information to understanding.")}</h2>
@@ -34,10 +39,22 @@ export function HowItWorks() {
           </article>
         ))}
       </div>
+      <p className="guide-action">
+        <a className="primary" href={appHref}>
+          <Icon name="arrow" /> {t("Open the app")}
+        </a>
+        <span className="guide-action-note">
+          {t("Three steps, about a minute. Nothing to install.")}
+        </span>
+      </p>
       <details className="help-detail">
-        <summary>{t("Having trouble with a source or your microphone?")}</summary>
+        <summary>
+          {t("Having trouble with a source or your microphone?")}
+        </summary>
         <p>
-          {t("Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, you can still type your questions about an extracted source.")}
+          {t(
+            "Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, you can still type your questions about an extracted source.",
+          )}
         </p>
       </details>
     </section>

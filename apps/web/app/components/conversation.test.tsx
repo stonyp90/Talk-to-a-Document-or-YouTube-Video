@@ -17,7 +17,7 @@ vi.mock("@/apps/web/src/lib/realtimeClient", () => ({
     setMuted = vi.fn();
   },
 }));
-import HomePage from "./HomePage";
+import HomePage from "./Workspace";
 
 beforeEach(() => {
   localStorage.setItem("ursly-intro-v1", "seen");

@@ -103,7 +103,11 @@ export interface AccountStorePort {
 }
 
 export interface NotifierPort {
-  sendSignInCode(email: string, code: string): Promise<void>;
+  /**
+   * The locale is the reader's, as the page they asked from was written; an
+   * unsupported or missing one is the source language rather than a failure.
+   */
+  sendSignInCode(email: string, code: string, locale?: string): Promise<void>;
 }
 
 /** Randomness and hashing live outside the core, where the platform provides them. */

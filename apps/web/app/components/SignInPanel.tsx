@@ -22,7 +22,7 @@ export function SignInPanel({
   onSignedIn: (email: string) => void;
   email?: string;
 }) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const emailId = useId();
   const codeId = useId();
   const [email, setEmail] = useState(initialEmail);
@@ -56,7 +56,7 @@ export function SignInPanel({
   const sendCode = (event: FormEvent) => {
     event.preventDefault();
     return run(async () => {
-      await requestSignInCode(email);
+      await requestSignInCode(email, language);
       setCode("");
       setStage("code");
     });

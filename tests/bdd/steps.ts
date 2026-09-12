@@ -26,6 +26,7 @@ import { registerVideoSearchChecks } from "./videoSearch";
 import { registerConversationChecks } from "./conversation";
 import { registerVoiceChecks } from "./voice";
 import { registerDiscussionChecks } from "./discussion";
+import { registerMotionChecks } from "./motion";
 import { APP_PATH } from "../routes";
 import { registerDiscoverabilityChecks } from "./discoverability";
 import { registerVoiceConsentChecks } from "./voice-consent";
@@ -525,7 +526,9 @@ step("microphone permission is denied", async function () {
   });
 });
 step("I try to start voice chat", async function () {
-  await (await page(this))
+  await (
+    await page(this)
+  )
     .locator(".voice-controls button")
     .filter({ hasText: "Start Voice Chat" })
     .click();
@@ -972,6 +975,7 @@ registerProcessChecks(step, { page });
 registerVideoSearchChecks(step);
 registerConversationChecks(step);
 registerVoiceChecks(step);
+registerMotionChecks(step);
 registerPricingChecks(step, { page });
 registerDiscoverabilityChecks(step);
 registerVoiceConsentChecks(step);

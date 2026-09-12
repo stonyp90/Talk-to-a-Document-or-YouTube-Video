@@ -32,7 +32,7 @@ export const STORY_SECTIONS = [
     id: "how-it-works",
     label: "How it works",
     short: "Guide",
-    inMenu: false,
+    inMenu: true,
   },
   {
     id: "applications",

@@ -172,12 +172,14 @@ It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom vo
    visitor's language (English or French), with captions, a transcript and a
    _Skip intro_ button from the first frame. It is remembered per browser and can
    be replayed from the top menu.
-2. **A fixed top menu.** It carries the three control modes — _Voice to action_
-   (default), _Keyboard to action_ and _Motion to action_, shown as a beta that is
-   not available yet — plus the _Platform_ and _Pricing_ sections, the intro and
-   the language switch. It stays in place while scrolling.
+2. **A fixed top menu.** It carries the three control modes, in the order the
+   product argues for them: _Voice to action_ (default), _Motion to action_ (a
+   beta a reader can select, which drives the page from five movements read by
+   the camera) and _Keyboard to action_ (legacy, still does everything). Then the
+   _Platform_ and _Pricing_ sections, the intro and the language switch. It stays
+   in place while scrolling.
 3. **The workspace, right away.** Add a PDF or a captioned YouTube video, then ask
-   by voice or by typing. A first answer is three actions away.
+   by voice, by movement or by typing. A first answer is three actions away.
 4. **Platform**, a static section reachable from the menu: a human stays in the
    loop, voice models that adapt to each speaker with consent, voice, movement or
    keyboard, and the surfaces to come (connected objects, 3D objects), with a
@@ -418,9 +420,22 @@ whether or not the address is known, so it cannot be used to find out who has an
 account. `POST /api/auth/confirm` exchanges the code for an `HttpOnly`,
 `SameSite=Lax`, `Secure` session cookie. `GET /api/auth/session` reports the
 signed-in address; `DELETE` on the same path signs out. Locally, `EMAIL_MODE`
-defaults to `log`: the code appears in the server log as a `local sign-in code`
-line, so the flow can be completed with no mail infrastructure. `EMAIL_MODE=ses`
-sends it through Amazon SES instead.
+defaults to `log`: the whole message is written to the server log under a
+`local sign-in code` line, so the flow can be completed with no mail
+infrastructure and the words can be read exactly as they would arrive.
+`EMAIL_MODE=ses` sends it through Amazon SES instead.
+
+**One template for every email.** `packages/core/src/domain/email.ts` renders
+every message Ursly sends: the brand shell, the HTML part and the plain-text
+part together, in English or French. A message names its parts — heading,
+paragraphs, an optional code, an optional action, the small print — and the
+template draws them. Adapters never write copy and never build their own
+layout, so a second kind of mail cannot look like it came from somewhere else.
+The sign-in request carries the language of the page it was asked from, and the
+code arrives written in it. `APP_ORIGIN` supplies the mark and the footer link;
+without it the message still sends, wordmark and all, with no broken image.
+There is deliberately no link in it that signs anyone in: a code typed by the
+person reading the mailbox is the whole proof.
 
 **The escape hatch fails closed.** `AUTH_MODE=disabled` resolves every request
 to one fixed local account, which is what keeps Compose, the acceptance suite

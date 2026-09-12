@@ -11,6 +11,7 @@ node_modules
 **/coverage
 **/.expo
 **/Pods
+**/.ios-derived
 **/.gradle
 **/build
 **/dist

@@ -54,7 +54,7 @@ import {
 import { tmpdir, cpus } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { introCopy } from "./intro-copy.mjs";
+import { introCopy, introPalette, introWave } from "./intro-copy.mjs";
 
 const run = promisify(execFile);
 
@@ -91,13 +91,14 @@ const VP9_CRF = 38;
 // screen and the words in the .vtt change at the same instant.
 const CROSSFADE_SECONDS = 0.8;
 
-// The brand palette, as declared for every other generated asset.
-const paper = "#f8f5ef";
-const ink = "#292735";
-const muted = "#6d6878";
-const accent = "#b34f38";
-const screen = "#ffffff";
-const hairline = "#e2dcd2";
+// The brand palette, which is the site's palette rather than a second one
+// written out here: these are the `:root` tokens of apps/web/app/globals.css,
+// mirrored in intro-copy.mjs because a build script cannot import the app's
+// stylesheet. The page picks up the instant the film ends, so every coral the
+// film draws -- the wave, the live tick, the BETA chip, the loop nodes, the
+// mark -- has to be the coral the page draws, and tests/brand/intro-copy.test.ts
+// fails the suite if it ever stops being.
+const { paper, ink, muted, accent, screen, hairline } = introPalette;
 
 /**
  * Blends two palette colours. Everything in this film that is neither paper
@@ -129,6 +130,8 @@ const MARGIN = 96;
 const COLUMN = 840;
 const FIELD_X = 1016;
 const FIELD_TINT = 0.05;
+// Also declared as --field in apps/web/app/globals.css, where the landing
+// page's first screen stands the loop on this same ground.
 const field = mix(paper, ink, FIELD_TINT);
 
 // The headline is set to the column rather than to a fixed size. A short line
@@ -191,21 +194,23 @@ const SITE_Y = 924;
 // clips overlapping inside a cross-fade draw it identically and it appears to
 // carry straight through the cut.
 const WAVE_Y = 214;
-const WAVE_BARS = 26;
-const WAVE_PITCH = 34;
-const WAVE_BAR = 15;
-const WAVE_LEFT = -22;
-const WAVE_FLOOR = 12;
-const WAVE_SWING = 168;
-const WAVE_SPEED = 2.4;
+// The shape itself is shared with the application, which draws the same wave
+// above the landing page's first words: one source, mirrored in intro-copy.mjs.
+const WAVE_BARS = introWave.bars;
+const WAVE_PITCH = introWave.pitch;
+const WAVE_BAR = introWave.bar;
+const WAVE_LEFT = introWave.left;
+const WAVE_FLOOR = introWave.floor;
+const WAVE_SWING = introWave.swing;
+const WAVE_SPEED = introWave.speed;
 // The right end dissolves into the paper over this distance instead of being
 // cut off, so the sound reads as arriving from off frame rather than as a
 // graphic that happens to stop.
-const WAVE_FADE = 340;
+const WAVE_FADE = introWave.fade;
 // Loud where the argument is about voice, quiet where it is about the keyboard
 // that voice replaces. The gain is interpolated across the whole film, not
 // switched at a boundary, so a cross-fade never shows two waves at once.
-const WAVE_GAINS = [0.45, 0.6, 1, 0.66, 0.3, 0.5];
+const WAVE_GAINS = introWave.gains;
 const WAVE_RIGHT = WAVE_LEFT + (WAVE_BARS - 1) * WAVE_PITCH + WAVE_BAR;
 
 // The stage the product occupies. It overhangs the right edge of the frame and
@@ -252,55 +257,112 @@ const PHONE_SCREEN = {
   gravity: "north",
 };
 
-// The headset. Two tabs beside a dark rectangle read as a lozenge with nubs,
-// which is what the first cut of this scene was; a band that passes behind the
-// body and carries on out both sides reads as something worn on a head, and
-// the bridge cut out of the bottom edge is the one silhouette detail that says
-// which way up the object goes.
-const VISOR = { cx: 1480, cy: 366, width: 640, height: 288, r: 116 };
-const VISOR_GLASS = { width: 544, height: 188, r: 84 };
-const VISOR_STRAP = { height: 92, r: 42, reach: 118 };
-const VISOR_NOSE = { width: 166, height: 42, r: 16 };
-const VISOR_SWEEP = 1.15;
-const VISOR_TRAIL = { bars: 3, width: 30, pitch: 46 };
-const VISOR_TRAIL_CLEAR =
-  (VISOR_TRAIL.bars - 1) * VISOR_TRAIL.pitch + VISOR_TRAIL.width;
-// The glass has to be lighter than the body it is set into, and the strap
-// lighter again, or the whole thing collapses into one dark shape.
-const lens = mix(ink, paper, 0.2);
-const strap = mix(ink, paper, 0.44);
-const HAND = { x: 1480, y: 830, radius: 28 };
-const RIPPLE_PERIOD = 1.8;
-// Wide enough that the outermost ring leaves the bottom of the frame, and that
-// the innermost one reaches back up to where the visor ends: the gesture and
-// the headset are one piece of the argument, not two drawings.
-const RIPPLE_REACH = 288;
-
-// The volume the gesture happens in. The other three scenes are full of
-// product; this one cannot be, so the field carries a grid of tracking points
-// instead of flat tint, and each point answers as a ring passes through it.
-// It claims nothing the beta cannot support, and it gives the scene the same
-// density as the screens on either side of it.
-const TRACK = {
-  left: 1044,
-  top: 52,
-  pitch: 62,
-  columns: 15,
-  rows: 17,
-  // Crosses rather than dots: a grid of dots is wallpaper, and a grid of
-  // registration marks is a volume something is being measured in.
-  arm: 14,
-  weight: 3,
-  band: 54,
-  fade: 860,
-  base: 0.3,
-  lift: 0.8,
+// Scene four is the only one that cannot show running product, because the
+// thing it is about is not built yet. The first cut drew the device: a dark
+// lozenge with a strap, a grid of registration crosses behind it and a ripple
+// leaving a dot. It read as a picture of a headset lying on graph paper, which
+// is a 2016 idea of what this is.
+//
+// So the scene no longer draws the headset. It draws what is on the other side
+// of one: a volume with a floor running away to a horizon, the product's own
+// surfaces hanging in it at three different distances, and a hand reaching
+// past all of them to take hold of one. Nobody has to be told that is three
+// dimensional -- a floor that converges says it before the words do -- and it
+// claims nothing, because every surface in it is drawn blank.
+//
+// Everything is built from filled rectangles and polygons. This renderer
+// ignores stroke widths, so a line here is a long thin shape, and a line
+// running away from the viewer is a four-sided one, narrow at the far end.
+const SPACE = {
+  // Where every line of the floor meets. Above the middle of the field, so the
+  // floor reads as seen by someone standing in it rather than from above.
+  vanishX: 1498,
+  vanishY: 452,
+  // The floor's near edge is a long way past the bottom of the frame: the
+  // volume is one the viewer is standing in, and what the frame shows is the
+  // part of it that is far enough away to see.
+  nearY: 1960,
+  // How quickly distance compresses. The one number the whole perspective is
+  // built on; everything else is derived from it so nothing can disagree.
+  depth: 0.55,
+  lanes: 13,
+  // Enough rows that the floor thins out into the field before it runs out of
+  // them: a floor that stops has an edge, and this one has a distance.
+  rules: 24,
+  // Where the floor meets the bottom edge of the frame. Defining the lanes
+  // here rather than at the near edge is what keeps the floor inside the
+  // field: a lane converges towards the vanishing point as it recedes, so a
+  // lane that starts inside the field at the bottom of the frame stays inside
+  // it all the way to the horizon.
+  edgeLeft: 1024,
+  edgeRight: 2150,
+  // Rows per second, toward the viewer. Slow: the volume is being stood in,
+  // not flown through.
+  drift: 0.3,
+  laneNear: 5,
+  laneFar: 0.6,
+  ruleNear: 6,
+  // How far back the lanes are drawn. Far enough that they have converged to
+  // almost nothing by the time they stop, so the eye reads a vanishing point
+  // rather than a row of ends.
+  laneDepth: 60,
+  horizon: 3,
 };
 
-// The loop, drawn as a loop. The stages are the ones the landing page walks a
-// reader through, read from the copy rather than counted here, and this
-// scene's whole argument is that they are not decoration: every one of them is
-// walked before anything ships. The ring is
+/** How much smaller everything is at depth `z`, where zero is the near edge. */
+const at = (z) => 1 / (1 + z * SPACE.depth);
+/** Where the floor is on screen at depth `z`. */
+const floorY = (z) => SPACE.vanishY + (SPACE.nearY - SPACE.vanishY) * at(z);
+/** Where a point that is `x` at the near edge has moved to at depth `z`. */
+const alongX = (x, z) => SPACE.vanishX + (x - SPACE.vanishX) * at(z);
+
+// The depth at which the floor crosses the bottom of the frame, solved from
+// floorY rather than guessed, so the lanes are anchored to the edge the viewer
+// can actually see.
+const EDGE_Z =
+  ((SPACE.nearY - SPACE.vanishY) / (HEIGHT - SPACE.vanishY) - 1) / SPACE.depth;
+
+// The lanes, given by where they cross the bottom of the frame and projected
+// back to the near edge, so the floor fills the field exactly and no lane ever
+// strays into the type column.
+const LANES = Array.from({ length: SPACE.lanes }, (_, i) => {
+  const edge =
+    SPACE.edgeLeft +
+    (i * (SPACE.edgeRight - SPACE.edgeLeft)) / (SPACE.lanes - 1);
+  return SPACE.vanishX + (edge - SPACE.vanishX) / at(EDGE_Z);
+});
+
+// Three of the product's own surfaces, hanging at three distances. Blank, and
+// deliberately so: this is the shape of working in a volume, not a claim about
+// what will be running in it. Each is given its depth, how far its top sits
+// above the horizon, and how far off centre it hangs — all three read through
+// the same perspective as the floor, so they belong to the same room.
+const PANES = [
+  { z: 0.95, dx: -340, dy: 250, width: 470, height: 340 },
+  { z: 2.15, dx: 470, dy: 330, width: 440, height: 310 },
+  { z: 3.7, dx: 70, dy: 205, width: 410, height: 290 },
+];
+const PANE_RADIUS = 26;
+// The bars drawn inside a surface, as fractions of its width: a heading and
+// two lines of something, enough to read as a working surface at a glance.
+const PANE_LINES = [
+  { top: 0.16, width: 0.56, height: 0.075, fill: "ink" },
+  { top: 0.36, width: 0.78, height: 0.045, fill: "muted" },
+  { top: 0.48, width: 0.64, height: 0.045, fill: "muted" },
+  { top: 0.68, width: 0.3, height: 0.075, fill: "accent" },
+];
+
+// The hand, reaching in from the near corner. Two contacts that close on the
+// surface the reach lands on: a pinch is the one gesture everyone who has worn
+// one of these already knows, and it is the gesture this product will use.
+const REACH = { x: 1706, y: 928, spread: 40, dot: 19, shaft: 3 };
+// The reach crosses all three surfaces over the scene, so the volume reads as
+// something being worked in rather than a still life with a cursor on it.
+const REACH_HOLD = 0.34;
+
+// The loop, drawn as a loop. Ten stages is what the landing page walks a
+// reader through, and this scene's whole argument is that the number is not
+// decoration: every one of them is walked before anything ships. The ring is
 // built from rounded rectangles rather than an arc, because ImageMagick's SVG
 // renderer ignores stroke widths, and from rectangles rather than circles,
 // because it also refuses to apply a group's opacity to a <circle> -- which
@@ -329,15 +391,63 @@ const LOOP_TRAVEL = 4.4;
 const LOOP_TAIL = 0.16;
 
 // The keyboard is an object standing in front of the product, not a diagram
-// beside it: it sits over the screen and runs off two edges of the frame.
-const KEYBOARD = { x: 1104, y: 600, width: 1010, height: 560, r: 36 };
-const KEY_COLUMNS = 11;
-const KEY_ROWS = 4;
-const KEY_WIDTH = 70;
-const KEY_HEIGHT = 76;
-const KEY_GAP = 14;
-const KEY_TOP = 46;
-const slab = mix(paper, ink, 0.18);
+// beside it: it sits over the screen and runs off the right edge and the
+// bottom of the frame, the way the keyboard on your desk runs off the bottom
+// of your view of the screen behind it.
+//
+// It is drawn as the object it is rather than as a grid of identical tiles.
+// The earlier cut laid eleven equal squares across four equal rows and nudged
+// alternate rows sideways by one gap, which is not what a keyboard looks like
+// from any angle: what makes a keyboard recognisable at a glance is that its
+// rows are different from each other -- a wide key starting each one, a
+// return, two long shifts, a space bar -- and that the keys carry letters.
+const KEYBOARD = { x: 1040, top: 649, r: 40, pad: 40 };
+// One key unit. Every key is a multiple of it, so a row is described by what
+// its keys are rather than by where they sit, and no position is ever typed
+// twice.
+const KEY_UNIT = 78;
+const KEY_GAP = 13;
+const KEY_HEIGHT = 78;
+const KEY_ROW_PITCH = KEY_HEIGHT + KEY_GAP;
+const KEY_RADIUS = 13;
+const KEY_LEGEND_SIZE = 26;
+// The sliver of darker deck showing under the near edge of every cap. It is
+// the whole difference between a key and a painted rectangle.
+const KEY_RELIEF = 4;
+
+// The widths, in key units, of the keys on either side of the letters in each
+// of the three letter rows. A real keyboard staggers by widening the key that
+// begins each row, not by sliding the whole row sideways, and the widening is
+// what the eye actually reads as a keyboard.
+const KEY_LETTER_ROWS = [
+  { before: [1.6], after: [1, 1, 1.6] },
+  { before: [1.9], after: [1, 1, 1.9] },
+  { before: [2.4], after: [1, 1, 1, 2.4] },
+];
+// The near row: modifiers, a space bar, modifiers.
+const KEY_SPACE_ROW = [1.35, 1.35, 1.35, 6.4, 1.35, 1.35, 1.35];
+
+// The keyboard arrives lit and settles into the deck it stands on. It is the
+// scene's whole argument drawn as time rather than as a mark: nothing is
+// crossed out, nothing is broken, the thing simply stops being the brightest
+// object in the frame while the wave above it keeps moving. The earlier cut
+// drew a bar straight across the keys instead, which read as damage to the
+// render rather than as a demotion of the keyboard.
+const KEY_SETTLE_FROM = 1.6;
+const KEY_SETTLE_SECONDS = 2.6;
+const KEY_SETTLE_TINT = 0.45;
+
+// The shadow the keyboard throws up the screen behind it. ImageMagick's SVG
+// renderer has no gradient this script can rely on, so the falloff is a stack
+// of flat bands, which at these opacities is indistinguishable from one.
+const KEYBOARD_SHADOW_BANDS = 9;
+const KEYBOARD_SHADOW_BAND = 4;
+const KEYBOARD_SHADOW_DEPTH = 0.17;
+
+const slab = mix(paper, ink, 0.2);
+// The deck in shadow under a cap, and the lit front edge of the deck itself.
+const keyRelief = mix(slab, ink, 0.32);
+const keyLip = mix(slab, paper, 0.5);
 
 // How an element arrives: a third of a second of travel, from a little below.
 const ENTER_SECONDS = 0.7;
@@ -584,7 +694,9 @@ function wave(elapsed) {
   return Array.from({ length: WAVE_BARS }, (_, i) => {
     const x = WAVE_LEFT + i * WAVE_PITCH;
     const reach = clamp((WAVE_RIGHT - x) / WAVE_FADE);
-    const swing = Math.abs(Math.sin(elapsed * WAVE_SPEED + i * 0.7));
+    const swing = Math.abs(
+      Math.sin(elapsed * WAVE_SPEED + i * introWave.phase),
+    );
     const height = (WAVE_FLOOR + swing * WAVE_SWING) * loudness * reach;
     if (height < 1) return "";
     return box({
@@ -792,159 +904,219 @@ function voice(scene, t, words_, elapsed) {
 }
 
 /**
- * Scene four: what comes after voice. A headset and a gesture, drawn rather
- * than photographed, because this one is honestly still in beta and a
- * screenshot would claim more than we can. The field it sits in carries a
- * volume of tracking points rather than flat tint: the three scenes around it
- * are full of running product, and this one has to hold the same weight
- * without pretending to a product that is not built yet.
+ * Scene four: what comes after voice, drawn as the place it happens in.
+ *
+ * A floor running away to a horizon, three of the product's surfaces hanging
+ * at three distances, and a hand reaching past the near ones to take hold of
+ * one. It is drawn rather than photographed because this part is honestly
+ * still in beta, and every surface in it is left blank for the same reason: a
+ * screenshot hanging in the air would claim a product that is not built.
+ *
+ * What the scene does claim is the shape of the thing — that the next way to
+ * drive software is reaching into a volume rather than pointing at a page —
+ * and a floor that converges says that in the first frame, before the words
+ * underneath it are read.
  */
 function motion(scene, t, words_, elapsed) {
   const scale = pushed(elapsed);
   const arrival = entered(t, 0.4);
-  const body = {
-    x: VISOR.cx - VISOR.width / 2,
-    y: VISOR.cy - VISOR.height / 2,
-    width: VISOR.width,
-    height: VISOR.height,
-    r: VISOR.r,
+  const palette = { ink, muted, accent };
+
+  // The floor. Rules run across it and lanes run away from the viewer; both
+  // converge on the same point, so they cannot disagree about where it is.
+  // The rules drift toward the viewer, which is what makes the volume a place
+  // rather than a diagram of one.
+  const drift = (t * SPACE.drift) % 1;
+  const rules = Array.from({ length: SPACE.rules }, (_, i) => {
+    // Counted from the edge of the frame outwards, so the row nearest the
+    // viewer is the one just below the edge rather than one under their feet.
+    const z = EDGE_Z + i - drift;
+    if (z < 0) return "";
+    const shrink = at(z);
+    const left = alongX(LANES[0], z);
+    const right = alongX(LANES[LANES.length - 1], z);
+    // The nearest rule fades in as it arrives from under the viewer's feet,
+    // so the floor never appears to gain a row out of nothing.
+    const born = 1;
+    return box({
+      x: left,
+      y: floorY(z) - (SPACE.ruleNear * shrink) / 2,
+      width: right - left,
+      height: Math.max(1, SPACE.ruleNear * shrink),
+      fill: muted,
+      opacity: 0.34 * shrink * born * arrival,
+    });
+  }).join("");
+
+  // A lane is a line running away from the viewer, so it is a four-sided shape
+  // that narrows as it goes: wide where it passes under the viewer, nearly
+  // nothing where it meets the horizon.
+  const farZ = SPACE.laneDepth;
+  const lanes = LANES.map((x) => {
+    const nearHalf = SPACE.laneNear / 2;
+    const farHalf = SPACE.laneFar / 2;
+    const fx = alongX(x, farZ);
+    const fy = floorY(farZ);
+    const points = [
+      [x - nearHalf, SPACE.nearY],
+      [x + nearHalf, SPACE.nearY],
+      [fx + farHalf, fy],
+      [fx - farHalf, fy],
+    ]
+      .map(([px, py]) => `${number(px)},${number(py)}`)
+      .join(" ");
+    return `<polygon points="${points}" fill="${muted}" opacity="${number(0.24 * arrival)}"/>`;
+  }).join("");
+
+  // The horizon: the one flat line in the scene, and the thing every other
+  // line in it is pointing at.
+  const horizonHalf = 250;
+  const horizon = box({
+    x: SPACE.vanishX - horizonHalf,
+    y: SPACE.vanishY - SPACE.horizon / 2,
+    width: horizonHalf * 2,
+    height: SPACE.horizon,
+    fill: hairline,
+    opacity: 0.85 * arrival,
+  });
+
+  // Where the reach is pointing, travelling across the three surfaces over the
+  // scene and resting on each one on the way.
+  const legs = PANES.length - 1;
+  const journey = clamp((t - REACH_HOLD) / (SCENE_SECONDS - REACH_HOLD * 2));
+  const aim = journey * legs;
+  const held = Math.min(legs, Math.round(aim));
+  const from = Math.min(legs, Math.floor(aim));
+  const blend = smooth(clamp(aim - from));
+
+  const placed = PANES.map((pane) => {
+    const shrink = at(pane.z);
+    const width = pane.width * shrink;
+    const height = pane.height * shrink;
+    return {
+      ...pane,
+      shrink,
+      width,
+      height,
+      x: alongX(SPACE.vanishX + pane.dx, pane.z) - width / 2,
+      y: SPACE.vanishY - pane.dy * shrink,
+    };
+  });
+  const centre = (pane) => ({
+    x: pane.x + pane.width / 2,
+    y: pane.y + pane.height / 2,
+  });
+  const target = {
+    x:
+      centre(placed[from]).x +
+      (centre(placed[Math.min(legs, from + 1)]).x - centre(placed[from]).x) *
+        blend,
+    y:
+      centre(placed[from]).y +
+      (centre(placed[Math.min(legs, from + 1)]).y - centre(placed[from]).y) *
+        blend,
   };
-  const glass = {
-    x: VISOR.cx - VISOR_GLASS.width / 2,
-    y: VISOR.cy - VISOR_GLASS.height / 2,
-    width: VISOR_GLASS.width,
-    height: VISOR_GLASS.height,
-    r: VISOR_GLASS.r,
-  };
-  // A light travelling across the visor, trailing behind itself: the headset
-  // is looking around, which is the whole difference between this scene and a
-  // picture of a headset. The travel stops short of the ends of the glass by
-  // the length of the trail, so the light turns around inside the glass rather
-  // than dragging accent bars out onto the dark body.
-  const sweep = (Math.sin(t * VISOR_SWEEP) + 1) / 2;
-  const scanning =
-    glass.x + VISOR_TRAIL_CLEAR + sweep * (glass.width - VISOR_TRAIL_CLEAR * 2);
-  const trail = [
-    [0.85, 1],
-    [0.4, 0.72],
-    [0.18, 0.48],
-  ]
-    .map(([opacity, share], i) => {
-      const height = (glass.height - 36) * share;
-      return box({
-        x:
-          scanning -
-          i * VISOR_TRAIL.pitch * Math.sign(Math.cos(t * VISOR_SWEEP) || 1) -
-          VISOR_TRAIL.width / 2,
-        y: VISOR.cy - height / 2,
-        width: VISOR_TRAIL.width,
-        height,
-        r: VISOR_TRAIL.width / 2,
-        fill: accent,
-        opacity,
-      });
-    })
-    .reverse()
-    .join("");
-  const visor =
-    box({
-      x: body.x - VISOR_STRAP.reach,
-      y: VISOR.cy - VISOR_STRAP.height / 2,
-      width: body.width + VISOR_STRAP.reach * 2,
-      height: VISOR_STRAP.height,
-      r: VISOR_STRAP.r,
-      fill: strap,
-    }) +
-    box({ ...body, fill: ink }) +
-    // Cut out of the bottom edge rather than drawn on it: the notch is the
-    // ground showing through, which is why it is filled with the field. It
-    // stops exactly on that edge rather than hanging past it -- ImageMagick's
-    // renderer ignores a clip-path inside a transformed group, so anything
-    // below the chin would wipe a field-coloured tab through the tracking
-    // marks instead of being trimmed away.
-    box({
-      x: VISOR.cx - VISOR_NOSE.width / 2,
-      y: body.y + body.height - VISOR_NOSE.height,
-      width: VISOR_NOSE.width,
-      height: VISOR_NOSE.height,
-      r: VISOR_NOSE.r,
-      fill: field,
-    }) +
-    box({ ...glass, fill: lens }) +
-    trail;
-  // Rings leaving the hand a beat apart, each fading as it widens.
-  const rings = [0, 1, 2]
-    .map((i) => {
-      const phase =
-        ((t - 0.9 - i * (RIPPLE_PERIOD / 3)) % RIPPLE_PERIOD) / RIPPLE_PERIOD;
-      return { phase, radius: 40 + phase * RIPPLE_REACH };
-    })
-    .filter(({ phase }) => t > 0.9 && phase >= 0);
-  // Drawn outward-in because a ring is a disc with the ground punched out of
-  // it, and the punch would otherwise erase the ring inside it -- and drawn
-  // before the tracking points, which the same punch would otherwise erase too.
-  const ripples = rings
+
+  // Far to near, so a nearer surface covers the one behind it. Distance is
+  // drawn as well as scaled: the far surfaces sit back into the field rather
+  // than standing at full strength, which is what stops the three of them
+  // reading as three cards side by side.
+  const surfaces = placed
     .slice()
-    .sort((a, b) => b.radius - a.radius)
-    .map(({ phase, radius }) =>
-      ring(
-        HAND.x,
-        HAND.y,
-        radius,
-        8,
-        accent,
-        (1 - phase) * 0.7 * arrival,
-        field,
-      ),
-    )
+    .sort((a, b) => b.z - a.z)
+    .map((pane, order) => {
+      const index = placed.indexOf(pane);
+      const near = 0.55 + 0.45 * pane.shrink;
+      const lit = index === held ? 1 : 0;
+      const edge = box({
+        x: pane.x - 2,
+        y: pane.y - 2,
+        width: pane.width + 4,
+        height: pane.height + 4,
+        r: PANE_RADIUS * pane.shrink + 2,
+        fill: lit ? accent : hairline,
+        opacity: (lit ? 0.9 : 0.8) * near * arrival,
+      });
+      const face = box({
+        x: pane.x,
+        y: pane.y,
+        width: pane.width,
+        height: pane.height,
+        r: PANE_RADIUS * pane.shrink,
+        fill: screen,
+        opacity: near * arrival,
+      });
+      const lines = PANE_LINES.map((line) =>
+        box({
+          x: pane.x + pane.width * 0.1,
+          y: pane.y + pane.height * line.top,
+          width: pane.width * line.width,
+          height: pane.height * line.height,
+          r: (pane.height * line.height) / 2,
+          fill: palette[line.fill],
+          opacity: (line.fill === "muted" ? 0.42 : 0.85) * near * arrival,
+        }),
+      ).join("");
+      // A surface being held glows along its foot rather than all over: the
+      // hand is under it, and the light says which one answered.
+      const answer = lit
+        ? box({
+            x: pane.x + pane.width * 0.24,
+            y: pane.y + pane.height + 6,
+            width: pane.width * 0.52,
+            height: 5 * pane.shrink + 2,
+            r: 4,
+            fill: accent,
+            opacity: 0.75 * arrival,
+          })
+        : "";
+      return { order, body: edge + face + lines + answer };
+    })
+    .map((drawn) => drawn.body)
     .join("");
-  const track = Array.from(
-    { length: TRACK.rows * TRACK.columns },
-    (_, index) => {
-      const x = TRACK.left + (index % TRACK.columns) * TRACK.pitch;
-      const y = TRACK.top + Math.floor(index / TRACK.columns) * TRACK.pitch;
-      const reach = Math.hypot(x - HAND.x, y - HAND.y);
-      // How close the nearest ring is to passing through this point.
-      const lit =
-        rings.reduce(
-          (most, { radius }) =>
-            Math.max(
-              most,
-              1 - Math.min(1, Math.abs(reach - radius) / TRACK.band),
-            ),
-          0,
-        ) * arrival;
-      const cross = (arm, fill, opacity) =>
+
+  // The reach: a shaft from the hand to whatever it is holding, narrow at the
+  // far end because it is going away from the viewer like everything else.
+  const grip = smooth(clamp(1 - Math.abs(aim - held) * 2));
+  const spread = REACH.shaft + (1 - grip) * REACH.shaft;
+  const shaft = [
+    [REACH.x - spread, REACH.y],
+    [REACH.x + spread, REACH.y],
+    [target.x + REACH.shaft * 0.5, target.y],
+    [target.x - REACH.shaft * 0.5, target.y],
+  ]
+    .map(([px, py]) => `${number(px)},${number(py)}`)
+    .join(" ");
+  const reach =
+    `<polygon points="${shaft}" fill="${accent}" opacity="${number(0.42 * arrival)}"/>` +
+    // Two contacts that close as the reach lands: the pinch everyone who has
+    // worn one of these already knows.
+    [-1, 1]
+      .map((side) =>
         box({
-          x: x - arm / 2,
-          y: y - TRACK.weight / 2,
-          width: arm,
-          height: TRACK.weight,
-          r: TRACK.weight / 2,
-          fill,
-          opacity,
-        }) +
-        box({
-          x: x - TRACK.weight / 2,
-          y: y - arm / 2,
-          width: TRACK.weight,
-          height: arm,
-          r: TRACK.weight / 2,
-          fill,
-          opacity,
-        });
-      // The grid is brightest around the hand and thins out towards the edges
-      // of the field, so it reads as a volume with a centre rather than as a
-      // pattern laid over one.
-      const near = clamp(1 - reach / TRACK.fade);
-      return (
-        cross(TRACK.arm, muted, TRACK.base * (0.4 + 0.6 * near)) +
-        (lit > 0.01
-          ? cross(TRACK.arm * (1 + 0.5 * lit), accent, lit * TRACK.lift)
-          : "")
-      );
-    },
-  ).join("");
+          x:
+            REACH.x +
+            side * (REACH.spread * (1 - grip) + REACH.dot * 0.6) -
+            REACH.dot / 2,
+          y: REACH.y - REACH.dot / 2,
+          width: REACH.dot,
+          height: REACH.dot,
+          r: REACH.dot / 2,
+          fill: ink,
+          opacity: arrival,
+        }),
+      )
+      .join("") +
+    box({
+      x: target.x - 6,
+      y: target.y - 6,
+      width: 12,
+      height: 12,
+      r: 6,
+      fill: accent,
+      opacity: (0.4 + 0.6 * grip) * arrival,
+    });
+
   const chipWidth = 126;
   const chip =
     box({
@@ -969,69 +1141,144 @@ function motion(scene, t, words_, elapsed) {
     back:
       words(scene, t) +
       arriving(entered(t, 1.1), chip) +
-      staged(
-        scale,
-        ripples +
-          arriving(arrival, track) +
-          arriving(arrival, visor) +
-          `<circle cx="${HAND.x}" cy="${HAND.y}" r="${HAND.radius}" fill="${ink}" opacity="${number(arrival)}"/>`,
-      ),
+      staged(scale, horizon + rules + lanes + surfaces + reach),
+    // Every surface in this volume is drawn, not filmed: the product it will
+    // run is not built, so there is no recording to composite into it.
     screens: [],
   };
 }
 
 /**
+ * The keyboard itself: a deck standing in front of the product, four rows
+ * deep, running off the right edge and the bottom of the frame.
+ *
+ * The rows are built from a list of key widths rather than from a column
+ * count, so each one is the shape the real row is -- a wide key to start, a
+ * return, two long shifts, a space bar -- and the stagger falls out of the
+ * widths instead of being faked with an offset. The letters come from the copy
+ * file, which is why the French film draws an AZERTY keyboard: the keyboard a
+ * reader recognises is the one their own hands know.
+ *
+ * Keys are emitted until they leave the frame. Nothing is centred inside a
+ * fixed box, so the keyboard genuinely continues past the edge rather than
+ * stopping just short of it and looking like a picture of a keyboard.
+ */
+function keyboard(t, words_) {
+  // Arrives lit, settles into the deck. `settle` is the scene's argument.
+  const settled = smooth(clamp((t - KEY_SETTLE_FROM) / KEY_SETTLE_SECONDS));
+  const cap = mix(paper, slab, settled * KEY_SETTLE_TINT);
+  const legend = mix(ink, muted, settled);
+  const legendOpacity = 0.9 - settled * 0.46;
+  // Far enough past the frame that the push, which only ever moves the field
+  // to the right, cannot pull the last key back into view.
+  const beyond = WIDTH + KEY_UNIT * 2;
+
+  const key = (x, y, units, label) => {
+    const width = units * KEY_UNIT;
+    return (
+      box({
+        x,
+        y: y + KEY_RELIEF,
+        width,
+        height: KEY_HEIGHT,
+        r: KEY_RADIUS,
+        fill: keyRelief,
+        opacity: 0.4,
+      }) +
+      box({ x, y, width, height: KEY_HEIGHT, r: KEY_RADIUS, fill: cap }) +
+      (label
+        ? text({
+            x: x + width / 2,
+            // Georgia and Arial both sit their capitals on the baseline, so a
+            // capital is centred by dropping the baseline a third of its own
+            // height below the middle of the cap.
+            y: y + KEY_HEIGHT / 2 + KEY_LEGEND_SIZE / 3,
+            value: label,
+            size: KEY_LEGEND_SIZE,
+            fill: legend,
+            weight: "700",
+            anchor: "middle",
+            opacity: legendOpacity,
+          })
+        : "")
+    );
+  };
+
+  /** One row, left to right, until it leaves the frame. */
+  const row = (index, units) => {
+    const y = KEYBOARD.top + KEYBOARD.pad + index * KEY_ROW_PITCH;
+    let x = KEYBOARD.x + KEYBOARD.pad;
+    const drawn = [];
+    for (const { width, label } of units) {
+      if (x > beyond) break;
+      drawn.push(key(x, y, width, label));
+      x += width * KEY_UNIT + KEY_GAP;
+    }
+    return drawn.join("");
+  };
+
+  const plain = (width) => ({ width });
+  const rows = KEY_LETTER_ROWS.map((shape, index) =>
+    row(index, [
+      ...shape.before.map(plain),
+      ...words_.keys[index].map((label) => ({ width: 1, label })),
+      ...shape.after.map(plain),
+    ]),
+  ).join("");
+
+  // The deck: a shadow thrown up the screen, the body, and the lit front edge
+  // that gives the body a thickness.
+  const width = beyond + KEY_UNIT - KEYBOARD.x;
+  const shadow = Array.from({ length: KEYBOARD_SHADOW_BANDS }, (_, band) =>
+    box({
+      // Stepped in as it rises, so the shadow follows the deck's rounded
+      // corner instead of standing square beside it.
+      x: KEYBOARD.x + (KEYBOARD_SHADOW_BANDS - band) * 2,
+      y: KEYBOARD.top - (KEYBOARD_SHADOW_BANDS - band) * KEYBOARD_SHADOW_BAND,
+      width,
+      height: KEYBOARD_SHADOW_BAND,
+      fill: ink,
+      opacity: (KEYBOARD_SHADOW_DEPTH * (band + 1)) / KEYBOARD_SHADOW_BANDS,
+    }),
+  ).join("");
+
+  return (
+    shadow +
+    box({
+      x: KEYBOARD.x,
+      y: KEYBOARD.top,
+      width,
+      // Off the bottom of the frame, with room for the push to take it further.
+      height: HEIGHT + KEY_UNIT * 2 - KEYBOARD.top,
+      r: KEYBOARD.r,
+      fill: slab,
+    }) +
+    box({
+      x: KEYBOARD.x + KEYBOARD.r,
+      y: KEYBOARD.top,
+      width: width - KEYBOARD.r,
+      height: 5,
+      fill: keyLip,
+      opacity: 0.55,
+    }) +
+    rows +
+    row(KEY_LETTER_ROWS.length, KEY_SPACE_ROW.map(plain))
+  );
+}
+
+/**
  * Scene five: the keyboard, named for what it now is. The screen from the
  * first two scenes comes back behind it -- the product did not go anywhere --
- * and the keyboard stands in front of it in the muted grey everything
- * secondary is drawn in, struck through as the scene settles, while voice and
- * motion keep the accent. The hierarchy is visible to someone who has the
- * sound off and does not read the caption.
+ * and the keyboard stands in front of it, complete and legible and quiet,
+ * settling into its deck while voice and motion keep the accent in the column
+ * beside it. The hierarchy is visible to someone who has the sound off and
+ * does not read the caption, and it is stated by what is bright rather than by
+ * anything being struck out: the sentence on screen is that the keyboard still
+ * works.
  */
 function legacy(scene, t, words_, elapsed) {
   const scale = pushed(elapsed);
   const arrival = entered(t, 0.4);
-  const padding =
-    (KEYBOARD.width - (KEY_COLUMNS * KEY_WIDTH + (KEY_COLUMNS - 1) * KEY_GAP)) /
-    2;
-  const keys = Array.from({ length: KEY_ROWS }, (_, row) =>
-    row === KEY_ROWS - 1
-      ? box({
-          x: KEYBOARD.x + padding + 2 * (KEY_WIDTH + KEY_GAP),
-          y: KEYBOARD.y + KEY_TOP + row * (KEY_HEIGHT + KEY_GAP),
-          width: 7 * KEY_WIDTH + 6 * KEY_GAP,
-          height: KEY_HEIGHT,
-          r: 14,
-          fill: paper,
-          opacity: 0.82,
-        })
-      : Array.from({ length: KEY_COLUMNS }, (_, key) =>
-          box({
-            x:
-              KEYBOARD.x +
-              padding +
-              key * (KEY_WIDTH + KEY_GAP) +
-              (row % 2 ? KEY_GAP : 0),
-            y: KEYBOARD.y + KEY_TOP + row * (KEY_HEIGHT + KEY_GAP),
-            width: KEY_WIDTH,
-            height: KEY_HEIGHT,
-            r: 14,
-            fill: paper,
-            opacity: 0.82,
-          }),
-        ).join(""),
-  ).join("");
-  // The strike is drawn, not typeset, so it can be seen to happen.
-  const strike = box({
-    x: KEYBOARD.x + 40,
-    y: KEYBOARD.y + KEY_TOP + 1.5 * (KEY_HEIGHT + KEY_GAP) + KEY_HEIGHT / 2 - 5,
-    width: (KEYBOARD.width - 80) * entered(t, 1.8),
-    height: 10,
-    r: 5,
-    fill: ink,
-    opacity: 0.6,
-  });
-
   const chips = [
     { label: words_.modes.voice, live: true },
     { label: words_.modes.motion, live: true },
@@ -1082,10 +1329,7 @@ function legacy(scene, t, words_, elapsed) {
     // The keyboard is the one thing in the film that has to sit on top of a
     // still, so it is handed back as its own layer rather than drawn into the
     // frame the stills are composited over.
-    front: staged(
-      scale,
-      arriving(arrival, box({ ...KEYBOARD, fill: slab }) + keys + strike),
-    ),
+    front: staged(scale, arriving(arrival, keyboard(t, words_))),
   };
 }
 
@@ -1395,7 +1639,13 @@ async function cutFootage(source, spec, cues, clips, directory) {
 }
 
 /** Runs `worker` over `items`, a few at a time, because each one is a process. */
-async function inParallel(items, worker, limit = Math.max(2, cpus().length)) {
+// Native builds and local services may share this machine. Bound the raster
+// workers so regenerating the introduction does not exhaust its memory.
+async function inParallel(
+  items,
+  worker,
+  limit = Math.min(4, Math.max(1, cpus().length)),
+) {
   const queue = items.slice();
   await Promise.all(
     Array.from({ length: Math.min(limit, queue.length) }, async () => {

@@ -22,16 +22,16 @@ const widths = [1280, 1160, 1000, 900, 700, 500, 390, 340, 320];
  * compare the reservation with the text the reader actually gets, which is why
  * this lives here and not beside the stylesheet.
  */
-test("the caption reserves room for its tallest stage at every width", async ({
-  page,
-}) => {
-  for (const locale of locales) {
-    for (const width of widths) {
+for (const locale of locales) {
+  for (const width of widths) {
+    test(`the caption reserves room for every stage in ${locale} at ${width}px`, async ({
+      page,
+    }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(locale);
       await section(page).scrollIntoViewIfNeeded();
 
-      const stages = section(page).getByRole("listitem").locator("button");
+      const stages = section(page).getByRole("list").getByRole("button");
       const count = await stages.count();
       expect(count).toBeGreaterThan(0);
 
@@ -60,9 +60,9 @@ test("the caption reserves room for its tallest stage at every width", async ({
         reserved,
         `${locale} at ${width}px reserves ${reserved}px for ${tallest}px of caption`,
       ).toBeGreaterThanOrEqual(tallest);
-    }
+    });
   }
-});
+}
 
 /**
  * Selecting a stage pauses the walk, so the control must stay where the reader
@@ -84,7 +84,7 @@ test("the pause control holds still as the walk advances", async ({ page }) => {
         exact: true,
       }),
     );
-  const stages = section(page).getByRole("listitem").locator("button");
+  const stages = section(page).getByRole("list").getByRole("button");
   const count = await stages.count();
 
   // Laid-out position, not painted position: offsetTop ignores both the page

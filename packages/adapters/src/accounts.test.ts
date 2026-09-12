@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { signInEmail } from "../../core/src/domain/email";
+import { DEFAULT_CODE_TTL_MS } from "../../core/src/domain/account";
 import {
   createEmailNotifier,
   createMemoryAccountStore,
@@ -183,6 +185,50 @@ describe("createEmailNotifier", () => {
     );
     expect(String(init.body)).toContain("123456");
     expect(log.mock.calls.flat().join(" ")).not.toContain("123456");
+  });
+
+  it("sends the branded template, in both parts and in the reader's language", async () => {
+    vi.stubEnv("EMAIL_MODE", "ses");
+    vi.stubEnv("SES_FROM_ADDRESS", "hello@ursly.io");
+    vi.stubEnv("AWS_ACCESS_KEY_ID", "AKIAFAKEFAKEFAKEFAKE");
+    vi.stubEnv("AWS_SECRET_ACCESS_KEY", "fake-secret-for-a-signing-test");
+    vi.stubEnv("APP_ORIGIN", "https://ursly.io");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createEmailNotifier().sendSignInCode(
+      "lectrice@example.com",
+      "482913",
+      "fr-CA",
+    );
+
+    const sent = JSON.parse(
+      String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body),
+    );
+    const french = signInEmail({
+      code: "482913",
+      ttlMinutes: DEFAULT_CODE_TTL_MS / 60_000,
+      locale: "fr",
+      origin: "https://ursly.io",
+    });
+    expect(sent.Content.Simple.Subject.Data).toBe(french.subject);
+    expect(sent.Content.Simple.Body.Text.Data).toBe(french.text);
+    expect(sent.Content.Simple.Body.Html.Data).toBe(french.html);
+    expect(sent.Content.Simple.Body.Html.Charset).toBe("UTF-8");
+  });
+
+  it("writes the same words to the log as it would have mailed", async () => {
+    vi.stubEnv("EMAIL_MODE", "log");
+    const log = vi.spyOn(console, "info").mockImplementation(() => {});
+    await createEmailNotifier().sendSignInCode("reader@example.com", "123456");
+    const written = log.mock.calls.map((call) => call.join(" ")).join("\n");
+    expect(written).toContain(
+      signInEmail({ code: "123456", ttlMinutes: DEFAULT_CODE_TTL_MS / 60_000 })
+        .subject,
+    );
+    expect(written).toContain("123456");
   });
 
   it("reports a rejected SES call instead of pretending the mail was sent", async () => {

@@ -1,6 +1,6 @@
 # Native companion
 
-Expo SDK 54 / React Native 0.81 companion for the primary web application.
+Expo SDK 57 / React Native 0.86 companion for the primary web application.
 This directory has its own manifest and lockfile; run its npm commands here.
 No root package changes are required. `src/client.ts` imports the shared
 `IngestedSource` type directly from `packages/core/src/domain/ingestion.ts` using a type-only
@@ -9,6 +9,12 @@ import, so no server code or provider credentials enter the native bundle.
 ## Local loop
 
 Start the repository's Docker Compose services first. Then:
+
+Use Node.js 24 for the repository's current toolchain. iOS compilation requires
+Xcode 26.4 or newer, as listed in the [Expo SDK requirements](https://docs.expo.dev/versions/latest/).
+Check the selected installation with `xcodebuild -version` before downloading
+Pods or starting an isolated build. Xcode 26.2 fails while compiling
+`ExpoModulesJSI` with Swift reference-ownership annotation errors.
 
 ```sh
 cd apps/mobile
@@ -42,7 +48,7 @@ bash scripts/mobile/build-ios-isolated.sh
 ```
 
 The script creates a fresh `mktemp` directory under `/Users/Shared`, copies only
-the mobile app and its shared source type, installs locked local dependencies,
+the mobile app and shared core (including the discussion client), installs locked local dependencies,
 regenerates iOS/Pods, and builds an unsigned arm64 Simulator Release app with
 JavaScript bundled. The original repository is not moved or modified. A real
 copy is intentional: symlinks and `/tmp` can cause Xcode and Metro to disagree

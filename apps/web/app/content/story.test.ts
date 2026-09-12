@@ -23,6 +23,7 @@ describe("the story order", () => {
       "how-we-build",
       "platform",
       "pricing",
+      "how-it-works",
     ]);
     for (const section of MENU_SECTIONS)
       expect(section.short.length).toBeLessThanOrEqual(section.label.length);

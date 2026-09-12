@@ -19,7 +19,11 @@ function video(p: Page) {
 }
 /** Landmarks are named in the page language. */
 function nav(p: Page) {
-  return p.getByRole("navigation", { name: /^(Primary|Principale)$/ });
+  // The introduction carries its own copy of the chrome. This helper names
+  // the page's navigation, whose links remain the subject of these checks.
+  return p
+    .getByRole("navigation", { name: /^(Primary|Principale)$/ })
+    .and(p.locator('[data-page]:not([data-page="intro"])'));
 }
 function modes(p: Page) {
   return nav(p).getByRole("radiogroup", { name: "Control mode" });
@@ -223,24 +227,19 @@ export function registerEntryChecks(step: Step, h: Helpers) {
       ).toHaveAttribute("aria-checked", "false");
     },
   );
-  step(
-    "motion to action is shown as the beta that comes next for headsets",
-    async function () {
-      const p = await h.page(this);
-      const motion = modes(p).getByRole("radio", { name: /Motion to action/ });
-      await expect(motion).toBeVisible();
-      await expect(motion).toContainText("Beta");
-      await expect(motion).toHaveAttribute("aria-disabled", "true");
-      await expect(motion).toHaveAccessibleDescription(/not available yet/i);
-      await expect(motion).toHaveAccessibleDescription(/VR and AR headsets/i);
-      await motion.click({ force: true });
-      await expect(motion).toHaveAttribute("aria-checked", "false");
-      // Reaching for the beta leaves the selection exactly where it was.
-      await expect(
-        modes(p).getByRole("radio", { name: "Voice to action" }),
-      ).toHaveAttribute("aria-checked", "true");
-    },
-  );
+  step("motion to action is a beta that can be selected", async function () {
+    const p = await h.page(this);
+    const motion = modes(p).getByRole("radio", { name: /Motion to action/ });
+    await expect(motion).toBeVisible();
+    await expect(motion).toContainText("Beta");
+    await expect(motion).not.toHaveAttribute("aria-disabled", "true");
+    await motion.click();
+    // Reaching for the beta now moves the selection onto it.
+    await expect(motion).toHaveAttribute("aria-checked", "true");
+    await expect(
+      modes(p).getByRole("radio", { name: "Voice to action" }),
+    ).toHaveAttribute("aria-checked", "false");
+  });
   step("how we build is the first section of the story", async function () {
     const p = await h.page(this);
     const [first] = await storyOrder(p);
@@ -259,6 +258,9 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     "every part of the story offers a way into the application",
     async function () {
       const p = await h.page(this);
+      // The first screen answers to both of the first two names — it is the
+      // hero and it is how we build — so that pair is one element checked
+      // twice, and the day they part again both are already covered.
       for (const selector of [
         ".nav",
         ".landing-hero",
@@ -334,7 +336,7 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     await expect(p.locator("#workspace")).toBeVisible();
   });
   step(
-    "the platform section explains voice now, movement next and the keyboard as the old way",
+    "the platform section explains voice, movement and the keyboard as the old way",
     async function () {
       const p = await h.page(this);
       const section = p.locator("#platform");

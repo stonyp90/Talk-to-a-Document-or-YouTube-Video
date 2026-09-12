@@ -5,6 +5,12 @@
   --paper: #f8f5ef;
   --surface: #fffdf9;
   --surface-soft: #f3efe9;
+  /* The field: the ground the introduction film stands its product on, to the
+     right of the type column. Five parts ink in a hundred parts paper, which
+     is the one step the film takes away from paper and the reason a screen
+     floating on it reads as lifted rather than as cut out. The first screen
+     of the site stands the loop on the same ground. */
+  --field: #eeebe6;
   --line: #e5e0d8;
   --line-strong: #d6d0c7;
   --accent: #a84332;
@@ -27,6 +33,9 @@
   --shadow-lg: #29273524;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  /* A sine in both directions: the curve a swinging thing actually follows,
+     which is what the voice mark's bars are. */
+  --ease-in-out: cubic-bezier(0.37, 0, 0.63, 1);
   --motion-fast: 180ms;
   --motion-base: 420ms;
   --motion-slow: 760ms;
@@ -47,7 +56,7 @@
   --space-6xl: 96px;
   /* The air between two sections of the story, and between a section's
      heading and its body: the page breathes on one measure at every width. */
-  --section-y: clamp(56px, 7vw, 104px);
+  --section-y: clamp(36px, 4.5vw, 68px);
   --section-gap: clamp(28px, 4vw, 48px);
   --gutter: clamp(16px, 3vw, 40px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -55,21 +64,55 @@
   /* The fixed menu reads as an instrument: paper seen through glass, an
      aurora along its length, and a lit edge that measures the story. */
   --nav-glass: #f8f5efd4;
-  /* Floating: how far the panel sits from the top, and how tall it is. Both
-     stay inside --nav-h, so the space the page reserves never changes. */
-  --nav-float: 8px;
+  /* Where the bar stands away from the screen: against the edge it stands on
+     nothing, and where it floats it stands off the top and off both margins.
+     The introduction reads the same two numbers, so the bar the film wears is
+     exactly the bar the page wears — same width, same edges, same line. */
+  --nav-float: 0px;
+  --nav-inset: 0px;
+  /* How tall the floating panel is. It stays inside --nav-h, so the space the
+     page reserves for the bar never changes. */
   --nav-float-h: 52px;
   --nav-glass-strong: #f8f5eff2;
+  /* The same paper with nothing behind it, for a browser that cannot blur:
+     glass over an unblurred page is not glass, it is a page you can read
+     through the menu. It is the page's own paper, so it moves when the
+     palette does. */
+  --nav-solid: var(--paper);
   --nav-aurora: #f477621f;
   --nav-edge: #e0d8cd;
   --nav-glow: #f4776240;
   --nav-index-ink: #9a94a1;
+  /* The frame the floating bar wears: its hairline and the air inside it.
+     The page's own measure is derived from these, so the brand and the first
+     letter of the story below it can never drift apart. */
+  --nav-frame: 1px;
+  --nav-pad: var(--space-xl);
+  /* The one vertical line the whole page answers to. Against the edge of the
+     screen the bar has no frame, so the line is simply the margin; where the
+     bar floats, the line moves inside its frame and the page follows. */
+  --measure: var(--gutter);
+  /* The margin the introduction film keeps inside its own frame: ninety-six
+     units of nineteen hundred and twenty. Anything the site stands beside the
+     film stands on it too. */
+  --film-inset: 5%;
   /* The fixed menu: one row on wide screens, brand row plus modes row below. */
   --nav-h: 64px;
   --nav-row: 52px;
   --nav-modes-row: 52px;
   --nav-h-mobile: calc(var(--nav-row) + var(--nav-modes-row));
   --nav-gap: 16px;
+  /* How faint a bar of the voice mark is at the bottom of its swing and at
+     the top of it. The film's own two ends, so the page's wave reads at the
+     same weight as the one the film leaves on screen. */
+  --wave-quiet: 0.34;
+  --wave-loud: 0.8;
+  /* The floating panel: what holds the brand off its own border, and how far
+     the panel steps outside the page measure so the brand lands on it. The
+     extra step past the padding is the "a little further left" that makes
+     the mark read as the margin rather than as a second column. */
+  --nav-pad: var(--space-md);
+  --nav-outdent: calc(var(--nav-pad) + 1px + var(--space-xs));
   --disabled-ink: #8f8a95;
   /* The keyboard stands one step back: a rule marks the break with the modes
      that lead, and its icon sits a shade quieter than theirs. */
@@ -84,8 +127,18 @@
   --radius-md: 8px;
   --radius-lg: 10px;
   --radius-xl: 12px;
+  /* The one corner large enough to read as a panel rather than a control. */
+  --radius-2xl: 24px;
   --overlay: #29273599;
   --focus-wash: #a8433220;
+  /* Figures that have to line up in a column: stage numbers, counters, the
+     small print of a measurement. Named once, like the display face. */
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* The display face. The introduction film sets every headline in it, so the
+     page that follows the film uses the same one and the cut stays invisible.
+     Named once here rather than spelled out at each heading. */
+  --display:
+    Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
   font-family:
     Inter,
     ui-sans-serif,
@@ -192,7 +245,8 @@ a {
   /* The workspace should use the complete browser width on large displays. */
   max-width: none;
   margin: 0 auto;
-  padding-inline: var(--gutter);
+  /* Not the raw margin: the line the menu's own contents stand on. */
+  padding-inline: var(--measure);
 }
 .app-frame {
   display: flex;
@@ -200,18 +254,23 @@ a {
   width: 100%;
   min-height: 100svh;
 }
+/* The name is one size everywhere it appears: in the menu, on the page that
+   says a route is missing, and at the top of the introduction. It used to be
+   set again in each place, and the introduction's copy was two sizes down from
+   the menu's — which is most of why arriving on the site read as leaving one
+   product for another. */
 .brand {
   display: inline-flex;
   align-items: center;
   color: var(--ink);
   text-decoration: none;
-  font-size: 26px;
+  font-size: 27px;
   font-weight: 720;
   letter-spacing: -1.5px;
 }
 .brand-mark {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   margin-right: var(--space-sm);
   border-radius: var(--radius-md);
   transition: transform 420ms var(--ease-spring);
@@ -512,7 +571,149 @@ h3 {
   background: linear-gradient(150deg, var(--surface), var(--violet-tint-alt));
   transition: background var(--motion-slow) var(--ease-out);
 }
-.conversation-card[data-ready="false"] .voice-panel {
+.conversation-card[data-ready="false"] /* Motion to action: a small mirror of the room, a marker where movement is,
+   and the five movements written out. The preview is deliberately small — it
+   is a confidence signal, not a video call. */
+.motion-panel {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  background: var(--accent-wash-soft);
+  display: grid;
+  gap: var(--space-md);
+}
+.motion-stage {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  max-height: 180px;
+  border: 1px solid var(--accent-border-wash);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  display: grid;
+  place-items: center;
+}
+.motion-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* A mirror, so a reader raises the hand they see themselves raise. */
+  transform: scaleX(-1);
+  opacity: 0;
+  transition: opacity var(--motion-base) var(--ease-out);
+}
+.motion-stage[data-watching] .motion-preview {
+  opacity: 1;
+}
+.motion-idle {
+  position: absolute;
+  margin: 0;
+  padding: 0 var(--space-lg);
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+.motion-marker {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--accent-wash);
+  opacity: 0;
+  transition:
+    left 90ms linear,
+    top 90ms linear,
+    opacity var(--motion-fast) var(--ease-out);
+  pointer-events: none;
+}
+.motion-energy {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--accent);
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform 120ms linear;
+}
+.motion-controls {
+  display: flex;
+  gap: var(--space-sm);
+}
+.motion-choice {
+  display: grid;
+  gap: var(--space-2xs);
+}
+.motion-choice-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.motion-choice-prompt {
+  font-size: 15px;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+}
+.motion-legend {
+  display: grid;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+.motion-legend li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+}
+.motion-legend-label {
+  font-weight: 640;
+}
+.motion-legend-meaning {
+  color: var(--muted);
+}
+.motion-legend-arrow::before {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 13px;
+}
+.motion-legend-right .motion-legend-arrow::before {
+  content: "→";
+}
+.motion-legend-left .motion-legend-arrow::before {
+  content: "←";
+}
+.motion-legend-up .motion-legend-arrow::before {
+  content: "↑";
+}
+.motion-legend-down .motion-legend-arrow::before {
+  content: "↓";
+}
+.motion-legend-hold .motion-legend-arrow::before {
+  content: "✻";
+}
+.motion-notice {
+  margin: 0;
+  min-height: 1.2em;
+  color: var(--muted);
+  font-size: 11px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-marker,
+  .motion-energy,
+  .motion-preview {
+    transition: none;
+  }
+}
+.voice-panel {
   opacity: 0.72;
   transform: translateY(3px);
 }
@@ -945,7 +1146,7 @@ h3 {
 }
 .empty-chat h3 {
   margin: var(--space-sm) 0 var(--space-sm);
-  font-family: Georgia, serif;
+  font-family: var(--display);
   font-size: clamp(22px, 3vw, 30px);
   font-weight: 400;
 }
@@ -1164,7 +1365,7 @@ h3 {
 }
 .guide-heading h2 {
   margin: var(--space-md) 0 var(--space-2xl);
-  font-family: Georgia, serif;
+  font-family: var(--display);
   font-size: 31px;
   font-weight: 400;
   letter-spacing: -0.04em;
@@ -1227,6 +1428,19 @@ h3 {
 }
 .footer a {
   text-underline-offset: 3px;
+}
+/* In the page and in the accessibility tree, but not on screen: for words a
+   sighted reader is already being shown some other way. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 .skip-link {
   position: fixed;
@@ -1344,7 +1558,10 @@ h3 {
   .shell {
     /* The container already owns the mobile gutter; avoid doubling it. */
     padding-inline: 0;
-    padding-bottom: calc(112px + var(--safe-bottom));
+    /* The dock of control modes this reserved room for moved into the top
+       bar. What was left was most of a screenful of nothing under the footer
+       of every phone page; what a phone needs here is the home indicator. */
+    padding-bottom: calc(var(--space-lg) + var(--safe-bottom));
   }
   .brand {
     font-size: 23px;
@@ -1395,12 +1612,21 @@ h3 {
   .danger,
   .tab,
   .suggestion {
-    min-height: 42px;
+    min-height: 44px;
   }
   .field input,
   .composer input,
   .composer textarea {
     font-size: 16px;
+  }
+  /* Beside a button, the field is barely two thirds of a phone and cuts its
+     own placeholder mid-word. Stacked, the question has the width of the
+     phone and the send has a full-width target under it. */
+  .composer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .composer .secondary {
+    width: 100%;
   }
   .guide-grid {
     grid-template-columns: 1fr;
@@ -1449,15 +1675,19 @@ h3 {
  * ------------------------------------------------------------------------- */
 .nav {
   position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
+  top: var(--nav-float);
+  right: var(--nav-inset);
+  left: var(--nav-inset);
   z-index: 40;
   padding-top: var(--safe-top);
   border-bottom: 1px solid var(--nav-edge);
   background: var(--nav-glass);
-  backdrop-filter: blur(20px) saturate(1.4);
+  /* Prefixed first, standard last. The CSS pipeline collapses a pair of
+     identical declarations onto the one it sees last, and collapsing onto the
+     prefix left every browser that has dropped the alias with no glass at all
+     -- a translucent bar with the page legible straight through it. */
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
   transition:
     box-shadow var(--motion-fast) ease,
     background var(--motion-base) var(--ease-out);
@@ -1468,6 +1698,7 @@ h3 {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  border-radius: inherit;
   background: linear-gradient(
     100deg,
     transparent 0%,
@@ -1481,6 +1712,29 @@ h3 {
   background: var(--nav-glass-strong);
   box-shadow: 0 10px 28px var(--shadow-sm);
 }
+/* No glass to see through: the bar becomes paper. A translucent menu over an
+   unblurred page is the one state that must never ship -- the story scrolls
+   visibly across the brand, the modes and the way in, and on a phone, where
+   the bar is two rows of a short screen, it takes the menu with it. */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .nav,
+  .nav[data-scrolled="true"] {
+    background: var(--nav-solid);
+  }
+}
+
+@media (min-width: 961px) {
+  /* One class more specific than the rule it overrides, on purpose: the base
+     `.nav-inner` is written further down the sheet, and at equal specificity
+     the last one wins -- which quietly gave the floating panel the page's
+     gutter as padding and pushed the brand 40px off the measure. */
+  .nav .nav-inner {
+    padding-inline: var(--nav-pad);
+  }
+}
+
 /* How much of the story is behind the reader, drawn along the lit edge. */
 .nav-progress {
   position: absolute;
@@ -1503,16 +1757,42 @@ h3 {
 .nav-scrim {
   display: none;
 }
+/* The row inside the bar. It is declared before the floating overrides below,
+   because a later rule of the same weight would quietly undo them: that is how
+   the bar spent a release two sizes too tall and its contents a margin out of
+   line with the page. */
+.nav-inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--nav-gap);
+  height: var(--nav-h);
+  padding-inline: var(--measure);
+}
 /* Where there is room, the bar leaves the edge of the screen and floats: a
    panel over the page rather than a lid on it. It stays inside the height the
    layout already reserves for it, so nothing below has to move. */
 @media (min-width: 961px) {
+  /* The page begins one small step inside the brand. Derive both positions
+     from the floating panel so its minimum inset cannot separate them. */
+  :root {
+    --measure: calc(
+      var(--nav-inset) + var(--nav-frame) + var(--nav-pad) + var(--space-xs)
+    );
+    /* Both the page and the introduction use this panel edge. */
+    --nav-inset: max(var(--space-sm), calc(var(--gutter) - var(--nav-outdent)));
+    --nav-float: 8px;
+  }
   .nav {
     top: calc(var(--safe-top) + var(--nav-float));
-    /* The panel keeps the page's own measure, so its edge and the text
-       below it answer to the same margin. */
-    right: var(--gutter);
-    left: var(--gutter);
+    /* The brand keeps the page's own measure, not the panel's edge. The
+       panel steps out by the padding that holds the mark, and a little
+       further, so the mark reads as the left margin of the page and the
+       first heading begins just inside it. Floored so a narrow desktop
+       window never has the panel touching the glass. */
+    right: var(--nav-inset);
+    left: var(--nav-inset);
     padding-top: 0;
     border: 1px solid var(--nav-edge);
     border-radius: var(--radius-xl);
@@ -1525,7 +1805,7 @@ h3 {
   }
   .nav-inner {
     height: var(--nav-float-h);
-    padding-inline: var(--space-xl);
+    padding-inline: var(--nav-pad);
   }
   .nav-progress {
     bottom: 0;
@@ -1542,26 +1822,7 @@ h3 {
     pointer-events: none;
   }
 }
-.nav-inner {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--nav-gap);
-  height: var(--nav-h);
-  padding-inline: var(--gutter);
-}
-/* The menu and the introduction wear the wordmark at one size, at every
-   width, so the film hands over to a page that looks like the same product. */
-.nav .brand,
-.intro-gate .brand {
-  font-size: 24px;
-}
-.nav .brand-mark,
-.intro-gate .brand-mark {
-  width: 30px;
-  height: 30px;
-}
+
 .nav-modes,
 .nav-sections {
   display: flex;
@@ -1814,46 +2075,6 @@ h3 {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-/* The beta now sits in the middle of the row, so its explanation is centred
-   under the group rather than hung off the right edge. */
-.mode-tooltip {
-  --tooltip-width: min(320px, calc(100vw - 32px));
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 50%;
-  z-index: 50;
-  width: max-content;
-  max-width: min(320px, calc(100vw - 32px));
-  padding: var(--space-md) var(--space-md);
-  border-radius: var(--radius-md);
-  background: var(--ink);
-  color: var(--paper);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.45;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(4px);
-  transition:
-    opacity var(--motion-fast) ease,
-    transform var(--motion-fast) var(--ease-out);
-}
-.mode-tooltip::before {
-  position: absolute;
-  top: -5px;
-  left: calc(50% - 4.5px);
-  width: 9px;
-  height: 9px;
-  background: var(--ink);
-  content: "";
-  transform: rotate(45deg);
-}
-.mode-motion:hover ~ .mode-tooltip,
-.mode-motion:focus-visible ~ .mode-tooltip,
-.modes[data-explaining="true"] .mode-tooltip {
-  opacity: 1;
-  transform: translateY(0);
-}
 
 /* ---------------------------------------------------------------------------
  * Introduction
@@ -1876,19 +2097,33 @@ h3 {
 }
 .intro-gate-inner {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  /* The title, the film, and the way out of it. Three rows, because the film
+     is the argument and everything else is furniture around it. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: var(--space-lg);
   height: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: calc(12px + var(--safe-top)) var(--gutter)
+  /* The film stands between the menu's own two lines rather than inside a
+     column of its own: the bar at the top of the film is the bar the page
+     wears, so it has to be exactly as wide and start exactly where it starts.
+     A column that was even slightly narrower made the hand-off read as a
+     change of product, which is the one thing the shared bar is there to
+     prevent. */
+  padding: calc(var(--nav-float) + var(--safe-top)) var(--nav-inset)
     calc(16px + var(--safe-bottom));
 }
-.intro-gate-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
+/* Everything under the bar stands on the line the bar's own contents stand
+   on, which is the line the story stands on further down. */
+.intro-stage,
+.intro-gate-footer {
+  padding-inline: calc(var(--measure) - var(--nav-inset));
+}
+/* Inside the introduction the bar is not fixed to anything: the dialog is the
+   whole page, and there is nothing under the bar to scroll past it. It keeps
+   the panel, the glass and the lockup; it loses only the position. */
+.nav[data-page="intro"] {
+  position: static;
+  z-index: auto;
+  width: 100%;
 }
 .intro-skip {
   display: inline-flex;
@@ -1906,35 +2141,24 @@ h3 {
   width: 14px;
   height: 14px;
 }
-.intro-gate-copy h2 {
-  margin: var(--space-sm) 0 var(--space-xs);
-  font-family: Georgia, serif;
-  font-size: clamp(24px, 3.4vw, 36px);
-  font-weight: 400;
-  letter-spacing: -0.03em;
-}
-.intro-gate-copy p {
-  max-width: 640px;
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.55;
-}
+
 .intro-stage {
   display: grid;
   position: relative;
   place-items: center;
   min-height: 0;
 }
+/* No frame, no corners, no shadow. The film's own first pixel is the same
+   paper the dialog is standing on, so a border and a drop shadow do not lift
+   it off the page — they draw a card around it, and a card is the one thing
+   the introduction must not look like. */
 .intro-player {
   display: block;
   width: 100%;
+  max-width: calc((100vh - 240px) * 16 / 9);
   max-height: 100%;
   aspect-ratio: 16 / 9;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
   background: var(--paper);
-  box-shadow: 0 24px 60px var(--shadow-lg);
   object-fit: cover;
 }
 .intro-play {
@@ -1963,18 +2187,97 @@ h3 {
   display: grid;
   gap: var(--space-sm);
 }
-.intro-progress {
+/* The chapters.
+ *
+ * The film's own progress row is six ticks, one a scene, and this is that row
+ * made of the thing it measures: each chapter fills as it plays, says which
+ * scene it is, and can be jumped to. A reader who missed a line goes back to
+ * it rather than watching the whole film again or giving up on it.
+ */
+.intro-chapters-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.intro-chapters {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-xs) var(--space-md);
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.intro-chapter button {
+  display: grid;
+  gap: var(--space-xs);
+  width: 100%;
+  min-height: 0;
+  padding: var(--space-xs) 0 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.intro-chapter button:hover {
+  box-shadow: none;
+  transform: none;
+}
+.intro-chapter-tick {
+  display: block;
   height: 4px;
   overflow: hidden;
   border-radius: var(--radius-xl);
   background: var(--surface-soft);
 }
-.intro-progress span {
+.intro-chapter-tick span {
   display: block;
   height: 100%;
   border-radius: inherit;
+  transform-origin: left center;
   background: var(--accent);
-  transition: width 240ms linear;
+  transition: transform 240ms linear;
+}
+.intro-chapter-index {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  transition: color var(--motion-base) var(--ease-out);
+}
+.intro-chapter button:hover .intro-chapter-index,
+.intro-chapter button[aria-current="step"] .intro-chapter-index {
+  color: var(--accent);
+}
+/* The scene on screen, named where the rail cannot name it. */
+.intro-now {
+  color: var(--ink);
+  font-weight: 650;
+}
+.intro-chapter button:hover .intro-chapter-tick {
+  background: var(--accent-wash);
+}
+/* One step back, one step forward. The arrow is the same one the rest of the
+   site uses; the one going backwards is the same arrow turned round. */
+.intro-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  color: var(--ink);
+}
+.intro-step:first-child .icon {
+  transform: rotate(180deg);
+}
+.intro-step:disabled {
+  color: var(--disabled-ink);
+  opacity: 0.5;
 }
 .intro-timing {
   margin: 0;
@@ -1998,6 +2301,14 @@ h3 {
 .intro-transcript-list li + li {
   margin-top: var(--space-2xs);
 }
+/* The film's own sentence, repeated at page size. It is drawn for a 1920
+   frame; a phone shows that frame about 340 wide, where the type inside it is
+   a third of the size it was set at and the argument is simply lost. Wide
+   enough to read the frame, this says nothing the frame is not already
+   saying, so it stays out of the way. */
+.intro-scene {
+  display: none;
+}
 
 /* ---------------------------------------------------------------------------
  * Workspace heading: a title, not a billboard. The app is the first screen.
@@ -2017,7 +2328,7 @@ h3 {
   max-width: 760px;
   text-wrap: balance;
   margin: 0;
-  font-family: Georgia, serif;
+  font-family: var(--display);
   font-size: clamp(1.9rem, 3.4vw, 2.7rem);
   font-weight: 400;
   line-height: 1.05;
@@ -2088,24 +2399,189 @@ h3 {
 .hero {
   padding: var(--section-gap) 0;
 }
-/* The first thing a reader meets is given the most air of anything. */
+/* The base heading for any hero. The arrival below re-sets it for the first
+   screen, and does so AFTER this rule: at equal weight the last one wins, and
+   a display size declared above this line would simply never arrive. */
+.hero h1 {
+  margin: var(--space-md) 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+}
+/* The first screen, and the whole of how we build.
+ *
+ * The introduction ends on the loop: the voice running along the top of a
+ * serif headline on warm paper, the ring turning beside it. This is that
+ * frame, alive. The claim and the way in are on the left, the loop on the
+ * right, and every stage of it reads across the bottom, so a reader meets the
+ * argument whole instead of scrolling into a second telling of it.
+ *
+ * Both columns start on the same line. Centring the shorter one used to sink
+ * the page's first word a third of a screen down and leave the menu, the
+ * headline and the ring all disagreeing about where the top is. */
 .landing-hero {
-  padding: calc(var(--section-gap) + var(--space-md)) 0 var(--section-y);
+  display: grid;
+  /* The film's own measure. Its type column takes forty-four parts of the
+     frame and the field the product stands on begins at fifty-three, so the
+     page divides its first screen the same way and the cut from one to the
+     other lands on the same vertical. */
+  grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+  align-items: start;
+  gap: var(--space-2xl) clamp(32px, 5vw, 72px);
+  padding: var(--space-2xl) 0 var(--section-y);
+}
+.arrival-copy,
+.arrival-loop {
+  min-width: 0;
+}
+.arrival-copy {
+  grid-column: 1;
+  grid-row: 1;
+  /* Optically level with the ring's first label rather than with the top of
+     the box the ring is drawn in. */
+  padding-top: var(--space-2xl);
+}
+/* The field: the one step away from paper the film takes, and the reason the
+   thing standing on it reads as lifted rather than as cut out. It runs off the
+   right of the screen exactly as it runs off the right of the frame. */
+.arrival-loop {
+  position: relative;
+  z-index: 0;
+  grid-column: 2;
+  grid-row: 1;
+  padding: var(--space-2xl) 0 var(--space-xl);
+}
+.arrival-loop::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * clamp(16px, 2.5vw, 36px));
+  /* Off the edge of the screen, past the margin the page keeps. */
+  right: calc(-1 * var(--measure));
+  background: var(--field);
+}
+/* The index of the stages runs the full measure under both columns: it is the
+   caption to the whole screen, not a third column beside it. */
+.arrival-words {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+/* The cut.
+ *
+ * The film ends on the loop and the page opens on it, so the page should not
+ * appear all at once like a document loading: it should assemble the way the
+ * last shot resolves. The field arrives first, wiping in from the edge it runs
+ * off; then the column's lines rise in the order they are read; then the ring
+ * settles onto the field it stands on.
+ *
+ * Every one of these runs once and stops. This page's rule is that decorative
+ * motion settles rather than competing with the reader, and the only thing
+ * still moving a second later is the loop, which is the argument itself. The
+ * stylesheet's own reduced-motion rule turns the whole sequence off, and each
+ * element's finished state is its resting state, so nothing has to unwind.
+ */
+.arrival-loop::before {
+  transform-origin: right center;
+  animation: field-wipe var(--motion-slow) var(--ease-out) both;
+}
+@keyframes field-wipe {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.arrival-copy > * {
+  animation: rise-in var(--motion-slow) var(--ease-out) var(--enter, 0ms) both;
+}
+/* The order the eye takes them in: the voice, then who is speaking, then what
+   is said, then what it is for, then the way in. */
+.arrival-copy > :nth-child(2) {
+  --enter: 90ms;
+}
+.arrival-copy > :nth-child(3) {
+  --enter: 160ms;
+}
+.arrival-copy > :nth-child(4) {
+  --enter: 240ms;
+}
+.arrival-copy > :nth-child(5) {
+  --enter: 320ms;
+}
+.arrival-copy > :nth-child(6) {
+  --enter: 400ms;
+}
+.arrival-loop > * {
+  animation: settle-in var(--motion-slow) var(--ease-spring) var(--motion-fast)
+    both;
+}
+/* The ring does not slide in; it settles, the way the film's last frame comes
+   to rest. */
+@keyframes settle-in {
+  from {
+    opacity: 0;
+    transform: scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* The voice, as the film leaves it, above the page's first words. */
+.arrival-wave {
+  --wave-width: min(100%, 300px);
+  /* The film's first bar begins off the left edge of the frame: the sound was
+     already going when the picture started. */
+  margin-left: calc(-1 * var(--space-sm));
+  margin-bottom: var(--space-lg);
+}
+/* The page's first words wear the film's face. Nothing else on this screen is
+   allowed to be louder than them. */
+.landing-hero h1 {
+  margin: var(--space-sm) 0 var(--space-md);
+  font-family: var(--display);
+  font-size: clamp(38px, 4.6vw, 60px);
+  font-weight: 400;
+  letter-spacing: -0.028em;
+  line-height: 1.03;
 }
 .landing-hero .lede {
-  max-width: 640px;
+  max-width: 40ch;
+  /* The film sets its lede at a third of its headline. Anything smaller reads
+     as the caption of a picture rather than the second line of an argument. */
+  font-size: clamp(15px, 1.35vw, 19px);
+  line-height: 1.45;
+}
+/* Stacked, the loop follows the way in: on a phone the point of the page and
+   the button that acts on it come first, and the picture is what you scroll
+   into rather than what you scroll past. */
+@media (max-width: 900px) {
+  .landing-hero {
+    grid-template-columns: 1fr;
+    gap: var(--space-2xl);
+  }
+  .arrival-copy,
+  .arrival-loop,
+  .arrival-words {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .arrival-copy {
+    padding-top: 0;
+  }
+  .arrival-loop::before {
+    left: calc(-1 * var(--measure));
+  }
 }
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-md);
   margin-top: var(--space-2xl);
-}
-.hero h1 {
-  margin: var(--space-md) 0;
-  font-size: clamp(2rem, 5vw, 3rem);
-  line-height: 1.05;
-  letter-spacing: -0.05em;
 }
 
 /* Voice to action, inside the source card: one microphone, one line of words. */
@@ -2428,7 +2904,7 @@ h3 {
   max-width: 820px;
   text-wrap: balance;
   margin: var(--space-md) 0 var(--space-md);
-  font-family: Georgia, serif;
+  font-family: var(--display);
   font-size: clamp(28px, 4vw, 42px);
   font-weight: 400;
   line-height: 1.08;
@@ -2573,7 +3049,7 @@ h3 {
 }
 .platform-closing {
   margin: var(--space-2xl) 0 0;
-  font-family: Georgia, serif;
+  font-family: var(--display);
   font-size: clamp(20px, 2.6vw, 27px);
   letter-spacing: -0.03em;
 }
@@ -2722,13 +3198,26 @@ h3 {
     justify-self: end;
     gap: var(--space-2xs);
   }
+  /* The bar is an instrument, and an instrument has to be playable with a
+     thumb. Inside the 52px row every control keeps a 44px target, whatever
+     the type inside it measures: the brand, the way across, the replay and
+     the language pair were all between 26 and 36 pixels tall. */
+  .nav .brand,
+  .nav-link,
+  .nav-cta,
+  .nav-intro,
+  .nav-language {
+    min-height: 44px;
+  }
+  .nav .brand {
+    display: inline-flex;
+    align-items: center;
+  }
   .nav-link {
-    min-height: 36px;
     padding: var(--space-xs) var(--space-sm);
     font-size: 11px;
   }
   .nav-cta {
-    min-height: 36px;
     padding: var(--space-xs) var(--space-sm);
     font-size: 11px;
   }
@@ -2750,7 +3239,7 @@ h3 {
   }
   .nav-intro,
   .nav-download {
-    width: 36px;
+    width: 44px;
     justify-content: center;
     padding: var(--space-xs);
   }
@@ -2765,8 +3254,7 @@ h3 {
     margin-left: var(--space-3xs);
   }
   .nav-language {
-    min-width: 30px;
-    min-height: 28px;
+    min-width: 40px;
     font-size: 10px;
   }
   .nav-sections {
@@ -2828,9 +3316,6 @@ h3 {
     font-size: 7.5px;
     letter-spacing: 0.04em;
   }
-  .mode-tooltip {
-    --tooltip-width: calc(100vw - 16px);
-  }
   .workspace-heading {
     flex-direction: column;
     align-items: flex-start;
@@ -2853,9 +3338,11 @@ h3 {
   .voice-mic {
     justify-content: center;
   }
+  /* A phone gets the film across the top and the scene it is on underneath:
+     the band a letterboxed sixteen-by-nine leaves empty on a tall screen was
+     half the dialog, and it now carries the argument the film is making. */
   .intro-gate-inner {
-    grid-template-rows: auto auto auto 1fr;
-    align-content: start;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
     gap: var(--space-md);
   }
   .intro-stage {
@@ -2864,22 +3351,47 @@ h3 {
   .intro-gate-footer {
     align-self: end;
   }
+  /* The dialog's own lede and the scene caption would say the same thing
+     twice. The caption moves with the film, so the lede yields the room and
+     keeps only its part in naming the dialog. */
   .intro-gate-copy p {
-    font-size: 13px;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .intro-player {
     aspect-ratio: 16 / 9;
-    border-radius: var(--radius-lg);
+  }
+  .intro-scene {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+    margin: 0;
+    padding: var(--space-xl) 0 0;
+  }
+  .intro-scene strong {
+    font-family: Georgia, serif;
+    font-size: clamp(26px, 8vw, 38px);
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    animation: rise-in var(--motion-base) var(--ease-out) both;
+  }
+  .intro-scene span {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.5;
+    animation: rise-in var(--motion-base) var(--ease-out) both;
+    animation-delay: 90ms;
   }
   .voice-commands {
     padding: var(--space-md);
   }
   .voice-commands-arm {
     width: 100%;
-  }
-  .platform {
-    margin-top: var(--space-3xl);
-    padding-top: var(--space-3xl);
   }
   .platform-grid,
   .roadmap {
@@ -2888,6 +3400,14 @@ h3 {
   .footer-links {
     flex-direction: column;
     gap: var(--space-xs);
+  }
+  /* A stacked link is a line of text until it is given a row to sit in. At
+     eleven pixels of type these were fourteen pixels tall, three links deep,
+     with nothing but the gap between them. */
+  .footer-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 }
 
@@ -2949,7 +3469,7 @@ h3 {
 .markdown h5,
 .markdown h6 {
   margin: 14px 0 6px;
-  font-family: Georgia, serif;
+  font-family: var(--display);
   font-size: 15px;
   font-weight: 400;
   letter-spacing: -0.01em;
@@ -2971,7 +3491,7 @@ h3 {
   border-radius: var(--radius-xs);
   background: var(--surface-soft);
   font-size: 0.92em;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono);
 }
 .markdown pre {
   margin: 0 0 9px;
@@ -3208,11 +3728,16 @@ h3 {
   position: relative;
   display: inline-flex;
 }
+/* The floating bar clips its decorative edge. Let the download links extend
+   beyond that frame while the flyout is open. */
+.nav:has(.nav-download-menu) {
+  overflow: visible;
+}
 .nav-download .icon {
   width: 14px;
   height: 14px;
 }
-.nav-download[aria-expanded="true"] {
+.nav-download[data-open="true"] {
   border-color: var(--accent-border);
   background: var(--accent-wash-soft);
   color: var(--accent);
@@ -3232,6 +3757,17 @@ h3 {
   background: var(--surface);
   box-shadow: 0 18px 44px var(--shadow-lg);
   animation: rise-in var(--motion-fast) var(--ease-out) both;
+}
+/* The flyout hangs a little below the control, and that gap is still the
+   control's ground: without it a pointer travelling down to a build would
+   fall through the space between and close the menu on the way. */
+.nav-download-menu::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 8px;
 }
 .nav-download-item {
   display: flex;
@@ -3287,10 +3823,45 @@ h3 {
    the workspace card rather than inventing a second visual language: the form
    classes above do the work, and only the panel's own rhythm is set here.
    --------------------------------------------------------------------------- */
+/* The gate: a dialog centred over the workspace, with the page dimmed behind
+   it. Nothing here closes it, so it carries the one way out that is not
+   signing in. */
+.sign-in-gate {
+  width: min(440px, calc(100vw - var(--gutter) * 2));
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+}
+.sign-in-gate::backdrop {
+  background: var(--overlay);
+  backdrop-filter: blur(3px);
+}
+.sign-in-gate-inner {
+  display: grid;
+  gap: var(--space-md);
+}
+/* This line sits on the dimmed page, not on the card, so it takes the paper
+   colour rather than the muted ink that would disappear into the backdrop. */
+.sign-in-gate-exit {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--paper);
+}
+.sign-in-gate-exit a {
+  color: var(--paper);
+  text-underline-offset: 3px;
+}
 .sign-in {
   display: grid;
   gap: 12px;
   max-width: 420px;
+}
+/* Inside the gate the card is the dialog, so it fills it. */
+.sign-in-gate .sign-in {
+  max-width: none;
 }
 .sign-in-title {
   margin: 0;
@@ -3355,14 +3926,22 @@ h3 {
 .footer-signout:hover {
   border-color: var(--accent-border);
 }
-/* Small phones: the story anchors and the language pair do not all fit beside
-   the brand — in French the pair was pushed off the edge. They yield whole
-   rather than clipped, in the order the page makes them redundant. The build
-   loop goes first, because it opens the page anyway: a reader meets it by
-   scrolling, with nothing above it to scroll past. What it costs goes next,
-   and stays reachable by scrolling and from the footer, which names it on
-   every page. The platform anchor is the one that keeps the shortcut: it sits
-   in the middle of the story, with no edge of the page to find it by. */
+/* Three anchors is one more than the bar was measured for. The guide is the
+   one that yields first, and it yields early: it is the furthest down the
+   page, so a reader who wants it is already scrolling, and it is the only one
+   of the three whose label does not fit beside a download menu and a language
+   pair on a small tablet. */
+@media (max-width: 720px) {
+  .nav-section-link[data-section="how-it-works"] {
+    display: none;
+  }
+}
+
+/* Small phones: two story anchors and the language pair do not fit beside the
+   brand — in French the pair was pushed off the edge. The build loop yields
+   next, because it opens the page anyway: a reader meets it by scrolling,
+   with nothing above it to scroll past. The platform anchor is the one worth
+   a shortcut, since it sits further down. */
 @media (max-width: 430px) {
   .nav-section-link[data-section="how-we-build"],
   .nav-section-link[data-section="pricing"] {
@@ -3391,5 +3970,29 @@ h3 {
     width: 36px;
     justify-content: center;
     padding: var(--space-xs);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * A thumb, not a cursor
+ *
+ * Forty-four pixels is the size a finger can be asked to find. Everything a
+ * phone offers answers to it, including what a disclosure keeps folded away:
+ * the saved voice triggers carried a 27px edit and a 27px remove, and the
+ * spoken examples a 32px chip. This block is last in the sheet on purpose --
+ * the rules it raises are written further up, and at equal specificity the
+ * last one wins.
+ * ------------------------------------------------------------------------- */
+@media (max-width: 700px) {
+  .voice-example,
+  .voice-customize summary,
+  .voice-trigger-form input,
+  .voice-trigger-form select,
+  .saved-trigger-remove,
+  .composer input {
+    min-height: 44px;
+  }
+  .saved-trigger-remove {
+    min-width: 44px;
   }
 }

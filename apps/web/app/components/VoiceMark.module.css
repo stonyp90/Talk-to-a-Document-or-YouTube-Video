@@ -1,0 +1,49 @@
+/*
+ * The voice, as the film leaves it. Every bar already stands at the height the
+ * film's opening frame gives it, so the mark is correct before a single frame
+ * of animation runs and correct again the moment the animation is over.
+ *
+ * It rises once, one bar leading the next from the left, and then it is still.
+ * Decorative motion on this page settles rather than competing with the reader
+ * for the rest of the visit; the only thing that keeps moving is the loop,
+ * which is the argument and not the decoration.
+ */
+.mark {
+  display: block;
+  /* The page decides how wide the voice stands; the shape is fixed. */
+  width: var(--wave-width, 100%);
+  height: auto;
+  overflow: visible;
+  color: var(--accent);
+}
+
+.bar {
+  fill: currentColor;
+  opacity: var(--bar-ink);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: voice-arrive var(--motion-slow) var(--ease-out) var(--bar-stagger)
+    both;
+}
+
+@keyframes voice-arrive {
+  from {
+    transform: scaleY(0.04);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: var(--bar-ink);
+  }
+}
+
+/*
+ * Asked for less motion, the wave is simply already there. The still frame is
+ * the bar's own height, so nothing has to be replayed or unwound to arrive at
+ * it: the mark reads as a voice either way.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+}

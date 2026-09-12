@@ -76,6 +76,7 @@ it("keeps the application free of the story it is not telling", () => {
   const code = readFileSync("apps/web/app/components/Workspace.tsx", "utf8");
   for (const forbidden of [
     "./IntroGate",
+    "./Arrival",
     "./PlatformSection",
     "./Process",
     "./HowItWorks",

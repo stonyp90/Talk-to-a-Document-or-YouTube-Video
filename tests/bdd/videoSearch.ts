@@ -77,7 +77,7 @@ async function signIn(world: World): Promise<void> {
   } finally {
     console.info = original;
   }
-  const code = current.mailbox.join("\n").match(/code for \S+: (\d+)/)?.[1];
+  const code = current.mailbox.join("\n").match(/^\s*(\d{4,12})\s*$/m)?.[1];
   assert.ok(code, "The notifier must have delivered a code");
   const confirmed = await post(postConfirm, "/api/auth/confirm", {
     email,

@@ -1,0 +1,268 @@
+/* The loop, drawn. It leads the page, so it is sized for the first screen
+   rather than for a column halfway down it. */
+.stage {
+  display: grid;
+  gap: var(--space-md);
+  justify-items: center;
+  min-width: 0;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+.toggle {
+  flex-shrink: 0;
+  min-height: 38px;
+  font-size: 12px;
+}
+.diagram {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  overflow: visible;
+}
+.ring {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1.2;
+}
+/* The way round. A chevron between every pair of stages, lit behind the walk
+   and quiet ahead of it, so the ring reads as a cycle with a direction rather
+   than as ten things arranged in a circle. */
+.arrow {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    stroke var(--motion-base) var(--ease-out),
+    opacity var(--motion-base) var(--ease-out);
+}
+.arrow[data-passed="true"] {
+  stroke: var(--accent);
+  opacity: 0.85;
+}
+/* The stage the walk has just reached opens once, and is still again. */
+.pulse {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: loop-pulse var(--motion-slow) var(--ease-out) both;
+  pointer-events: none;
+}
+@keyframes loop-pulse {
+  from {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+.disc {
+  fill: var(--surface);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.discHalo {
+  fill: none;
+  stroke: var(--line);
+  stroke-dasharray: 2 5;
+}
+.discEyebrow,
+.discNote {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.discEyebrow {
+  fill: var(--muted);
+}
+.discNote {
+  font-size: 8.5px;
+  fill: var(--accent);
+}
+.discStatement {
+  font-family: var(--display);
+  font-size: 18px;
+  fill: var(--ink);
+}
+.traveller,
+.satellite {
+  transform-box: view-box;
+  transform-origin: 300px 260px;
+  transition: transform var(--loop-travel) linear;
+}
+.satellite {
+  transition-duration: var(--loop-inner);
+}
+.comet {
+  fill: var(--accent-glow);
+}
+.node {
+  cursor: pointer;
+}
+.node circle {
+  stroke-width: 1.2;
+}
+.nodeDisc {
+  fill: var(--surface);
+  stroke: var(--line-strong);
+  stroke-width: 1.2;
+  transition:
+    fill 260ms var(--ease-out),
+    stroke 260ms var(--ease-out);
+}
+.node svg {
+  color: var(--muted);
+  transition: color 260ms var(--ease-out);
+}
+.node:hover .nodeDisc {
+  stroke: var(--accent-border);
+}
+.node[data-active="true"] .nodeDisc {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.node[data-active="true"] svg {
+  color: var(--paper);
+}
+.label {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  fill: var(--muted);
+  transition: fill 260ms var(--ease-out);
+}
+.node[data-active="true"] .label {
+  fill: var(--ink);
+}
+.satelliteRing {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 4;
+  transition: stroke-width 260ms var(--ease-out);
+}
+.satelliteDot {
+  fill: var(--accent);
+}
+.diagram[data-inner-loop="active"] .satelliteRing {
+  stroke-width: 2;
+}
+.providerDot {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 1.2;
+}
+.diagram[data-inner-loop="active"] .providerDot {
+  animation: provider-pass calc(var(--loop-inner) / 3) linear 1 normal none;
+}
+@keyframes provider-pass {
+  0% {
+    fill: var(--accent);
+    stroke: var(--accent);
+  }
+  70% {
+    fill: var(--accent-wash);
+    stroke: var(--accent);
+  }
+  100% {
+    fill: var(--surface);
+    stroke: var(--accent);
+  }
+}
+.caption {
+  min-height: 6.7em;
+  max-width: 520px;
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+  animation: arrive 480ms var(--ease-out) both;
+}
+.captionNumber {
+  font-family: var(--mono);
+  color: var(--accent);
+  font-size: 12px;
+}
+.caption i {
+  font-family: var(--display);
+  color: var(--muted);
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.plot {
+  transform-box: view-box;
+  transform-origin: center;
+}
+.target {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .label {
+    display: none;
+  }
+  .diagram {
+    max-width: none;
+  }
+  .plot {
+    transform: scale(var(--plot-fill));
+  }
+  .disc {
+    fill: none;
+  }
+  .discHalo,
+  .discEyebrow,
+  .discStatement,
+  .discNote {
+    display: none;
+  }
+  .target {
+    position: static;
+    width: auto;
+    max-width: 34ch;
+    height: auto;
+    margin: 14px auto 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    text-align: center;
+  }
+}
+@media (max-width: 520px) {
+  .caption {
+    min-height: 8.3em;
+  }
+}
+@media (max-width: 350px) {
+  .caption {
+    min-height: 9.9em;
+  }
+}

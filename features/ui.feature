@@ -60,10 +60,12 @@ Feature: Provide a polished mobile-first conversation UI
 
   Scenario: Explain how Ursly is built and what it is for
     When I open the landing page
-    Then the build loop lists every stage from concept to training
+    Then the page opens on the build loop itself
+    And the build loop lists every stage from concept to training
     And the build loop names security, compliance and continuous delivery
     And the Ursly mission is stated in plain words
     And the build loop animation can be paused
+    And the loop, every stage of it and the way in stand on one screen
     And the mission call to action opens the app
 
   Scenario: Say what Ursly costs and what free costs you

@@ -498,14 +498,16 @@ test.describe("answers and the composer", () => {
   }) => {
     await page.goto(APP_PATH);
     const menu = page.getByRole("navigation", { name: "Primary" });
-    // The label is hidden below 960px and the icon is decorative, so at this
-    // viewport the button has no accessible name to find it by.
-    const downloads = menu.locator(".nav-download");
-    await expect(downloads).toHaveAttribute("aria-expanded", "false");
-    await downloads.click();
-    await expect(downloads).toHaveAttribute("aria-expanded", "true");
+    const downloads = menu.getByRole("link", {
+      name: "Get the app",
+      exact: true,
+    });
+    await expect(downloads).toHaveAttribute("href", "/en#applications");
+    await expect(downloads).toHaveAttribute("data-open", "false");
+    await downloads.focus();
+    await expect(downloads).toHaveAttribute("data-open", "true");
 
-    const items = menu.getByRole("menuitem");
+    const items = menu.locator(".nav-download-menu").getByRole("link");
     const android = items.filter({ hasText: "Android APK" });
     const ios = items.filter({ hasText: "iOS Simulator build" });
     await expect(android).toHaveAttribute(
@@ -517,12 +519,12 @@ test.describe("answers and the composer", () => {
       /\/releases\/download\/[^/]+\/ursly-[^/]+-ios-simulator-arm64\.tar\.gz$/,
     );
     await expect(
-      menu.getByRole("menuitem", { name: "All builds and instructions" }),
-    ).toHaveAttribute("href", "#applications");
+      items.filter({ hasText: "All builds and instructions" }),
+    ).toHaveAttribute("href", "/en#applications");
 
     // Both builds and the notes name one release, so a reader never installs
     // an application the notes do not describe.
-    const notes = menu.getByRole("menuitem", { name: /Release notes/ });
+    const notes = items.filter({ hasText: "Release notes" });
     const tag = ((await notes.getAttribute("href")) ?? "").split(
       "/releases/tag/",
     )[1];
@@ -533,15 +535,23 @@ test.describe("answers and the composer", () => {
       );
 
     await page.keyboard.press("Escape");
-    await expect(downloads).toHaveAttribute("aria-expanded", "false");
+    await expect(downloads).toHaveAttribute("data-open", "false");
     // At a width that shows the label, the same control names itself.
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(
-      menu.getByRole("button", { name: "Get the app" }),
+      menu.getByRole("link", { name: "Get the app", exact: true }),
     ).toBeVisible();
+    await downloads.hover();
+    // A painted link must receive the pointer: a flyout clipped by the
+    // floating bar can have a visible layout box and still be unreachable.
+    await android.hover();
+    await expect(android).toBeVisible();
+    await downloads.click();
+    await expect(page).toHaveURL(/\/en#applications$/);
+    await expect(page.locator("#applications")).toBeInViewport();
   });
 
-  test("a signed-out reader is asked to sign in instead of shown the workspace", async ({
+  test("a signed-out reader stays inside the sign-in gate", async ({
     page,
   }) => {
     await page.route("**/api/auth/session", (route) =>
@@ -556,8 +566,33 @@ test.describe("answers and the composer", () => {
       page.getByRole("heading", { name: "Sign in to keep going" }),
     ).toBeVisible();
     await expect(page.getByLabel("Email address")).toBeVisible();
-    // Nothing that spends money is on screen until the reader is known.
-    await expect(page.locator("#workspace")).toBeHidden();
+    // The workspace stays visible behind the modal, but cannot receive focus.
+    const gate = page.getByRole("dialog", { name: "Sign in to keep going" });
+    await expect(gate).toBeVisible();
+    await expect(gate).toHaveAttribute("open", "");
+    expect(await gate.evaluate((dialog) => dialog.matches(":modal"))).toBe(
+      true,
+    );
+    await page.keyboard.press("Escape");
+    await expect(gate).toBeVisible();
+    const question = page.getByRole("textbox", {
+      name: "Ask a question",
+      exact: true,
+    });
+    await question.evaluate((element) => (element as HTMLElement).focus());
+    await expect(question).not.toBeFocused();
+    for (let tab = 0; tab < 4; tab += 1) {
+      await page.keyboard.press("Tab");
+      expect(
+        await gate.evaluate(
+          (dialog) =>
+            // Native dialogs allow tabbing to browser controls. In that case
+            // activeElement is body; no background page control gets focus.
+            document.activeElement === document.body ||
+            dialog.contains(document.activeElement),
+        ),
+      ).toBe(true);
+    }
     await expect(page.locator(".voice-commands")).toHaveCount(0);
   });
 });

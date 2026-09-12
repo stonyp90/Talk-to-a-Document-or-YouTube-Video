@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     // The same empty answer whether or not the address is already known. A
     // different status, body or timing here would turn sign-in into a way of
     // asking which of your users has an account.
-    await requestSignInCode(parsed.data.email);
+    await requestSignInCode(parsed.data.email, parsed.data.language);
     return new Response(null, {
       status: 204,
       headers: { "Cache-Control": "no-store" },

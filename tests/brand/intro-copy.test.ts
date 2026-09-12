@@ -1,5 +1,10 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { INTRO_SCENES } from "../../apps/web/app/content/intro-video";
+import {
+  INTRO_SCENES,
+  INTRO_WAVE,
+} from "../../apps/web/app/content/intro-video";
 import { processCopy } from "../../apps/web/app/content/process";
 import { french } from "../../apps/web/app/i18n/fr";
 
@@ -17,8 +22,13 @@ import { french } from "../../apps/web/app/i18n/fr";
 
 type Scene = { id: string; headline: string; lede: string };
 type Loop = { centre: string[]; stages: string[] };
-type LanguageCopy = { scenes: Scene[]; loop: Loop };
+type LanguageCopy = { scenes: Scene[]; loop: Loop; keys: string[][] };
 type IntroCopy = Record<"en" | "fr", LanguageCopy>;
+type IntroWave = typeof INTRO_WAVE;
+type IntroPalette = Record<
+  "paper" | "ink" | "muted" | "accent" | "hairline",
+  string
+>;
 
 const languages = ["en", "fr"] as const;
 
@@ -27,9 +37,15 @@ const languages = ["en", "fr"] as const;
 const modulePath: string = "../../scripts/brand/intro-copy.mjs";
 
 let introCopy: IntroCopy | undefined;
+let introWave: IntroWave | undefined;
+let introPalette: IntroPalette | undefined;
 let loadFailure: unknown;
 try {
-  ({ introCopy } = (await import(modulePath)) as { introCopy: IntroCopy });
+  ({ introCopy, introWave, introPalette } = (await import(modulePath)) as {
+    introCopy: IntroCopy;
+    introWave: IntroWave;
+    introPalette: IntroPalette;
+  });
 } catch (error) {
   loadFailure = error;
 }
@@ -42,6 +58,49 @@ function copy(): IntroCopy {
         `checked against the app's: ${String(loadFailure)}`,
     );
   return introCopy;
+}
+
+/** The same, for the colours the renderer paints those words in. */
+function palette(): IntroPalette {
+  if (!introPalette)
+    throw new Error(
+      `scripts/brand/intro-copy.mjs did not load, so the film's palette ` +
+        `cannot be checked against the site's: ${String(loadFailure)}`,
+    );
+  return introPalette;
+}
+
+/**
+ * The site's colours, read out of the stylesheet that actually paints them
+ * rather than typed in again here -- a third copy of #a84332 would only be one
+ * more thing to keep in step. Only the first `:root` block is read: that is
+ * where the brand is declared, and a later block that happens to set a token
+ * for one surface is not the brand moving.
+ */
+const tokens = (() => {
+  const stylesheet = readFileSync(
+    fileURLToPath(new URL("../../apps/web/app/globals.css", import.meta.url)),
+    "utf8",
+  );
+  const start = stylesheet.indexOf(":root {");
+  const block = stylesheet.slice(start, stylesheet.indexOf("\n}", start));
+  return new Map(
+    Array.from(block.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g), (match) => [
+      match[1],
+      match[2].trim().toLowerCase(),
+    ]),
+  );
+})();
+
+/** Fails naming the token rather than comparing against `undefined`. */
+function token(name: string): string {
+  const value = tokens.get(name);
+  if (value === undefined)
+    throw new Error(
+      `apps/web/app/globals.css no longer declares ${name} in :root, so the ` +
+        `film's palette cannot be checked against it`,
+    );
+  return value;
 }
 
 describe("the film's copy against the app's", () => {
@@ -82,10 +141,77 @@ describe("the film's copy against the app's", () => {
       );
   });
 
+  /**
+   * The fifth scene draws a keyboard, and the letters on it come from here so
+   * that a reader sees the keyboard their own hands know: QWERTY in English,
+   * AZERTY in French. The renderer gives every letter exactly one key unit of
+   * room, so anything longer than a single character would run over the key
+   * beside it, and a row the renderer does not draw would simply be dropped
+   * without a word.
+   */
+  it("names one legend per key on three letter rows, in both languages", () => {
+    for (const language of languages) {
+      const rows = copy()[language].keys;
+      expect(rows, language).toHaveLength(3);
+      for (const row of rows) {
+        expect(row.length, `${language} row of ${row.length}`).toBeGreaterThan(
+          5,
+        );
+        for (const legend of row) expect(legend, language).toHaveLength(1);
+      }
+    }
+  });
+
+  /** Two layouts, not one layout labelled twice. */
+  it("draws a different keyboard for a French reader", () => {
+    expect(copy().fr.keys).not.toEqual(copy().en.keys);
+  });
+
   it("puts the page's own mission at the centre of the loop", () => {
     for (const language of languages)
       expect(copy()[language].loop.centre, language).toEqual(
         processCopy[language].target.statement,
       );
   });
+
+  /**
+   * The wave is the one thing the film and the page draw at the same moment:
+   * the film ends on it and the landing page opens on it. If the two shapes
+   * drift, the cut from the film into the page stops being invisible, which is
+   * the whole reason the mark is there.
+   */
+  it("draws the wave the page draws, bar for bar", () => {
+    expect(introWave).toEqual({ ...INTRO_WAVE });
+  });
+});
+
+/**
+ * The film is drawn by a build script and the page is painted by a stylesheet,
+ * which means the two can hold different ideas of what the brand's coral is and
+ * nothing will complain: both render, both look deliberate, and every test
+ * passes. The drift only shows itself to a person who watches the film end and
+ * then looks at the page it hands over to -- a waveform, a BETA chip and a
+ * loop that were one hue a second ago, and are now very slightly another. By
+ * then it has shipped. This is the thing that notices first.
+ *
+ * The stylesheet is the source of truth, because it is the side with the
+ * contrast budget: --accent holds about 5.6:1 on paper, and a lighter coral
+ * chosen to flatter the film would spend that on the page, where people
+ * actually have to read. The film is regenerated from this repository, so it is
+ * the cheap side to move -- re-render it when a token here changes.
+ */
+describe("the film's palette against the site's tokens", () => {
+  const mirrored: [keyof IntroPalette, string][] = [
+    ["paper", "--paper"],
+    ["ink", "--ink"],
+    ["muted", "--muted"],
+    ["accent", "--accent"],
+    // Named for what it draws in the frame; declared as the line it draws.
+    ["hairline", "--line"],
+  ];
+
+  for (const [name, css] of mirrored)
+    it(`paints ${name} in the colour ${css} declares`, () => {
+      expect(palette()[name].toLowerCase()).toBe(token(css));
+    });
 });

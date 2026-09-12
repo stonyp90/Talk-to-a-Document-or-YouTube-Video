@@ -2,13 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
+import { TopNav } from "./TopNav";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   INTRO_DURATION_SECONDS,
   INTRO_SCENES,
+  INTRO_SCENE_SECONDS,
   INTRO_TITLE_KEY,
   introVideoPaths,
 } from "../content/intro-video";
+
+/**
+ * Which scene the film is on, `seconds` in. Every scene runs the same length,
+ * so the answer is a division rather than a table of boundaries, and a player
+ * that reports a time past the end still names the last scene.
+ */
+export function sceneAt(seconds: number): number {
+  const index = Math.floor(Math.max(0, seconds) / INTRO_SCENE_SECONDS);
+  return Math.min(INTRO_SCENES.length - 1, index);
+}
 
 export const INTRO_STORAGE_KEY = "ursly-intro-v1";
 
@@ -69,7 +81,7 @@ export function IntroGate({
   const [reduced, setReduced] = useState(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
   // The hand-off runs from the dialog's own close event: closing a modal
   // dialog restores focus to whatever had it before, so anything focused
@@ -87,7 +99,7 @@ export function IntroGate({
       setReduced(prefersReducedMotion());
       setAutoplayBlocked(false);
       setFailed(false);
-      setProgress(0);
+      setElapsed(0);
       // A test DOM may lack the dialog API; the attribute still shows it.
       if (typeof element.showModal === "function") element.showModal();
       else element.setAttribute("open", "");
@@ -128,20 +140,30 @@ export function IntroGate({
     onClose();
   }
 
-  const seconds = Math.max(
-    0,
-    Math.ceil(INTRO_DURATION_SECONDS * (1 - progress)),
-  );
+  const seconds = Math.max(0, Math.ceil(INTRO_DURATION_SECONDS - elapsed));
+  /** The scene on screen, which is the chapter the rail marks as current. */
+  const chapter = sceneAt(elapsed);
+
+  /** Jump to the start of a chapter, and keep playing from there. */
+  function goTo(index: number) {
+    const player = video.current;
+    const wanted = Math.min(Math.max(0, index), INTRO_SCENES.length - 1);
+    const at = wanted * INTRO_SCENE_SECONDS;
+    setElapsed(at);
+    if (!player) return;
+    player.currentTime = at;
+    // Seeking is a deliberate act, so it is also a request to watch: a reader
+    // who has paused and then picked a chapter meant to see that chapter.
+    // Not every browser returns a promise from play(), and a test DOM returns
+    // nothing at all; calling .catch on that would end the seek in an error.
+    if (player.paused && !reduced) void player.play()?.catch(() => {});
+  }
 
   return (
     <dialog
       ref={dialog}
       className="intro-gate"
-      // The heading no longer says the name, so the dialog has to. A reader
-      // who cannot see the wordmark above it would otherwise be told only that
-      // something lasting thirty-six seconds had opened.
-      aria-label={t("Ursly introduction")}
-      aria-describedby="intro-lede"
+      aria-labelledby="intro-title"
       onCancel={(event) => {
         event.preventDefault();
         finish();
@@ -152,42 +174,30 @@ export function IntroGate({
       }}
     >
       <div className="intro-gate-inner">
-        <header className="intro-gate-bar">
-          {/* The same wordmark, at the same size, as the menu the visitor
-              lands on when the film ends: one brand, one scale, nothing
-              restyled between the introduction and the page it introduces. */}
-          <span className="brand">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              className="brand-mark"
-              src="/brand/ursly-mark.svg"
-              width="32"
-              height="32"
-              alt=""
-            />
-            ursly<span className="brand-dot">.</span>
-          </span>
-          <button
-            type="button"
-            className="intro-skip"
-            autoFocus
-            onClick={finish}
-          >
-            {t("Skip intro")} <Icon name="close" />
-          </button>
-        </header>
-
-        <div className="intro-gate-copy">
-          <span className="eyebrow">{t("Welcome")}</span>
-          <h2 id="intro-title">
-            {t(INTRO_TITLE_KEY, { seconds: INTRO_DURATION_SECONDS })}
-          </h2>
-          <p id="intro-lede">
-            {t(
-              "A source, a question, and a conversation that stays grounded in what you brought.",
-            )}
-          </p>
-        </div>
+        {/* One wordmark on screen, and it is the film's. The bar used to set
+            a second one directly above the product's own, at the same size,
+            so a first visit met the name twice before meeting the argument. */}
+        {/* The site's own bar, from the site's own component, carrying only
+            the way out. Nothing about the chrome should tell a visitor that
+            the film and the page are two different surfaces. */}
+        <TopNav
+          page="intro"
+          trailing={
+            <button
+              type="button"
+              className="intro-skip"
+              autoFocus
+              onClick={finish}
+            >
+              {t("Skip intro")} <Icon name="close" />
+            </button>
+          }
+        />
+        {/* The dialog needs a name; it does not need a second Ursly on the
+            screen to say it. */}
+        <h2 id="intro-title" className="visually-hidden">
+          {t(INTRO_TITLE_KEY)}
+        </h2>
 
         <div className="intro-stage" data-reduced={reduced}>
           {/* The video exists only while the dialog is open, so a returning
@@ -202,11 +212,9 @@ export function IntroGate({
               preload="auto"
               controls={reduced || autoplayBlocked}
               poster={sources.poster}
-              onTimeUpdate={(event) => {
-                const player = event.currentTarget;
-                if (player.duration)
-                  setProgress(player.currentTime / player.duration);
-              }}
+              onTimeUpdate={(event) =>
+                setElapsed(event.currentTarget.currentTime)
+              }
               onPlaying={() => setAutoplayBlocked(false)}
               onEnded={finish}
               onError={() => setFailed(true)}
@@ -245,18 +253,83 @@ export function IntroGate({
           )}
         </div>
 
-        <div className="intro-gate-footer">
-          <div
-            className="intro-progress"
-            role="progressbar"
-            aria-label={t("Intro progress")}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(progress * 100)}
+        {/* The film's argument, at a size a phone can read. It is the same
+            sentence the frame carries, so it is hidden from assistive
+            technology: the transcript below states the whole film once. */}
+        {!failed && open ? (
+          <p
+            className="intro-scene"
+            aria-hidden="true"
+            data-testid="intro-scene"
           >
-            <span style={{ width: `${Math.round(progress * 100)}%` }} />
+            <strong key={INTRO_SCENES[chapter].id}>
+              {t(INTRO_SCENES[chapter].headline)}
+            </strong>
+            <span key={`${INTRO_SCENES[chapter].id}-lede`}>
+              {t(INTRO_SCENES[chapter].lede)}
+            </span>
+          </p>
+        ) : null}
+
+        <div className="intro-gate-footer">
+          {/* The film's own progress row, made of the thing it measures. Each
+              chapter fills as it plays and can be jumped to, so a reader who
+              missed a line can go back to it rather than watching the whole
+              film again or giving up on it. */}
+          <div className="intro-chapters-row">
+            <button
+              type="button"
+              className="intro-step"
+              onClick={() => goTo(chapter - 1)}
+              disabled={chapter === 0}
+              aria-label={t("Previous chapter")}
+            >
+              <Icon name="arrow" />
+            </button>
+            <ol className="intro-chapters" aria-label={t("Chapters")}>
+              {INTRO_SCENES.map((scene, index) => {
+                const filled = Math.min(
+                  1,
+                  Math.max(0, elapsed / INTRO_SCENE_SECONDS - index),
+                );
+                return (
+                  <li key={scene.id} className="intro-chapter">
+                    <button
+                      type="button"
+                      aria-current={index === chapter ? "step" : undefined}
+                      onClick={() => goTo(index)}
+                    >
+                      <span className="intro-chapter-tick" aria-hidden="true">
+                        <span style={{ transform: `scaleX(${filled})` }} />
+                      </span>
+                      {/* The film numbers its scenes and names none of them;
+                          six headlines side by side would be six truncations.
+                          The one being watched is named under the rail. */}
+                      <span className="intro-chapter-index" aria-hidden="true">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="visually-hidden">
+                        {t(scene.headline)}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+            <button
+              type="button"
+              className="intro-step"
+              onClick={() => goTo(chapter + 1)}
+              disabled={chapter === INTRO_SCENES.length - 1}
+              aria-label={t("Next chapter")}
+            >
+              <Icon name="arrow" />
+            </button>
           </div>
           <p className="intro-timing">
+            {/* Which scene is on screen, in its own words, so the rail above
+                is read as an index of the film rather than a row of ticks. */}
+            <b className="intro-now">{t(INTRO_SCENES[chapter].headline)}</b>{" "}
             {reduced || autoplayBlocked || failed
               ? t("Skip whenever you like. Ursly is right behind this.")
               : t("Continues in {seconds} s", { seconds })}

@@ -69,19 +69,25 @@ const running = (page: Page) =>
   );
 
 test("the build loop moves only while it is on screen", async ({ page }) => {
-  // The section that carries the page's decorative motion now sits alone on
-  // the landing page, so the bound on it belongs here: it steps while a
-  // reader is looking at the picture, and stops when they are not. Without
-  // this, "settles within 6.5s" would pass on a page whose only animation is
-  // below the fold, which proves nothing about the animation.
+  // The guarantee is unchanged: the walk steps while a reader is looking at
+  // the picture and stops when they are not. Only the way to look away has
+  // changed. The loop used to sit a screen down, so scrolling to the top hid
+  // it; it now opens the page, and the top is where it is most visible. The
+  // way off it is therefore downwards, to the end of the story. Without this
+  // bound, "settles within 6.5s" would pass on a page whose only animation
+  // never started, which proves nothing about the animation.
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto(LANDING_PATH);
-  await page.locator("#how-we-build").scrollIntoViewIfNeeded();
-  await expect.poll(() => running(page), { timeout: 4000 }).toBeGreaterThan(0);
+  const loop = page.getByTestId("loop-diagram");
   await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(loop).toBeInViewport();
+  await expect.poll(() => running(page), { timeout: 4000 }).toBeGreaterThan(0);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(loop).not.toBeInViewport();
   await expect.poll(() => running(page), { timeout: 6500 }).toBe(0);
   // And a reader who wants it still can stop it while looking straight at it.
-  await page.locator("#how-we-build").scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(() => running(page), { timeout: 4000 }).toBeGreaterThan(0);
   await page.getByRole("button", { name: /Pause/ }).click();
   await expect.poll(() => running(page), { timeout: 6500 }).toBe(0);
 });
@@ -89,10 +95,12 @@ test("the build loop moves only while it is on screen", async ({ page }) => {
 test("the landing page adds no animation under reduced motion", async ({
   page,
 }) => {
-  // Even with the picture straight on screen, and including the new hero.
+  // Measured with the picture straight on screen: the loop opens the page, so
+  // the one thing that would still be moving is in front of the reader rather
+  // than waiting below the fold where nothing would be observed.
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(LANDING_PATH);
-  await page.locator("#how-we-build").scrollIntoViewIfNeeded();
+  await page.getByTestId("loop-diagram").scrollIntoViewIfNeeded();
   expect(
     await page.evaluate(
       () =>
@@ -103,55 +111,51 @@ test("the landing page adds no animation under reduced motion", async ({
   ).toBe(0);
 });
 
-test("motion tooltip has its own desktop layer and a safe mobile fallback", async ({
+test("choosing motion hands the reader the panel, with the camera still off", async ({
   page,
 }) => {
+  // No camera is granted here on purpose. Everything below is what a reader
+  // sees before they decide to start one, which is the part a browser can be
+  // held to without a webcam.
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(APP_PATH);
   const motion = modes(page).getByRole("radio", { name: /Motion to action/ });
-  const tooltip = modes(page).locator(".mode-tooltip");
-  await motion.hover();
-  await expect(tooltip).toHaveCSS("opacity", "1");
-
-  const desktopPreview = await tooltip.evaluate((element) => {
-    const preview = element.getBoundingClientRect();
-    const group = element.closest(".modes")!.getBoundingClientRect();
-    const overlaps = (a: DOMRect, b: DOMRect) =>
-      a.left < b.right &&
-      a.right > b.left &&
-      a.top < b.bottom &&
-      a.bottom > b.top;
-    return {
-      position: getComputedStyle(element).position,
-      withinViewport:
-        preview.left >= 0 &&
-        preview.right <= innerWidth &&
-        preview.top >= 0 &&
-        preview.bottom <= innerHeight,
-      overlapsModes: overlaps(preview, group),
-    };
-  });
-  expect(desktopPreview).toEqual({
-    position: "absolute",
-    withinViewport: true,
-    overlapsModes: false,
-  });
-
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  expect(
-    await tooltip.evaluate(
-      (element) => getComputedStyle(element).transitionDuration,
-    ),
-  ).toBe("0s");
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await motion.click({ force: true });
-  await expect(motion).toHaveAttribute("aria-checked", "false");
+  await motion.click();
+  await expect(motion).toHaveAttribute("aria-checked", "true");
   await expect(
     modes(page).getByRole("radio", { name: "Voice to action" }),
-  ).toHaveAttribute("aria-checked", "true");
-  await expect(modes(page)).toHaveAttribute("data-explaining", "true");
-  await expect(tooltip).toHaveCSS("opacity", "1");
+  ).toHaveAttribute("aria-checked", "false");
+
+  const panel = page.getByRole("region", { name: "Motion to action" });
+  await expect(panel).toBeVisible();
+  await expect(
+    panel.getByRole("button", { name: /Start motion/ }),
+  ).toBeVisible();
+  await expect(panel.locator(".motion-legend li")).toHaveCount(5);
+  for (const meaning of [
+    "Next question",
+    "Previous question",
+    "Ask it",
+    "Summarize the source",
+    "Stop",
+  ])
+    await expect(panel.locator(".motion-legend")).toContainText(meaning);
+
+  // The camera is a thing a reader turns on, never a thing a page takes.
+  await expect(panel.locator(".motion-idle")).toContainText(
+    "The camera is off. Nothing is recorded or sent.",
+  );
+  await expect(panel.locator(".motion-stage")).not.toHaveAttribute(
+    "data-watching",
+    "true",
+  );
+  await expect(
+    panel.getByRole("button", { name: /Stop motion/ }),
+  ).toHaveCount(0);
+
+  // And the mode is reachable on a phone without the page growing sideways.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(panel).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

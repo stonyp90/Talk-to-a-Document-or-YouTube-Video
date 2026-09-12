@@ -110,9 +110,11 @@ const animationNames = (css: string) =>
  * pull-quote loses its bar. Neither the type checker nor the browser complains,
  * so assert it here.
  */
+const MODULES = ["./Process.module.css", "./LoopDiagram.module.css"];
+
 describe("Process design tokens", () => {
   it("only uses custom properties the stylesheet declares", () => {
-    const stylesheet = read("./Process.module.css");
+    const stylesheet = MODULES.map(read).join("\n");
     const globals = read("../globals.css");
     const declared = new Set(
       Array.from(globals.matchAll(/(--[a-z0-9-]+)\s*:/g), (m) => m[1]),
@@ -128,13 +130,14 @@ describe("Process design tokens", () => {
     );
     expect(undeclared).toEqual([]);
     for (const token of supplied)
-      expect(read("./Process.tsx")).toContain(token);
+      expect(read("./LoopDiagram.tsx")).toContain(token);
   });
 
-  it("writes no literal colour into the module", () => {
-    expect(read("./Process.module.css")).not.toMatch(
-      /#[0-9a-f]{3,8}\b|\brgba?\(|\bhsla?\(/i,
-    );
+  it("writes no literal colour into either module", () => {
+    for (const sheet of MODULES)
+      expect(read(sheet), sheet).not.toMatch(
+        /#[0-9a-f]{3,8}\b|\brgba?\(|\bhsla?\(/i,
+      );
   });
 
   /**
@@ -167,7 +170,7 @@ describe("Process design tokens", () => {
    * hand-off dot, so lighting the stage fills the whole hand-off solid.
    */
   it("paints a lit stage by class, never by element", () => {
-    const painting = rules(read("./Process.module.css")).filter((rule) =>
+    const painting = rules(read("./LoopDiagram.module.css")).filter((rule) =>
       /(?:^|[\s;])(?:fill|stroke)\s*:/.test(rule.body),
     );
     const reaching = painting
@@ -186,7 +189,7 @@ describe("Process design tokens", () => {
    */
   it("hands the mission from the disc to real copy on a phone", () => {
     const phone = atRule(
-      read("./Process.module.css"),
+      read("./LoopDiagram.module.css"),
       "@media (max-width: 700px)",
     );
     const hidden = rules(phone)
@@ -232,7 +235,7 @@ describe("Process design tokens", () => {
    * the browser by tests/e2e/how-we-build.spec.ts; CSS text cannot know it.
    */
   it("reserves the most where the column is narrowest", () => {
-    const reserved = bands(read("./Process.module.css"))
+    const reserved = bands(read("./LoopDiagram.module.css"))
       .map((band) => ({ width: band.width, em: reserveOf(band.body) }))
       .filter(
         (band): band is { width: number; em: number } => band.em !== undefined,
@@ -252,7 +255,7 @@ describe("Process design tokens", () => {
    */
   it("leaves no blank plate where the disc's type was", () => {
     const phone = atRule(
-      read("./Process.module.css"),
+      read("./LoopDiagram.module.css"),
       "@media (max-width: 700px)",
     );
     const disc = rules(phone).find((rule) => rule.selectors.includes(".disc"));
@@ -269,7 +272,7 @@ describe("Process design tokens", () => {
    */
   it("lets the diagram reclaim the labels' room on a phone", () => {
     const phone = atRule(
-      read("./Process.module.css"),
+      read("./LoopDiagram.module.css"),
       "@media (max-width: 700px)",
     );
     const diagram = rules(phone).find((rule) =>

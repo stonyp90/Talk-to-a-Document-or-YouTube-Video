@@ -301,6 +301,9 @@ test.describe("returning visitor", () => {
   }) => {
     await page.goto(LANDING_PATH);
     // A reader who stops anywhere in the story has a way in within reach.
+    // The first screen answers to both of the first two names — it is the
+    // hero and it is how we build — so that pair is one element checked
+    // twice, and the day they part again both are already covered.
     for (const selector of [
       ".nav",
       ".landing-hero",
@@ -365,7 +368,7 @@ test.describe("returning visitor", () => {
     });
   }
 
-  test("mode switcher is a keyboard-operable radio group with motion disabled", async ({
+  test("mode switcher is a keyboard-operable radio group over all three modes", async ({
     page,
   }) => {
     await page.goto(APP_PATH);
@@ -375,21 +378,23 @@ test.describe("returning visitor", () => {
     });
     const motion = modes(page).getByRole("radio", { name: /Motion to action/ });
     await expect(voice).toHaveAttribute("aria-checked", "true");
-    await expect(motion).toHaveAttribute("aria-disabled", "true");
-    await expect(motion).toHaveAccessibleDescription(/not available yet/i);
+    await expect(motion).not.toHaveAttribute("aria-disabled", "true");
     await voice.focus();
+    // The beta sits in the middle of the row, so the keys land on it.
+    await page.keyboard.press("ArrowRight");
+    await expect(motion).toHaveAttribute("aria-checked", "true");
+    await expect(motion).toBeFocused();
     await page.keyboard.press("ArrowRight");
     await expect(keyboard).toHaveAttribute("aria-checked", "true");
     await expect(keyboard).toBeFocused();
     await page.keyboard.press("ArrowRight");
-    // The disabled beta is skipped, never selected.
     await expect(voice).toHaveAttribute("aria-checked", "true");
-    await expect(motion).toHaveAttribute("aria-checked", "false");
-    await motion.click({ force: true });
-    await expect(motion).toHaveAttribute("aria-checked", "false");
-    await expect(voice).toHaveAttribute("aria-checked", "true");
+    await motion.click();
+    await expect(motion).toHaveAttribute("aria-checked", "true");
+    await expect(voice).toHaveAttribute("aria-checked", "false");
     // Only the selected radio is in the tab sequence.
-    expect(await voice.getAttribute("tabindex")).toBe("0");
+    expect(await motion.getAttribute("tabindex")).toBe("0");
+    expect(await voice.getAttribute("tabindex")).toBe("-1");
     expect(await keyboard.getAttribute("tabindex")).toBe("-1");
   });
 
@@ -430,5 +435,48 @@ test.describe("returning visitor", () => {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(page.viewportSize()!.width);
+  });
+});
+
+test.describe("the bar the film wears", () => {
+  /**
+   * The film's bar and the page's menu are the same panel, so they must stand
+   * on the same two vertical lines. A bar that is even slightly narrower than
+   * the one that replaces it makes the hand-off read as a change of product,
+   * which is the whole reason the film borrowed the site's component.
+   */
+  async function barsAgree(page: Page) {
+    const film = intro(page)
+      .getByRole("navigation", { name: "Primary" })
+      .first();
+    await expect(film).toBeVisible();
+    const filmBar = await film.boundingBox();
+    const filmBrand = await film.locator(".brand").boundingBox();
+    await page.getByRole("button", { name: "Skip intro" }).click();
+    await expect(intro(page)).toHaveCount(0);
+    const pageBar = await nav(page).boundingBox();
+    const pageBrand = await nav(page).locator(".brand").boundingBox();
+    expect(filmBar).not.toBeNull();
+    expect(pageBar).not.toBeNull();
+    expect(filmBrand).not.toBeNull();
+    expect(pageBrand).not.toBeNull();
+    // The panel: the same width, on the same left edge.
+    expect(filmBar!.width).toBeCloseTo(pageBar!.width, 0);
+    expect(filmBar!.x).toBeCloseTo(pageBar!.x, 0);
+    // And the name inside it on the same line, so the padding matches too.
+    expect(filmBrand!.x).toBeCloseTo(pageBrand!.x, 0);
+  }
+
+  test("stands exactly where the menu stands, on a wide screen", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(LANDING_PATH);
+    await barsAgree(page);
+  });
+
+  test("stands exactly where the menu stands, on a phone", async ({ page }) => {
+    await page.goto(LANDING_PATH);
+    await barsAgree(page);
   });
 });

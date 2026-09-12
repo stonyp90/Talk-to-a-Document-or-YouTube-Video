@@ -96,8 +96,13 @@ rolls its window over and refuses without touching the ledger.
 charging over the three account ports. Randomness, hashing, the server-side
 pepper, mail delivery and storage are adapters in `packages/adapters/src/accounts.ts`:
 an in-memory store with the same eviction discipline and the same per-process
-caveat as the session store, plus a notifier that writes the code to the server
-log locally and signs a SES v2 request when `EMAIL_MODE=ses`. The gate itself —
+caveat as the session store, plus a notifier that writes the message to the
+server log locally and signs a SES v2 request when `EMAIL_MODE=ses`. What a
+message says is not the adapter's business: every email is rendered by the one
+template in `packages/core/src/domain/email.ts`, which owns the brand, both
+parts (HTML and plain text) and both languages, and the adapter is handed a
+message already written. One template and one delivery means a second kind of
+mail cannot arrive looking like it came from somewhere else. The gate itself —
 cookie, `requireAccount`, `guard` and the unit cost table — is an inbound HTTP
 concern in `apps/web/src/auth.ts`, assembled through the composition root like
 every other adapter. `AUTH_MODE` is read there and nowhere else, and anything

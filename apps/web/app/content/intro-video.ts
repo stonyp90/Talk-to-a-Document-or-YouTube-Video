@@ -68,10 +68,16 @@ export type IntroSceneId = IntroScene["id"];
 export const INTRO_DURATION_SECONDS = INTRO_SCENES.length * INTRO_SCENE_SECONDS;
 
 /**
- * The title, as a translation key with the duration filled in, so the number
- * on the button and the number in the film can never disagree.
+ * What the dialog is called. It is not shown: the name at the top of the
+ * introduction is the same lockup the menu carries, and a heading repeating
+ * it in words would be the second Ursly on a screen that should only ever
+ * have one. This is what assistive software announces instead.
+ *
+ * It no longer carries the running time. How long the film is is something a
+ * reader finds out by watching the chapters fill, not a number to be promised
+ * in the title of the thing.
  */
-export const INTRO_TITLE_KEY = "Ursly, in {seconds} seconds.";
+export const INTRO_TITLE_KEY = "The Ursly introduction";
 
 export const INTRO_DESCRIPTION =
   "The next generation of internet: a source, a question, and a conversation you never have to type — built in one loop that closes before anything ships.";

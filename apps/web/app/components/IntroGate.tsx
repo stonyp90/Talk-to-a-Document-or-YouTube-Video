@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Brand } from "./Brand";
 import { Icon } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   INTRO_DURATION_SECONDS,
   INTRO_SCENES,
+  INTRO_SCENE_SECONDS,
   INTRO_TITLE_KEY,
   introVideoPaths,
 } from "../content/intro-video";
@@ -69,7 +71,7 @@ export function IntroGate({
   const [reduced, setReduced] = useState(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
   // The hand-off runs from the dialog's own close event: closing a modal
   // dialog restores focus to whatever had it before, so anything focused
@@ -87,7 +89,7 @@ export function IntroGate({
       setReduced(prefersReducedMotion());
       setAutoplayBlocked(false);
       setFailed(false);
-      setProgress(0);
+      setElapsed(0);
       // A test DOM may lack the dialog API; the attribute still shows it.
       if (typeof element.showModal === "function") element.showModal();
       else element.setAttribute("open", "");
@@ -128,10 +130,27 @@ export function IntroGate({
     onClose();
   }
 
-  const seconds = Math.max(
-    0,
-    Math.ceil(INTRO_DURATION_SECONDS * (1 - progress)),
+  const seconds = Math.max(0, Math.ceil(INTRO_DURATION_SECONDS - elapsed));
+  /** The scene on screen, which is the chapter the rail marks as current. */
+  const chapter = Math.min(
+    INTRO_SCENES.length - 1,
+    Math.floor(elapsed / INTRO_SCENE_SECONDS),
   );
+
+  /** Jump to the start of a chapter, and keep playing from there. */
+  function goTo(index: number) {
+    const player = video.current;
+    const wanted = Math.min(Math.max(0, index), INTRO_SCENES.length - 1);
+    const at = wanted * INTRO_SCENE_SECONDS;
+    setElapsed(at);
+    if (!player) return;
+    player.currentTime = at;
+    // Seeking is a deliberate act, so it is also a request to watch: a reader
+    // who has paused and then picked a chapter meant to see that chapter.
+    // Not every browser returns a promise from play(), and a test DOM returns
+    // nothing at all; calling .catch on that would end the seek in an error.
+    if (player.paused && !reduced) void player.play()?.catch(() => {});
+  }
 
   return (
     <dialog
@@ -152,8 +171,14 @@ export function IntroGate({
             a second one directly above the product's own, at the same size,
             so a first visit met the name twice before meeting the argument. */}
         <header className="intro-gate-bar">
-          <h2 id="intro-title">
-            {t(INTRO_TITLE_KEY, { seconds: INTRO_DURATION_SECONDS })}
+          {/* The same lockup the fixed menu carries, at the same size, from the
+              same component. A visitor should not be able to tell that the
+              film and the site are two surfaces. */}
+          <Brand />
+          {/* The dialog needs a name; it does not need a second Ursly on the
+              screen to say it. */}
+          <h2 id="intro-title" className="visually-hidden">
+            {t(INTRO_TITLE_KEY)}
           </h2>
           <button
             type="button"
@@ -178,11 +203,9 @@ export function IntroGate({
               preload="auto"
               controls={reduced || autoplayBlocked}
               poster={sources.poster}
-              onTimeUpdate={(event) => {
-                const player = event.currentTarget;
-                if (player.duration)
-                  setProgress(player.currentTime / player.duration);
-              }}
+              onTimeUpdate={(event) =>
+                setElapsed(event.currentTarget.currentTime)
+              }
               onPlaying={() => setAutoplayBlocked(false)}
               onEnded={finish}
               onError={() => setFailed(true)}
@@ -222,17 +245,64 @@ export function IntroGate({
         </div>
 
         <div className="intro-gate-footer">
-          <div
-            className="intro-progress"
-            role="progressbar"
-            aria-label={t("Intro progress")}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(progress * 100)}
-          >
-            <span style={{ width: `${Math.round(progress * 100)}%` }} />
+          {/* The film's own progress row, made of the thing it measures. Each
+              chapter fills as it plays and can be jumped to, so a reader who
+              missed a line can go back to it rather than watching the whole
+              film again or giving up on it. */}
+          <div className="intro-chapters-row">
+            <button
+              type="button"
+              className="intro-step"
+              onClick={() => goTo(chapter - 1)}
+              disabled={chapter === 0}
+              aria-label={t("Previous chapter")}
+            >
+              <Icon name="arrow" />
+            </button>
+            <ol className="intro-chapters" aria-label={t("Chapters")}>
+              {INTRO_SCENES.map((scene, index) => {
+                const filled = Math.min(
+                  1,
+                  Math.max(0, elapsed / INTRO_SCENE_SECONDS - index),
+                );
+                return (
+                  <li key={scene.id} className="intro-chapter">
+                    <button
+                      type="button"
+                      aria-current={index === chapter ? "step" : undefined}
+                      onClick={() => goTo(index)}
+                    >
+                      <span className="intro-chapter-tick" aria-hidden="true">
+                        <span style={{ transform: `scaleX(${filled})` }} />
+                      </span>
+                      {/* The film numbers its scenes and names none of them;
+                          six headlines side by side would be six truncations.
+                          The one being watched is named under the rail. */}
+                      <span className="intro-chapter-index" aria-hidden="true">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="visually-hidden">
+                        {t(scene.headline)}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+            <button
+              type="button"
+              className="intro-step"
+              onClick={() => goTo(chapter + 1)}
+              disabled={chapter === INTRO_SCENES.length - 1}
+              aria-label={t("Next chapter")}
+            >
+              <Icon name="arrow" />
+            </button>
           </div>
           <p className="intro-timing">
+            {/* Which scene is on screen, in its own words, so the rail above
+                is read as an index of the film rather than a row of ticks. */}
+            <b className="intro-now">{t(INTRO_SCENES[chapter].headline)}</b>{" "}
             {reduced || autoplayBlocked || failed
               ? t("Skip whenever you like. Ursly is right behind this.")
               : t("Continues in {seconds} s", { seconds })}

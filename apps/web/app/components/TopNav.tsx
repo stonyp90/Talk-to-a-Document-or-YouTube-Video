@@ -9,6 +9,7 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { BrandIcon } from "./BrandIcon";
+import { Brand } from "./Brand";
 import { Icon } from "./Icon";
 import { ModeSwitcher, type EntryMode } from "./ModeSwitcher";
 import { useHydrated } from "./useHydrated";
@@ -293,22 +294,7 @@ export function TopNav(props: TopNavProps) {
         style={{ "--nav-progress": String(progress) } as CSSProperties}
       >
         <div className="nav-inner">
-          <a
-            className="brand"
-            href={`/${language}`}
-            aria-label={t("Ursly home")}
-          >
-            {/* A vector stays crisp at every screen density. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              className="brand-mark"
-              src="/brand/ursly-mark.svg"
-              width="32"
-              height="32"
-              alt=""
-            />
-            ursly<span className="brand-dot">.</span>
-          </a>
+          <Brand href={`/${language}`} label={t("Ursly home")} />
 
           {props.page === "app" ? (
             <div className="nav-modes">

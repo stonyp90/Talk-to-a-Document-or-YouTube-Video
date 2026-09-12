@@ -71,21 +71,25 @@ describe("the introduction in French", () => {
 });
 
 describe("the title", () => {
-  // The number on screen is a parameter, so the title has to survive
-  // substitution in every language rather than baking a duration into the copy.
+  // The dialog is named rather than headed: the only Ursly on that screen is
+  // the lockup the menu also carries, so this string is what assistive
+  // software announces and nothing renders it.
   it("is translated rather than falling back to the English key", () => {
     expect(french[INTRO_TITLE_KEY]).toBeTruthy();
     expect(french[INTRO_TITLE_KEY]).not.toBe(INTRO_TITLE_KEY);
-    // A translator that dropped the placeholder would silently lose the
-    // duration, which is the one thing the title exists to say.
-    expect(french[INTRO_TITLE_KEY]).toContain("{seconds}");
   });
 
-  it("carries the duration through substitution in both languages", () => {
+  it("still names the product, which is how the dialog is found", () => {
     for (const dictionary of [{}, french]) {
       const t = createTranslator(dictionary);
-      const title = t(INTRO_TITLE_KEY, { seconds: INTRO_DURATION_SECONDS });
-      expect(title).toContain(String(INTRO_DURATION_SECONDS));
+      expect(t(INTRO_TITLE_KEY)).toMatch(/Ursly/);
     }
+  });
+
+  // The running time belongs to the chapters filling up, not to a promise in
+  // the title. A placeholder left here would print "{seconds}" on screen.
+  it("promises no duration", () => {
+    expect(INTRO_TITLE_KEY).not.toContain("{seconds}");
+    expect(french[INTRO_TITLE_KEY]).not.toContain("{seconds}");
   });
 });

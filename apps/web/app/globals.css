@@ -231,18 +231,23 @@ a {
   width: 100%;
   min-height: 100svh;
 }
+/* The name is one size everywhere it appears: in the menu, on the page that
+   says a route is missing, and at the top of the introduction. It used to be
+   set again in each place, and the introduction's copy was two sizes down from
+   the menu's — which is most of why arriving on the site read as leaving one
+   product for another. */
 .brand {
   display: inline-flex;
   align-items: center;
   color: var(--ink);
   text-decoration: none;
-  font-size: 26px;
+  font-size: 27px;
   font-weight: 720;
   letter-spacing: -1.5px;
 }
 .brand-mark {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   margin-right: var(--space-sm);
   border-radius: var(--radius-md);
   transition: transform 420ms var(--ease-spring);
@@ -1565,15 +1570,7 @@ h3 {
     pointer-events: none;
   }
 }
-/* The mark is the one thing in the bar that is the product rather than a
-   control, so it is allowed to be the largest thing in it. */
-.nav .brand {
-  font-size: 27px;
-}
-.nav .brand-mark {
-  width: 34px;
-  height: 34px;
-}
+
 .nav-modes,
 .nav-sections {
   display: flex;
@@ -1947,18 +1944,97 @@ h3 {
   display: grid;
   gap: var(--space-sm);
 }
-.intro-progress {
+/* The chapters.
+ *
+ * The film's own progress row is six ticks, one a scene, and this is that row
+ * made of the thing it measures: each chapter fills as it plays, says which
+ * scene it is, and can be jumped to. A reader who missed a line goes back to
+ * it rather than watching the whole film again or giving up on it.
+ */
+.intro-chapters-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.intro-chapters {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-xs) var(--space-md);
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.intro-chapter button {
+  display: grid;
+  gap: var(--space-xs);
+  width: 100%;
+  min-height: 0;
+  padding: var(--space-xs) 0 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.intro-chapter button:hover {
+  box-shadow: none;
+  transform: none;
+}
+.intro-chapter-tick {
+  display: block;
   height: 4px;
   overflow: hidden;
   border-radius: var(--radius-xl);
   background: var(--surface-soft);
 }
-.intro-progress span {
+.intro-chapter-tick span {
   display: block;
   height: 100%;
   border-radius: inherit;
+  transform-origin: left center;
   background: var(--accent);
-  transition: width 240ms linear;
+  transition: transform 240ms linear;
+}
+.intro-chapter-index {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  transition: color var(--motion-base) var(--ease-out);
+}
+.intro-chapter button:hover .intro-chapter-index,
+.intro-chapter button[aria-current="step"] .intro-chapter-index {
+  color: var(--accent);
+}
+/* The scene on screen, named where the rail cannot name it. */
+.intro-now {
+  color: var(--ink);
+  font-weight: 650;
+}
+.intro-chapter button:hover .intro-chapter-tick {
+  background: var(--accent-wash);
+}
+/* One step back, one step forward. The arrow is the same one the rest of the
+   site uses; the one going backwards is the same arrow turned round. */
+.intro-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  color: var(--ink);
+}
+.intro-step:first-child .icon {
+  transform: rotate(180deg);
+}
+.intro-step:disabled {
+  color: var(--disabled-ink);
+  opacity: 0.5;
 }
 .intro-timing {
   margin: 0;

@@ -321,6 +321,17 @@ export const french: Dictionary = {
   "Session update": "Mise à jour de la session",
   "Finding an answer in your source…":
     "Recherche d’une réponse dans votre source…",
+  // The live channel
+  "Live channel open — answers arrive as they are written":
+    "Canal en direct ouvert — les réponses arrivent à mesure qu’elles s’écrivent",
+  "Opening the live channel…": "Ouverture du canal en direct…",
+  "Reopening the live channel…": "Réouverture du canal en direct…",
+  "The live channel is closed; answers still arrive.":
+    "Le canal en direct est fermé; les réponses arrivent quand même.",
+  "That answer was interrupted. Ask again.":
+    "Cette réponse a été interrompue. Reposez votre question.",
+  "That is a lot of questions at once. Wait a moment and ask again.":
+    "Cela fait beaucoup de questions d’un coup. Attendez un instant et reposez votre question.",
   "Or type instead of speaking": "Ou écrivez au lieu de parler",
   "Your question": "Votre question",
   "Your question (ready when your source is added)":

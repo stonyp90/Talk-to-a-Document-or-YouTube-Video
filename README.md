@@ -24,14 +24,113 @@ docker compose --env-file .env.local --profile dev up --build dev
 
 Open **[localhost:3000](http://localhost:3000)** for the landing page, or **[localhost:3000/app](http://localhost:3000/app)** to go straight to the application. The defaults run in `mock` mode, which needs no OpenAI key, no AWS account and no network: PDF extraction is real, and provider replies are deterministic stand-ins.
 
-| Service                | Address                                                           |
-| ---------------------- | ----------------------------------------------------------------- |
-| Landing page           | [localhost:3000](http://localhost:3000)                           |
-| Application            | [localhost:3000/app](http://localhost:3000/app)                   |
-| API health             | [localhost:3000/api/health](http://localhost:3000/api/health)     |
-| OpenAPI document       | [localhost:3000/api/openapi](http://localhost:3000/api/openapi)   |
-| Caption service health | [localhost:3010/health](http://localhost:3010/health)             |
-| Object storage (MinIO) | `http://localhost:9002`, console on [9003](http://localhost:9003) |
+| Service                 | Address                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| Landing page            | [localhost:3000](http://localhost:3000)                                              |
+| Application             | [localhost:3000/app](http://localhost:3000/app)                                      |
+| API health              | [localhost:3000/api/health](http://localhost:3000/api/health)                        |
+| OpenAPI document        | [localhost:3000/api/openapi](http://localhost:3000/api/openapi)                      |
+| Caption service health  | [localhost:3010/health](http://localhost:3010/health)                                |
+| Live discussion channel | `ws://localhost:3020/ws/chat`, health on [3020/health](http://localhost:3020/health) |
+| Object storage (MinIO)  | `http://localhost:9002`, console on [9003](http://localhost:9003)                    |
+
+### Run it without Docker
+
+```bash
+npm run dev
+```
+
+That starts two processes: the Next.js app on 3000 and the live discussion
+channel on 3020. They start together because the socket is served by its own
+endpoint in every environment, so an app running on its own quietly falls back
+to request/response and hides the behaviour everything else is built on.
+`npm run dev:web` and `npm run dev:chat` run them separately when one of the two
+is already running somewhere else.
+
+Compose runs the channel as its own `chat` service, and the `web` service waits
+for its health check. The `dev` profile is the exception: it runs both processes
+inside one container but publishes only 3000, so the browser cannot reach the
+socket there and every answer comes back through the HTTP fallback. Use
+`npm run dev` on the host, or bring up `web`, to review the live behaviour.
+
+### How the discussion behaves
+
+Add a source, then type. The browser opens **one socket for that source** and
+holds it for the whole discussion. The extraction crosses the network once, on
+the first frame; every later question is a short frame carrying the `sourceId`
+the server sent back. The answer arrives in fragments as the model writes it, so
+the reader watches it form instead of waiting for the finished block, which the
+request/response path allows up to 25 seconds to produce. A line under the
+conversation says whether the channel is open, opening or closed.
+
+It is built to degrade rather than stop:
+
+- A dropped connection is reopened with a backoff that doubles up to 15 seconds,
+  and every reconnection names the conversation again. An answer that was still
+  arriving is reported as interrupted rather than left as a bubble that never
+  finishes.
+- If the server has forgotten the source, the client attaches once more with the
+  whole extraction and asks the same question again.
+- If the socket is closed, or `NEXT_PUBLIC_CHAT_SOCKET_URL` is not set at all,
+  the same question goes to `POST /api/text-chat` and the answer arrives in one
+  block. Nothing in the interface is disabled.
+- One connection may ask `CHAT_ASK_LIMIT` questions per `CHAT_ASK_WINDOW_MS`.
+  Beyond that it is told to wait, and is not dropped. That budget is kept by the
+  socket server, which is the only transport that has a connection to keep it
+  on; the gateway throttles its own stage instead.
+
+Voice is unaffected: it carries its own WebRTC connection, and the channel is
+opened only for the typed conversation.
+
+### Live-discussion settings
+
+The browser variable is the one that matters. Everything else has a working
+default.
+
+```dotenv
+# Where the browser opens the socket. It also fixes the Content Security Policy,
+# which is baked in at build time, so the web image must be BUILT with it.
+NEXT_PUBLIC_CHAT_SOCKET_URL=ws://localhost:3020/ws/chat
+
+# Where the channel listens, and on what path.
+CHAT_PORT=3020
+CHAT_HOST=0.0.0.0
+CHAT_SOCKET_PATH=/ws/chat
+
+# Origins a browser may open the socket from, comma separated. Falls back to
+# APP_ORIGIN; empty means any. A socket is not protected by the same-origin
+# policy the way a fetch is, so this is the check that replaces it.
+CHAT_ALLOWED_ORIGINS=http://localhost:3000
+
+# Largest inbound frame, in bytes. Generous enough to carry an extraction.
+CHAT_MAX_FRAME_BYTES=4000000
+# Questions one connection may ask per window, before it is told to wait.
+CHAT_ASK_LIMIT=30
+CHAT_ASK_WINDOW_MS=60000
+# How often an idle socket is pinged, so a dead one is noticed and closed.
+CHAT_HEARTBEAT_MS=30000
+# Deployed only: where gateway replies are posted, when the custom domain
+# serving the socket cannot serve them.
+CHAT_CALLBACK_URL=
+
+# Conversations shared between the HTTP API and the channel. Name a bucket and
+# both resolve the same id; leave it empty and each process keeps its own.
+SESSION_BUCKET=
+SESSION_PREFIX=sessions/
+SESSION_TTL_MS=3600000
+
+# A streamed answer is read while it is written, so it is allowed a longer wall
+# clock than a blocking reply somebody is watching a spinner for.
+OPENAI_STREAM_TIMEOUT_MS=120000
+OPENAI_TIMEOUT_MS=20000
+```
+
+`NEXT_PUBLIC_CHAT_SOCKET_URL` is a build argument for the web image, not just a
+runtime variable, because the policy that lets the browser reach the socket is
+written into the build. Change it and rebuild, or the browser will refuse to open
+a socket the app is otherwise configured for. In Compose the value is spelled
+`CHAT_SOCKET_URL` in `.env.local`, and Compose passes it both as the build
+argument and as the runtime variable so the two can never disagree.
 
 ### Turn on real voice and real captions
 
@@ -207,7 +306,7 @@ being asked first. **Sustain** is the stage of the build loop that carries this.
 | “Start Voice Chat” over WebRTC                           | [`apps/web/src/lib/realtimeClient.ts`](apps/web/src/lib/realtimeClient.ts)                                                                                                                                                                                        |
 | Ephemeral tokens from the backend                        | [`apps/web/app/api/realtime/session/route.ts`](apps/web/app/api/realtime/session/route.ts) → [`packages/adapters/src/openai.ts`](packages/adapters/src/openai.ts)                                                                                                 |
 | Live transcript of the conversation                      | Realtime transcription events reduced in [`packages/core/src/domain/conversation.ts`](packages/core/src/domain/conversation.ts)                                                                                                                                   |
-| Text fallback without a microphone                       | [`apps/web/app/api/text-chat/route.ts`](apps/web/app/api/text-chat/route.ts); the composer is never disabled                                                                                                                                                      |
+| Text fallback without a microphone                       | Streamed over the live channel ([`packages/core/src/application/chat.ts`](packages/core/src/application/chat.ts)), falling back to [`apps/web/app/api/text-chat/route.ts`](apps/web/app/api/text-chat/route.ts); the composer is never disabled                   |
 | Mobile-first at ~390 px, start/stop/mute, visible status | [`apps/web/app/globals.css`](apps/web/app/globals.css); controls sit in the open above the transcript                                                                                                                                                             |
 | API key never in the client                              | Key read only in [`packages/adapters/src/secrets.ts`](packages/adapters/src/secrets.ts); CI builds with canary secrets and greps the emitted client bundle ([`infrastructure/scripts/check-client-secrets.mjs`](infrastructure/scripts/check-client-secrets.mjs)) |
 
@@ -222,11 +321,12 @@ packages/core/domain/     Source rules, context windowing, conversation state
 packages/core/application/Ports and technology-free use cases
 packages/adapters/        pdf-parse, caption HTTP client, S3/MinIO, OpenAI, Secrets Manager
 services/transcript/      Python caption service
+services/chat/            Live discussion channel: socket server and gateway function
 infrastructure/terraform/ AWS Lambda, API Gateway, S3, Secrets Manager
 features/, tests/         Gherkin acceptance, unit, browser and architecture tests
 ```
 
-**Hexagonal, and enforced.** Dependencies point inward: inbound adapters → application → domain. The core imports no framework, no SDK, no environment variable and no network client. [`apps/web/src/composition.ts`](apps/web/src/composition.ts) is the only place concrete adapters are assembled, and [`tests/architecture.test.ts`](tests/architecture.test.ts) fails the build if a route reaches past it. Replacing S3, the caption source or the model vendor means writing one adapter and editing one file. Details in [ARCHITECTURE.md](ARCHITECTURE.md).
+**Hexagonal, and enforced.** Dependencies point inward: inbound adapters → application → domain. The core imports no framework, no SDK, no environment variable and no network client. [`apps/web/src/composition.ts`](apps/web/src/composition.ts) is the only place concrete adapters are assembled for the app, and [`tests/architecture.test.ts`](tests/architecture.test.ts) fails the build if a route reaches past it. The live channel has a second composition root, [`services/chat/src/composition.ts`](services/chat/src/composition.ts), because it is served by its own endpoint; it assembles the same use cases and the same adapters. Replacing S3, the caption source or the model vendor means writing one adapter and editing one file. Details in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 **Voice path.** The browser asks the backend for a Realtime session. The backend primes it with the source text and returns only a short-lived client secret, then steps aside: the browser negotiates SDP straight with OpenAI and media never transits our servers. Provider-side voice activity detection is what lets a caller cut in mid-answer; the client closes its own caption on the same event so the transcript matches what was actually heard. Detection is semantic by default, so it waits for a finished thought rather than a silent gap and does not cut off a caller who pauses to think.
 
@@ -258,9 +358,13 @@ separating the command from what was said around it. Saved phrases add to the
 built-in wordings rather than replacing them, so customising one action never
 breaks another.
 
-**The answer arrives as it is written.** `POST /api/text-chat/stream` sends the
-answer as server-sent events and the interface renders each delta, so a reader
-watches words appear instead of a spinner. Send becomes Stop while it runs, and
+**The discussion runs on a channel the reader keeps open.** One socket per source, held for the whole conversation, carrying `attach`, `ask` and `ping` one way and `ready`, `answer.started`, `answer.delta`, `answer.completed`, `error` and `pong` the other. The extraction crosses the network when the discussion opens; every later question is a short frame carrying an id. The protocol lives in [`packages/core/src/domain/chat.ts`](packages/core/src/domain/chat.ts) and the discussion itself in [`packages/core/src/application/chat.ts`](packages/core/src/application/chat.ts), which knows nothing about sockets. Two transports drive it: a long-lived Node server ([`services/chat/src/server.ts`](services/chat/src/server.ts)) for development and the local stack, and a function on an API Gateway WebSocket connection ([`services/chat/src/handler.ts`](services/chat/src/handler.ts)) for a runtime that cannot hold a socket open. A failure is sent as a message rather than thrown, so one bad question never ends a conversation.
+
+**The answer arrives as it is written, on whichever path is open.** Over the
+channel the fragments arrive as `answer.delta` frames. With no channel,
+`POST /api/text-chat/stream` sends the same fragments as server-sent events.
+Either way the interface renders each delta, so a reader watches words appear
+instead of a spinner. Send becomes Stop while it runs, and
 stopping keeps what already arrived — it is the reader's decision, not a
 failure. A runtime or proxy that cannot stream answers `STREAM_UNSUPPORTED`,
 and the client falls back to the blocking endpoint rather than failing. Answers
@@ -270,13 +374,13 @@ posted to `POST /api/conversation/turns`, which is what keeps one thread of
 memory: a typed follow-up knows what was said out loud, and the other way
 round.
 
-**Sources live on the server.** Ingestion returns an opaque `sourceId`, and later requests carry that id instead of the whole extraction. If the server has forgotten the session — a cold start, or another instance — the client resends the source once and the conversation continues. Storage is in-memory with a TTL and a cap, which the assessment names as sufficient; a shared store is a one-adapter swap.
+**Sources live on the server.** Ingestion returns an opaque `sourceId`, and later requests carry that id instead of the whole extraction. If the server has forgotten the session, after a cold start or on another instance, the client resends the source once and the conversation continues. Storage is in-memory with a TTL and a cap by default. The HTTP API and the live channel are separate processes, though, and both have to resolve the same id, so naming `SESSION_BUCKET` swaps in [`packages/adapters/src/objectSessionStore.ts`](packages/adapters/src/objectSessionStore.ts) and they share the conversation through object storage. That was the one-adapter swap.
 
 **Large sources are windowed, not refused.** A 25 MB PDF can hold more text than any context window. The reader always sees the complete extraction; the model receives the largest faithful excerpt that fits, taken from the opening and the ending, with the elision marked so it never invents the middle. The budget is `CONTEXT_CHARACTER_BUDGET`.
 
 **Uploads bypass the API.** Large PDFs go straight to object storage through a short-lived presigned form post, with progress shown. The server then reads the object, extracts, and deletes it in a `finally` block. This keeps multi-megabyte bodies away from a 6 MB Lambda payload limit.
 
-**Hosting.** Terraform builds the Next.js image into ECR and runs it on Lambda behind API Gateway, alongside a caption Lambda, S3 and Secrets Manager. GitHub Actions deploys through OIDC with no long-lived AWS keys. The default runtime is Lambda because its scale-to-zero behavior and per-request billing suit intermittent demo traffic. ECS Fargate would win on steady traffic and long-lived connections; it costs more to leave running for a demo.
+**Hosting.** Terraform builds the Next.js image into ECR and runs it on Lambda behind API Gateway, alongside a caption Lambda, S3 and Secrets Manager. The live channel is a third function on a WebSocket API of its own: the gateway holds the connection, every frame reaches the same handler, and the answer is posted back down that connection, which is how a streamed answer outlives the 29-second integration ceiling that bounds the HTTP side. Its address is a Terraform output (`socket_url`); the web image has to be built with that value in `NEXT_PUBLIC_CHAT_SOCKET_URL`, or the deployed browser never opens the socket and every answer comes back through `/api/text-chat`. GitHub Actions deploys through OIDC with no long-lived AWS keys. The default runtime is Lambda because its scale-to-zero behavior and per-request billing suit intermittent demo traffic. ECS Fargate would win on steady traffic and long-lived connections; it costs more to leave running for a demo.
 
 ---
 
@@ -327,8 +431,9 @@ typo — means `required`, so a misconfigured deployment is shut, never open.
 
 ## Trade-offs
 
-- **Lambda over ECS.** Scale-to-zero and per-request billing fit a demo. The costs are cold starts, a 29-second API Gateway ceiling, and no shared process memory — which is exactly why sessions carry a rehydration fallback.
-- **In-memory sessions over SQLite.** The assessment allows either. Memory has no schema, no migration and no file to ship; it forgets on restart, which the client already handles.
+- **Lambda over ECS.** Scale-to-zero and per-request billing fit a demo. The costs are cold starts, a 29-second API Gateway ceiling, and no shared process memory, which is exactly why sessions carry a rehydration fallback and why the live channel keeps nothing between frames.
+- **In-memory sessions by default, object storage when two processes need them.** Memory has no schema, no migration and no file to ship, and it forgets on restart, which the client already handles. A deployment whose HTTP API and live channel are separate functions names `SESSION_BUCKET` instead, and both reach the same conversation. No database either way.
+- **Two transports for one live channel.** A long-lived socket is the honest way to run a discussion, and nothing serverless can hold one. Rather than pick, the protocol and the discussion sit in the core and each runtime gets the transport it can actually serve. The cost is a second composition root and a second image target; the gain is that neither side can invent its own dialect.
 - **Window the context rather than chunk it.** The brief asks for no chunking, summarization or citations. Head-and-tail windowing keeps that promise and is honest with the reader about what the model can see. A long middle section is genuinely out of reach; retrieval would be the next step.
 - **Two turns of context, not a full memory.** Recent exchanges are kept per session so follow-ups read naturally, capped so a long conversation cannot grow the prompt without limit.
 - **A separate Python caption service.** `youtube-transcript-api` is the mature client for an endpoint with no official API. It costs a second runtime and a second Dockerfile, and buys a clean port boundary and a component that can be proxied or replaced on its own.
@@ -407,18 +512,21 @@ The training stage has a loop of its own, and the big loop waits for it. We buil
 
 ## Troubleshooting
 
-| Problem                      | Check                                                                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Port 3000 already in use     | Stop the previous `web` or `dev` service; they share the port.                                               |
-| No sound in mock mode        | Mock mode has no real audio. Set `PROVIDER_MODE=live` and a key.                                             |
-| Microphone unavailable       | Voice needs HTTPS or `localhost`, plus browser permission. The interface says so and keeps typing available. |
-| YouTube captions unavailable | Try a captioned video, check `TRANSCRIPT_MODE`, and read the section above.                                  |
-| Scanned PDF rejected         | It has no text layer. OCR is not implemented.                                                                |
-| Environment change ignored   | Restart Compose; rebuild for mobile public variables.                                                        |
+| Problem                      | Check                                                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Port 3000 already in use     | Stop the previous `web` or `dev` service; they share the port.                                                                                   |
+| Port 3020 already in use     | Stop the previous `chat` service, or set `CHAT_PORT` and `NEXT_PUBLIC_CHAT_SOCKET_URL` together.                                                 |
+| Answers arrive all at once   | The socket is closed and the HTTP fallback answered. Check the channel on `localhost:3020/health`.                                               |
+| Live channel never opens     | Check `NEXT_PUBLIC_CHAT_SOCKET_URL`, that the origin is in `CHAT_ALLOWED_ORIGINS`, and rebuild the web image: the policy is fixed at build time. |
+| No sound in mock mode        | Mock mode has no real audio. Set `PROVIDER_MODE=live` and a key.                                                                                 |
+| Microphone unavailable       | Voice needs HTTPS or `localhost`, plus browser permission. The interface says so and keeps typing available.                                     |
+| YouTube captions unavailable | Try a captioned video, check `TRANSCRIPT_MODE`, and read the section above.                                                                      |
+| Scanned PDF rejected         | It has no text layer. OCR is not implemented.                                                                                                    |
+| Environment change ignored   | Restart Compose; rebuild for mobile public variables.                                                                                            |
 
 ```bash
 docker compose --env-file .env.local ps
-docker compose --env-file .env.local logs --tail=100 dev transcript
+docker compose --env-file .env.local logs --tail=100 dev transcript chat
 ```
 
 ---

@@ -6,17 +6,23 @@ created, replaced, or deleted by this change.
 
 ## Structure and authority
 
-- `bootstrap/`: operator-owned ECR repositories, GitHub OIDC identity and deploy
-  role, runtime permissions boundary, and versioned encrypted private state bucket.
-- `modules/demo/`: reusable AWS application module (two Docker Lambdas, HTTP API,
-  private temporary-upload bucket, per-function IAM roles and seven-day logs).
+- `bootstrap/`: operator-owned ECR repositories (one each for `api`, `transcript`
+  and `chat`), GitHub OIDC identity and deploy role, runtime permissions boundary,
+  and versioned encrypted private state bucket.
+- `modules/demo/`: reusable AWS application module (three Docker Lambdas, an HTTP
+  API for the site, a WebSocket API for the live discussion, a private bucket
+  holding temporary uploads and the conversations both halves of the application
+  share, per-function IAM roles and seven-day logs).
 - `environments/demo/`: deployable root; only this state is writable by GitHub CI.
 - `modules/email/`: reusable SES module for transactional mail (domain identity with
   2048-bit Easy DKIM, custom MAIL FROM, TLS-required configuration set, CloudWatch
   bounce/complaint events and alarms on the account-level bounce and complaint rates
   at the AWS review thresholds). It creates no DNS and no IAM: it outputs the records.
 - `environments/domain/`: operator-owned root owning the `ursly.io` custom domain
-  and apex alias. CI cannot read this state or change DNS.
+  and apex alias, and the `ws.ursly.io` domain the live discussion is dialled on
+  with its own DNS-validated certificate. CI cannot read this state or change DNS.
+  It takes the demo root's `api_id` and `socket_api_id` outputs; a WebSocket API
+  cannot be mapped onto the HTTP API's domain, so the socket has its own host.
 - `environments/email/`: operator-owned root that applies `modules/email`, publishes
   its DKIM and MAIL FROM records in the existing hosted zone and adopts the zone's
   existing DMARC record. The account already holds SES production access; [its
@@ -24,7 +30,8 @@ created, replaced, or deleted by this change.
 
 No VPC, NAT Gateway, ALB, ECS service, Step Functions, or persistent database is
 required for the intermittent demo. Lambda scales to zero; existing memory,
-timeouts, concurrency caps and HTTP throttles are preserved. This is a cost
+timeouts, concurrency caps and HTTP throttles are preserved, and the socket stage
+is throttled harder still because every question on it is a model call. This is a cost
 rationale, not a guarantee of zero cost. Provider/model requests still cost money.
 The demo API remains public; throttling is not authentication. Use an isolated
 demo account and budget monitoring. Add authentication before production use.
@@ -96,18 +103,19 @@ These repository settings require owner access and are not silently changed here
 
 Set these production environment **variables** (none contain secret values):
 
-| Variable                     | Value                                                             |
-| ---------------------------- | ----------------------------------------------------------------- |
-| `AWS_REGION`                 | Bootstrap region                                                  |
-| `AWS_ACCOUNT_ID`             | Intended 12-digit AWS account                                     |
-| `AWS_ROLE_ARN`               | Bootstrap `github_role_arn` output                                |
-| `TF_STATE_BUCKET`            | Bootstrap `state_bucket` output                                   |
-| `OPENAI_SECRET_ARN`          | Exact pre-existing provider secret ARN                            |
-| `AUTH_PEPPER_SECRET_ARN`     | Exact pre-existing sign-in pepper secret ARN                      |
-| `SES_IDENTITY_ARN`           | `environments/email` `identity_arn` output                        |
-| `SES_CONFIGURATION_SET_NAME` | That root's `configuration_set_name` output                       |
-| `SES_FROM_ADDRESS`           | The single mailbox the api function may send as                   |
-| `APP_ORIGIN`                 | Optional additional browser origin; defaults to local development |
+| Variable                     | Value                                                                                                                                                                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AWS_REGION`                 | Bootstrap region                                                                                                                                                                                                            |
+| `AWS_ACCOUNT_ID`             | Intended 12-digit AWS account                                                                                                                                                                                               |
+| `AWS_ROLE_ARN`               | Bootstrap `github_role_arn` output                                                                                                                                                                                          |
+| `TF_STATE_BUCKET`            | Bootstrap `state_bucket` output                                                                                                                                                                                             |
+| `OPENAI_SECRET_ARN`          | Exact pre-existing provider secret ARN                                                                                                                                                                                      |
+| `AUTH_PEPPER_SECRET_ARN`     | Exact pre-existing sign-in pepper secret ARN                                                                                                                                                                                |
+| `SES_IDENTITY_ARN`           | `environments/email` `identity_arn` output                                                                                                                                                                                  |
+| `SES_CONFIGURATION_SET_NAME` | That root's `configuration_set_name` output                                                                                                                                                                                 |
+| `SES_FROM_ADDRESS`           | The single mailbox the api function may send as                                                                                                                                                                             |
+| `APP_ORIGIN`                 | Optional additional browser origin; defaults to local development                                                                                                                                                           |
+| `CHAT_SOCKET_URL`            | Optional; where the browser dials the live discussion. Defaults to `wss://ws.ursly.io`. It is baked into the web image's content policy at build time, so it must match what `environments/domain` maps the socket API onto |
 
 `AUTH_PEPPER_SECRET_ARN` and all three `SES_` variables are checked by `test -n`
 before any AWS call, exactly as `OPENAI_SECRET_ARN` is. A deployment missing any
@@ -176,9 +184,10 @@ takes a reviewed change, not an edit to a repository setting.
 
 The deploy workflow runs only after successful CI for a push to main in this
 repository. It checks out the exact tested SHA, exchanges GitHub OIDC for a
-one-hour AWS session, pushes immutable SHA-tagged images to both ECR repositories,
-initializes only demo state, creates a saved plan, applies that exact plan, and
-runs mandatory PDF/upload/replay-cleanup HTTP smoke tests against Terraform's URL.
+one-hour AWS session, pushes immutable SHA-tagged images to all three ECR
+repositories, initializes only demo state, creates a saved plan, applies that
+exact plan, checks a socket endpoint was deployed, and runs mandatory
+PDF/upload/replay-cleanup HTTP smoke tests against Terraform's URL.
 PRs validate and mock-test infrastructure without cloud credentials. CI blocks
 merging unless application, BDD, browser, container, mobile and Terraform jobs pass.
 
@@ -188,7 +197,9 @@ scoped and can only be created with the operator-owned boundary. Only Lambda
 may receive those roles through PassRole. The transcript role only writes logs.
 Global-resource exceptions are ECR login and log-group discovery. API Gateway
 management is region-wide under `/apis` and `/tags` because AWS assigns API IDs;
-do not describe it as exact-resource isolation. Use a dedicated demo account.
+do not describe it as exact-resource isolation. The boundary caps
+`execute-api:ManageConnections` to this account and region for the same reason;
+the chat role policy narrows it to the one WebSocket API the module creates. Use a dedicated demo account.
 `iam:UpdateAssumeRolePolicy` is deliberately absent from the deployment policy:
 IAM has no condition key for the contents of a trust policy, so that action on a
 runtime role is a way to take the role itself. Terraform needs it only to correct

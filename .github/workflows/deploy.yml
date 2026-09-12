@@ -41,6 +41,11 @@ jobs:
       SES_CONFIGURATION_SET_NAME: ${{ vars.SES_CONFIGURATION_SET_NAME }}
       SES_FROM_ADDRESS: ${{ vars.SES_FROM_ADDRESS }}
       APP_ORIGIN: ${{ vars.APP_ORIGIN }}
+      # Where the browser opens the live discussion. The content policy that lets
+      # it reach that host is written into the web image, so this is a build
+      # argument and not a function environment variable: changing it means a
+      # rebuild. It must name the same host the domain root maps the socket onto.
+      CHAT_SOCKET_URL: ${{ vars.CHAT_SOCKET_URL || 'wss://ws.ursly.io' }}
       ECR_REPOSITORY: talk-to-a-document-api
       # What the deployed site tells crawlers and answer engines about itself.
       # The YouTube ids stay empty until the introduction is published there.
@@ -72,6 +77,9 @@ jobs:
           test -n "$SES_IDENTITY_ARN"
           test -n "$SES_CONFIGURATION_SET_NAME"
           test -n "$SES_FROM_ADDRESS"
+          # The browser is told where the live discussion is when the image is
+          # built, so an empty value here ships a bundle that can never open it.
+          test -n "$CHAT_SOCKET_URL"
       - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
@@ -84,12 +92,20 @@ jobs:
           REGISTRY="$DEPLOY_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com"
           aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
           if ! aws ecr describe-images --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$TESTED_SHA" >/dev/null 2>&1; then
+<<<<<<< HEAD
             docker build --platform linux/amd64 --provenance=false --sbom=false --target runtime --build-arg NEXT_PUBLIC_PAID_PLAN_PRICE="${{ vars.PAID_PLAN_PRICE }}" --build-arg NEXT_PUBLIC_PAID_PLAN_URL="${{ vars.PAID_PLAN_URL }}" --build-arg SITE_URL="$SITE_URL" --build-arg SITE_SAME_AS="$SITE_SAME_AS" --build-arg INTRO_VIDEO_YOUTUBE_ID_EN="$INTRO_VIDEO_YOUTUBE_ID_EN" --build-arg INTRO_VIDEO_YOUTUBE_ID_FR="$INTRO_VIDEO_YOUTUBE_ID_FR" --label org.opencontainers.image.revision="$TESTED_SHA" -t "$REGISTRY/$ECR_REPOSITORY:$TESTED_SHA" .
+=======
+            docker build --platform linux/amd64 --provenance=false --sbom=false --target runtime --build-arg NEXT_PUBLIC_PAID_PLAN_PRICE="${{ vars.PAID_PLAN_PRICE }}" --build-arg NEXT_PUBLIC_PAID_PLAN_URL="${{ vars.PAID_PLAN_URL }}" --build-arg NEXT_PUBLIC_CHAT_SOCKET_URL="$CHAT_SOCKET_URL" --label org.opencontainers.image.revision="$TESTED_SHA" -t "$REGISTRY/$ECR_REPOSITORY:$TESTED_SHA" .
+>>>>>>> 79286d0 (Hold one socket open for the whole discussion)
             docker push "$REGISTRY/$ECR_REPOSITORY:$TESTED_SHA"
           fi
           if ! aws ecr describe-images --repository-name talk-to-a-document-transcript --image-ids imageTag="$TESTED_SHA" >/dev/null 2>&1; then
             docker build --platform linux/amd64 --provenance=false --sbom=false -f infrastructure/transcript.Dockerfile --label org.opencontainers.image.revision="$TESTED_SHA" -t "$REGISTRY/talk-to-a-document-transcript:$TESTED_SHA" .
             docker push "$REGISTRY/talk-to-a-document-transcript:$TESTED_SHA"
+          fi
+          if ! aws ecr describe-images --repository-name talk-to-a-document-chat --image-ids imageTag="$TESTED_SHA" >/dev/null 2>&1; then
+            docker build --platform linux/amd64 --provenance=false --sbom=false --target chat-lambda --label org.opencontainers.image.revision="$TESTED_SHA" -t "$REGISTRY/talk-to-a-document-chat:$TESTED_SHA" .
+            docker push "$REGISTRY/talk-to-a-document-chat:$TESTED_SHA"
           fi
       - uses: hashicorp/setup-terraform@v4
         with:
@@ -107,4 +123,6 @@ jobs:
         run: |
           PUBLIC_URL="$(terraform -chdir=infrastructure/terraform/environments/demo output -raw public_url)"
           test -n "$PUBLIC_URL" && test "$PUBLIC_URL" != None
+          SOCKET_URL="$(terraform -chdir=infrastructure/terraform/environments/demo output -raw socket_url)"
+          case "$SOCKET_URL" in wss://*) ;; *) echo "No live discussion endpoint was deployed" >&2; exit 1 ;; esac
           node infrastructure/scripts/smoke.mjs "$PUBLIC_URL"

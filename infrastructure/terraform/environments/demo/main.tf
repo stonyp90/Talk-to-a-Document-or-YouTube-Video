@@ -83,4 +83,8 @@ module "demo" {
   ses_from_address           = var.ses_from_address
 }
 output "public_url" { value = module.demo.public_url }
+# The stage the browser dials when no custom domain fronts the socket, and the
+# api_id the operator-owned domain root maps ws.ursly.io onto.
+output "socket_url" { value = module.demo.socket_url }
+output "socket_api_id" { value = module.demo.socket_api_id }
 output "upload_bucket" { value = module.demo.upload_bucket }

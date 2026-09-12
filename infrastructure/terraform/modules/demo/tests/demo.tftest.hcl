@@ -6,6 +6,9 @@ mock_provider "aws" {
       execution_arn = "arn:aws:execute-api:us-east-1:123456789012:demo"
     }
   }
+  # The socket stage hands out a wss:// url; the chat function needs the https
+  # one, so the fixture has to carry the real scheme for that rewrite to be tested.
+  mock_resource "aws_apigatewayv2_stage" { defaults = { invoke_url = "wss://socket.execute-api.us-east-1.amazonaws.com/live" } }
   mock_resource "aws_iam_role" { defaults = { arn = "arn:aws:iam::123456789012:role/test" } }
   mock_resource "aws_s3_bucket" { defaults = { arn = "arn:aws:s3:::fixture-uploads" } }
   mock_resource "aws_cloudwatch_log_group" { defaults = { arn = "arn:aws:logs:us-east-1:123456789012:log-group:fixture" } }
@@ -92,6 +95,45 @@ run "demo_security_and_cost_contract" {
     ])
     error_message = "Sign-in mail and the allowance must reach the task, defaulted to the application's own values."
   }
+  # The discussion is reached over the socket alone. An HTTP route or an invoke
+  # permission on the site's API would be a second, unthrottled way in.
+  assert {
+    condition     = !contains(values(local.routes), "chat") && !contains(keys(aws_apigatewayv2_integration.lambda), "chat") && !contains(keys(aws_lambda_permission.gateway), "chat")
+    error_message = "The chat function belongs on the WebSocket API only, never on the HTTP API."
+  }
+  assert {
+    condition     = aws_apigatewayv2_api.socket.protocol_type == "WEBSOCKET" && aws_apigatewayv2_api.socket.route_selection_expression == "$request.body.type" && length(aws_apigatewayv2_route.socket) == 3
+    error_message = "Connect, disconnect and the default message route all reach the chat handler."
+  }
+  assert {
+    condition     = aws_apigatewayv2_stage.socket.name == "live" && aws_apigatewayv2_stage.socket.auto_deploy && aws_apigatewayv2_stage.socket.default_route_settings[0].throttling_rate_limit < aws_apigatewayv2_stage.default.default_route_settings[0].throttling_rate_limit
+    error_message = "Each question on the socket is a model call, so it must be throttled harder than the site."
+  }
+  # Only the socket function may write back down a connection, and only on the
+  # one API this module creates.
+  assert {
+    condition = length([for statement in jsondecode(aws_iam_role_policy.runtime["chat"].policy).Statement : statement if try(
+      statement.Action == ["execute-api:ManageConnections"] &&
+      statement.Resource == ["arn:aws:execute-api:us-east-1:123456789012:${aws_apigatewayv2_api.socket.id}/*"],
+    false)]) == 1
+    error_message = "The chat role posts answers back through exactly one WebSocket API."
+  }
+  assert {
+    condition     = alltrue([for name in ["api", "chat"] : length([for statement in jsondecode(aws_iam_role_policy.runtime[name].policy).Statement : statement if try(statement.Resource == ["${aws_s3_bucket.uploads.arn}/sessions/*"], false)]) == 1 && aws_lambda_function.runtime[name].environment[0].variables["SESSION_BUCKET"] == aws_s3_bucket.uploads.id])
+    error_message = "Both halves of a conversation must share one session store, scoped to the sessions prefix."
+  }
+  assert {
+    condition     = length([for statement in jsondecode(aws_iam_role_policy.runtime["chat"].policy).Statement : statement if try(contains(statement.Resource, "${aws_s3_bucket.uploads.arn}/uploads/*"), false)]) == 0
+    error_message = "The socket answers from stored conversations; it never reads the upload prefix."
+  }
+  assert {
+    condition     = startswith(aws_lambda_function.runtime["chat"].environment[0].variables["CHAT_CALLBACK_URL"], "https://") && contains(split(",", aws_lambda_function.runtime["chat"].environment[0].variables["CHAT_ALLOWED_ORIGINS"]), aws_apigatewayv2_api.http.api_endpoint)
+    error_message = "Replies go back over https because a custom domain cannot serve the management API, and only named origins may open the socket."
+  }
+  assert {
+    condition     = length([for rule in aws_s3_bucket_lifecycle_configuration.uploads.rule : rule if rule.filter[0].prefix == "sessions/" && rule.expiration[0].days == 1]) == 1
+    error_message = "Stored conversations expire with the documents they are about."
+  }
 }
 run "reject_a_pepper_value_in_place_of_its_arn" {
   command = plan
@@ -145,6 +187,12 @@ run "the_function_is_told_the_public_origin_it_is_reached_on" {
     condition     = anytrue([for rule in aws_s3_bucket_cors_configuration.uploads.cors_rule : contains(rule.allowed_origins, "https://ursly.io")])
     error_message = "The browser origin the app is served on must be allowed to upload."
   }
+  # The socket is not covered by the same-origin policy, so the page the reader
+  # is actually on has to be named or the discussion never opens for anyone.
+  assert {
+    condition     = contains(split(",", aws_lambda_function.runtime["chat"].environment[0].variables["CHAT_ALLOWED_ORIGINS"]), "https://ursly.io")
+    error_message = "The browser origin the app is served on must be allowed to open the socket."
+  }
 }
 # Nothing configured must still leave the document naming somewhere that
 # answers. The gateway's own endpoint is that address; a guessed default is not.
@@ -170,7 +218,7 @@ run "no_email_permission_before_the_operator_verifies_the_domain" {
     ses_from_address           = ""
   }
   assert {
-    condition     = length(jsondecode(aws_iam_role_policy.runtime["api"].policy).Statement) == 3 && alltrue([for statement in jsondecode(aws_iam_role_policy.runtime["api"].policy).Statement : !anytrue([for action in statement.Action : startswith(action, "ses:")])])
+    condition     = length(jsondecode(aws_iam_role_policy.runtime["api"].policy).Statement) == 4 && alltrue([for statement in jsondecode(aws_iam_role_policy.runtime["api"].policy).Statement : !anytrue([for action in statement.Action : startswith(action, "ses:")])])
     error_message = "Without a verified identity the api role must hold no email permission at all."
   }
   assert {

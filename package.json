@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @talk/web --",
+    "dev": "node scripts/dev.mjs",
     "build": "npm run build --workspace @talk/web",
     "start": "npm run start --workspace @talk/web --",
     "lint": "eslint .",
@@ -20,9 +20,13 @@
     "format": "prettier --write .",
     "voice:enroll": "tsx scripts/voice/enroll.ts",
     "security:secrets": "node scripts/security/scan.mjs",
-    "demo:check": "node scripts/demo/check.mjs"
+    "demo:check": "node scripts/demo/check.mjs",
+    "dev:web": "npm run dev --workspace @talk/web --",
+    "dev:chat": "tsx services/chat/src/main.ts",
+    "build:chat": "node scripts/chat/build.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.1131.0",
     "@aws-sdk/client-s3": "^3.1127.0",
     "@aws-sdk/client-secrets-manager": "^3.1127.0",
     "@aws-sdk/s3-presigned-post": "^3.1127.0",
@@ -32,6 +36,7 @@
     "pdf-parse": "^2.4.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "ws": "^8.21.3",
     "zod": "4.5.4"
   },
   "devDependencies": {
@@ -43,6 +48,8 @@
     "@types/node": "26.4.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.4",
     "jsdom": "30.0.1",

@@ -25,6 +25,7 @@ import { registerProcessChecks } from "./process";
 import { registerVideoSearchChecks } from "./videoSearch";
 import { registerConversationChecks } from "./conversation";
 import { registerVoiceChecks } from "./voice";
+import { registerDiscussionChecks } from "./discussion";
 import { APP_PATH } from "../routes";
 import { registerDiscoverabilityChecks } from "./discoverability";
 import { registerVoiceConsentChecks } from "./voice-consent";
@@ -89,6 +90,7 @@ async function page(world: World) {
 }
 After(async function (this: World) {
   this.release?.();
+  await stopDiscussion(this);
   await this.page?.unrouteAll({ behavior: "ignoreErrors" });
   await this.page?.context().close();
 });
@@ -973,6 +975,7 @@ registerVoiceChecks(step);
 registerPricingChecks(step, { page });
 registerDiscoverabilityChecks(step);
 registerVoiceConsentChecks(step);
+const stopDiscussion = registerDiscussionChecks(step);
 
 // Static inventory: unsupported steps are PENDING, never successful. Newly added
 // phrases without implementations remain undefined and fail the default gate.

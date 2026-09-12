@@ -9,6 +9,7 @@ packages/
   core/src/application/Ports and technology-independent use cases
   adapters/src/        PDF.js, transcript HTTP/mock, S3/MinIO, OpenAI, Secrets Manager
 services/transcript/   Python HTTP caption service (local container / Lambda image)
+services/chat/         Live discussion channel: socket server and gateway function
 infrastructure/
   terraform/           Operator bootstrap, demo root and reusable AWS module
   scripts/             Deployment smoke, asset-security and container-test tooling
@@ -22,6 +23,33 @@ Next.js, React, AWS SDKs, PDF.js, OpenAI, environment variables or network clien
 `apps/web/src/composition.ts` assembles concrete adapters and use cases. Routes
 only decode/validate HTTP inputs and call that assembly point. Shared source
 models remain in the core and are imported by both clients.
+
+The live discussion has a second composition root. `services/chat/src/composition.ts`
+assembles the same use cases and adapters, because the socket is served by its own
+endpoint in every environment and cannot be a Next.js route. The direction is
+unchanged: `packages/core/src/application/chat.ts` is one discussion and knows
+nothing about sockets, and the wire protocol lives in
+`packages/core/src/domain/chat.ts`, next to the state it drives, so the transports
+cannot drift into two dialects of it. Two transports carry it.
+`services/chat/src/server.ts` holds a long-lived Node socket, which is what
+development and the local stack run.
+`services/chat/src/handler.ts` answers one frame at a time on an API Gateway
+WebSocket connection, which is how the same channel runs where no process can hold
+a socket open; the gateway keeps the connection and the function posts each
+fragment back through the management API, so a streamed answer is not bound by the
+integration timeout. Every client frame names its own source, and nothing is remembered
+between frames, so neither transport needs state a serverless runtime cannot keep.
+`services/chat/src/policy.ts` owns what a connection is allowed, its origin and its
+question budget, because a socket is not covered by the same-origin policy that
+protects a fetch.
+
+Conversations moved out of one process's memory for the same reason. The HTTP API
+and the live channel are separate deployables, so both have to resolve the same
+`sourceId`. Naming `SESSION_BUCKET` selects
+`packages/adapters/src/objectSessionStore.ts` and they share the conversation
+through object storage; with no bucket named, the in-memory store is still what
+runs. Turns are appended read-then-write with no lock: losing a line of context to
+two simultaneous questions costs less than a lock on every exchange.
 
 `PdfTextPort`, `TranscriptPort`, `VideoSearchPort`, `TemporaryUploadPort`,
 `ConversationPort`, `CredentialPort`, `AccountStorePort`, `NotifierPort` and `SecureTokenPort`
@@ -97,9 +125,10 @@ Run `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`,
 Terraform has its own credential-free validate/mock-test gate; see its README.
 
 Docker Compose includes every running application service: web/backend, transcript,
-and S3-compatible MinIO plus bucket initialization. Terraform is deployment tooling,
-not a long-running service. iOS and Android simulators run on the host; this migration
-does not claim new device permissions or verified simulator/media access.
+the live chat channel, and S3-compatible MinIO plus bucket initialization.
+Terraform is deployment tooling, not a long-running service. iOS and Android
+simulators run on the host; this migration does not claim new device permissions
+or verified simulator/media access.
 
 Interface language is a routing concern, not a domain one. `apps/web/proxy.ts`
 negotiates `en` or `fr` (cookie, then `Accept-Language`) and rewrites the root
@@ -109,6 +138,7 @@ the core never sees a locale. Presigned uploads go straight from the browser to
 the object store, so the Content Security Policy — fixed at build time in
 `next.config.ts` — must name the public store address the runtime hands out;
 Compose passes the same value as a build argument and as an environment variable.
+<<<<<<< HEAD
 
 How the site describes itself is domain work too, for the same reason the source
 models are: it is a reading of what Ursly is, not a detail of how it is served.
@@ -126,3 +156,7 @@ The introduction video is content, not markup. `apps/web/app/content/intro-video
 holds the four scenes it argues, and the dialog that plays it, the renderer that
 draws it, the captions and the structured data all read the same source, so the
 words burned into the frames and the words a crawler is given cannot drift.
+=======
+`NEXT_PUBLIC_CHAT_SOCKET_URL` is named in that policy for the same reason and is
+fixed the same way, so the web image is built for the channel address it will use.
+>>>>>>> 79286d0 (Hold one socket open for the whole discussion)

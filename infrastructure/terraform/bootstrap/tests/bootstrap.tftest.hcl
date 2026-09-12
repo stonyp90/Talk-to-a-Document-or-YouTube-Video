@@ -31,6 +31,16 @@ run "identity_state_and_least_privilege" {
     error_message = "Tested image tags must not be overwritten."
   }
   assert {
+    condition     = length(setsubtract(["api", "transcript", "chat"], keys(aws_ecr_repository.images))) == 0
+    error_message = "Every deployed function needs an operator-owned repository to be published to."
+  }
+  # The live discussion is a function like the others: CI may replace its image
+  # and its role, and may do so nowhere else.
+  assert {
+    condition     = contains(local.function_arns, "arn:aws:lambda:us-east-1:123456789012:function:talk-to-a-document-chat") && contains(local.runtime_arns, "arn:aws:iam::123456789012:role/talk-to-a-document-chat-runtime")
+    error_message = "The deployment policy must reach the chat function and its role, and only by exact name."
+  }
+  assert {
     condition     = aws_s3_bucket_versioning.state.versioning_configuration[0].status == "Enabled" && aws_s3_bucket_public_access_block.state.block_public_policy
     error_message = "State must be private and recoverable."
   }
@@ -106,7 +116,7 @@ run "reject_other_repository_subject" {
 run "no_runtime_sending_capability_until_the_identity_exists" {
   command = plan
   assert {
-    condition     = length(jsondecode(aws_iam_policy.runtime_boundary.policy).Statement) == 3 && alltrue([for statement in jsondecode(aws_iam_policy.runtime_boundary.policy).Statement : !anytrue([for action in statement.Action : startswith(action, "ses:")])])
+    condition     = length(jsondecode(aws_iam_policy.runtime_boundary.policy).Statement) == 4 && alltrue([for statement in jsondecode(aws_iam_policy.runtime_boundary.policy).Statement : !anytrue([for action in statement.Action : startswith(action, "ses:")])])
     error_message = "An account without a verified identity must not carry a sending capability in its boundary."
   }
 }

@@ -7,7 +7,7 @@ Application code and provider accounts are separate requirements. A successful d
 1. Create an account or sign in to [OpenAI Platform](https://platform.openai.com/).
 2. Configure [API billing](https://platform.openai.com/settings/organization/billing/overview). A ChatGPT subscription does not replace API billing.
 3. Create a [project API key](https://platform.openai.com/api-keys). Check limits and access to `gpt-4.1-mini` and `gpt-realtime`.
-4. Locally, set `OPENAI_API_KEY` in `.env.local`, set `PROVIDER_MODE=live`, and rerun `docker compose --env-file .env.local up -d --build web`.
+4. Locally, set `OPENAI_API_KEY` in `.env.local`, set `PROVIDER_MODE=live`, and rerun `docker compose --env-file .env.local up -d --build web chat`. The live discussion channel is a second service and calls the provider itself, so it needs the same key and the same mode; a key given only to `web` leaves streamed answers in mock.
 5. On AWS, store the key in **`ursly/openai`**, region **us-east-1**, account **436136277668**. A dedicated key restricted to Responses and Realtime was configured and tested on September 8, 2026. Use a raw string or a JSON object containing `OPENAI_API_KEY`. The backend reads this secret. Never put keys in `EXPO_PUBLIC_*` or `NEXT_PUBLIC_*` variables.
 6. Run `npm run demo:check -- http://localhost:3100`, adjusting the port, then perform a real voice conversation. The script checks PDF, text response, and credential issuance; it does not replace audio testing.
 
@@ -35,5 +35,6 @@ References: [YouTube API setup](https://developers.google.com/youtube/v3/getting
 - Verify deployment and HTTP/PDF checks.
 - Configure OpenAI, confirm model access and available quota, and apply appropriate access controls.
 - Test real text and audio conversations, including reconnection and microphone denial.
+- Confirm the live discussion channel is reachable from the deployed origin, that the origin is listed in `CHAT_ALLOWED_ORIGINS`, and that the web image was built with the socket address in `NEXT_PUBLIC_CHAT_SOCKET_URL`. The policy is fixed at build time, so a mismatch is silent: the browser simply never opens the socket and every answer arrives through the HTTP fallback. Say which of the two the demo is showing.
 - Verify the actual YouTube URL from AWS, or disclose the limitation and demonstrate real local retrieval as allowed by the requirements.
 - Build with the deployed HTTPS URL and test on phones; sign iOS builds for devices. Release `v0.1.0-demo.1` still uses a local backend.

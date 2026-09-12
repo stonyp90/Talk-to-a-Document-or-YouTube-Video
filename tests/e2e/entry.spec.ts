@@ -257,7 +257,8 @@ test.describe("returning visitor", () => {
       page.locator(".source-card"),
     ])
       await expect(locator).toHaveCount(0);
-    // And it tells the story, in the order it was asked for.
+    // And it tells the story, in the order it was asked for: the loop that
+    // built this first, the product story after it.
     const order = await page.evaluate(() =>
       ["platform", "how-we-build", "how-it-works", "applications"]
         .map(
@@ -271,11 +272,36 @@ test.describe("returning visitor", () => {
         .map(([id]) => id),
     );
     expect(order).toEqual([
-      "platform",
       "how-we-build",
+      "platform",
       "how-it-works",
       "applications",
     ]);
+  });
+
+  test("the way into the application repeats down the story", async ({
+    page,
+  }) => {
+    await page.goto(LANDING_PATH);
+    // A reader who stops anywhere in the story has a way in within reach.
+    for (const selector of [
+      ".nav",
+      ".landing-hero",
+      "#how-we-build",
+      "#platform",
+      "#how-it-works",
+      ".invitation",
+      ".footer",
+    ])
+      expect(
+        await page.locator(`${selector} a[href$="/app"]`).count(),
+        selector,
+      ).toBeGreaterThan(0);
+    const lang = await page.locator("html").getAttribute("lang");
+    for (const href of await page
+      .locator('a[href$="/app"]')
+      .evaluateAll((links) => links.map((link) => link.getAttribute("href"))))
+      expect(href).toBe(`/${lang}/app`);
   });
 
   test("the application route does render the workspace, and nothing of the story", async ({

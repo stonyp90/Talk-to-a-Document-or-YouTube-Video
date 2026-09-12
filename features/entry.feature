@@ -43,6 +43,11 @@ Feature: Welcome each visitor once, then keep the way in one tap away
     Then the platform section explains voice, movement and keyboard control
     And the platform section explains connected objects, 3D objects and voice adaptation
 
+  Scenario: Open the story on how we build, before anything else
+    When I open the landing page
+    Then how we build is the first section of the story
+    And every part of the story offers a way into the application
+
   Scenario: Keep the story and the application in separate places
     When I open the landing page
     Then the landing page tells the story without the workspace

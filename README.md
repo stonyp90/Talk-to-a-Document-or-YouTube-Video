@@ -87,14 +87,21 @@ It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom vo
 ### Pages
 
 Two pages, deliberately separate. `/<lang>` is the landing page: what Ursly is,
-the 24-second introduction, the platform story, how we build, the guide, and the
-mobile downloads (`apps/web/app/components/LandingPage.tsx`). `/<lang>/app` is
-the application: add a source, ask a question, by voice or keyboard
-(`apps/web/app/components/Workspace.tsx`). The fixed top menu carries a reader
-between them from either side, and the two components share only that menu, the
-footer and the language provider — the landing page holds no conversation state
-and the application holds none of the story. The bare `/app` is rewritten to the
-negotiated language, so an installed app (`start_url: "/app"`) opens the tool.
+the 24-second introduction, then the story in one order — how we build, the
+platform, the guide, and the mobile downloads
+(`apps/web/app/components/LandingPage.tsx`). That order lives in
+`apps/web/app/content/story.ts`, which the page, the fixed menu and the suites
+all read, so it changes in one place. The build loop leads: how this was made is
+the first thing a reader meets, before any claim about the product.
+
+`/<lang>/app` is the application: add a source, ask a question, by voice or
+keyboard (`apps/web/app/components/Workspace.tsx`). It is not on the landing
+page at all, and it is never far from it — the fixed menu, the hero, the end of
+every story section, a closing invitation and the footer each carry the way in.
+The two components share only that menu, the footer and the language provider —
+the landing page holds no conversation state and the application holds none of
+the story. The bare `/app` is rewritten to the negotiated language, so an
+installed app (`start_url: "/app"`) opens the tool.
 
 ### Languages
 

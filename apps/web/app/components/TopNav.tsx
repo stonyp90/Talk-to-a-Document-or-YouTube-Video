@@ -6,11 +6,17 @@ import { Icon } from "./Icon";
 import { ModeSwitcher, type EntryMode } from "./ModeSwitcher";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { LANGUAGES, withLanguage, type Language } from "../i18n/languages";
+import { MENU_SECTIONS, appHref } from "../content/story";
 
 /** Each language names itself, so a reader always recognises their own. */
-const LANGUAGE_NAMES: Record<Language, string> = { en: "English", fr: "Français" };
+const LANGUAGE_NAMES: Record<Language, string> = {
+  en: "English",
+  fr: "Français",
+};
 
-const SECTIONS = [{ id: "platform", label: "Platform" }] as const;
+const SECTIONS = MENU_SECTIONS;
+/** Stable across renders, so the observer is not rebuilt on every one. */
+const SECTION_IDS = SECTIONS.map((section) => section.id);
 
 function subscribeToScroll(notify: () => void) {
   window.addEventListener("scroll", notify, { passive: true });
@@ -26,7 +32,10 @@ function useActiveSection(ids: readonly string[]): string | undefined {
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries)
-          visible.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0);
+          visible.set(
+            entry.target.id,
+            entry.isIntersecting ? entry.intersectionRatio : 0,
+          );
         const [best] = [...visible.entries()].sort((a, b) => b[1] - a[1]);
         setActive(best && best[1] > 0 ? best[0] : undefined);
       },
@@ -80,10 +89,17 @@ function StoryNavControls({
         <a
           key={section.id}
           className="nav-link nav-section-link"
+          data-section={section.id}
           href={`#${section.id}`}
+          aria-label={t(section.label)}
           aria-current={active === section.id ? "location" : undefined}
         >
-          {t(section.label)}
+          {/* The full label where the bar is wide, the short one where it is
+              not: the accessible name stays the section's real name. */}
+          <span className="nav-section-full">{t(section.label)}</span>
+          <span className="nav-section-short" aria-hidden="true">
+            {t(section.short)}
+          </span>
         </a>
       ))}
       <button
@@ -114,7 +130,7 @@ export function TopNav(props: TopNavProps) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const active = useActiveSection(
-    page === "landing" ? SECTIONS.map((section) => section.id) : NO_SECTIONS,
+    page === "landing" ? SECTION_IDS : NO_SECTIONS,
   );
 
   useEffect(() => {
@@ -128,7 +144,7 @@ export function TopNav(props: TopNavProps) {
   const route =
     page === "landing"
       ? {
-          href: `/${language}/app`,
+          href: appHref(language),
           full: "Open the app",
           short: "App",
           className: "primary",

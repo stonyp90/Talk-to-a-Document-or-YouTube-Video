@@ -21,6 +21,10 @@ export const french: Dictionary = {
   "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.":
     "Le mouvement n’est pas encore disponible. Nous y travaillons. La voix et le clavier sont prêts dès aujourd’hui.",
   Platform: "Plateforme",
+  "How we build": "Notre façon de bâtir",
+  Build: "Bâtir",
+  Guide: "Guide",
+  Apps: "Apps",
   "Watch the intro": "Voir l’intro",
   Language: "Langue",
   "Skip to workspace": "Aller à l’atelier",
@@ -360,6 +364,17 @@ export const french: Dictionary = {
     "Un problème avec une source ou votre microphone?",
   "Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, you can still type your questions about an extracted source.":
     "Les PDF numérisés doivent contenir une couche de texte avant le téléversement. Les sous-titres YouTube doivent être disponibles, et certaines vidéos peuvent être bloquées par YouTube. Pour la voix, autorisez le microphone dans votre navigateur. Si la voix ne se connecte pas, vous pouvez toujours écrire vos questions sur une source extraite.",
+
+  // The story, and the invitation that closes it
+  "The story first: how this was built, what it is, and how to use it. The app is one tap away from anywhere on this page.":
+    "L’histoire d’abord : comment ceci a été bâti, ce que c’est et comment s’en servir. L’application est à un seul geste, depuis n’importe où sur cette page.",
+  "Your turn": "À votre tour",
+  "That is the story. Now bring a document.":
+    "Voilà l’histoire. Apportez maintenant un document.",
+  "A PDF or a captioned YouTube video, a question out loud, and an answer that stays anchored to what you brought.":
+    "Un PDF ou une vidéo YouTube sous-titrée, une question à voix haute, et une réponse qui reste ancrée dans ce que vous avez apporté.",
+  "Three steps, about a minute. Nothing to install.":
+    "Trois étapes, environ une minute. Rien à installer.",
 
   // Footer
   "Ursly · Made for your next “aha”.":

@@ -28,6 +28,37 @@ function openTheApp(p: Page) {
   return nav(p).getByRole("link", { name: "Open the app" });
 }
 
+/** The story, in the order it is meant to be read: the build loop leads. */
+const STORY_IDS = [
+  "how-we-build",
+  "platform",
+  "how-it-works",
+  "applications",
+] as const;
+
+/** The sections as the page actually stacks them, top to bottom. */
+function storyOrder(p: Page) {
+  return p.evaluate(
+    (ids) =>
+      ids
+        .map(
+          (id) =>
+            [
+              id,
+              document.getElementById(id)?.getBoundingClientRect().top ?? 0,
+            ] as const,
+        )
+        .sort((a, b) => a[1] - b[1])
+        .map(([id]) => id),
+    [...STORY_IDS],
+  );
+}
+
+/** Anything that leads into the application, wherever it sits on the page. */
+function waysIn(p: Page, selector: string) {
+  return p.locator(`${selector} a[href$="/app"]`);
+}
+
 /** Entry experience: introduction, fixed top menu, control modes, platform. */
 export function registerEntryChecks(step: Step, h: Helpers) {
   step("I open the landing page for the first time", async function () {
@@ -184,6 +215,45 @@ export function registerEntryChecks(step: Step, h: Helpers) {
       ).toHaveAttribute("aria-checked", "true");
     },
   );
+  step("how we build is the first section of the story", async function () {
+    const p = await h.page(this);
+    const [first] = await storyOrder(p);
+    assert.equal(first, "how-we-build");
+    // Nothing of the tool is above it: the story explains before it asks.
+    await expect(p.locator("#workspace")).toHaveCount(0);
+    const build = await p
+      .locator("#how-we-build")
+      .evaluate((el) => el.getBoundingClientRect().top);
+    const platform = await p
+      .locator("#platform")
+      .evaluate((el) => el.getBoundingClientRect().top);
+    assert.ok(build < platform, "the build loop is read before the platform");
+  });
+  step(
+    "every part of the story offers a way into the application",
+    async function () {
+      const p = await h.page(this);
+      for (const selector of [
+        ".nav",
+        ".landing-hero",
+        "#how-we-build",
+        "#platform",
+        "#how-it-works",
+        ".invitation",
+        ".footer",
+      ])
+        assert.ok(
+          (await waysIn(p, selector).count()) > 0,
+          `a way into the application in ${selector}`,
+        );
+      // Every one of them points at the application in the page language.
+      const lang = await p.evaluate(() => document.documentElement.lang);
+      for (const href of await p
+        .locator('a[href$="/app"]')
+        .evaluateAll((links) => links.map((link) => link.getAttribute("href"))))
+        assert.equal(href, `/${lang}/app`);
+    },
+  );
   step("I choose Platform in the top menu", async function () {
     const p = await h.page(this);
     await nav(p).getByRole("link", { name: "Platform" }).click();
@@ -208,28 +278,9 @@ export function registerEntryChecks(step: Step, h: Helpers) {
         0,
       );
       // The story the founder asked for, in the order he named it.
-      for (const id of [
-        "platform",
-        "how-we-build",
-        "how-it-works",
-        "applications",
-      ])
+      for (const id of STORY_IDS)
         await expect(p.locator(`#${id}`)).toHaveCount(1);
-      assert.deepEqual(
-        await p.evaluate(() =>
-          ["platform", "how-we-build", "how-it-works", "applications"]
-            .map(
-              (id) =>
-                [
-                  id,
-                  document.getElementById(id)?.getBoundingClientRect().top ?? 0,
-                ] as const,
-            )
-            .sort((a, b) => a[1] - b[1])
-            .map(([id]) => id),
-        ),
-        ["platform", "how-we-build", "how-it-works", "applications"],
-      );
+      assert.deepEqual(await storyOrder(p), [...STORY_IDS]);
     },
   );
   step("I return to the story from the application", async function () {

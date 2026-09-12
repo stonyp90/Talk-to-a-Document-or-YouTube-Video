@@ -47,7 +47,7 @@
   --space-6xl: 96px;
   /* The air between two sections of the story, and between a section's
      heading and its body: the page breathes on one measure at every width. */
-  --section-y: clamp(56px, 7vw, 104px);
+  --section-y: clamp(36px, 4.5vw, 68px);
   --section-gap: clamp(28px, 4vw, 48px);
   --gutter: clamp(16px, 3vw, 40px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -2663,10 +2663,6 @@ h3 {
   }
   .voice-commands-arm {
     width: 100%;
-  }
-  .platform {
-    margin-top: var(--space-3xl);
-    padding-top: var(--space-3xl);
   }
   .platform-grid,
   .roadmap {

@@ -164,17 +164,24 @@ describe("design tokens", () => {
     }
   });
 
-  it("lets the source column end where its content ends", () => {
-    // Stretching it to the conversation's height left a band of empty card
-    // between the drop target and the way forward.
-    const at = globals.indexOf(
-      ".source-card {",
-      globals.indexOf("@media (min-width: 781px)"),
-    );
-    expect(at).toBeGreaterThan(-1);
-    expect(globals.slice(at, globals.indexOf("}", at))).toMatch(
-      /align-self:\s*start/,
-    );
+  it("fills the source column without leaving a dead band", () => {
+    // Two failure modes, one rule. Letting the card hug its content leaves a
+    // void under it beside the taller conversation; letting it stretch while
+    // the panel keeps its natural height leaves a void inside it, above the
+    // button. The card fills the column AND the active panel takes the slack.
+    const wide = globals.slice(globals.indexOf("@media (min-width: 781px)"));
+    const block = (selector: string) => {
+      const at = wide.indexOf(selector);
+      expect(at, selector).toBeGreaterThan(-1);
+      return wide.slice(at, wide.indexOf("}", at));
+    };
+    expect(block(".source-card {")).not.toMatch(/align-self:\s*start/);
+    for (const panel of [
+      ".source-picker[open] .source-grid > .dropzone",
+      ".source-picker[open] .source-grid > .field",
+    ])
+      expect(block(panel), panel).toMatch(/flex:\s*1/);
+    // Nothing is pinned to the far bottom edge any more.
     expect(globals).not.toMatch(
       /\.source-picker\[open\] \.source-grid \.actions \{[^}]*margin-top:\s*auto/,
     );

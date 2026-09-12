@@ -668,12 +668,8 @@ h3 {
   width: 100%;
 }
 @media (min-width: 781px) {
-  /* The source column ends where its content ends. It used to stretch to the
-     conversation beside it and push the way forward to the far bottom edge,
-     which left the drop target and a band of empty card owning the panel. */
   .source-card {
     display: flex;
-    align-self: start;
     flex-direction: column;
   }
   .source-picker[open] {
@@ -698,6 +694,18 @@ h3 {
     display: flex;
     flex: 1;
     flex-direction: column;
+  }
+  /* The card fills its column, and the slack goes into whichever panel is
+     open rather than into a gap above the button: the drop target grows and
+     centres, the link field centres its rows. A void can then form neither
+     under the card nor inside it. */
+  .source-picker[open] .source-grid > .dropzone {
+    flex: 1;
+    justify-content: center;
+  }
+  .source-picker[open] .source-grid > .field {
+    flex: 1;
+    align-content: center;
   }
   .source-picker[open] .source-grid .actions {
     padding-top: 18px;

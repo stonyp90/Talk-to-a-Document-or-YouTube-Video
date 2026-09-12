@@ -133,6 +133,10 @@ export function TopNav({
               className="nav-link nav-download"
               aria-expanded={downloadsOpen}
               aria-haspopup="true"
+              // The label is hidden on a narrow screen, which would leave the
+              // control with nothing but an icon to announce itself by.
+              aria-label={t("Get the app")}
+              title={t("Get the app")}
               onClick={() => setDownloadsOpen((open) => !open)}
             >
               <Icon name="download" />

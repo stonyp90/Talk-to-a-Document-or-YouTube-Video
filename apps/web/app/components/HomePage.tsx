@@ -268,9 +268,15 @@ export default function HomePage() {
 
   // The box is as tall as what has been written, up to the height the stylesheet
   // allows, so a long question is visible instead of scrolling inside one line.
+  // An empty box is left to the stylesheet: measuring one before the first paint
+  // reads a height it will never have again, and the first keystroke shrinks it.
   useEffect(() => {
     const box = questionInput.current;
     if (!box) return;
+    if (!question) {
+      box.style.height = "";
+      return;
+    }
     box.style.height = "auto";
     box.style.height = `${box.scrollHeight}px`;
   }, [question]);

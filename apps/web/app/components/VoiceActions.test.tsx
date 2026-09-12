@@ -7,7 +7,15 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
 import { LanguageProvider } from "../i18n/LanguageProvider";
 import { french } from "../i18n/fr";
 import { VoiceActions } from "./VoiceActions";
@@ -56,10 +64,15 @@ function hear(text: string, final = true) {
   if (!final) heard = heard.slice(0, resultIndex);
 }
 
+/**
+ * The spies, typed as the panel's own props rather than as bare mocks, so a
+ * change to what the panel promises its caller fails here rather than in a
+ * browser.
+ */
 type Spies = {
-  onAction: ReturnType<typeof vi.fn>;
-  onDictate: ReturnType<typeof vi.fn>;
-  onDraft: ReturnType<typeof vi.fn>;
+  onAction: Mock<(action: VoiceActionId, argument?: string) => void>;
+  onDictate: Mock<(text: string) => void>;
+  onDraft: Mock<(text: string) => void>;
 };
 
 function show(
@@ -86,8 +99,8 @@ function show(
   return spies;
 }
 
-const action = (spy: ReturnType<typeof vi.fn>): VoiceActionId[] =>
-  spy.mock.calls.map((call) => call[0] as VoiceActionId);
+const action = (spy: Spies["onAction"]): VoiceActionId[] =>
+  spy.mock.calls.map(([id]) => id);
 
 beforeEach(() => {
   FakeRecognition.instances = [];

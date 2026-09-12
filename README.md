@@ -75,6 +75,30 @@ is remembered in a cookie. Interface copy is keyed by its English text in
 exists once per language (`scripts/brand/intro-video.mjs` renders both from the
 original recording) because its text is burned into the frames.
 
+### Being found and quoted
+
+A product explained by a twenty-four second video is invisible to any reader
+that cannot watch one, and search engines and assistants never can. The same
+twenty-four seconds are therefore published three more ways. Each language page
+carries a `schema.org` graph naming the organization, the site, the application
+and the introduction as a `VideoObject` with its duration, its captions and its
+full transcript. `/sitemap.xml` lists both languages with `hreflang`
+alternates, `/robots.txt` welcomes crawlers and keeps `/api/` out, and
+`/llms.txt` is a plain reading of the product and the words of the video, for
+the models that answer questions without ever rendering a page.
+
+The graph is built by `packages/core/src/domain/discoverability.ts`, which is
+pure: it reads a profile and returns linked data. Where that profile comes from
+is `apps/web/app/seo/profile.ts`, the only place that touches the environment.
+
+Publishing the introduction on YouTube adds one thing the origin cannot: a copy
+on a host every answer engine already crawls. Set `INTRO_VIDEO_YOUTUBE_ID_EN`
+and `INTRO_VIDEO_YOUTUBE_ID_FR` once the videos are up and the graph points at
+them, with the self-hosted file kept as `contentUrl`. Leave them empty and
+nothing breaks: the graph simply describes the file this origin serves. The
+values are read when the pages are prerendered, so they are build arguments,
+not runtime settings.
+
 ## How each requirement is met
 
 | Requirement                                              | Where it lives                                                                                                                                                                                                                                                    |

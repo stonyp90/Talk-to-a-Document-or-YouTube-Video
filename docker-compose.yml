@@ -24,6 +24,10 @@ x-app-environment: &app-environment
   # more than the production budget of 20 ingests a minute from one address.
   # Production keeps the limiter; set RATE_LIMIT_DISABLED= to test it here.
   RATE_LIMIT_DISABLED: ${RATE_LIMIT_DISABLED:-true}
+  SITE_URL: ${SITE_URL:-http://localhost:3000}
+  SITE_SAME_AS: ${SITE_SAME_AS:-}
+  INTRO_VIDEO_YOUTUBE_ID_EN: ${INTRO_VIDEO_YOUTUBE_ID_EN:-}
+  INTRO_VIDEO_YOUTUBE_ID_FR: ${INTRO_VIDEO_YOUTUBE_ID_FR:-}
 
 services:
   # Next.js owns both the frontend and API routes; there is no unused second API.
@@ -36,6 +40,11 @@ services:
         # may only reach the object store the image was built for. It must be
         # the same address the runtime hands out for presigned uploads.
         OBJECT_STORE_PUBLIC_ENDPOINT: ${OBJECT_STORE_PUBLIC_ENDPOINT:-http://localhost:9002}
+        # What the site tells crawlers about itself is prerendered with it.
+        SITE_URL: ${SITE_URL:-http://localhost:3000}
+        SITE_SAME_AS: ${SITE_SAME_AS:-}
+        INTRO_VIDEO_YOUTUBE_ID_EN: ${INTRO_VIDEO_YOUTUBE_ID_EN:-}
+        INTRO_VIDEO_YOUTUBE_ID_FR: ${INTRO_VIDEO_YOUTUBE_ID_FR:-}
     environment:
       <<: *app-environment
       PORT: 3000
@@ -81,6 +90,11 @@ services:
         # may only reach the object store the image was built for. It must be
         # the same address the runtime hands out for presigned uploads.
         OBJECT_STORE_PUBLIC_ENDPOINT: ${OBJECT_STORE_PUBLIC_ENDPOINT:-http://localhost:9002}
+        # What the site tells crawlers about itself is prerendered with it.
+        SITE_URL: ${SITE_URL:-http://localhost:3000}
+        SITE_SAME_AS: ${SITE_SAME_AS:-}
+        INTRO_VIDEO_YOUTUBE_ID_EN: ${INTRO_VIDEO_YOUTUBE_ID_EN:-}
+        INTRO_VIDEO_YOUTUBE_ID_FR: ${INTRO_VIDEO_YOUTUBE_ID_FR:-}
     network_mode: service:web
     environment:
       <<: *app-environment

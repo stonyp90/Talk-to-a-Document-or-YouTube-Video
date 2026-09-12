@@ -3,17 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
+import {
+  INTRO_DURATION_SECONDS,
+  INTRO_TRANSCRIPT,
+  introVideoPaths,
+} from "../content/intro-video";
 
 export const INTRO_STORAGE_KEY = "ursly-intro-v1";
-const INTRO_SECONDS = 24;
-
-/** The on-screen text of the video, sequenced, for people who cannot watch it. */
-const TRANSCRIPT = [
-  "Ursly. A source. A conversation.",
-  "Bring a document or a video. Ursly reads it for you.",
-  "Ask by voice, by keyboard, and soon by movement.",
-  "Source, question, understanding.",
-];
 
 export function hasSeenIntro(): boolean {
   try {
@@ -57,6 +53,7 @@ export function IntroGate({
   onClosed?: () => void;
 }) {
   const { language, t } = useLanguage();
+  const media = introVideoPaths(language);
   const dialog = useRef<HTMLDialogElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const [reduced, setReduced] = useState(false);
@@ -121,7 +118,10 @@ export function IntroGate({
     onClose();
   }
 
-  const seconds = Math.max(0, Math.ceil(INTRO_SECONDS * (1 - progress)));
+  const seconds = Math.max(
+    0,
+    Math.ceil(INTRO_DURATION_SECONDS * (1 - progress)),
+  );
 
   return (
     <dialog
@@ -177,7 +177,7 @@ export function IntroGate({
               playsInline
               preload="auto"
               controls={reduced || autoplayBlocked}
-              poster="/brand/social-card.png"
+              poster={media.poster}
               onTimeUpdate={(event) => {
                 const player = event.currentTarget;
                 if (player.duration)
@@ -187,18 +187,12 @@ export function IntroGate({
               onEnded={finish}
               onError={() => setFailed(true)}
             >
-              <source
-                src={`/brand/ursly-intro.${language}.webm`}
-                type="video/webm"
-              />
-              <source
-                src={`/brand/ursly-intro.${language}.mp4`}
-                type="video/mp4"
-              />
+              <source src={media.webm} type="video/webm" />
+              <source src={media.mp4} type="video/mp4" />
               <track
                 kind="captions"
                 srcLang={language}
-                src={`/brand/ursly-intro.${language}.vtt`}
+                src={media.captions}
                 label={language === "fr" ? "Français" : "English"}
               />
             </video>
@@ -206,7 +200,7 @@ export function IntroGate({
             <div className="intro-fallback" role="status">
               <strong>{t("The intro is unavailable right now.")}</strong>
               <ol className="intro-transcript-list">
-                {TRANSCRIPT.map((line) => (
+                {INTRO_TRANSCRIPT.map((line) => (
                   <li key={line}>{t(line)}</li>
                 ))}
               </ol>
@@ -246,7 +240,7 @@ export function IntroGate({
           <details className="intro-transcript" open={reduced}>
             <summary>{t("Read the intro instead")}</summary>
             <ol className="intro-transcript-list">
-              {TRANSCRIPT.map((line) => (
+              {INTRO_TRANSCRIPT.map((line) => (
                 <li key={line}>{t(line)}</li>
               ))}
             </ol>

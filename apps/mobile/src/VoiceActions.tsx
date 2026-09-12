@@ -7,15 +7,17 @@ import {
 import { useEffect, useRef, useState } from "react";
 import {
   AppState,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Language, TranslationKey } from "./i18n";
 import { palette as c, serif, Touch, Wave } from "./design";
 import {
@@ -24,13 +26,7 @@ import {
 } from "./voiceCommandMatcher";
 
 export type MobileVoiceActionId =
-  | "youtube"
-  | "upload"
-  | "voice"
-  | "summarize"
-  | "back"
-  | "next"
-  | "cancel";
+  "youtube" | "upload" | "voice" | "summarize" | "back" | "next" | "cancel";
 
 type VoiceTrigger = {
   id: string;
@@ -614,14 +610,17 @@ export function MobileVoiceActions({
         animationType={motion ? "slide" : "none"}
         onRequestClose={closeBuilder}
       >
-        <SafeAreaView style={s.modalRoot}>
+        <KeyboardAvoidingView
+          style={s.modalRoot}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("Close trigger builder")}
             style={s.modalScrim}
             onPress={closeBuilder}
           />
-          <View style={s.builderSheet}>
+          <SafeAreaView style={s.builderSheet} edges={["bottom"]}>
             <View style={s.builderHeader}>
               <Touch
                 label={t("Back to voice actions")}
@@ -770,22 +769,22 @@ export function MobileVoiceActions({
                   "For uploads, your phone will ask you to choose a local file.",
                 )}
               </Text>
+              <View style={s.builderFooter}>
+                <Touch
+                  label={t(editingId ? "Update trigger" : "Save trigger")}
+                  motion={motion}
+                  disabled={!phrase.trim()}
+                  onPress={saveTrigger}
+                  style={s.saveButton}
+                >
+                  <Text style={s.saveText}>
+                    {t(editingId ? "Update trigger" : "Save trigger")}
+                  </Text>
+                </Touch>
+              </View>
             </ScrollView>
-            <View style={s.builderFooter}>
-              <Touch
-                label={t(editingId ? "Update trigger" : "Save trigger")}
-                motion={motion}
-                disabled={!phrase.trim()}
-                onPress={saveTrigger}
-                style={s.saveButton}
-              >
-                <Text style={s.saveText}>
-                  {t(editingId ? "Update trigger" : "Save trigger")}
-                </Text>
-              </Touch>
-            </View>
-          </View>
-        </SafeAreaView>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

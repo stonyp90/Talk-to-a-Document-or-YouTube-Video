@@ -137,7 +137,10 @@ export function IntroGate({
     <dialog
       ref={dialog}
       className="intro-gate"
-      aria-labelledby="intro-title"
+      // The heading no longer says the name, so the dialog has to. A reader
+      // who cannot see the wordmark above it would otherwise be told only that
+      // something lasting thirty-six seconds had opened.
+      aria-label={t("Ursly introduction")}
       aria-describedby="intro-lede"
       onCancel={(event) => {
         event.preventDefault();

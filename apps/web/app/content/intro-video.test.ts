@@ -93,6 +93,13 @@ describe("the title", () => {
     }
   });
 
+  // The dialog is still named for the product, in both languages, because a
+  // reader who cannot see the wordmark would otherwise be told only that
+  // something lasting half a minute had opened.
+  it("leaves the name to the wordmark and the dialog's own label", () => {
+    expect(french["Ursly introduction"]).toMatch(/Ursly/);
+  });
+
   it("carries the duration through substitution in both languages", () => {
     for (const dictionary of [{}, french]) {
       const t = createTranslator(dictionary);

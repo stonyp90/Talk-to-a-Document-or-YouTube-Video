@@ -4,6 +4,10 @@ import type {
   SourceSession,
 } from "../../core/src/application/ports";
 import type { IngestedSource } from "../../core/src/domain/ingestion";
+import {
+  createObjectSessionStore,
+  createS3SessionObjects,
+} from "./objectSessionStore";
 
 export type MemorySessionStoreOptions = {
   /** How long an idle conversation is kept, in milliseconds. */
@@ -78,4 +82,20 @@ export function createMemorySessionStore(
       session.expiresAt = now() + ttlMs;
     },
   };
+}
+
+/**
+ * The store this deployment should use. A single process keeps conversations in
+ * memory; a deployment whose HTTP API and live channel are separate functions
+ * names a bucket, and both reach the same conversation through it.
+ */
+export function createConfiguredSessionStore(): SessionStorePort {
+  const ttlMs = Number(process.env.SESSION_TTL_MS ?? DEFAULTS.ttlMs);
+  const bucket = process.env.SESSION_BUCKET;
+  return bucket
+    ? createObjectSessionStore(createS3SessionObjects(bucket), {
+        ttlMs,
+        prefix: process.env.SESSION_PREFIX ?? undefined,
+      })
+    : createMemorySessionStore({ ttlMs });
 }

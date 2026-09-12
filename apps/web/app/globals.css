@@ -1079,6 +1079,47 @@ h3 {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+/* The live channel, stated plainly: a dot that is lit while the socket is
+   open, amber while it is being reopened, and quiet when it is closed. */
+.channel-state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-xs) 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.channel-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+.channel-state.live .channel-dot {
+  background: var(--success);
+  box-shadow: 0 0 0 3px var(--success-wash);
+}
+.channel-state.connecting .channel-dot,
+.channel-state.reconnecting .channel-dot {
+  background: var(--notice-ink);
+  animation: channel-pulse 1200ms var(--ease-out) infinite;
+}
+@keyframes channel-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .channel-state.connecting .channel-dot,
+  .channel-state.reconnecting .channel-dot {
+    animation: none;
+  }
+}
 .answer-pending {
   display: flex;
   align-items: center;

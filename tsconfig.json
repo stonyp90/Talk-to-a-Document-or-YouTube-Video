@@ -28,6 +28,7 @@
     "apps/web/**/*.ts",
     "apps/web/**/*.tsx",
     "packages/**/*.ts",
+    "services/chat/src/**/*.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx"
   ],

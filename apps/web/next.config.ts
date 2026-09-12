@@ -3,17 +3,31 @@ import path from "node:path";
 
 /**
  * Origins the browser legitimately talks to: this app, OpenAI for the direct
- * WebRTC negotiation, and whichever object store holds presigned uploads.
+ * WebRTC negotiation, whichever object store holds presigned uploads, and the
+ * live discussion channel. The socket is served by its own endpoint in every
+ * environment, so its address has to be named here or the browser will refuse
+ * to open it — and, like the object store, it is fixed when the image is built.
  */
 function connectSources(): string {
   const objectStore = process.env.OBJECT_STORE_PUBLIC_ENDPOINT;
+  const chatSocket = process.env.NEXT_PUBLIC_CHAT_SOCKET_URL;
   return [
     "'self'",
     "https://api.openai.com",
     "https://*.s3.amazonaws.com",
     "https://*.amazonaws.com",
     ...(objectStore ? [objectStore] : []),
+    ...(chatSocket ? [socketOrigin(chatSocket)] : []),
   ].join(" ");
+}
+
+/** A policy names an origin, never a path. */
+function socketOrigin(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return url;
+  }
 }
 
 /**

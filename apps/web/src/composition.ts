@@ -38,7 +38,7 @@ import { createS3Uploads } from "@/packages/adapters/src/uploads";
 import { createTranscriptProvider } from "@/packages/adapters/src/providers";
 import { createConversationAdapter } from "@/packages/adapters/src/openai";
 import { createVideoSearchProvider } from "@/packages/adapters/src/videoSearch";
-import { createMemorySessionStore } from "@/packages/adapters/src/sessionStore";
+import { createConfiguredSessionStore } from "@/packages/adapters/src/sessionStore";
 import {
   createEmailNotifier,
   createMemoryAccountStore,
@@ -70,11 +70,10 @@ const conversation = () =>
     contextBudget(),
   );
 
-// One store per server process, so a warm instance keeps conversations without
-// the client resending the extraction on every turn.
-const store = createMemorySessionStore({
-  ttlMs: Number(process.env.SESSION_TTL_MS ?? 60 * 60 * 1000),
-});
+// Where a conversation lives: this process's memory on a single-process
+// deployment, shared object storage when the live channel runs beside the API.
+// Either way the client carries an id rather than resending the extraction.
+const store = createConfiguredSessionStore();
 const sessions = createSessions(store);
 
 export type SourceEnvelope = {

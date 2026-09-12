@@ -13,6 +13,9 @@ ARG SITE_URL
 ARG SITE_SAME_AS
 ARG INTRO_VIDEO_YOUTUBE_ID_EN
 ARG INTRO_VIDEO_YOUTUBE_ID_FR
+# The content policy is written into the build, so the address of the live
+# discussion has to be known here or the browser will refuse to open it.
+ARG NEXT_PUBLIC_CHAT_SOCKET_URL
 ENV NODE_ENV=production
 ENV OBJECT_STORE_PUBLIC_ENDPOINT=${OBJECT_STORE_PUBLIC_ENDPOINT}
 ENV NEXT_PUBLIC_PAID_PLAN_PRICE=${NEXT_PUBLIC_PAID_PLAN_PRICE}
@@ -21,6 +24,7 @@ ENV SITE_URL=${SITE_URL}
 ENV SITE_SAME_AS=${SITE_SAME_AS}
 ENV INTRO_VIDEO_YOUTUBE_ID_EN=${INTRO_VIDEO_YOUTUBE_ID_EN}
 ENV INTRO_VIDEO_YOUTUBE_ID_FR=${INTRO_VIDEO_YOUTUBE_ID_FR}
+ENV NEXT_PUBLIC_CHAT_SOCKET_URL=${NEXT_PUBLIC_CHAT_SOCKET_URL}
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/
@@ -46,6 +50,28 @@ FROM test-tools AS test
 COPY . .
 RUN NODE_ENV=production OPENAI_API_KEY=ci_canary_OPENAI_clearlyfakefixture_2026 AWS_SECRET_ACCESS_KEY=ci_canary_AWS_clearlyfakefixture_2026 npm run build
 CMD ["node", "infrastructure/scripts/container-tests.mjs"]
+
+# The live discussion channel. It is bundled, so the images that carry it need
+# nothing but a Node runtime, and the long-lived process and the gateway
+# function can never drift onto different copies of the core.
+FROM dependencies AS chat-build
+COPY . .
+RUN npm run build:chat
+
+# The channel as a long-lived process: what the local stack and development run.
+FROM node:22-bookworm-slim AS chat
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=chat-build /app/services/chat/dist ./services/chat/dist
+ENV CHAT_PORT=3020
+ENV CHAT_HOST=0.0.0.0
+EXPOSE 3020
+CMD ["node", "services/chat/dist/main.mjs"]
+
+# The same channel behind a managed WebSocket gateway: what production runs.
+FROM public.ecr.aws/lambda/nodejs:22 AS chat-lambda
+COPY --from=chat-build /app/services/chat/dist/handler.mjs ${LAMBDA_TASK_ROOT}/handler.mjs
+CMD ["handler.handler"]
 
 FROM node:22-bookworm-slim AS runtime
 ENV NODE_ENV=production

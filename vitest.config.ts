@@ -10,6 +10,7 @@ export default defineConfig({
       "apps/web/**/*.test.ts",
       "apps/web/**/*.test.tsx",
       "tests/**/*.test.ts",
+      "services/chat/src/**/*.test.ts",
     ],
     exclude: [
       "**/node_modules/**",

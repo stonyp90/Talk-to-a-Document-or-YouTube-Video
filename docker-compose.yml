@@ -3,8 +3,7 @@ name: talk-to-a-document
 # MinIO no longer publishes to Docker Hub, where the pull is now denied; quay
 # is where the same releases live. Written once and referenced by both the
 # server and the bucket-creating init container, so the two can never drift.
-x-object-store-image: &object-store-image
-  ${OBJECT_STORE_IMAGE:-quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z}
+x-object-store-image: &object-store-image ${OBJECT_STORE_IMAGE:-quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z}
 
 x-app-environment: &app-environment
   PROVIDER_MODE: ${PROVIDER_MODE:-mock}
@@ -44,6 +43,11 @@ x-app-environment: &app-environment
   APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
   CONTEXT_CHARACTER_BUDGET: ${CONTEXT_CHARACTER_BUDGET:-120000}
   SESSION_TTL_MS: ${SESSION_TTL_MS:-3600000}
+  # Where the browser opens the live discussion, and who may open it. The
+  # policy that lets the browser reach it is fixed when the web image is
+  # built, so the same value is passed as a build argument below.
+  NEXT_PUBLIC_CHAT_SOCKET_URL: ${CHAT_SOCKET_URL:-ws://localhost:3020/ws/chat}
+  CHAT_ALLOWED_ORIGINS: ${APP_ORIGIN:-http://localhost:3000},http://127.0.0.1:${WEB_PORT:-3000}
   # The local stack exists to be exercised: the acceptance suite issues far
   # more than the production budget of 20 ingests a minute from one address.
   # Production keeps the limiter; set RATE_LIMIT_DISABLED= to test it here.
@@ -111,6 +115,7 @@ services:
         SITE_SAME_AS: ${SITE_SAME_AS:-}
         INTRO_VIDEO_YOUTUBE_ID_EN: ${INTRO_VIDEO_YOUTUBE_ID_EN:-}
         INTRO_VIDEO_YOUTUBE_ID_FR: ${INTRO_VIDEO_YOUTUBE_ID_FR:-}
+        NEXT_PUBLIC_CHAT_SOCKET_URL: ${CHAT_SOCKET_URL:-ws://localhost:3020/ws/chat}
     environment:
       <<: *app-environment
       PORT: 3000
@@ -118,6 +123,7 @@ services:
     depends_on:
       object-store-init: { condition: service_completed_successfully }
       transcript: { condition: service_healthy }
+      chat: { condition: service_healthy }
     healthcheck:
       test:
         [
@@ -137,6 +143,8 @@ services:
       <<: *app-environment
       NODE_ENV: development
       WATCHPACK_POLLING: "true"
+      # The channel already runs as its own published container here.
+      DEV_CHANNEL: "off"
     ports: ["127.0.0.1:${WEB_PORT:-3000}:3000"]
     volumes:
       - .:/app
@@ -145,6 +153,7 @@ services:
     depends_on:
       object-store-init: { condition: service_completed_successfully }
       transcript: { condition: service_healthy }
+      chat: { condition: service_healthy }
 
   test:
     profiles: [test]
@@ -161,6 +170,7 @@ services:
         SITE_SAME_AS: ${SITE_SAME_AS:-}
         INTRO_VIDEO_YOUTUBE_ID_EN: ${INTRO_VIDEO_YOUTUBE_ID_EN:-}
         INTRO_VIDEO_YOUTUBE_ID_FR: ${INTRO_VIDEO_YOUTUBE_ID_FR:-}
+        NEXT_PUBLIC_CHAT_SOCKET_URL: ${CHAT_SOCKET_URL:-ws://localhost:3020/ws/chat}
     network_mode: service:web
     environment:
       <<: *app-environment
@@ -172,6 +182,27 @@ services:
       web: { condition: service_healthy }
       object-store-init: { condition: service_completed_successfully }
       transcript: { condition: service_healthy }
+      chat: { condition: service_healthy }
+
+  # The live discussion: one socket per reader, held open for the whole
+  # conversation. Production serves the same protocol from a managed gateway.
+  chat:
+    build: { context: ., target: chat }
+    environment:
+      <<: *app-environment
+      CHAT_PORT: 3020
+    ports: ["127.0.0.1:${CHAT_PORT:-3020}:3020"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3020/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 24
 
   object-store:
     image: *object-store-image

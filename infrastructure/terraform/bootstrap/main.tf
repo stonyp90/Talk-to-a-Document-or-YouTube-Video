@@ -105,11 +105,15 @@ variable "existing_oidc_provider_arn" {
   }
 }
 locals {
-  name          = "talk-to-a-document"
-  bucket_arn    = "arn:aws:s3:::${local.name}-uploads-${var.account_id}-${var.region}"
-  runtime_arns  = ["arn:aws:iam::${var.account_id}:role/${local.name}-runtime", "arn:aws:iam::${var.account_id}:role/${local.name}-transcript-runtime"]
-  function_arns = [for name in ["api", "transcript"] : "arn:aws:lambda:${var.region}:${var.account_id}:function:${local.name}-${name}"]
-  log_arns      = [for name in ["api", "transcript"] : "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/${local.name}-${name}"]
+  name       = "talk-to-a-document"
+  bucket_arn = "arn:aws:s3:::${local.name}-uploads-${var.account_id}-${var.region}"
+  # The application is three functions: the site and its HTTP routes, the caption
+  # proxy, and the live discussion behind the WebSocket gateway. Naming them here
+  # is what caps CI to exactly these functions, roles, log groups and repositories.
+  services      = ["api", "transcript", "chat"]
+  runtime_arns  = [for role in ["runtime", "transcript-runtime", "chat-runtime"] : "arn:aws:iam::${var.account_id}:role/${local.name}-${role}"]
+  function_arns = [for name in local.services : "arn:aws:lambda:${var.region}:${var.account_id}:function:${local.name}-${name}"]
+  log_arns      = [for name in local.services : "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/${local.name}-${name}"]
   ses_domain    = trimprefix(var.ses_identity_arn, "arn:aws:ses:${var.region}:${var.account_id}:identity/")
   # The ceiling on sending, mirroring the grant the application module writes.
   # SendEmail is authorized against the identity and, when the call names one,
@@ -158,7 +162,7 @@ resource "aws_s3_bucket_policy" "state" {
   })
 }
 resource "aws_ecr_repository" "images" {
-  for_each             = toset(["api", "transcript"])
+  for_each             = toset(local.services)
   name                 = "${local.name}-${each.key}"
   image_tag_mutability = "IMMUTABLE"
   image_scanning_configuration { scan_on_push = true }
@@ -185,9 +189,15 @@ resource "aws_iam_policy" "runtime_boundary" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = concat([
-      { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = ["${local.bucket_arn}/uploads/*"] },
+      # Uploaded documents and the stored conversations that name them. Both are
+      # expired by lifecycle rules within a day; neither prefix is ever public.
+      { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = ["${local.bucket_arn}/uploads/*", "${local.bucket_arn}/sessions/*"] },
       { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn, var.auth_pepper_secret_arn] },
-      { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = [for arn in local.log_arns : "${arn}:*"] }
+      { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = [for arn in local.log_arns : "${arn}:*"] },
+      # Posting an answer back down an open socket. API IDs are assigned by AWS,
+      # so the cap is this account and region; the chat role policy that CI writes
+      # narrows it to the one WebSocket API, and the boundary keeps it there.
+      { Effect = "Allow", Action = ["execute-api:ManageConnections"], Resource = ["arn:aws:execute-api:${var.region}:${var.account_id}:*/*"] }
     ], local.ses_statements)
   })
   lifecycle { prevent_destroy = true }

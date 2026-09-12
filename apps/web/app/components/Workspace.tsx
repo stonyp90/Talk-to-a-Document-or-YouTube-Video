@@ -31,6 +31,11 @@ import {
   type VoiceActivity,
 } from "@/apps/web/src/lib/realtimeClient";
 import {
+  ChatSocket,
+  chatSocketUrl,
+  type ChatSocketEvent,
+} from "@/apps/web/src/lib/chatSocket";
+import {
   ApiError,
   requestJson,
   uploadWithProgress,
@@ -178,6 +183,10 @@ export default function Workspace() {
   const [sourcePickerOpen, setSourcePickerOpen] = useState(true);
   const [dragging, setDragging] = useState(false);
   const [voiceActionNotice, setVoiceActionNotice] = useState("");
+  /** The live channel's own state, separate from the spoken session's. */
+  const [channelStatus, setChannelStatus] = useState<
+    "idle" | "connecting" | "live" | "reconnecting" | "offline"
+  >("idle");
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [atLatest, setAtLatest] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -239,6 +248,11 @@ export default function Workspace() {
   const uploadRequest = useRef<AbortController | null>(null);
   const voiceActive = useRef(false);
   const sourceIdRef = useRef<string | undefined>(undefined);
+  const sourceRef = useRef<IngestedSource | undefined>(undefined);
+  const chat = useRef<ChatSocket | null>(null);
+  const onChannelEvent = useRef<(event: ChatSocketEvent) => void>(() => {});
+  /** Answers the reader stopped, whose remaining fragments are ignored. */
+  const stoppedAnswers = useRef(new Set<string>());
   const fileInput = useRef<HTMLInputElement>(null);
   const voicePickerInput = useRef<HTMLInputElement>(null);
 
@@ -302,6 +316,8 @@ export default function Workspace() {
       requests.clear();
       realtime.current?.stop();
       realtime.current = null;
+      chat.current?.close();
+      chat.current = null;
       voiceActive.current = false;
     };
   }, []);
@@ -309,6 +325,93 @@ export default function Workspace() {
   useEffect(() => {
     if (source) questionInput.current?.focus();
   }, [source]);
+
+  // Read through a ref, so a language change or a new message never tears down
+  // a connection the reader is in the middle of using. The answer is keyed by
+  // the ask, exactly as the request/response path keys it, so the thread, the
+  // caret, the copy control and Stop behave the same on either transport.
+  const handleChannelEvent = (event: ChatSocketEvent) => {
+    const settle = (askId: string) => {
+      stoppedAnswers.current.delete(askId);
+      setStreamingId((id) => (id === askId ? null : id));
+      setPendingAnswers((count) => Math.max(0, count - 1));
+    };
+    switch (event.type) {
+      case "connecting":
+        return setChannelStatus("connecting");
+      case "reconnecting":
+        return setChannelStatus("reconnecting");
+      case "closed":
+        return setChannelStatus("offline");
+      case "ready":
+        sourceIdRef.current = event.sourceId;
+        setContext(event.context);
+        return setChannelStatus("live");
+      case "started":
+        setStreamingId(event.askId);
+        return dispatch({
+          type: "MESSAGE_STARTED",
+          message: {
+            id: event.askId,
+            role: "assistant",
+            text: "",
+            status: "partial",
+          },
+        });
+      case "delta":
+        if (stoppedAnswers.current.has(event.askId)) return;
+        return dispatch({
+          type: "MESSAGE_DELTA",
+          id: event.askId,
+          text: event.text,
+        });
+      case "completed":
+        sourceIdRef.current = event.sourceId;
+        if (!stoppedAnswers.current.has(event.askId))
+          dispatch({
+            type: "MESSAGE_COMPLETED",
+            id: event.askId,
+            text: event.text,
+          });
+        return settle(event.askId);
+      case "failed":
+        if (!event.askId) return setError(t(event.message));
+        dispatch({ type: "MESSAGE_COMPLETED", id: event.askId });
+        settle(event.askId);
+        return setError(t(event.message));
+    }
+  };
+
+  useEffect(() => {
+    onChannelEvent.current = handleChannelEvent;
+  });
+
+  /**
+   * One socket per source, held open for the whole discussion, so a question
+   * is a short frame rather than a request that re-establishes everything.
+   * Voice carries its own connection, so the channel belongs to the typed
+   * conversation and closes when the reader leaves it or changes source.
+   */
+  useEffect(() => {
+    sourceRef.current = source;
+    const url = chatSocketUrl();
+    if (!url || !source || entryMode !== "text") return;
+    const socket = new ChatSocket({
+      url,
+      reference: () => ({
+        sourceId: sourceIdRef.current,
+        source: sourceRef.current,
+      }),
+      onEvent: (event) => onChannelEvent.current(event),
+    });
+    chat.current = socket;
+    socket.start();
+    return () => {
+      socket.close();
+      if (chat.current === socket) chat.current = null;
+      setChannelStatus("idle");
+    };
+  }, [source, entryMode]);
 
   // The tab title carries the live voice state, visible from any other tab. The
   // page's own title is read once and kept: deriving it from whatever the title
@@ -709,6 +812,16 @@ export default function Workspace() {
   function stopAnswer() {
     answerRequest.current?.abort();
     answerRequest.current = null;
+    // A question asked over the channel has no request to abort: the answer is
+    // closed here and its remaining fragments are dropped as they arrive.
+    setStreamingId((id) => {
+      if (id) {
+        stoppedAnswers.current.add(id);
+        dispatch({ type: "MESSAGE_COMPLETED", id });
+        setPendingAnswers((count) => Math.max(0, count - 1));
+      }
+      return null;
+    });
   }
 
   async function askQuestion(text: string) {
@@ -756,6 +869,16 @@ export default function Workspace() {
     });
 
     const answerId = crypto.randomUUID();
+
+    // The open channel is the fast path: the question is a short frame on a
+    // connection that already exists, and the answer streams back on it.
+    // Everything below is for a reader whose channel is closed or unconfigured.
+    if (chat.current?.ask(answerId, trimmed)) {
+      textRequests.current.delete(controller);
+      answerRequest.current = null;
+      return;
+    }
+
     let opened = false;
     const openAnswer = () => {
       if (opened) return;
@@ -1709,6 +1832,19 @@ export default function Workspace() {
                   </button>
                 )}
               </div>
+
+              {source && entryMode === "text" && channelStatus !== "idle" && (
+                <p className={`channel-state ${channelStatus}`} role="status">
+                  <span className="channel-dot" aria-hidden="true" />
+                  {channelStatus === "live"
+                    ? t("Live channel open — answers arrive as they are written")
+                    : channelStatus === "connecting"
+                      ? t("Opening the live channel…")
+                      : channelStatus === "reconnecting"
+                        ? t("Reopening the live channel…")
+                        : t("The live channel is closed; answers still arrive.")}
+                </p>
+              )}
 
               {pendingAnswers > 0 && !streamingId && (
                 <p className="answer-pending" role="status">

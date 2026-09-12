@@ -14,7 +14,18 @@ locals {
     # Match the gateway burst capacity so five occupied slots cannot break hydration.
     api        = { memory = 1024, timeout = 28, concurrency = 20, role = "${local.name}-runtime" }
     transcript = { memory = 256, timeout = 20, concurrency = 2, role = "${local.name}-transcript-runtime" }
+    # The live discussion. It answers after the gateway has already replied to the
+    # frame, posting fragments back down the connection, so it outlives the 29s
+    # integration timeout on purpose; the cap is how many models it may run at once.
+    chat = { memory = 512, timeout = 60, concurrency = 5, role = "${local.name}-chat-runtime" }
   }
+  # Only these two belong on the HTTP API. The discussion is reached over the
+  # socket and has no HTTP route of its own, so it gets no integration, no route
+  # and no permission for apigateway to invoke it from the site's API.
+  http_functions = { for name, function in local.functions : name => function if name != "chat" }
+  # Both halves of a conversation read and write the same stored session, so an id
+  # opened over HTTP resolves on the socket and the other way round.
+  conversation_functions = ["api", "chat"]
   # Transactional email is operator-owned: environments/email verifies the domain
   # identity and creates the configuration set, and this module only consumes
   # them. Sending is all the api task may ever do -- from one address, on one
@@ -47,6 +58,46 @@ locals {
     { "ANY /" = "api", "ANY /{proxy+}" = "api", "GET /transcript/{videoId}" = "transcript" },
     { for route in local.paid_routes : route => "api" }
   )
+  environments = {
+    api = merge({
+      PORT                     = "3000", HOSTNAME = "0.0.0.0", PROVIDER_MODE = "live"
+      OPENAI_SECRET_ARN        = var.openai_secret_arn
+      UPLOAD_BUCKET            = aws_s3_bucket.uploads.id
+      SESSION_BUCKET           = aws_s3_bucket.uploads.id
+      APP_ORIGIN               = local.public_origin
+      YOUTUBE_TRANSCRIPT_MODE  = "live"
+      TRANSCRIPT_SERVICE_URL   = aws_apigatewayv2_api.http.api_endpoint
+      OPENAI_BASE_URL          = "https://api.openai.com"
+      OPENAI_REALTIME_MODEL    = "gpt-realtime", OPENAI_TEXT_MODEL = "gpt-4.1-mini"
+      CONTEXT_CHARACTER_BUDGET = tostring(var.context_character_budget)
+      # The gate, the allowance, and the two things without which nobody can
+      # sign in. The pepper arrives as an ARN and is read at runtime, exactly
+      # like the provider key beside it; its value is never in this file. The
+      # SES names arrive only once the operator has applied environments/email.
+      AUTH_MODE              = var.auth_mode
+      AUTH_PEPPER_SECRET_ARN = var.auth_pepper_secret_arn
+      USAGE_LIMIT_UNITS      = tostring(var.usage_limit_units)
+      USAGE_WINDOW_MS        = tostring(var.usage_window_ms)
+      EMAIL_MODE             = var.email_mode
+    }, local.ses_environment)
+    transcript = merge(
+      { PORT = "3010", TRANSCRIPT_MODE = "live", UPSTREAM_TIMEOUT_SECONDS = "10" },
+      var.transcript_proxy_url == "" ? {} : { TRANSCRIPT_PROXY_URL = var.transcript_proxy_url }
+    )
+    # A custom domain cannot serve the management API, so the answer goes back
+    # through the stage's own https endpoint rather than whatever host the browser
+    # dialled. The stage hands out a wss:// url; only the scheme differs.
+    chat = {
+      PROVIDER_MODE            = "live"
+      OPENAI_SECRET_ARN        = var.openai_secret_arn
+      OPENAI_BASE_URL          = "https://api.openai.com"
+      OPENAI_TEXT_MODEL        = "gpt-4.1-mini"
+      CONTEXT_CHARACTER_BUDGET = tostring(var.context_character_budget)
+      SESSION_BUCKET           = aws_s3_bucket.uploads.id
+      CHAT_ALLOWED_ORIGINS     = join(",", distinct([local.public_origin, aws_apigatewayv2_api.http.api_endpoint]))
+      CHAT_CALLBACK_URL        = replace(aws_apigatewayv2_stage.socket.invoke_url, "wss://", "https://")
+    }
+  }
 }
 resource "aws_apigatewayv2_api" "http" {
   name          = "${local.name}-api"
@@ -103,6 +154,14 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
     expiration { days = 1 }
     abort_incomplete_multipart_upload { days_after_initiation = 1 }
   }
+  # A conversation is written here only so the site and the socket agree on what
+  # an id means. It is worth no more than the document it was held about.
+  rule {
+    id     = "expire-shared-sessions"
+    status = "Enabled"
+    filter { prefix = "sessions/" }
+    expiration { days = 1 }
+  }
 }
 resource "aws_s3_bucket_cors_configuration" "uploads" {
   bucket = aws_s3_bucket.uploads.id
@@ -142,6 +201,17 @@ resource "aws_iam_role_policy" "runtime" {
         # Two exact ARNs, no wildcard: the provider key and the signing pepper.
         { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn, var.auth_pepper_secret_arn] }
       ] : [],
+      # The stored conversation, reachable from whichever half is answering.
+      contains(local.conversation_functions, each.key) ? [
+        { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"], Resource = ["${aws_s3_bucket.uploads.arn}/sessions/*"] }
+      ] : [],
+      # The socket answers questions, so it needs the provider key, and it needs
+      # to write down an open connection. It never signs anyone in, so the
+      # pepper stays with the function that does.
+      each.key == "chat" ? [
+        { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn] },
+        { Effect = "Allow", Action = ["execute-api:ManageConnections"], Resource = ["arn:aws:execute-api:${var.region}:${var.account_id}:${aws_apigatewayv2_api.socket.id}/*"] }
+      ] : [],
       each.key == "api" ? local.ses_statements : []
     )
   })
@@ -157,34 +227,12 @@ resource "aws_lambda_function" "runtime" {
   timeout                        = each.value.timeout
   reserved_concurrent_executions = each.value.concurrency
   environment {
-    variables = each.key == "api" ? merge({
-      PORT                     = "3000", HOSTNAME = "0.0.0.0", PROVIDER_MODE = "live"
-      OPENAI_SECRET_ARN        = var.openai_secret_arn
-      UPLOAD_BUCKET            = aws_s3_bucket.uploads.id
-      APP_ORIGIN               = local.public_origin
-      YOUTUBE_TRANSCRIPT_MODE  = "live"
-      TRANSCRIPT_SERVICE_URL   = aws_apigatewayv2_api.http.api_endpoint
-      OPENAI_BASE_URL          = "https://api.openai.com"
-      OPENAI_REALTIME_MODEL    = "gpt-realtime", OPENAI_TEXT_MODEL = "gpt-4.1-mini"
-      CONTEXT_CHARACTER_BUDGET = tostring(var.context_character_budget)
-      # The gate, the allowance, and the two things without which nobody can
-      # sign in. The pepper arrives as an ARN and is read at runtime, exactly
-      # like the provider key beside it; its value is never in this file. The
-      # SES names arrive only once the operator has applied environments/email.
-      AUTH_MODE              = var.auth_mode
-      AUTH_PEPPER_SECRET_ARN = var.auth_pepper_secret_arn
-      USAGE_LIMIT_UNITS      = tostring(var.usage_limit_units)
-      USAGE_WINDOW_MS        = tostring(var.usage_window_ms)
-      EMAIL_MODE             = var.email_mode
-      }, local.ses_environment) : merge(
-      { PORT = "3010", TRANSCRIPT_MODE = "live", UPSTREAM_TIMEOUT_SECONDS = "10" },
-      var.transcript_proxy_url == "" ? {} : { TRANSCRIPT_PROXY_URL = var.transcript_proxy_url }
-    )
+    variables = local.environments[each.key]
   }
   depends_on = [aws_iam_role_policy.runtime, aws_cloudwatch_log_group.runtime]
 }
 resource "aws_apigatewayv2_integration" "lambda" {
-  for_each               = local.functions
+  for_each               = local.http_functions
   api_id                 = aws_apigatewayv2_api.http.id
   integration_type       = "AWS_PROXY"
   integration_uri        = aws_lambda_function.runtime[each.key].invoke_arn
@@ -216,7 +264,7 @@ resource "aws_apigatewayv2_stage" "default" {
   depends_on = [aws_apigatewayv2_route.routes]
 }
 resource "aws_lambda_permission" "gateway" {
-  for_each       = local.functions
+  for_each       = local.http_functions
   statement_id   = "AllowHttpApi"
   action         = "lambda:InvokeFunction"
   function_name  = aws_lambda_function.runtime[each.key].function_name
@@ -224,5 +272,52 @@ resource "aws_lambda_permission" "gateway" {
   source_arn     = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
   source_account = var.account_id
 }
+# The live discussion. Routing on the message type is what lets the gateway speak
+# the same protocol the long-lived server speaks locally, so one application
+# channel serves both and neither can drift.
+resource "aws_apigatewayv2_api" "socket" {
+  name                       = "${local.name}-socket"
+  protocol_type              = "WEBSOCKET"
+  route_selection_expression = "$request.body.type"
+}
+resource "aws_apigatewayv2_integration" "socket" {
+  api_id                    = aws_apigatewayv2_api.socket.id
+  integration_type          = "AWS_PROXY"
+  integration_uri           = aws_lambda_function.runtime["chat"].invoke_arn
+  content_handling_strategy = "CONVERT_TO_TEXT"
+  timeout_milliseconds      = 29000
+}
+# Opening, closing and everything said in between reach the same handler: the
+# connect route is where an origin is refused, so every route must be integrated.
+resource "aws_apigatewayv2_route" "socket" {
+  for_each  = toset(["$connect", "$disconnect", "$default"])
+  api_id    = aws_apigatewayv2_api.socket.id
+  route_key = each.value
+  target    = "integrations/${aws_apigatewayv2_integration.socket.id}"
+}
+# Deliberately without depends_on the routes: the chat function reads this stage's
+# url to post answers back, and waiting for routes that wait for that function
+# would close the cycle. auto_deploy publishes each route as it is created.
+resource "aws_apigatewayv2_stage" "socket" {
+  api_id      = aws_apigatewayv2_api.socket.id
+  name        = "live"
+  auto_deploy = true
+  # Every question here is a model call, so the socket is held well under the
+  # site's 10/s: a burst is a reader reconnecting, not a page loading its assets.
+  default_route_settings {
+    throttling_burst_limit = 5
+    throttling_rate_limit  = 2
+  }
+}
+resource "aws_lambda_permission" "socket" {
+  statement_id   = "AllowSocketApi"
+  action         = "lambda:InvokeFunction"
+  function_name  = aws_lambda_function.runtime["chat"].function_name
+  principal      = "apigateway.amazonaws.com"
+  source_arn     = "${aws_apigatewayv2_api.socket.execution_arn}/*/*"
+  source_account = var.account_id
+}
 output "public_url" { value = aws_apigatewayv2_api.http.api_endpoint }
+output "socket_url" { value = aws_apigatewayv2_stage.socket.invoke_url }
+output "socket_api_id" { value = aws_apigatewayv2_api.socket.id }
 output "upload_bucket" { value = aws_s3_bucket.uploads.id }

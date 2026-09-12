@@ -175,4 +175,33 @@ describe("Process", () => {
       expect(dot).toHaveAttribute("data-provider", String(index)),
     );
   });
+
+  it("keeps the lit stage off the training hand-off", () => {
+    render(<Process timing={timing} />);
+    const diagram = screen.getByTestId("loop-diagram");
+    const train = PROCESS_STEP_IDS.indexOf(INNER_LOOP_STEP);
+    fireEvent.click(within(stepItems()[train]).getByRole("button"));
+    const lit = diagram.querySelector('g[data-active="true"]');
+    expect(lit?.querySelectorAll("[data-provider]")).toHaveLength(
+      PROVIDER_TURNS,
+    );
+    // An unclassed circle can only be reached as `.node circle`, and that
+    // selector beats the satellite's own rules: lighting the training stage
+    // would fill its ring, its provider markers and its hand-off dot solid,
+    // which is the one thing that node exists to show.
+    expect(diagram.querySelectorAll("circle:not([class])")).toHaveLength(0);
+  });
+
+  it("states the mission in the document, not only inside the drawing", () => {
+    render(<Process />);
+    // The drawing is aria-hidden, so anything only drawn there never reaches
+    // a screen reader. Exactly one copy of each line has to be reachable.
+    const reachable = (text: string) =>
+      screen
+        .queryAllByText(text)
+        .filter((node) => !node.closest('[aria-hidden="true"]'));
+    expect(reachable(copy.target.eyebrow)).toHaveLength(1);
+    expect(reachable(copy.target.statement.join(" "))).toHaveLength(1);
+    expect(reachable(copy.target.note)).toHaveLength(1);
+  });
 });

@@ -7,10 +7,14 @@
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  gap: 32px 48px;
-  align-items: center;
+  gap: 28px 48px;
+  /* The left band runs the height of the picture: the copy on top, the
+     readout at its foot. Centring a short column is what left the void. */
+  align-items: start;
 }
 .copy {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
 }
 .heading {
@@ -32,19 +36,21 @@
   line-height: 1.7;
 }
 .quote {
-  margin: 24px 0 0;
+  margin: 26px 0 0;
   padding-left: 16px;
   border-left: 2px solid var(--accent-glow);
   font-family: Georgia, serif;
-  font-size: 21px;
+  font-size: clamp(22px, 2.3vw, 28px);
   font-style: italic;
-  line-height: 1.35;
+  line-height: 1.32;
 }
 
 /* The picture ---------------------------------------------------------- */
 .stage {
   display: grid;
-  gap: 12px;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
   justify-items: center;
   min-width: 0;
 }
@@ -71,7 +77,9 @@
   stroke-dasharray: 2 5;
 }
 .discEyebrow,
-.discNote {
+.discNote,
+.targetEyebrow,
+.targetNote {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 9.5px;
   font-weight: 700;
@@ -85,10 +93,19 @@
   font-size: 8.5px;
   fill: var(--accent);
 }
-.discStatement {
+.discStatement,
+.targetStatement {
   font-family: Georgia, serif;
   font-size: 18px;
+}
+.discStatement {
   fill: var(--ink);
+}
+/* One group for the whole picture, so a phone can scale it up into the room
+   its hidden labels leave behind. */
+.plot {
+  transform-box: view-box;
+  transform-origin: center;
 }
 .traveller,
 .satellite {
@@ -105,10 +122,17 @@
 .node {
   cursor: pointer;
 }
+/* Weight, not paint: every circle a stage draws shares one stroke width.
+   The paint below is pinned to the node's own disc, because `.node circle`
+   reaches the training satellite's ring, its three provider markers and its
+   hand-off dot as well, and the lit state would then fill the whole hand-off
+   solid — the one thing that stage exists to show. */
 .node circle {
+  stroke-width: 1.2;
+}
+.nodeDisc {
   fill: var(--surface);
   stroke: var(--line-strong);
-  stroke-width: 1.2;
   transition:
     fill 260ms var(--ease-out),
     stroke 260ms var(--ease-out);
@@ -117,10 +141,10 @@
   color: var(--muted);
   transition: color 260ms var(--ease-out);
 }
-.node:hover circle {
+.node:hover .nodeDisc {
   stroke: var(--accent-border);
 }
-.node[data-active="true"] circle {
+.node[data-active="true"] .nodeDisc {
   fill: var(--accent);
   stroke: var(--accent);
 }
@@ -145,6 +169,7 @@
 }
 .satelliteDot {
   fill: var(--accent);
+  stroke: var(--line-strong);
 }
 .diagram[data-inner-loop="active"] .satelliteRing {
   stroke: var(--accent);
@@ -152,7 +177,6 @@
 .providerDot {
   fill: var(--surface);
   stroke: var(--accent-border);
-  stroke-width: 1.2;
 }
 .diagram[data-inner-loop="active"] .providerDot {
   animation: provider-pass calc(var(--loop-inner) / 3) linear 1 normal none;
@@ -171,14 +195,72 @@
     stroke: var(--accent-border);
   }
 }
-.caption {
-  min-height: 3.4em;
-  max-width: 520px;
+
+/* The mission, in words ------------------------------------------------ */
+/* The disc draws the mission, and the drawing is aria-hidden: on its own it
+   reaches nobody using a screen reader. These are the same words as text.
+   Above the phone breakpoint the picture already shows them, so the text is
+   carried for assistive technology and kept out of sight; the phone drops the
+   disc's type and turns this into the visible copy. */
+.target {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.targetEyebrow {
+  color: var(--muted);
+}
+.targetStatement {
   margin: 0;
-  text-align: center;
+  line-height: 1.3;
+}
+.targetNote {
+  color: var(--accent);
+}
+
+/* The readout ---------------------------------------------------------- */
+.legend {
+  display: flex;
+  grid-column: 1;
+  grid-row: 2;
+  align-self: end;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  /* The intro's measure, so the whole column keeps one left edge and one
+     line length. More air above the rule than below it, so the rule reads
+     as a change of register after the quote and not as its underline. */
+  max-width: 560px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.caption {
+  /* Reserves the tallest stage summary at this measure, so the walk never
+     nudges the control, the rule or the index below it: two lines here,
+     three while the column is narrow, where French runs longest. */
+  min-height: 3.3em;
+  margin: 0;
   font-size: 14px;
   line-height: 1.6;
   animation: arrive 480ms var(--ease-out) both;
+}
+/* One shot as each stage lands, and then it is over: the caption is keyed on
+   the stage, so a new one arrives rather than swapping in place. */
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .captionNumber {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -190,10 +272,13 @@
   color: var(--muted);
 }
 .controls {
+  /* Stacked, so the note starts on the same left edge as the control above
+     it: side by side, that edge moves with the button's width, which the
+     locale decides. */
   display: flex;
-  align-items: center;
-  gap: 14px;
-  max-width: 560px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
 }
 .toggle {
   flex-shrink: 0;
@@ -211,9 +296,13 @@
 .steps {
   display: grid;
   grid-column: 1 / -1;
+  grid-row: 3;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px 18px;
-  margin: 8px 0 0;
+  /* With the row gap, 56px of air under the readout: the caption names the
+     stage the picture is on, the index is what it points into, and the two
+     want visible daylight between them. */
+  margin: 28px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -297,13 +386,38 @@
   min-height: 46px;
 }
 
+@media (max-width: 1160px) {
+  .caption {
+    min-height: 4.9em;
+  }
+}
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
     gap: 26px;
   }
+  /* One column, in DOM order: copy, ring, readout, index. */
+  .copy,
+  .stage,
+  .legend,
+  .steps {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  /* The measure stands: the readout still sits under the intro, and letting
+     it run the whole column here would put a 12px note at ninety characters
+     a line directly under a paragraph held to sixty-seven. */
+  .legend {
+    gap: 12px;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .caption {
+    min-height: 3.4em;
+  }
   .steps {
     grid-template-columns: 1fr;
+    margin-top: 8px;
   }
   .mission {
     grid-template-columns: 1fr;
@@ -317,13 +431,87 @@
   .label {
     display: none;
   }
+  /* The labels held the outer third of the picture; with them gone the
+     diagram takes the whole column and the ring scales into the gutters they
+     leave behind, instead of shrinking away in the middle of an empty frame. */
+  .diagram {
+    max-width: none;
+  }
+  .plot {
+    transform: scale(var(--plot-fill));
+  }
+  /* The centre reads as open orbit once its words move below the ring. A disc
+     still filled and haloed with nothing in it is a blank plate two thirds the
+     width of the ring: a picture that looks like it failed to load. */
+  .disc {
+    fill: none;
+  }
+  .discHalo {
+    display: none;
+  }
+  /* Drawn type scales with the picture, so at this width the disc's lines
+     render between four and eleven pixels. The disc keeps its shape and the
+     mission below it carries the words. */
+  .discEyebrow,
+  .discStatement,
+  .discNote {
+    display: none;
+  }
+  .target {
+    position: static;
+    display: grid;
+    gap: 6px;
+    justify-items: center;
+    width: auto;
+    max-width: 34ch;
+    height: auto;
+    margin: 14px auto 0;
+    overflow: visible;
+    clip-path: none;
+    text-align: center;
+    white-space: normal;
+  }
+  .targetEyebrow,
+  .targetNote {
+    font-size: 11px;
+  }
+  .targetStatement {
+    font-size: 21px;
+  }
+  /* The phone keeps its centred stack: the readout sits under the ring, the
+     control runs the full width of the column, and the measure goes, because
+     the column is already narrower than the cap and a held readout would sit
+     off the centre the ring above it is drawn on. */
+  .legend {
+    max-width: none;
+  }
+  .caption {
+    text-align: center;
+  }
   .controls {
-    flex-direction: column;
     align-items: stretch;
     text-align: center;
   }
   .quote {
     font-size: 18px;
+  }
+}
+/*
+ * The caption reserves the tallest stage summary so the Pause control below it
+ * does not shift as the walk advances. The need is not monotonic in width: at
+ * 900px the layout drops to one column, which WIDENS the caption's measure and
+ * costs it a line. It climbs again once the column itself gets narrow. Measured
+ * against the French copy, which runs longest: 45px down to 540, 67px from 500
+ * to 360, 90px at 340 and below.
+ */
+@media (max-width: 520px) {
+  .caption {
+    min-height: 5em;
+  }
+}
+@media (max-width: 350px) {
+  .caption {
+    min-height: 6.6em;
   }
 }
 @media (max-width: 420px) {

@@ -93,8 +93,8 @@ export const french: Dictionary = {
   "The software development lifecycle": "Le cycle de développement logiciel",
   "A new way to build software.": "Une nouvelle façon de bâtir des logiciels.",
   "For tomorrow’s internet.": "Pour l’Internet de demain.",
-  "One loop of {count} stages, walked in full before anything ships. Nothing is skipped, and nothing is called done until the loop closes.":
-    "Une seule boucle de {count} étapes, parcourue au complet avant que quoi que ce soit ne sorte. Rien n’est sauté, et rien n’est dit terminé tant que la boucle n’est pas bouclée.",
+  "From concept to production and back through real-world feedback. Every release is validated before it ships—and improved through what comes next.":
+    "Du concept à la production, puis retour par les retours du monde réel. Chaque version est validée avant sa sortie, puis améliorée par la suite.",
   "What it does today: bring a PDF or a captioned YouTube video and talk to it. How it is built is the rest of this page.":
     "Ce qu’il fait aujourd’hui : apportez un PDF ou une vidéo YouTube sous-titrée et parlez-lui. Comment il est bâti, c’est le reste de cette page.",
   "Open the app": "Ouvrir l’application",

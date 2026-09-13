@@ -63,7 +63,7 @@ export function Process({
 
       <p className={styles.quote}>{copy.quote}</p>
 
-      <section className={styles.subcycle} aria-live="polite">
+      <div className={styles.subcycle} aria-live="polite">
         <div>
           <span className="eyebrow">{subcycle.title}</span>
           <p className={styles.subcycleCriterion}>{subcycle.criterion}</p>
@@ -78,7 +78,7 @@ export function Process({
             </li>
           ))}
         </ol>
-      </section>
+      </div>
 
       <div className={styles.mission}>
         <div className={styles.missionCopy}>

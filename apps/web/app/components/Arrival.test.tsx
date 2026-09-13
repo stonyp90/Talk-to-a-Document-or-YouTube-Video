@@ -106,16 +106,13 @@ describe("Arrival", () => {
     expect(mark).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("names each stage once, so the screen argues rather than repeating", () => {
+  it("names each stage in the accessible rail and explains its active subcycle", () => {
     const section = mount().querySelector("section")!;
-    const spoken = announced(section);
-    // Counted, so an empty copy file could never make this pass by naming
-    // nothing at all.
     expect(TITLES).toHaveLength(PROCESS_STEP_IDS.length);
-    // The whole point of the restructure: the loop was named in the lede,
-    // drawn on the ring and then listed again a screen below. The ring and
-    // the caption are drawn for the eye, so the rail is the only telling.
-    for (const title of TITLES) expect(mentions(spoken, title), title).toBe(1);
+    const rail = screen.getByRole("list", { name: copy.controls.stepList });
+    const railText = announced(rail);
+    for (const title of TITLES) expect(mentions(railText, title), title).toBe(1);
+    expect(section).toHaveTextContent(copy.subcycles[PROCESS_STEP_IDS[0]].title);
   });
 
   it("puts every stage a keyboard can reach in the one rail", () => {

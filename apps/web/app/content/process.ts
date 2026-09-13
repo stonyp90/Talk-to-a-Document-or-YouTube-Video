@@ -56,6 +56,10 @@ export type ProcessCopy = {
     silence: string;
     pauseVoice: string;
     resumeVoice: string;
+    zoomIn: string;
+    zoomOut: string;
+    zoomReset: string;
+    zoomHint: string;
   };
   steps: ProcessStepCopy[];
   mission: {
@@ -76,16 +80,16 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       trail: " at every stage.",
     },
     intro:
-      "We design, build, and validate before release—then operate, listen, and improve. Every loop has a purpose. Every release moves the product forward.",
+        "From concept to production and back through real-world feedback. We design, build, validate, and operate software as one continuous process—with security and quality throughout.",
     quote:
-      "The main lifecycle connects the loops; feedback returns where it matters.",
+        "Shipping is a milestone. Learning closes the loop, and feedback returns where it matters.",
     target: {
       eyebrow: "The mission",
       statement: ["The bridge to", "tomorrow’s internet."],
       note: "One lifecycle · smaller loops",
     },
     innerLoop:
-      "Training is a loop of its own: the best model from one provider proves itself, then an event hands off to the best from the next provider, each iterating on its own, first locally, then in beta, through this same loop. The big loop waits until the small one closes.",
+        "Improvement is a loop of its own: measure, gather feedback, change the product, evaluate the result, and repeat. The main lifecycle can return directly to the stage that needs the change.",
     subcycles: {
       concept: {
         title: "Discovery loop",
@@ -99,22 +103,22 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       },
       tools: {
         title: "Development loop",
-        steps: ["Build", "Test", "Review", "Fix", "Repeat"],
+        steps: ["Design", "Build", "Test", "Review", "Repeat"],
         criterion: "A validated release candidate.",
       },
       local: {
         title: "Development loop",
-        steps: ["Build", "Test", "Review", "Fix", "Repeat"],
+        steps: ["Design", "Build", "Test", "Review", "Repeat"],
         criterion: "A validated release candidate.",
       },
       test: {
         title: "Development loop",
-        steps: ["Build", "Test", "Review", "Fix", "Repeat"],
+        steps: ["Design", "Build", "Test", "Review", "Repeat"],
         criterion: "A validated release candidate.",
       },
       secure: {
         title: "Development loop",
-        steps: ["Build", "Test", "Review", "Fix", "Repeat"],
+        steps: ["Design", "Build", "Test", "Review", "Repeat"],
         criterion: "A validated release candidate.",
       },
       deliver: {
@@ -130,17 +134,17 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       sustain: {
         title: "Learning loop",
         steps: ["Measure", "Gather feedback", "Improve", "Evaluate", "Repeat"],
-        criterion: "An improvement ready for planning.",
+        criterion: "A change ready to return to the right stage.",
       },
       listen: {
         title: "Learning loop",
         steps: ["Measure", "Gather feedback", "Improve", "Evaluate", "Repeat"],
-        criterion: "An improvement ready for planning.",
+        criterion: "A change ready to return to the right stage.",
       },
       train: {
         title: "Learning loop",
         steps: ["Measure", "Gather feedback", "Improve", "Evaluate", "Repeat"],
-        criterion: "An improvement ready for planning.",
+        criterion: "A change ready to return to the right stage.",
       },
     },
     controls: {
@@ -151,6 +155,10 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       silence: "Stop the voice",
       pauseVoice: "Pause the voice",
       resumeVoice: "Resume the voice",
+      zoomIn: "Zoom in on the lifecycle",
+      zoomOut: "Zoom out of the lifecycle",
+      zoomReset: "Reset lifecycle zoom",
+      zoomHint: "Scroll to explore the enlarged lifecycle",
     },
     steps: [
       {
@@ -165,56 +173,56 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       },
       {
         id: "tools",
-        title: "Tools",
+        title: "Design",
         summary:
-          "Choose the best technology for the job, not the most familiar one.",
+          "Shape the experience, architecture, and constraints before implementation.",
       },
       {
         id: "local",
-        title: "Local",
+        title: "Build",
         summary:
-          "Run the whole product on one machine, every dependency included.",
+          "Implement the smallest useful product with its dependencies and interfaces clear.",
       },
       {
         id: "test",
-        title: "Test",
+        title: "Integrate",
         summary:
-          "Behaviour, contract and unit tests on every cycle, so nothing regresses when the next feature lands.",
+          "Bring components together and test their contracts before release validation.",
       },
       {
         id: "secure",
-        title: "Secure",
+        title: "Validate",
         summary:
-          "Security and compliance are the law, so they are built into every cycle rather than added at the end.",
+          "Check behaviour, quality, privacy, and security throughout the delivery cycle.",
       },
       {
         id: "deliver",
-        title: "Deliver",
+        title: "Release",
         summary:
-          "Continuous integration and delivery: every change is checked, then shipped automatically.",
+          "Make a validated version available with a reversible, observable release.",
       },
       {
         id: "production",
-        title: "Production",
-        summary: "Go live, then test it in production too.",
+        title: "Operate",
+        summary: "Keep the live product healthy, useful, and safe for its users.",
       },
       {
         id: "sustain",
-        title: "Sustain",
+        title: "Measure",
         summary:
-          "Nobody builds software for free, so every cycle has to pay for itself: free if your conversations help train the models, paid if you would rather they did not.",
+          "Observe technical health, user experience, and outcomes—not only deployment status.",
       },
       {
         id: "listen",
         title: "Listen",
         summary:
-          "Gather enough feedback from real people to make the models better each cycle.",
+          "Gather feedback from real people and turn it into a clear product signal.",
       },
       {
         id: "train",
-        title: "Train",
+        title: "Improve",
         summary:
-          "What the free plan agreed to share trains the models, paid work never does, and every model provider gets its turn.",
+          "Evaluate the signal, improve the product, and return the work to the stage that needs it.",
       },
     ],
     mission: {
@@ -234,16 +242,16 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       trail: " à chaque étape.",
     },
     intro:
-      "Nous concevons, bâtissons et validons avant la sortie, puis nous opérons, écoutons et améliorons. Chaque boucle a un but. Chaque version fait avancer le produit.",
+      "Du concept à la production, puis retour par les retours du monde réel. Nous concevons, bâtissons, validons et opérons le logiciel comme un seul processus continu, avec la sécurité et la qualité partout.",
     quote:
-      "Le cycle principal relie les boucles; les retours reviennent à l’étape utile.",
+      "La sortie est un jalon. L’apprentissage ferme la boucle et les retours reviennent à l’étape utile.",
     target: {
       eyebrow: "La mission",
       statement: ["Le pont vers", "l’Internet de demain."],
       note: "Un cycle · de petites boucles",
     },
     innerLoop:
-      "L’entraînement est une boucle à part : le meilleur modèle d’un fournisseur fait ses preuves, puis un événement passe le relais au meilleur du fournisseur suivant, chacun itérant de lui-même, en local d’abord, puis en bêta, dans cette même boucle. La grande boucle attend que la petite soit bouclée.",
+      "L’amélioration est une boucle à part : mesurer, recueillir les retours, modifier le produit, évaluer le résultat, puis recommencer. Le cycle principal peut revenir directement à l’étape qui doit changer.",
     subcycles: {
       concept: {
         title: "Boucle de découverte",
@@ -269,22 +277,22 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       },
       tools: {
         title: "Boucle de développement",
-        steps: ["Bâtir", "Tester", "Revoir", "Corriger", "Recommencer"],
+        steps: ["Concevoir", "Bâtir", "Tester", "Revoir", "Recommencer"],
         criterion: "Une version candidate validée.",
       },
       local: {
         title: "Boucle de développement",
-        steps: ["Bâtir", "Tester", "Revoir", "Corriger", "Recommencer"],
+        steps: ["Concevoir", "Bâtir", "Tester", "Revoir", "Recommencer"],
         criterion: "Une version candidate validée.",
       },
       test: {
         title: "Boucle de développement",
-        steps: ["Bâtir", "Tester", "Revoir", "Corriger", "Recommencer"],
+        steps: ["Concevoir", "Bâtir", "Tester", "Revoir", "Recommencer"],
         criterion: "Une version candidate validée.",
       },
       secure: {
         title: "Boucle de développement",
-        steps: ["Bâtir", "Tester", "Revoir", "Corriger", "Recommencer"],
+        steps: ["Concevoir", "Bâtir", "Tester", "Revoir", "Recommencer"],
         criterion: "Une version candidate validée.",
       },
       deliver: {
@@ -306,7 +314,7 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
           "Évaluer",
           "Recommencer",
         ],
-        criterion: "Une amélioration prête pour le plan.",
+        criterion: "Un changement prêt à revenir à l’étape utile.",
       },
       listen: {
         title: "Boucle d’apprentissage",
@@ -317,7 +325,7 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
           "Évaluer",
           "Recommencer",
         ],
-        criterion: "Une amélioration prête pour le plan.",
+        criterion: "Un changement prêt à revenir à l’étape utile.",
       },
       train: {
         title: "Boucle d’apprentissage",
@@ -328,7 +336,7 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
           "Évaluer",
           "Recommencer",
         ],
-        criterion: "Une amélioration prête pour le plan.",
+        criterion: "Un changement prêt à revenir à l’étape utile.",
       },
     },
     controls: {
@@ -339,6 +347,10 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       silence: "Arrêter la voix",
       pauseVoice: "Mettre la voix en pause",
       resumeVoice: "Reprendre la voix",
+      zoomIn: "Agrandir le cycle de vie",
+      zoomOut: "Réduire le cycle de vie",
+      zoomReset: "Réinitialiser le zoom du cycle",
+      zoomHint: "Faire défiler pour explorer le cycle agrandi",
     },
     steps: [
       {
@@ -353,56 +365,56 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       },
       {
         id: "tools",
-        title: "Outils",
+        title: "Concevoir",
         summary:
-          "Choisir la meilleure technologie pour la tâche, pas la plus familière.",
+          "Façonner l’expérience, l’architecture et les contraintes avant l’implémentation.",
       },
       {
         id: "local",
-        title: "Local",
+        title: "Bâtir",
         summary:
-          "Faire tourner tout le produit sur une seule machine, dépendances comprises.",
+          "Implémenter le plus petit produit utile, avec ses dépendances et ses interfaces claires.",
       },
       {
         id: "test",
-        title: "Tests",
+        title: "Intégrer",
         summary:
-          "Tests de comportement, de contrat et unitaires à chaque cycle, pour qu’aucune régression ne passe quand la prochaine fonctionnalité arrive.",
+          "Réunir les composants et tester leurs contrats avant la validation de sortie.",
       },
       {
         id: "secure",
-        title: "Sécurité",
+        title: "Valider",
         summary:
-          "La sécurité et la conformité sont la loi ; elles font partie de chaque cycle au lieu d’être ajoutées à la fin.",
+          "Vérifier le comportement, la qualité, la confidentialité et la sécurité pendant tout le cycle.",
       },
       {
         id: "deliver",
-        title: "Livraison",
+        title: "Sortir",
         summary:
-          "Intégration et livraison continues : chaque changement est vérifié, puis expédié automatiquement.",
+          "Rendre une version validée disponible avec une sortie réversible et observable.",
       },
       {
         id: "production",
-        title: "Production",
-        summary: "Mettre en ligne, puis tester en production aussi.",
+        title: "Opérer",
+        summary: "Garder le produit en ligne sain, utile et sûr pour ses utilisateurs.",
       },
       {
         id: "sustain",
-        title: "Financement",
+        title: "Mesurer",
         summary:
-          "Personne ne bâtit un logiciel gratuitement : chaque cycle doit donc se payer lui-même. C’est gratuit si vos conversations aident à entraîner les modèles, payant si vous préférez qu’elles n’y servent pas.",
+          "Observer la santé technique, l’expérience et les résultats, pas seulement l’état du déploiement.",
       },
       {
         id: "listen",
         title: "Écoute",
         summary:
-          "Recueillir assez de retours de vraies personnes pour améliorer les modèles à chaque cycle.",
+          "Recueillir les retours de vraies personnes et en faire un signal produit clair.",
       },
       {
         id: "train",
-        title: "Entraînement",
+        title: "Améliorer",
         summary:
-          "Ce que le forfait gratuit accepte de partager entraîne les modèles, le payant n’y sert jamais, et chaque fournisseur de modèles a son tour.",
+          "Évaluer le signal, améliorer le produit et renvoyer le travail à l’étape qui en a besoin.",
       },
     ],
     mission: {

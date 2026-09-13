@@ -9,13 +9,16 @@ import path from "node:path";
  * to open it — and, like the object store, it is fixed when the image is built.
  */
 function connectSources(): string {
+  const bucket = process.env.UPLOAD_BUCKET;
+  const region = process.env.AWS_REGION;
   const objectStore = process.env.OBJECT_STORE_PUBLIC_ENDPOINT;
   const chatSocket = process.env.NEXT_PUBLIC_CHAT_SOCKET_URL;
   return [
     "'self'",
     "https://api.openai.com",
-    "https://*.s3.amazonaws.com",
-    "https://*.amazonaws.com",
+    ...(bucket && region
+      ? [`https://${bucket}.s3.${region}.amazonaws.com`]
+      : []),
     ...(objectStore ? [objectStore] : []),
     ...(chatSocket ? [socketOrigin(chatSocket)] : []),
   ].join(" ");

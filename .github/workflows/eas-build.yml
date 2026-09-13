@@ -28,6 +28,9 @@ jobs:
       EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
       EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
       TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+      # app.config.ts derives the patch version and native build number from
+      # this monotonically increasing GitHub Actions run number.
+      APP_BUILD: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:

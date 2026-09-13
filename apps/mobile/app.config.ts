@@ -1,5 +1,6 @@
 import { version as packageVersion } from "./package.json";
 import { withAndroidManifest, type ConfigPlugin } from "expo/config-plugins";
+import { execFileSync } from "node:child_process";
 
 /**
  * Release builds talk to a local API over plain HTTP on the emulator (through
@@ -21,15 +22,34 @@ const withLocalCleartext: ConfigPlugin = (expoConfig) =>
 
 /**
  * Releases are versioned by the pipeline, never by hand. The major and minor
- * come from package.json; the pipeline supplies the patch and the native build
- * number from its run number, which only ever increases. A local build with
- * nothing set is 0 (`…​.0`, build 1), so a hand-built binary can never be
- * mistaken for a released one.
+ * come from package.json; CI supplies its monotonically increasing run number.
+ * Local and EAS builds without that variable use the commit count, with a
+ * timestamp fallback for source archives, so every build gets a new version
+ * instead of silently reusing 0.1.0.
  */
 function releaseVersion(): { name: string; build: number } {
-  const build = Number(process.env.APP_BUILD ?? "1");
+  const configuredBuild =
+    process.env.APP_BUILD ??
+    process.env.GITHUB_RUN_NUMBER ??
+    process.env.BUILD_NUMBER;
+  const build = Number(configuredBuild ?? sourceBuildNumber());
   if (!Number.isInteger(build) || build < 1) {
     throw new Error("APP_BUILD must be a positive integer.");
+  }
+
+  function sourceBuildNumber(): number {
+    try {
+      const count = Number(
+        execFileSync("git", ["rev-list", "--count", "HEAD"], {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+        }).trim(),
+      );
+      if (Number.isInteger(count) && count > 0) return count;
+    } catch {
+      // EAS source archives may not contain .git; use a unique build number.
+    }
+    return Date.now();
   }
   const named = process.env.APP_VERSION?.trim();
   if (named) {
@@ -83,6 +103,7 @@ const config = {
     icon: "./assets/icon.png",
     owner: process.env.EXPO_OWNER || "stonyp90",
     extra: {
+      website: "https://ursly.io",
       eas: {
         projectId:
           process.env.EXPO_PROJECT_ID || "345afb85-8b7b-49a1-bf93-48e0f2ce0b35",

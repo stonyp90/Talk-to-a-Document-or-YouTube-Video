@@ -270,8 +270,8 @@ export const french = {
   "Read the intro instead": "Lire la présentation",
   "The intro is unavailable right now.":
     "La présentation est indisponible pour le moment.",
-  "The next generation of internet: not a new website, but a new way to use one. Bring a document or a video and Ursly reads it, answering only from it. Say it, and Ursly does it. Motion to action is in beta, built for the headsets coming next. The keyboard still works; it is simply no longer the way in. And nothing ships until the loop closes: concept to production, tested in production, every cycle.":
-    "La nouvelle génération d’internet : pas un nouveau site Web, mais une nouvelle façon de s’en servir. Apportez un document ou une vidéo, Ursly le lit et ne répond qu’à partir de lui. Dites-le, Ursly le fait. Mouvement vers action est en bêta, pensé pour les casques qui arrivent. Le clavier fonctionne toujours ; ce n’est simplement plus la porte d’entrée. Et rien ne sort tant que la boucle n’est pas bouclée : du concept à la production, testé en production, à chaque cycle.",
+  "The next generation of internet: not a new website, but a new way to use one. Bring a document or a video and Ursly reads it, answering only from it. Say it, and Ursly does it. Motion to action is in beta, built for the headsets coming next. The keyboard still works; it is simply no longer the way in. We release carefully through canary or linear rollouts, measure product-market fit, and improve the product and consented AI training path.":
+    "La nouvelle génération d’internet : pas un nouveau site Web, mais une nouvelle façon de s’en servir. Apportez un document ou une vidéo, Ursly le lit et ne répond qu’à partir de lui. Dites-le, Ursly le fait. Mouvement vers action est en bêta, pensé pour les casques qui arrivent. Le clavier fonctionne toujours ; ce n’est simplement plus la porte d’entrée. Nous sortons les versions avec prudence, par canary ou déploiement linéaire, mesurons l’adéquation produit-marché et améliorons le produit et le parcours d’entraînement IA consenti.",
   STEP: "ÉTAPE",
   "Go to step": "Aller à l’étape",
   "Guide progress": "Progression de la visite",

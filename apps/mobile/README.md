@@ -29,6 +29,10 @@ Android Emulator (using `adb reverse`, below). Override with
 `EXPO_PUBLIC_API_URL` for a physical device or HTTPS deployment. Public Expo
 variables must never contain secrets. Local cleartext is enabled for this demo;
 use HTTPS and disable Android cleartext before distributing a production app.
+Build versions are generated automatically: CI uses its monotonic run number;
+local and EAS source builds use the Git commit count, or a timestamp when the
+source archive has no `.git`. Generated app metadata links back to
+[ursly.io](https://ursly.io).
 Android development requires the Android SDK and an available AVD; use
 `adb reverse` to forward the emulator to the local web API.
 

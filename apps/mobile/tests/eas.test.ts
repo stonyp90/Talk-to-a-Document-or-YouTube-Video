@@ -21,10 +21,14 @@ test('Given cloud or local configuration, enforce project linkage and cloud HTTP
   const local = resolve({});
   assert.equal(local.status, 0, local.stderr);
   assert.equal(JSON.parse(local.stdout).android.usesCleartextTraffic, true);
+  assert.equal(JSON.parse(local.stdout).extra.website, 'https://ursly.io');
+  assert.match(JSON.parse(local.stdout).version, /^\d+\.\d+\.\d+$/);
+  assert.match(JSON.parse(local.stdout).ios.buildNumber, /^\d+$/);
   const cloud = resolve({ ...environment, EAS_BUILD_PROFILE: 'preview' });
   assert.equal(cloud.status, 0, cloud.stderr);
   assert.equal(JSON.parse(cloud.stdout).extra.eas.projectId, project);
   assert.equal(JSON.parse(cloud.stdout).owner, environment.EXPO_OWNER);
+  assert.equal(JSON.parse(cloud.stdout).extra.website, 'https://ursly.io');
   assert.notEqual(resolve({ EAS_BUILD_PROFILE: 'preview' }).status, 0);
   assert.notEqual(resolve({ ...environment, EAS_BUILD_PROFILE: 'preview', EXPO_PUBLIC_API_URL: 'http://localhost:3000' }).status, 0);
 });

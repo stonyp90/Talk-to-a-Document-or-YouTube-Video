@@ -127,27 +127,27 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       deliver: {
         title: "Delivery loop",
         steps: ["Deploy", "Verify", "Observe", "Adjust", "Revalidate"],
-        criterion: "A verified production release.",
+        criterion: "A verified release, rolled out by canary or linear progression.",
       },
       production: {
         title: "Delivery loop",
         steps: ["Deploy", "Verify", "Observe", "Adjust", "Revalidate"],
-        criterion: "A verified production release.",
+        criterion: "A verified release, rolled out by canary or linear progression.",
       },
       sustain: {
         title: "Learning loop",
         steps: ["Measure", "Gather feedback", "Improve", "Evaluate", "Repeat"],
-        criterion: "A change ready to return to the right stage.",
+        criterion: "A change ready to return to the right stage, guided by product-market fit.",
       },
       listen: {
         title: "Learning loop",
         steps: ["Measure", "Gather feedback", "Improve", "Evaluate", "Repeat"],
-        criterion: "A change ready to return to the right stage.",
+        criterion: "A change ready to return to the right stage, guided by product-market fit.",
       },
       train: {
         title: "Learning loop",
         steps: ["Measure", "Gather feedback", "Improve", "Evaluate", "Repeat"],
-        criterion: "A change ready to return to the right stage.",
+        criterion: "A change ready to return to the right stage, guided by product-market fit.",
       },
     },
     controls: {
@@ -210,13 +210,14 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       {
         id: "production",
         title: "Operate",
-        summary: "Keep the live product healthy, useful, and safe for its users.",
+        summary:
+          "Operate the live product safely, using canary or linear rollout to learn before widening exposure.",
       },
       {
         id: "sustain",
         title: "Measure",
         summary:
-          "Observe technical health, user experience, and outcomes—not only deployment status.",
+          "Observe technical health, user experience, and product-market fit—not only deployment status.",
       },
       {
         id: "listen",
@@ -228,7 +229,7 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
         id: "train",
         title: "Improve",
         summary:
-          "Evaluate the signal, improve the product, and return the work to the stage that needs it.",
+          "Evaluate the signal, improve the product or training data with consent, and return the work to the stage that needs it.",
       },
     ],
     mission: {
@@ -320,7 +321,8 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
           "Évaluer",
           "Recommencer",
         ],
-        criterion: "Un changement prêt à revenir à l’étape utile.",
+        criterion:
+          "Un changement prêt à revenir à l’étape utile, guidé par l’adéquation produit-marché.",
       },
       listen: {
         title: "Boucle d’apprentissage",
@@ -331,7 +333,8 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
           "Évaluer",
           "Recommencer",
         ],
-        criterion: "Un changement prêt à revenir à l’étape utile.",
+        criterion:
+          "Un changement prêt à revenir à l’étape utile, guidé par l’adéquation produit-marché.",
       },
       train: {
         title: "Boucle d’apprentissage",
@@ -342,7 +345,8 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
           "Évaluer",
           "Recommencer",
         ],
-        criterion: "Un changement prêt à revenir à l’étape utile.",
+        criterion:
+          "Un changement prêt à revenir à l’étape utile, guidé par l’adéquation produit-marché.",
       },
     },
     controls: {
@@ -405,13 +409,14 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       {
         id: "production",
         title: "Opérer",
-        summary: "Garder le produit en ligne sain, utile et sûr pour ses utilisateurs.",
+        summary:
+          "Garder le produit sain, utile et sûr, avec une sortie canary ou linéaire avant d’élargir l’exposition.",
       },
       {
         id: "sustain",
         title: "Mesurer",
         summary:
-          "Observer la santé technique, l’expérience et les résultats, pas seulement l’état du déploiement.",
+          "Observer la santé technique, l’expérience et l’adéquation produit-marché, pas seulement le déploiement.",
       },
       {
         id: "listen",
@@ -423,7 +428,7 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
         id: "train",
         title: "Améliorer",
         summary:
-          "Évaluer le signal, améliorer le produit et renvoyer le travail à l’étape qui en a besoin.",
+          "Évaluer le signal, améliorer le produit ou les données d’entraînement avec consentement, puis revenir à l’étape utile.",
       },
     ],
     mission: {

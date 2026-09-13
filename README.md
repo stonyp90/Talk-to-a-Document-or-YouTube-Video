@@ -533,17 +533,17 @@ Every feature walks one loop, and it is done only when the loop closes. The land
 
 1. **Concept** — an idea worth building, said plainly.
 2. **Plan** — how it will be built, written before any code.
-3. **Tools** — the best technology for the job, not the most familiar.
-4. **Local** — the whole stack on one machine with Compose, every dependency included.
-5. **Test** — behaviour (Gherkin), contract and unit tests on every cycle, so nothing regresses when the next feature lands.
-6. **Secure** — security and compliance are the law: secret scanning, canary builds, CodeQL and dependency audits run on every change.
-7. **Deliver** — continuous integration and delivery: every change is checked, then shipped automatically from `main`.
-8. **Production** — deployed through OIDC and smoke-tested in production.
-9. **Sustain** — nobody builds software for free, so every cycle has to pay for itself: free if the visitor's conversations help train the models, paid if they would rather they did not.
-10. **Listen** — enough feedback from real people to make the models better each cycle.
-11. **Train** — the direction we are building toward: what the free plan agreed to share trains the models, paid work never does, and every model provider gets its turn. The best model from one provider proves itself, an event hands off to the best from the next, each iterating on its own, locally and then in beta, through this same loop before the next step.
+3. **Design** — shape the experience, architecture and constraints before implementation.
+4. **Build** — implement the smallest useful product with clear interfaces.
+5. **Integrate** — bring components together and validate their contracts.
+6. **Validate** — check behaviour, quality, privacy and security throughout the cycle.
+7. **Release** — make a reversible, observable version available.
+8. **Operate** — keep the live product healthy, using canary or linear rollout before widening exposure.
+9. **Measure** — observe technical health, user experience and product-market fit.
+10. **Listen** — turn customer, team and production feedback into a clear signal.
+11. **Improve** — improve the product or consented AI training data, then return to the stage that needs the change.
 
-The training stage has a loop of its own, and the big loop waits for it. We build by voice because it is faster than a keyboard; gestures come next, and the motion mode shown in the top menu is the first step.
+Canary and linear releases help us learn product-market fit safely. AI training is an explicit, consent-based improvement path—not an automatic step for every release. We build by voice because it is faster than a keyboard; gestures come next, and the motion mode shown in the top menu is the first step.
 
 ---
 

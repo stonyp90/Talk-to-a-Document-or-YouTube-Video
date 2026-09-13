@@ -12,7 +12,7 @@ import { Language, TranslationKey } from "./i18n";
 import { palette as c, Reveal, Touch, serif } from "./design";
 
 const transcript: TranslationKey =
-  "The next generation of internet: not a new website, but a new way to use one. Bring a document or a video and Ursly reads it, answering only from it. Say it, and Ursly does it. Motion to action is in beta, built for the headsets coming next. The keyboard still works; it is simply no longer the way in. And nothing ships until the loop closes: concept to production, tested in production, every cycle.";
+  "The next generation of internet: not a new website, but a new way to use one. Bring a document or a video and Ursly reads it, answering only from it. Say it, and Ursly does it. Motion to action is in beta, built for the headsets coming next. The keyboard still works; it is simply no longer the way in. We release carefully through canary or linear rollouts, measure product-market fit, and improve the product and consented AI training path.";
 
 type Props = {
   motion: boolean;

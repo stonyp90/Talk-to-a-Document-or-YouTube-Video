@@ -3,7 +3,7 @@ import { APP_PATH, LANDING_PATH, appPath } from "../routes";
 import { MENU_SECTIONS } from "../../apps/web/app/content/story";
 
 const INTRO_KEY = "ursly-intro-v1";
-const intro = (page: Page) => page.getByRole("dialog", { name: /Web 3\.0/ });
+const intro = (page: Page) => page.getByRole("dialog", { name: /Ursly/ });
 const nav = (page: Page) => page.getByRole("navigation", { name: "Primary" });
 const modes = (page: Page) =>
   nav(page).getByRole("radiogroup", { name: "Control mode" });

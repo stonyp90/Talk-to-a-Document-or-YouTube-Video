@@ -118,7 +118,10 @@ resource "aws_apigatewayv2_api" "http" {
     # while reading as though it allowed something.
     allow_origins = compact([var.app_origin])
     allow_methods = ["*"]
-    allow_headers = ["content-type"]
+    # Native clients carry the authenticated session as an Authorization
+    # header; browsers normally use the HttpOnly cookie. CORS must preflight
+    # both carriers when the API is served from the configured app origin.
+    allow_headers = ["content-type", "authorization"]
   }
 }
 resource "aws_s3_bucket" "uploads" {

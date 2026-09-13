@@ -142,7 +142,11 @@ TRANSCRIPT_MODE=live
 OPENAI_API_KEY=<your-project-key>
 ```
 
-`PROVIDER_MODE` controls OpenAI; `TRANSCRIPT_MODE` independently controls YouTube. Live calls cost money. Never put a secret in a `NEXT_PUBLIC_*` or `EXPO_PUBLIC_*` variable — those are shipped to clients — and never commit `.env.local`.
+`PROVIDER_MODE` controls OpenAI; `YOUTUBE_TRANSCRIPT_MODE` controls the
+application's YouTube adapter, while the captions service itself uses
+`TRANSCRIPT_MODE`. Live calls cost money. Never put a secret in a
+`NEXT_PUBLIC_*` or `EXPO_PUBLIC_*` variable — those are shipped to clients
+— and never commit `.env.local`.
 
 Full environment reference: [`.env.example`](.env.example) and [service setup](SERVICE-SETUP.md).
 
@@ -387,6 +391,18 @@ round.
 
 **Hosting.** Terraform builds the Next.js image into ECR and runs it on Lambda behind API Gateway, alongside a caption Lambda, S3 and Secrets Manager. The live channel is a third function on a WebSocket API of its own: the gateway holds the connection, every frame reaches the same handler, and the answer is posted back down that connection, which is how a streamed answer outlives the 29-second integration ceiling that bounds the HTTP side. Its address is a Terraform output (`socket_url`); the web image has to be built with that value in `NEXT_PUBLIC_CHAT_SOCKET_URL`, or the deployed browser never opens the socket and every answer comes back through `/api/text-chat`. GitHub Actions deploys through OIDC with no long-lived AWS keys. The default runtime is Lambda because its scale-to-zero behavior and per-request billing suit intermittent demo traffic. ECS Fargate would win on steady traffic and long-lived connections; it costs more to leave running for a demo.
 
+**Production authentication blocker.** The HTTP API and native-device requests
+are authenticated with the account session, but the current WebSocket protocol
+authenticates only the browser origin and connection-level question limit. It
+does not yet validate the session cookie or the mobile bearer token, and its
+per-connection limit is not the account allowance. Do not advertise the deployed socket as an authenticated paid path until the
+gateway has a shared session verifier (or a deliberately signed, short-lived
+socket ticket) and an account-scoped usage check. The current deployment
+workflow requires `CHAT_SOCKET_URL` and smoke-tests that socket, so production
+readiness is blocked until that workflow check and the client build default are
+changed together. Adding `CHAT_ALLOWED_ORIGINS` limits where a browser may
+connect but does not fix this authorization gap.
+
 ---
 
 ## The gate
@@ -481,7 +497,10 @@ TRANSCRIPT_PROXY_HTTPS_URL=...
 
 On AWS, set the Terraform variable `transcript_proxy_url` at apply time; it is marked `sensitive`, never committed, and Lambda encrypts function environment variables at rest. A residential or ISP-grade proxy pool is what YouTube actually answers; a datacentre proxy is usually blocked in the same way the Lambda is. `GET /health` on the caption service reports `"proxied": true` so you can confirm the wiring without exposing the address. With no proxy configured the behaviour is unchanged.
 
-Locally, `TRANSCRIPT_MODE=live` fetches real captions directly and `TRANSCRIPT_MODE=mock` returns a deterministic transcript for tests.
+Locally, `YOUTUBE_TRANSCRIPT_MODE=live` fetches through the configured
+captions service; `YOUTUBE_TRANSCRIPT_MODE=mock` returns a deterministic
+in-process transcript. The service's own `TRANSCRIPT_MODE` controls whether
+that HTTP boundary uses live captions or deterministic fixtures.
 
 ---
 
@@ -538,7 +557,7 @@ The training stage has a loop of its own, and the big loop waits for it. We buil
 | Live channel never opens     | Check `NEXT_PUBLIC_CHAT_SOCKET_URL`, that the origin is in `CHAT_ALLOWED_ORIGINS`, and rebuild the web image: the policy is fixed at build time. |
 | No sound in mock mode        | Mock mode has no real audio. Set `PROVIDER_MODE=live` and a key.                                                                                 |
 | Microphone unavailable       | Voice needs HTTPS or `localhost`, plus browser permission. The interface says so and keeps typing available.                                     |
-| YouTube captions unavailable | Try a captioned video, check `TRANSCRIPT_MODE`, and read the section above.                                                                      |
+| YouTube captions unavailable | Try a captioned video, check `YOUTUBE_TRANSCRIPT_MODE`, `TRANSCRIPT_SERVICE_URL`, and the service's `TRANSCRIPT_MODE`, then read the section above. |
 | Scanned PDF rejected         | It has no text layer. OCR is not implemented.                                                                                                    |
 | Environment change ignored   | Restart Compose; rebuild for mobile public variables.                                                                                            |
 

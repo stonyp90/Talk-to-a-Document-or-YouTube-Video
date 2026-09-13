@@ -7,7 +7,7 @@ x-object-store-image: &object-store-image ${OBJECT_STORE_IMAGE:-quay.io/minio/mi
 
 x-app-environment: &app-environment
   PROVIDER_MODE: ${PROVIDER_MODE:-mock}
-  YOUTUBE_TRANSCRIPT_MODE: live
+  YOUTUBE_TRANSCRIPT_MODE: ${YOUTUBE_TRANSCRIPT_MODE:-mock}
   # The local stack finds videos from spoken words without a YouTube key: the
   # fixtures are deterministic, so the acceptance and browser suites can speak
   # an artist and open a captioned result with no quota and no network.

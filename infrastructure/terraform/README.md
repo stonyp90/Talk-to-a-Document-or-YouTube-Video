@@ -205,6 +205,16 @@ IAM has no condition key for the contents of a trust policy, so that action on a
 runtime role is a way to take the role itself. Terraform needs it only to correct
 drift, which an operator repairs by hand.
 
+The deployed WebSocket is not yet an authenticated paid path. Its `$connect`
+handler checks `Origin`, and its channel has a per-connection question limit,
+but it cannot resolve the HTTP account cookie or mobile bearer token from the
+separate chat function. A shared session verifier (or a short-lived signed
+socket ticket) and an account-scoped usage check are required before production
+use. The current workflow requires `CHAT_SOCKET_URL` and smoke-tests that
+socket, so those checks and the client build default must be changed together
+with that implementation. `CHAT_ALLOWED_ORIGINS` is defence-in-depth, not an
+authentication substitute; use the authenticated HTTP fallback meanwhile.
+
 What none of that caps is sending volume. The deploy role ships the code the api
 function runs, so once `environments/email` and bootstrap have been applied with an
 identity, a holder of that role can cause mail as the one pinned From address, up to

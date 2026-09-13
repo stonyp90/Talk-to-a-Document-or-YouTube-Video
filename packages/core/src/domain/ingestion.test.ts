@@ -157,7 +157,7 @@ describe("untrusted source boundary", () => {
     characters: injection.length,
   };
 
-  const TOKEN = "0123456789abcdef0123456789abcdef";
+  const TOKEN = "fixture-source-token";
   const boundary = `${UNTRUSTED_SOURCE_BOUNDARY_PREFIX} ${TOKEN}-----`;
   const built = () =>
     buildContextInstructions(caption, undefined, "voice", TOKEN);

@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Language, TranslationKey } from "./i18n";
-import { palette as c, Touch, serif } from "./design";
+import { palette as c, Reveal, Touch, serif } from "./design";
 
 const transcript: TranslationKey =
   "The next generation of internet: not a new website, but a new way to use one. Bring a document or a video and Ursly reads it, answering only from it. Say it, and Ursly does it. Motion to action is in beta, built for the headsets coming next. The keyboard still works; it is simply no longer the way in. And nothing ships until the loop closes: concept to production, tested in production, every cycle.";
@@ -93,7 +93,7 @@ export function IntroVideo({ motion, language, t }: Props) {
         presentationStyle="pageSheet"
         onRequestClose={close}
       >
-        <View style={s.screen}>
+        <Reveal motion={motion} style={s.screen}>
           <View style={s.heading}>
             <View style={s.headingCopy}>
               <Text style={s.eyebrow}>{t("The Ursly story")}</Text>
@@ -135,7 +135,7 @@ export function IntroVideo({ motion, language, t }: Props) {
             <Text style={s.transcriptTitle}>{t("Read the intro instead")}</Text>
             <Text style={s.transcriptText}>{t(transcript)}</Text>
           </View>
-        </View>
+        </Reveal>
       </Modal>
     </>
   );

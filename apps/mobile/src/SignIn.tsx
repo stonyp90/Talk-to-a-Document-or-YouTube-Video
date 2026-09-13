@@ -4,13 +4,13 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { TranslationKey } from "./i18n";
 import { Brand, Orbit, Touch, palette as c, serif } from "./design";
 
@@ -101,7 +101,7 @@ export function MobileSignIn({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={s.screen}>
+      <SafeAreaView style={s.screen} edges={["top", "left", "right", "bottom"]}>
         <KeyboardAvoidingView
           style={s.screen}
           behavior={Platform.OS === "ios" ? "padding" : undefined}

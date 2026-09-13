@@ -1,5 +1,12 @@
-import React from "react";
-import { StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  Animated,
+  Easing,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from "react-native";
 import type { TranslationKey } from "./i18n";
 import { MODES, type EntryMode, type ModeId } from "./modes";
 import { palette as c, SourceIcon, Touch, Wave } from "./design";
@@ -16,6 +23,72 @@ function Glyph({ id, color }: { id: ModeId; color: string }) {
   if (id === "voice") return <Wave motion={false} color={color} />;
   if (id === "text") return <SourceIcon kind="pdf" color={color} />;
   return <Text style={[s.glyph, { color }]}>✦</Text>;
+}
+
+function ModeItem({
+  item,
+  checked,
+  color,
+  motion,
+  t,
+  onChoose,
+}: {
+  item: (typeof MODES)[number];
+  checked: boolean;
+  color: string;
+  motion: boolean;
+  t: (key: TranslationKey) => string;
+  onChoose: (id: ModeId) => void;
+}) {
+  const [selection] = useState(() => new Animated.Value(checked ? 1 : 0));
+  useEffect(() => {
+    if (!motion) {
+      selection.setValue(checked ? 1 : 0);
+      return;
+    }
+    Animated.timing(selection, {
+      toValue: checked ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [checked, motion, selection]);
+  return (
+    <Touch
+      label={t(item.label)}
+      motion={motion}
+      selected={checked}
+      accessibilityRole="radio"
+      onPress={() => onChoose(item.id)}
+      style={s.item}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          s.itemSelected,
+          {
+            opacity: selection,
+            transform: [
+              {
+                scale: selection.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.94, 1],
+                }),
+              },
+            ],
+          },
+        ]}
+      />
+      <View style={s.itemInner}>
+        <Glyph id={item.id} color={color} />
+        <Text style={[s.label, checked && s.labelSelected]}>
+          {t(item.short)}
+        </Text>
+        {item.detail && <Text style={s.detail}>{t(item.detail)}</Text>}
+      </View>
+    </Touch>
+  );
 }
 
 /**
@@ -36,23 +109,15 @@ export function ModeBar({ mode, motion, t, onChoose, onLayout }: Props) {
         const checked = item.id === mode;
         const color = checked ? c.ink : c.muted;
         return (
-          <Touch
+          <ModeItem
             key={item.id}
-            label={t(item.label)}
+            item={item}
+            checked={checked}
+            color={color}
             motion={motion}
-            selected={checked}
-            accessibilityRole="radio"
-            onPress={() => onChoose(item.id)}
-            style={[s.item, checked && s.itemSelected]}
-          >
-            <View style={s.itemInner}>
-              <Glyph id={item.id} color={color} />
-              <Text style={[s.label, checked && s.labelSelected]}>
-                {t(item.short)}
-              </Text>
-              {item.detail && <Text style={s.detail}>{t(item.detail)}</Text>}
-            </View>
-          </Touch>
+            t={t}
+            onChoose={onChoose}
+          />
         );
       })}
     </View>

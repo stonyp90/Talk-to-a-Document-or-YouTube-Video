@@ -776,6 +776,11 @@ h3 {
   color: var(--muted);
   font-size: 12px;
   font-weight: 600;
+  transition:
+    border-color var(--motion-fast) ease,
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease;
 }
 .tab.active {
   border-color: var(--line);
@@ -1475,6 +1480,26 @@ h3 {
     transform: translateY(0);
   }
 }
+@keyframes mobile-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes intro-stage-in {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 @keyframes guide-in {
   from {
     opacity: 0;
@@ -1555,6 +1580,15 @@ h3 {
   }
 }
 @media (max-width: 700px) {
+  /* Phone screens have less visual space and less time between gestures.
+     Keep the same hierarchy while shortening entrance/reveal timings and
+     reducing travel distance so transitions feel responsive rather than
+     sluggish. */
+  :root {
+    --motion-base: 280ms;
+    --motion-slow: 460ms;
+  }
+
   .shell {
     /* The container already owns the mobile gutter; avoid doubling it. */
     padding-inline: 0;
@@ -1654,6 +1688,7 @@ h3 {
     gap: var(--space-sm);
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -2001,6 +2036,11 @@ h3 {
   font-size: 12px;
   font-weight: 650;
   white-space: nowrap;
+  transition:
+    border-color var(--motion-fast) ease,
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease;
 }
 .mode .icon {
   width: 15px;
@@ -3149,7 +3189,12 @@ h3 {
   /* Never squeezed to a clipped label: where the row runs out the anchors
      yield whole, at the widths below. */
   .nav[data-page="landing"] .nav-sections {
-    flex: none;
+    /* Keep the story index available at the narrowest widths. Without a
+       flexible basis the brand and actions consume the row and this flex
+       item collapses to zero, leaving keyboard and touch readers no way to
+       reach the story sections. */
+    flex: 1 1 auto;
+    min-width: 0;
   }
   /* The speaking mark is the panel's flourish. On a phone row every pixel is
      spoken for, so the way in keeps its word and drops the mark. */
@@ -3347,6 +3392,7 @@ h3 {
   }
   .intro-stage {
     align-self: start;
+    animation: intro-stage-in var(--motion-base) var(--ease-out) both;
   }
   .intro-gate-footer {
     align-self: end;
@@ -3378,13 +3424,13 @@ h3 {
     font-weight: 400;
     letter-spacing: -0.03em;
     line-height: 1.1;
-    animation: rise-in var(--motion-base) var(--ease-out) both;
+    animation: mobile-rise-in var(--motion-base) var(--ease-out) both;
   }
   .intro-scene span {
     color: var(--muted);
     font-size: 15px;
     line-height: 1.5;
-    animation: rise-in var(--motion-base) var(--ease-out) both;
+    animation: mobile-rise-in var(--motion-base) var(--ease-out) both;
     animation-delay: 90ms;
   }
   .voice-commands {
@@ -3903,6 +3949,18 @@ h3 {
   }
 }
 
+/* The application bar keeps two rows through the tablet breakpoint. Match
+   the conversation's viewport budget to that real height rather than the
+   single-row desktop token, so the composer does not get pushed below the
+   fold at widths such as 768px. */
+@media (min-width: 701px) and (max-width: 960px) {
+  .conversation-card {
+    max-height: calc(
+      100svh - var(--nav-h-mobile) - var(--safe-top) - var(--gutter)
+    );
+  }
+}
+
 /* Whoever is signed in, and the way back out. A reader who cannot sign out
    cannot hand the machine to anyone else. */
 .footer-account {
@@ -3994,5 +4052,14 @@ h3 {
   }
   .saved-trigger-remove {
     min-width: 44px;
+  }
+}
+
+/* Preserve a usable story index on the smallest phones. The install shortcut
+   is still available in the applications section; removing its compact icon
+   here prevents it from consuming the entire flexible rail. */
+@media (max-width: 340px) {
+  .nav-downloads {
+    display: none;
   }
 }

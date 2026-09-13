@@ -18,19 +18,19 @@ import {
 export const palette = {
   paper: "#F8F5EF",
   ink: "#292735",
-  muted: "#6B6773",
-  coral: "#F27561",
-  // The deeper coral the web uses for emphasis in headings and labels.
-  accent: "#B34F38",
+  muted: "#716C78",
+  // Keep native surfaces on the same tokens as the web's light theme.
+  coral: "#F47762",
+  accent: "#A84332",
   peach: "#FBE2D6",
   lavender: "#EEE9E1",
   lilac: "#B8AA99",
   lime: "#D8EEAE",
   // Keep native cards aligned with the web surface instead of pure white.
   white: "#FFFDF9",
-  line: "#E6E1DA",
-  scrim: "#29273580",
-  error: "#A63732",
+  line: "#E5E0D8",
+  scrim: "#29273599",
+  error: "#A23F3F",
   errorBg: "#FCE8E3",
 };
 export const serif = Platform.select({ ios: "Georgia", android: "serif" });

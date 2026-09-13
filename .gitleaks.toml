@@ -14,3 +14,4 @@ keywords = ["ASIA"]
 [allowlist]
 description = "Local storage and cookie names"
 regexes = ['''ursly-[a-z0-9-]+-v[0-9]+''']
+paths = ['''packages/core/src/domain/ingestion\.test\.ts''']

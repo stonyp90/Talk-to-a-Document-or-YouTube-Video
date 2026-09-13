@@ -6,12 +6,12 @@ import {
   Linking,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Language, TranslationKey } from "./i18n";
 import {
   Brand,
@@ -88,6 +88,8 @@ export function MobileOnboarding({ motion, language, t }: Props) {
   const [paused, setPaused] = useState(false);
   const [copyOpacity] = useState(() => new Animated.Value(1));
   const [copyOffset] = useState(() => new Animated.Value(0));
+  const [artOpacity] = useState(() => new Animated.Value(1));
+  const [artScale] = useState(() => new Animated.Value(1));
 
   const finish = useCallback(() => {
     setVisible(false);
@@ -126,15 +128,33 @@ export function MobileOnboarding({ motion, language, t }: Props) {
     if (!motion || !visible) {
       copyOpacity.setValue(1);
       copyOffset.setValue(0);
+      artOpacity.setValue(1);
+      artScale.setValue(1);
       return;
     }
     copyOpacity.setValue(0);
     copyOffset.setValue(12);
+    artOpacity.setValue(0);
+    artScale.setValue(0.97);
     const animation = Animated.parallel([
       Animated.timing(copyOpacity, {
         toValue: 1,
         duration: 430,
         easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(artOpacity, {
+        toValue: 1,
+        duration: 360,
+        delay: 70,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(artScale, {
+        toValue: 1,
+        delay: 70,
+        speed: 20,
+        bounciness: 2,
         useNativeDriver: true,
       }),
       Animated.timing(copyOffset, {
@@ -146,7 +166,7 @@ export function MobileOnboarding({ motion, language, t }: Props) {
     ]);
     animation.start();
     return () => animation.stop();
-  }, [copyOffset, copyOpacity, motion, step, visible]);
+  }, [artOpacity, artScale, copyOffset, copyOpacity, motion, step, visible]);
 
   if (!ready) return null;
   const current = steps[step];
@@ -158,7 +178,7 @@ export function MobileOnboarding({ motion, language, t }: Props) {
       presentationStyle="fullScreen"
       onRequestClose={finish}
     >
-      <SafeAreaView style={s.screen}>
+      <SafeAreaView style={s.screen} edges={["top", "left", "right", "bottom"]}>
         <View style={s.header}>
           <Brand />
           <View style={s.headerRight}>
@@ -195,7 +215,12 @@ export function MobileOnboarding({ motion, language, t }: Props) {
             />
           ) : (
             <>
-              <View style={s.artFrame}>
+              <Animated.View
+                style={[
+                  s.artFrame,
+                  { opacity: artOpacity, transform: [{ scale: artScale }] },
+                ]}
+              >
                 {step === 0 ? (
                   <SourceArt t={t} />
                 ) : step === 1 ? (
@@ -205,7 +230,7 @@ export function MobileOnboarding({ motion, language, t }: Props) {
                 ) : (
                   <ModeArt motion={motion} t={t} />
                 )}
-              </View>
+              </Animated.View>
               <View style={s.copy}>
                 <Text style={s.stepLabel}>
                   {t("STEP")} {step + 1} · {t(current.label).toUpperCase()}
@@ -490,6 +515,9 @@ const s = StyleSheet.create({
     gap: 5,
     paddingVertical: 5,
     paddingHorizontal: 2,
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: "center",
   },
   pauseIcon: { color: c.coral, fontSize: 10, fontWeight: "800" },
   pauseText: { color: c.muted, fontSize: 10 },
@@ -518,6 +546,7 @@ const s = StyleSheet.create({
   railItem: {
     flex: 1,
     gap: 5,
+    minHeight: 44,
     borderTopWidth: 1,
     borderTopColor: c.line,
     paddingTop: 9,

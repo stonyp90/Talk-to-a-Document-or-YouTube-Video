@@ -66,36 +66,37 @@ describe("process copy", () => {
     expect(resolveProcessCopy("EN-GB")).toBe(processCopy.en);
   });
 
-  it("says out loud what the law and the pipeline require", () => {
+  it("makes design, build, release, operation and continuous security explicit", () => {
     const step = (copy: ProcessCopy, id: string) =>
       copy.steps.find((candidate) => candidate.id === id)!.summary;
-    expect(step(processCopy.en, "secure")).toMatch(/security and compliance/i);
-    expect(step(processCopy.en, "secure")).toMatch(/law/i);
-    expect(step(processCopy.en, "deliver")).toMatch(
-      /continuous integration and delivery/i,
+    expect(processCopy.en.steps.map((item) => item.title)).toEqual([
+      "Concept",
+      "Plan",
+      "Design",
+      "Build",
+      "Integrate",
+      "Validate",
+      "Release",
+      "Operate",
+      "Measure",
+      "Listen",
+      "Improve",
+    ]);
+    expect(step(processCopy.en, "secure")).toMatch(
+      /quality, privacy, and security throughout/i,
     );
+    expect(step(processCopy.en, "deliver")).toMatch(/reversible/i);
     expect(step(processCopy.fr, "secure")).toMatch(
-      /sécurité et la conformité/i,
+      /qualité, la confidentialité et la sécurité/i,
     );
-    expect(step(processCopy.fr, "deliver")).toMatch(/livraison continues?/i);
+    expect(step(processCopy.fr, "deliver")).toMatch(/réversible/i);
   });
 
-  it("puts the money question inside the loop, with both answers", () => {
-    const step = (copy: ProcessCopy, id: string) =>
-      copy.steps.find((candidate) => candidate.id === id)!;
-    expect(step(processCopy.en, "sustain").summary).toMatch(
-      /nobody builds software for free/i,
-    );
-    expect(step(processCopy.en, "sustain").summary).toMatch(/free/i);
-    expect(step(processCopy.en, "sustain").summary).toMatch(/paid/i);
-    expect(step(processCopy.en, "sustain").summary).toMatch(/train/i);
-    expect(step(processCopy.fr, "sustain").summary).toMatch(/gratuit/i);
-    expect(step(processCopy.fr, "sustain").summary).toMatch(/payant/i);
-    expect(step(processCopy.fr, "sustain").summary).toMatch(/entraîn/i);
-    // The loop only trains on what the free plan agreed to hand over.
-    expect(step(processCopy.en, "train").summary).toMatch(/free/i);
-    expect(step(processCopy.en, "train").summary).toMatch(/paid/i);
-    expect(step(processCopy.fr, "train").summary).toMatch(/gratuit/i);
+  it("keeps pricing and data-use policy out of the development stages", () => {
+    const summaries = processCopy.en.steps.map((step) => step.summary).join(" ");
+    expect(summaries).not.toMatch(/free|paid|train the models/i);
+    expect(processCopy.en.innerLoop).toMatch(/measure/i);
+    expect(processCopy.en.innerLoop).toMatch(/return directly/i);
   });
 
   it("states the mission as a bridge between today's and tomorrow's internet", () => {
@@ -105,15 +106,11 @@ describe("process copy", () => {
     expect(processCopy.fr.mission.body).toMatch(/voix/i);
   });
 
-  it("gives every model provider its turn inside the training loop", () => {
+  it("describes improvement as a return path rather than mandatory model training", () => {
     const train = (copy: ProcessCopy) =>
       copy.steps.find((step) => step.id === INNER_LOOP_STEP)!;
-    expect(train(processCopy.en).summary).toMatch(/every model provider/i);
-    expect(processCopy.en.innerLoop).toMatch(/best model from one provider/i);
-    expect(processCopy.en.innerLoop).toMatch(/event/i);
-    expect(processCopy.en.innerLoop).toMatch(/beta/i);
-    expect(train(processCopy.fr).summary).toMatch(/fournisseur/i);
-    expect(processCopy.fr.innerLoop).toMatch(/fournisseur/i);
-    expect(processCopy.fr.innerLoop).toMatch(/bêta/i);
+    expect(train(processCopy.en).summary).toMatch(/return the work to the stage/i);
+    expect(processCopy.en.innerLoop).toMatch(/evaluate/i);
+    expect(processCopy.fr.innerLoop).toMatch(/revenir directement/i);
   });
 });

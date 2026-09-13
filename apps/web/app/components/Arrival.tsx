@@ -9,7 +9,6 @@ import { useHydrated } from "./useHydrated";
 import { useLanguage } from "../i18n/LanguageProvider";
 import type { Loop } from "./useLoopWalk";
 import { INTRO_DURATION_SECONDS } from "../content/intro-video";
-import { PROCESS_STEP_IDS } from "../content/process";
 
 /**
  * The first screen: where the film lets go and the page takes over.
@@ -66,8 +65,7 @@ export function Arrival({
         </p>
         <p className="lede">
           {t(
-            "One loop of {count} stages, walked in full before anything ships. Nothing is skipped, and nothing is called done until the loop closes.",
-            { count: PROCESS_STEP_IDS.length },
+            "From concept to production and back through real-world feedback. Every release is validated before it ships—and improved through what comes next.",
           )}
         </p>
         <div className="hero-actions">

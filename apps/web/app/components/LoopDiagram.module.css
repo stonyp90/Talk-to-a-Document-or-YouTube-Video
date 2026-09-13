@@ -24,6 +24,65 @@
   height: auto;
   overflow: visible;
 }
+.diagramViewport {
+  width: 100%;
+  max-width: 560px;
+  max-height: min(70vh, 620px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  scrollbar-width: thin;
+}
+.diagramViewport[data-zoomed="true"] {
+  overflow: auto;
+  border-color: var(--line);
+  cursor: grab;
+}
+.diagramViewport[data-zoomed="true"]:active {
+  cursor: grabbing;
+}
+.zoomControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 34px;
+}
+.zoomButton,
+.zoomReset {
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 16px/1 var(--mono);
+  cursor: pointer;
+}
+.zoomButton:hover:not(:disabled),
+.zoomButton:focus-visible,
+.zoomReset:hover,
+.zoomReset:focus-visible {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.zoomButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+.zoomReset {
+  padding: 0 var(--space-sm);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.zoomValue {
+  min-width: 4ch;
+  color: var(--muted);
+  font: 700 10px/1 var(--mono);
+  text-align: center;
+}
 .ring {
   fill: none;
   stroke: var(--line-strong);
@@ -315,6 +374,9 @@
     }
   }
   .diagram {
+    max-width: none;
+  }
+  .diagramViewport {
     max-width: none;
   }
   .plot {

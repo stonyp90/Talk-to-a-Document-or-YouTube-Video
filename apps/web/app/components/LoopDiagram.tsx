@@ -149,6 +149,9 @@ const SUBCYCLE_DOTS = Array.from({ length: 5 }, (_, index) => {
     dy: place(28 * Math.sin(radians)),
   };
 });
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 2.4;
+const ZOOM_STEP = 0.2;
 
 /** The comet: a dot with a fading trail, all rotated together. */
 const TRAIL = [
@@ -171,6 +174,7 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
     loop;
   const narration = useLoopNarration(locale ?? "en");
   const [hovered, setHovered] = useState<ProcessStepId | null>(null);
+  const [zoom, setZoom] = useState(ZOOM_MIN);
   const { holdMs, travelMs, innerLoopMultiplier } = loop.timing;
   const innerHoldMs = holdMs * innerLoopMultiplier;
   const angle = position * STEP_DEGREES;
@@ -195,21 +199,23 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
       (GEOMETRY.ring + Math.max(GEOMETRY.node, GEOMETRY.satellite) + 2)
     ).toFixed(3),
   } as CSSProperties;
+  const zoomed = zoom > ZOOM_MIN;
 
   return (
     <div className={styles.stage} ref={attach}>
       {/* The list further down carries the words; this is for the eye. */}
-      <svg
-        className={styles.diagram}
-        viewBox={`0 0 ${GEOMETRY.width} ${GEOMETRY.height}`}
-        style={diagramStyle}
-        data-testid="loop-diagram"
-        data-angle={angle}
-        data-inner-loop={innerActive ? "active" : "idle"}
-        data-subcycle={activeSubcycle.title}
-        aria-hidden="true"
-        focusable="false"
-      >
+      <div className={styles.diagramViewport} data-zoomed={zoomed}>
+        <svg
+          className={styles.diagram}
+          viewBox={`0 0 ${GEOMETRY.width} ${GEOMETRY.height}`}
+          style={{ ...diagramStyle, width: `${zoom * 100}%` }}
+          data-testid="loop-diagram"
+          data-angle={angle}
+          data-inner-loop={innerActive ? "active" : "idle"}
+          data-subcycle={activeSubcycle.title}
+          aria-hidden="true"
+          focusable="false"
+        >
         <g className={styles.plot}>
           <circle
             className={styles.ring}
@@ -397,6 +403,39 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
           ))}
         </g>
       </svg>
+      </div>
+      <div className={styles.zoomControls} aria-label={copy.controls.zoomHint}>
+        <button
+          type="button"
+          className={styles.zoomButton}
+          onClick={() => setZoom((value) => Math.max(ZOOM_MIN, value - ZOOM_STEP))}
+          disabled={zoom === ZOOM_MIN}
+          aria-label={copy.controls.zoomOut}
+        >
+          −
+        </button>
+        <span aria-live="polite" className={styles.zoomValue}>
+          {Math.round(zoom * 100)}%
+        </span>
+        <button
+          type="button"
+          className={styles.zoomButton}
+          onClick={() => setZoom((value) => Math.min(ZOOM_MAX, value + ZOOM_STEP))}
+          disabled={zoom === ZOOM_MAX}
+          aria-label={copy.controls.zoomIn}
+        >
+          +
+        </button>
+        {zoomed && (
+          <button
+            type="button"
+            className={styles.zoomReset}
+            onClick={() => setZoom(ZOOM_MIN)}
+          >
+            {copy.controls.zoomReset}
+          </button>
+        )}
+      </div>
       {hovered && (
         <aside
           className={styles.hoverDetail}

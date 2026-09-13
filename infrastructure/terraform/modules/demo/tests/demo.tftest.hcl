@@ -47,9 +47,32 @@ run "demo_security_and_cost_contract" {
     condition     = aws_s3_bucket_public_access_block.uploads.block_public_policy && aws_s3_bucket_public_access_block.uploads.restrict_public_buckets
     error_message = "Temporary uploads must never be public."
   }
+  # Derived from the throttled set rather than a literal count: a seventh
+  # expensive route added without a throttle would pass a count of six.
   assert {
-    condition     = length(aws_apigatewayv2_stage.default.route_settings) == 5 && alltrue([for settings in aws_apigatewayv2_stage.default.route_settings : settings.throttling_rate_limit == 1])
+    condition     = length(aws_apigatewayv2_stage.default.route_settings) == length(local.throttled_routes) && alltrue([for settings in aws_apigatewayv2_stage.default.route_settings : settings.throttling_rate_limit == 1 && settings.throttling_burst_limit == 2])
     error_message = "Every costly endpoint needs its explicit throttle."
+  }
+  # PDF parsing is the heaviest work in the product and it shares the function
+  # that serves every page, so it may never sit at the default rate. The
+  # transcript route reaches YouTube on a function with two reserved slots.
+  assert {
+    condition     = alltrue([for route in ["POST /api/ingest", "GET /transcript/{videoId}"] : contains([for settings in aws_apigatewayv2_stage.default.route_settings : settings.route_key], route)])
+    error_message = "Ingestion and transcript retrieval must carry an explicit gateway throttle, not the default rate."
+  }
+  # Throttling the transcript route must not move it onto the api function.
+  assert {
+    condition     = aws_apigatewayv2_route.routes["GET /transcript/{videoId}"].target == "integrations/${aws_apigatewayv2_integration.lambda["transcript"].id}"
+    error_message = "The transcript route stays on the transcript function."
+  }
+  assert {
+    condition     = aws_lambda_function.runtime["api"].environment[0].variables["RATE_LIMIT_ADDRESS_SOURCE"] == "aws-request-context"
+    error_message = "The api function must key its rate limiter on the address API Gateway observed, never on a caller-supplied header."
+  }
+  # Sized from the function's own memory: a memory change moves the bound with it.
+  assert {
+    condition     = aws_lambda_function.runtime["api"].environment[0].variables["SESSION_STORE_MAX_BYTES"] == tostring(floor(aws_lambda_function.runtime["api"].memory_size * 1024 * 1024 / 4))
+    error_message = "Stored session text must be bounded by a share of the function's configured memory."
   }
   assert {
     condition     = length(jsondecode(aws_iam_role_policy.runtime["transcript"].policy).Statement) == 1

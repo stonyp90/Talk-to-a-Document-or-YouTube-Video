@@ -171,7 +171,10 @@ It returns a `voice_…` identifier to put in `OPENAI_REALTIME_VOICE`. Custom vo
 1. **The introduction, once.** A first visit opens a 36-second silent video in the
    visitor's language (English or French), with captions, a transcript and a
    _Skip intro_ button from the first frame. It is remembered per browser and can
-   be replayed from the top menu.
+   be replayed from the top menu. The page, animation and film follow the system
+   theme: the original film stays bright in light mode and becomes softer in
+   dark mode. A theme change preserves playback position. On short screens,
+   the transcript scrolls below the full, uncropped frame.
 2. **A fixed top menu.** It carries the three control modes, in the order the
    product argues for them: _Voice to action_ (default), _Motion to action_ (a
    beta a reader can select, which drives the page from five movements read by
@@ -218,9 +221,9 @@ its text is burned into the frames.
 
 ### Rebuilding the introduction
 
-The film is six six-second scenes: what Ursly is, a source going in, voice to
-action, motion to action, the keyboard demoted, and the build loop that produces
-all of it. Its words live in
+“Web 3.0 in 30 seconds” is six five-second scenes: what Ursly is, a source going
+in, voice to action, motion to action, the keyboard demoted, and the build loop
+that produces all of it. Its words live in
 [`apps/web/app/content/intro-video.ts`](apps/web/app/content/intro-video.ts) —
 which the dialog, the transcript and the captions all read — and are repeated
 for the renderer in `scripts/brand/intro-copy.mjs`, with

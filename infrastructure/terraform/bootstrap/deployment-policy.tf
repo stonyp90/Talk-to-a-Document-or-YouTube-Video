@@ -50,9 +50,17 @@ resource "aws_iam_role_policy" "deployment" {
       # outright. modules/demo writes each trust policy at iam:CreateRole and
       # never changes it, so only drift correction would need it; an operator
       # repairs that by hand rather than leave the path open.
+      #
+      # Deliberately without iam:DeleteRole for the same reason: deleting a
+      # runtime role and creating it again reaches the identical end state,
+      # because iam:CreateRole carries the trust policy as a request parameter
+      # that no condition key constrains. Both runtime roles already exist and no
+      # deploy path destroys them, so nothing in a normal apply needs it; a fresh
+      # environment still bootstraps through iam:CreateRole, and an operator
+      # removes a role by hand.
       {
         Sid      = "RuntimeRoleConfiguration", Effect = "Allow"
-        Action   = ["iam:GetRole", "iam:DeleteRole", "iam:PutRolePolicy", "iam:GetRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole", "iam:TagRole", "iam:UntagRole"]
+        Action   = ["iam:GetRole", "iam:PutRolePolicy", "iam:GetRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole", "iam:TagRole", "iam:UntagRole"]
         Resource = local.runtime_arns
       },
       {

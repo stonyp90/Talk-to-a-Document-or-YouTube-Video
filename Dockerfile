@@ -2,6 +2,10 @@ FROM public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 AS lambda-adapter
 
 # One image family is used locally and as the Lambda container base.
 FROM node:22-bookworm-slim AS dependencies
+# The Content Security Policy is baked into the route manifest at build time, so
+# the single object-store origin the browser may post uploads to is chosen here.
+# Compose passes its own endpoint; a deployment passes the bucket and region it
+# presigns with. Neither set means the built image allows no object store at all.
 ARG OBJECT_STORE_PUBLIC_ENDPOINT
 # What the paid plan costs and where it is bought. Public values, inlined into
 # the browser bundle at build time; empty means billing is not open yet.
@@ -25,6 +29,11 @@ ENV SITE_SAME_AS=${SITE_SAME_AS}
 ENV INTRO_VIDEO_YOUTUBE_ID_EN=${INTRO_VIDEO_YOUTUBE_ID_EN}
 ENV INTRO_VIDEO_YOUTUBE_ID_FR=${INTRO_VIDEO_YOUTUBE_ID_FR}
 ENV NEXT_PUBLIC_CHAT_SOCKET_URL=${NEXT_PUBLIC_CHAT_SOCKET_URL}
+ARG UPLOAD_BUCKET
+ARG AWS_REGION
+ENV OBJECT_STORE_PUBLIC_ENDPOINT=${OBJECT_STORE_PUBLIC_ENDPOINT}
+ENV UPLOAD_BUCKET=${UPLOAD_BUCKET}
+ENV AWS_REGION=${AWS_REGION}
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/

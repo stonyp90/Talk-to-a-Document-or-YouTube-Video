@@ -54,6 +54,12 @@ test("bootstrap separates deployment authority and protects state", () => {
     policy,
     /iam:DeleteRolePermissionsBoundary|iam:AttachRolePolicy|iam:CreatePolicyVersion|secretsmanager:GetSecretValue/,
   );
+  // Delete-then-create reaches the same end state as rewriting a trust policy,
+  // which the omission of iam:UpdateAssumeRolePolicy exists to prevent, and the
+  // account-level public access block is the backstop CI must not be able to
+  // lift. The quoted form matches the exact action, not iam:DeleteRolePolicy.
+  assert.doesNotMatch(policy, /"iam:DeleteRole"|AccountPublicAccessBlock/);
+  assert.match(bootstrap, /resource "aws_s3_account_public_access_block"/);
   assert.match(policy, /demo\/terraform.tfstate.tflock/);
   const backend = read("infrastructure/terraform/environments/demo/main.tf");
   assert.match(backend, /use_lockfile\s*=\s*true/);
@@ -130,4 +136,58 @@ test("transactional email is operator-owned and adds no CI authority", () => {
   const ci = read(".github/workflows/ci.yml");
   assert.match(ci, /modules\/email test/);
   assert.match(ci, /environments\/email test/);
+});
+test("the browser may reach exactly the object store the deployment presigns to", () => {
+  // A wildcard connect-src is an exfiltration channel for anything injected into
+  // a page that still allows inline script, so the policy names one host. That
+  // host is derived from two build args, and nothing else checks they arrive:
+  // the deployment smoke test posts to S3 server-side and would not notice.
+  const config = read("apps/web/next.config.ts");
+  assert.doesNotMatch(config, /\*\.amazonaws\.com/);
+  assert.match(
+    config,
+    /https:\/\/\$\{bucket\}\.s3\.\$\{region\}\.amazonaws\.com/,
+  );
+  const dockerfile = read("Dockerfile");
+  for (const pattern of [
+    /ARG UPLOAD_BUCKET/,
+    /ENV UPLOAD_BUCKET=\$\{UPLOAD_BUCKET\}/,
+    /ARG AWS_REGION/,
+    /ENV AWS_REGION=\$\{AWS_REGION\}/,
+  ])
+    assert.match(dockerfile, pattern);
+  const deploy = read(".github/workflows/deploy.yml");
+  assert.match(
+    deploy,
+    /--build-arg UPLOAD_BUCKET="talk-to-a-document-uploads-\$TF_VAR_account_id-\$AWS_REGION"/,
+  );
+  assert.match(deploy, /--build-arg AWS_REGION="\$AWS_REGION"/);
+  // The name the workflow passes has to be the bucket Terraform actually makes.
+  const demo = read("infrastructure/terraform/modules/demo/main.tf");
+  assert.match(demo, /name\s*=\s*"talk-to-a-document"/);
+  assert.match(
+    demo,
+    /bucket\s*=\s*"\$\{local\.name\}-uploads-\$\{var\.account_id\}-\$\{var\.region\}"/,
+  );
+});
+test("every expensive public route carries an explicit gateway throttle", () => {
+  const demo = read("infrastructure/terraform/modules/demo/main.tf");
+  const paid = demo.match(/paid_routes\s*=\s*toset\(\[[^\]]+\]\)/)[0];
+  for (const route of [
+    "POST /api/realtime/session",
+    "POST /api/realtime/connect",
+    "POST /api/text-chat",
+    "POST /api/uploads",
+    "POST /api/uploads/extract",
+    "POST /api/ingest",
+  ])
+    assert.ok(paid.includes(route), `${route} must be throttled`);
+  assert.match(
+    demo,
+    /throttled_routes\s*=\s*setunion\(local\.paid_routes, \["GET \/transcript\/\{videoId\}"\]\)/,
+  );
+  assert.match(demo, /for_each = local\.throttled_routes/);
+  // The transcript route is throttled without being retargeted to the api
+  // function: local.routes still maps it to the transcript integration.
+  assert.match(demo, /"GET \/transcript\/\{videoId\}" = "transcript"/);
 });

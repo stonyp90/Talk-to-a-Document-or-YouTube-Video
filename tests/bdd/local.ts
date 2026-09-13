@@ -11,6 +11,7 @@ import {
 } from "@aws-sdk/client-s3";
 import type { Step, World } from "./steps";
 import { fixturePdf } from "./fixtures";
+import { LANGUAGE_COOKIE } from "../../apps/web/app/i18n/languages";
 
 const exec = promisify(execFile);
 type Action = (this: World) => Promise<void>;
@@ -168,7 +169,12 @@ export function registerLocalChecks(step: Step, h: Helpers) {
       await expect(
         p.getByRole("button", { name: /sign in|log in|register/i }),
       ).toHaveCount(0);
-      assert.deepEqual(await p.context().cookies(), []);
+      // Choosing /en or /fr remembers a language without creating a session.
+      // Every other cookie would violate this anonymous-usage contract.
+      assert.deepEqual(
+        (await p.context().cookies()).filter((c) => c.name !== LANGUAGE_COOKIE),
+        [],
+      );
     },
   );
   step("`PROVIDER_MODE=mock`", async function () {
@@ -215,7 +221,9 @@ export function registerLocalChecks(step: Step, h: Helpers) {
   });
   step("I start voice chat with the realtime mock", async function () {
     await h.ready.call(this);
-    await (await h.page(this))
+    await (
+      await h.page(this)
+    )
       .getByRole("button", { name: "Start Voice Chat" })
       .click();
   });

@@ -102,6 +102,49 @@ export const french: Dictionary = {
 
   // Introduction
   Welcome: "Bienvenue",
+  "What Ursly is": "Ce qu’est Ursly",
+  "A source.": "Une source.",
+  "A conversation.": "Une conversation.",
+  "Ursly turns a document or a video into a conversation you lead by voice, by keyboard, and soon by movement.":
+    "Ursly transforme un document ou une vidéo en conversation que vous dirigez à la voix, au clavier et bientôt par le mouvement.",
+  "Ursly turns a document or a video into a conversation.":
+    "Ursly transforme un document ou une vidéo en conversation.",
+  "Voice first. Keyboard always. Motion next.":
+    "La voix d’abord. Le clavier toujours. Le mouvement ensuite.",
+  "On the web": "Sur le web",
+  "Bring a source.": "Apportez une source.",
+  "Then ask.": "Puis demandez.",
+  "Add a PDF or a captioned YouTube video in the browser, ask in your own words and get an answer grounded in the source.":
+    "Ajoutez un PDF ou une vidéo YouTube sous-titrée dans le navigateur, posez votre question et obtenez une réponse ancrée dans la source.",
+  "On the web: add a PDF or a captioned video, then ask.":
+    "Sur le web : ajoutez un PDF ou une vidéo sous-titrée, puis demandez.",
+  "Every answer stays grounded in what you brought.":
+    "Chaque réponse reste ancrée dans ce que vous avez apporté.",
+  "On iPhone": "Sur iPhone",
+  "Native on iPhone.": "Natif sur iPhone.",
+  "Voice by default.": "La voix par défaut.",
+  "The same Ursly as a native iOS app: voice to action by default, the keyboard one tap away.":
+    "Le même Ursly en application iOS native : la voix par défaut, le clavier à un geste.",
+  "The same Ursly, native on iPhone.": "Le même Ursly, natif sur iPhone.",
+  "Voice to action by default, keyboard one tap away.":
+    "La voix par défaut, le clavier à un geste.",
+  "On Android": "Sur Android",
+  "Native on Android.": "Natif sur Android.",
+  "Same three modes.": "Les trois mêmes modes.",
+  "The native Android app carries the same source, the same question and the same understanding.":
+    "L’application Android native emporte la même source, la même question et la même compréhension.",
+  "And native on Android.": "Et natif sur Android.",
+  "Source, question, understanding, in your pocket.":
+    "Source, question, compréhension, dans votre poche.",
+  "The features": "Les fonctionnalités",
+  "Three modes.": "Trois modes.",
+  "Two languages.": "Deux langues.",
+  "Voice, keyboard and motion in beta; English or French in one tap; answers you can check against the source text.":
+    "Voix, clavier et mouvement en bêta ; anglais ou français en un geste ; des réponses vérifiables dans le texte source.",
+  "Voice, keyboard, and motion in beta: three ways to do the same thing.":
+    "Voix, clavier et mouvement en bêta : trois façons de faire la même chose.",
+  "English or French in one tap. Answers you can check in the source text.":
+    "Anglais ou français en un geste. Des réponses vérifiables dans le texte source.",
   "In {seconds} seconds.": "En {seconds} secondes.",
   "Ursly introduction": "Présentation d’Ursly",
   "The Ursly introduction": "L’introduction d’Ursly",

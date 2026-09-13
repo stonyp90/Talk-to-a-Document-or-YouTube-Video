@@ -1,4 +1,4 @@
-// Draws the thirty-six second introduction, in both languages, from nothing
+// Draws the thirty-second introduction, in both languages, from nothing
 // but this repository:
 //
 //   node scripts/brand/intro-video.mjs
@@ -61,12 +61,12 @@ const run = promisify(execFile);
 const WIDTH = 1920;
 const HEIGHT = 1080;
 
-// Six seconds a scene, for as many scenes as the argument takes. The count is
+// Five seconds a scene, for as many scenes as the argument takes. The count is
 // read off the copy rather than typed, the same way INTRO_SCENE_SECONDS and
 // INTRO_DURATION_SECONDS work on the page, so the captions, the ticks, the
 // schema.org duration and the frames cannot disagree about how long the film
 // is or how many parts it has.
-const SCENE_SECONDS = 6;
+const SCENE_SECONDS = 5;
 const SCENES = introCopy.en.scenes.length;
 const DURATION_SECONDS = SCENE_SECONDS * SCENES;
 
@@ -86,7 +86,7 @@ const H264_CRF = 29;
 const VP9_CRF = 38;
 
 // Long enough to read as one continuous take, short enough that a scene is
-// fully legible for well over five of its six seconds. Each cross-fade
+// fully legible for well over four of its five seconds. Each cross-fade
 // straddles the caption boundary rather than sitting after it, so the words on
 // screen and the words in the .vtt change at the same instant.
 const CROSSFADE_SECONDS = 0.8;
@@ -221,7 +221,7 @@ const STAGE_PAD = 14;
 
 // One slow push across the entire film rather than a move per scene. Driven by
 // elapsed time, it neither restarts at a boundary nor cross-fades against
-// itself, and at roughly three percent over any six seconds it is under the
+// itself, and at roughly three percent over any scene it is under the
 // threshold at which motion starts competing with reading.
 const PUSH = 0.13;
 const MAX_PUSH = 1 + PUSH;
@@ -483,7 +483,7 @@ const SURFACES = {
     clip: "app-phone",
     spec: PHONE_SCREEN,
     // The phone is the only surface that shows the whole exchange at once, so
-    // it is cut to the six seconds that contain the payoff: the last of the
+    // it is cut to the five seconds that contain the payoff: the last of the
     // question being typed, the send, the answer arriving, and the answer held
     // long enough to be recognised as one.
     cues: [null, null, 21.0, null, null, null],
@@ -726,7 +726,7 @@ function furniture(words_, index, t, elapsed) {
       opacity: done ? 0.55 : 0.25,
     });
     if (i !== index) return base;
-    // The live tick fills across its own six seconds: the only element on
+    // The live tick fills across its own five seconds: the only element on
     // screen that says how much of the video is left.
     const fill = box({
       x,
@@ -1342,7 +1342,7 @@ function legacy(scene, t, words_, elapsed) {
  *
  * The sweep goes round exactly once and names each stage as it passes, so the
  * ring ends closed and fully labelled instead of asking anyone to read ten
- * words in six seconds. The product is not on screen here: this scene is about
+ * words in five seconds. The product is not on screen here: this scene is about
  * the process, and putting a screenshot behind it would only say that the two
  * are the same argument, which is the one thing it is trying to disprove.
  */
@@ -1683,7 +1683,7 @@ async function main() {
   for (const directory of [WEB, MOBILE])
     mkdirSync(directory, { recursive: true });
 
-  // Each clip carries half a cross-fade past its own six seconds at every edge
+  // Each clip carries half a cross-fade past its own five seconds at every edge
   // it shares with a neighbour, which is what makes the clips add up to exactly
   // DURATION_SECONDS once ffmpeg has overlapped them.
   const clips = Array.from({ length: SCENES }, (_, i) => {

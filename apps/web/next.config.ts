@@ -50,8 +50,14 @@ const contentSecurityPolicy = () =>
     "script-src 'self' 'unsafe-inline'" +
       (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),
     `connect-src ${connectSources()}`,
-    "upgrade-insecure-requests",
+    ...(isLoopbackHttp(process.env.SITE_URL)
+      ? []
+      : ["upgrade-insecure-requests"]),
   ].join("; ");
+
+function isLoopbackHttp(origin = ""): boolean {
+  return /^http:\/\/(localhost:|127\.0\.0\.1:|\[::1\]:)/.test(origin);
+}
 
 const nextConfig: NextConfig = {
   output: "standalone",

@@ -161,6 +161,20 @@ resource "aws_s3_bucket_policy" "state" {
     }]
   })
 }
+# CI holds s3:PutBucketPublicAccessBlock and s3:PutBucketPolicy on the uploads
+# bucket, so the bucket-level block in modules/demo is not a control against the
+# deploy role: it could clear the block and attach a public read policy over the
+# uploaded PDFs. This account-level block is operator-owned, CI is granted no
+# s3:PutAccountPublicAccessBlock, and it overrides every bucket in the account.
+# It takes an operator bootstrap apply to land; until then the bucket-level
+# block is still the only control.
+resource "aws_s3_account_public_access_block" "account" {
+  account_id              = var.account_id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
 resource "aws_ecr_repository" "images" {
   for_each             = toset(local.services)
   name                 = "${local.name}-${each.key}"

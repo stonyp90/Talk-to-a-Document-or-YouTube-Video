@@ -53,7 +53,15 @@ locals {
     SES_FROM_ADDRESS      = var.ses_from_address
     SES_CONFIGURATION_SET = var.ses_configuration_set_name
   } : {}
-  paid_routes = toset(["POST /api/realtime/session", "POST /api/realtime/connect", "POST /api/text-chat", "POST /api/uploads", "POST /api/uploads/extract"])
+  # Routes on the api function that cost money or CPU on every call. /api/ingest
+  # belongs here: it runs pdf-parse, the heaviest work in the product, on the
+  # function that also serves every page, and without an entry it falls to
+  # `ANY /{proxy+}` and the default rate — ten times the intended one.
+  paid_routes = toset(["POST /api/realtime/session", "POST /api/realtime/connect", "POST /api/text-chat", "POST /api/uploads", "POST /api/uploads/extract", "POST /api/ingest"])
+  # Everything the gateway throttles. The transcript route is throttled but not
+  # paid: it belongs to the transcript function, which has two reserved slots and
+  # reaches YouTube, so it must not be retargeted to the api integration.
+  throttled_routes = setunion(local.paid_routes, ["GET /transcript/{videoId}"])
   routes = merge(
     { "ANY /" = "api", "ANY /{proxy+}" = "api", "GET /transcript/{videoId}" = "transcript" },
     { for route in local.paid_routes : route => "api" }
@@ -254,7 +262,7 @@ resource "aws_apigatewayv2_stage" "default" {
     throttling_rate_limit  = 10
   }
   dynamic "route_settings" {
-    for_each = local.paid_routes
+    for_each = local.throttled_routes
     content {
       route_key              = route_settings.value
       throttling_burst_limit = 2

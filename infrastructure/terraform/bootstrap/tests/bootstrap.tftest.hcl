@@ -62,6 +62,25 @@ run "identity_state_and_least_privilege" {
     condition     = alltrue([for statement in jsondecode(aws_iam_role_policy.deployment.policy).Statement : !contains(statement.Action, "iam:UpdateAssumeRolePolicy")])
     error_message = "CI must not rewrite a runtime role's trust policy: no condition can restrain that action, and it hands over the role itself."
   }
+  # Deleting a runtime role and creating it again reaches the same end state the
+  # assertion above exists to prevent: iam:CreateRole carries the trust policy as
+  # a request parameter, and IAM has no condition key for its contents. Both
+  # runtime roles already exist and no deploy path destroys them.
+  assert {
+    condition     = alltrue([for statement in jsondecode(aws_iam_role_policy.deployment.policy).Statement : !contains(statement.Action, "iam:DeleteRole")])
+    error_message = "CI must not delete a runtime role: delete-then-create is the trust-policy rewrite by another name."
+  }
+  # modules/demo's bucket-level block is written by CI, which holds
+  # s3:PutBucketPublicAccessBlock and s3:PutBucketPolicy, so it is not a control
+  # against CI itself. The account-level block is operator-owned and is.
+  assert {
+    condition     = aws_s3_account_public_access_block.account.block_public_policy && aws_s3_account_public_access_block.account.restrict_public_buckets && aws_s3_account_public_access_block.account.block_public_acls && aws_s3_account_public_access_block.account.ignore_public_acls
+    error_message = "An account-level public access block must backstop the bucket-level one CI can rewrite."
+  }
+  assert {
+    condition     = alltrue([for statement in jsondecode(aws_iam_role_policy.deployment.policy).Statement : !contains(statement.Action, "s3:PutAccountPublicAccessBlock") && !contains(statement.Action, "s3:DeleteAccountPublicAccessBlock")])
+    error_message = "CI must not be able to lift the account-level public access block it is constrained by."
+  }
 }
 run "reject_pepper_wildcard" {
   command = plan

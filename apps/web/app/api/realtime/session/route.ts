@@ -7,9 +7,12 @@ import { guard, unitsFor } from "@/apps/web/src/auth";
 import { sourceReferenceSchema } from "@/apps/web/src/validation";
 
 export async function POST(request: Request) {
+  // The only route that mints a bearer credential for paid provider audio, so
+  // it carries the tightest budget. The gateway route throttle bounds the total
+  // across instances; this bounds what one caller gets from any one of them.
   const limited = rateLimit(request, {
     name: "realtime",
-    limit: 10,
+    limit: 4,
     windowMs: 60_000,
   });
   if (limited) return limited;

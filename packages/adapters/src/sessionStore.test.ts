@@ -9,6 +9,9 @@ const source = (text = "body"): IngestedSource => ({
   characters: text.length,
 });
 
+/** The store charges two bytes per UTF-16 code unit; see sessionStore.ts. */
+const CODE_UNIT_BYTES = 2;
+
 describe("memory session store", () => {
   it("returns the stored source for its id", async () => {
     const store = createMemorySessionStore();
@@ -53,6 +56,48 @@ describe("memory session store", () => {
     ]);
     const read = await store.read(opened.id);
     expect(read?.turns.map((turn) => turn.text)).toEqual(["two", "three"]);
+  });
+
+  it("evicts the oldest conversation once the stored bytes exceed the budget", async () => {
+    // maxSessions is deliberately far above the number opened, so only the byte
+    // bound can evict anything here: delete the bound and this case fails.
+    const store = createMemorySessionStore({
+      maxSessions: 100,
+      maxBytes: 5 * CODE_UNIT_BYTES,
+    });
+    const first = await store.open(source("aa"));
+    const second = await store.open(source("bb"));
+    const third = await store.open(source("cc"));
+    expect(await store.read(first.id)).toBeUndefined();
+    expect(await store.read(second.id)).toBeDefined();
+    expect(await store.read(third.id)).toBeDefined();
+  });
+
+  it("charges appended turns against the same byte budget", async () => {
+    const store = createMemorySessionStore({
+      maxSessions: 100,
+      maxBytes: 6 * CODE_UNIT_BYTES,
+    });
+    const first = await store.open(source("aa"));
+    const second = await store.open(source("bb"));
+    expect(await store.read(second.id)).toBeDefined();
+    await store.appendTurns(second.id, [{ role: "user", text: "cccc" }]);
+    expect(await store.read(first.id)).toBeUndefined();
+    expect(await store.read(second.id)).toBeDefined();
+  });
+
+  it("stores a source larger than the whole budget instead of wedging", async () => {
+    // Refusing it would break ingestion; keeping it forever would be the leak.
+    // It is held until the next conversation needs the room, then dropped.
+    const store = createMemorySessionStore({
+      maxSessions: 100,
+      maxBytes: 4 * CODE_UNIT_BYTES,
+    });
+    const huge = await store.open(source("x".repeat(500)));
+    expect(await store.read(huge.id)).toBeDefined();
+    const next = await store.open(source("y"));
+    expect(await store.read(huge.id)).toBeUndefined();
+    expect(await store.read(next.id)).toBeDefined();
   });
 
   it("ignores turns for a session that no longer exists", async () => {

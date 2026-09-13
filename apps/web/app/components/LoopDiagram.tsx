@@ -294,9 +294,6 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
               onMouseLeave={() => setHovered(null)}
               onFocus={() => setHovered(node.id)}
               onBlur={() => setHovered(null)}
-              tabIndex={0}
-              role="button"
-              aria-label={`${copy.steps[node.index].title}: ${copy.steps[node.index].summary}`}
             >
               <title>{copy.steps[node.index].summary}</title>
               {node.inner && (

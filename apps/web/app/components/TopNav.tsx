@@ -275,12 +275,14 @@ function AppDownloadsMenu({ prefix }: { prefix: string }) {
 function MobileNavMenu({
   page,
   language,
+  pathname,
   active,
   story,
   route,
 }: {
   page: "landing" | "app";
   language: Language;
+  pathname: string;
   active?: string;
   story?: StoryControls;
   route: { href: string; full: string };
@@ -381,7 +383,7 @@ function MobileNavMenu({
             {LANGUAGES.map((code) => (
               <a
                 key={code}
-                href={withLanguage(usePathname(), code)}
+                href={withLanguage(pathname, code)}
                 hrefLang={code}
                 lang={code}
                 aria-current={code === language ? "true" : undefined}
@@ -481,6 +483,7 @@ export function TopNav(props: TopNavProps) {
           <MobileNavMenu
             page={props.page === "app" ? "app" : "landing"}
             language={language}
+            pathname={pathname}
             active={active}
             story={story}
             route={route}

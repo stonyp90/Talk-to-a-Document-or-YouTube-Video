@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import styles from "./LoopDiagram.module.css";
 import { useLoopNarration } from "./useLoopNarration";
 import type { Loop } from "./useLoopWalk";
@@ -141,6 +141,15 @@ const PROVIDERS = Array.from({ length: PROVIDER_TURNS }, (_, index) => {
   };
 });
 
+const SUBCYCLE_DOTS = Array.from({ length: 5 }, (_, index) => {
+  const radians = ((-90 + (index * 360) / 5) * Math.PI) / 180;
+  return {
+    index,
+    dx: place(28 * Math.cos(radians)),
+    dy: place(28 * Math.sin(radians)),
+  };
+});
+
 /** The comet: a dot with a fading trail, all rotated together. */
 const TRAIL = [
   { lag: 0, radius: 7, opacity: 1 },
@@ -161,10 +170,12 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
   const { index, position, innerTurns, innerActive, playing, reduced, attach } =
     loop;
   const narration = useLoopNarration(locale ?? "en");
+  const [hovered, setHovered] = useState<ProcessStepId | null>(null);
   const { holdMs, travelMs, innerLoopMultiplier } = loop.timing;
   const innerHoldMs = holdMs * innerLoopMultiplier;
   const angle = position * STEP_DEGREES;
   const active = copy.steps[index];
+  const activeSubcycle = copy.subcycles[active.id];
   // Each stage names itself as the walk reaches it, once, and only while a
   // reader has asked to hear it.
   const { say, speaking, paused } = narration;
@@ -195,6 +206,7 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
         data-testid="loop-diagram"
         data-angle={angle}
         data-inner-loop={innerActive ? "active" : "idle"}
+        data-subcycle={activeSubcycle.title}
         aria-hidden="true"
         focusable="false"
       >
@@ -278,7 +290,15 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
               data-stage={node.id}
               data-active={node.index === index}
               onClick={() => loop.select(node.index)}
+              onMouseEnter={() => setHovered(node.id)}
+              onMouseLeave={() => setHovered(null)}
+              onFocus={() => setHovered(node.id)}
+              onBlur={() => setHovered(null)}
+              tabIndex={0}
+              role="button"
+              aria-label={`${copy.steps[node.index].title}: ${copy.steps[node.index].summary}`}
             >
+              <title>{copy.steps[node.index].summary}</title>
               {node.inner && (
                 <>
                   <circle
@@ -319,13 +339,31 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
               {node.index === index && (
                 // Keyed on the walk's position rather than on the stage, so the
                 // ring opens again every time round and not only the first.
-                <circle
-                  key={position}
-                  className={styles.pulse}
-                  cx={node.x}
-                  cy={node.y}
-                  r={GEOMETRY.node}
-                />
+                <>
+                  <circle
+                    key={position}
+                    className={styles.pulse}
+                    cx={node.x}
+                    cy={node.y}
+                    r={GEOMETRY.node}
+                  />
+                  <g
+                    className={styles.subcycleOrbit}
+                    transform={`translate(${node.x} ${node.y})`}
+                  >
+                    <circle className={styles.subcycleTrack} r="27" />
+                    {SUBCYCLE_DOTS.map((dot) => (
+                      <circle
+                        key={dot.index}
+                        className={styles.subcycleDot}
+                        cx={dot.dx}
+                        cy={dot.dy}
+                        r="2.5"
+                        data-subcycle-step={dot.index}
+                      />
+                    ))}
+                  </g>
+                </>
               )}
               <circle
                 className={styles.nodeDisc}
@@ -362,6 +400,19 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
           ))}
         </g>
       </svg>
+      {hovered && (
+        <aside
+          className={styles.hoverDetail}
+          aria-live="polite"
+          data-testid="loop-hover-detail"
+        >
+          <span className="eyebrow">
+            {copy.steps.find((step) => step.id === hovered)?.title}
+          </span>
+          <p>{copy.steps.find((step) => step.id === hovered)?.summary}</p>
+          <small>{copy.subcycles[hovered].title}</small>
+        </aside>
+      )}
       <p className={styles.target}>
         {copy.target.eyebrow} {copy.target.statement.join(" ")}{" "}
         {copy.target.note}

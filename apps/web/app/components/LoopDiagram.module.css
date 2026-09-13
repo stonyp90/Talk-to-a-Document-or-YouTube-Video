@@ -157,6 +157,49 @@
 .satelliteDot {
   fill: var(--accent);
 }
+.subcycleOrbit {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: subcycle-spin 5200ms linear infinite;
+  pointer-events: none;
+}
+.subcycleTrack {
+  fill: none;
+  stroke: var(--accent-border);
+  stroke-width: 0.9;
+  stroke-dasharray: 2 3;
+}
+.subcycleDot {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 1;
+  animation: subcycle-beat 1600ms var(--ease-in-out) infinite;
+}
+.subcycleDot:nth-of-type(3) {
+  animation-delay: 320ms;
+}
+.subcycleDot:nth-of-type(4) {
+  animation-delay: 640ms;
+}
+.subcycleDot:nth-of-type(5) {
+  animation-delay: 960ms;
+}
+@keyframes subcycle-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes subcycle-beat {
+  0%,
+  100% {
+    fill: var(--surface);
+    transform: scale(1);
+  }
+  45% {
+    fill: var(--accent);
+    transform: scale(1.45);
+  }
+}
 .diagram[data-inner-loop="active"] .satelliteRing {
   stroke-width: 2;
 }
@@ -164,6 +207,39 @@
   fill: var(--surface);
   stroke: var(--accent);
   stroke-width: 1.2;
+}
+.hoverDetail {
+  width: min(100%, 420px);
+  min-height: 82px;
+  margin-top: -4px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--accent-border-wash);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  animation: hover-detail-in 180ms var(--ease-out) both;
+}
+.hoverDetail p {
+  margin: var(--space-xs) 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.hoverDetail small {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+@keyframes hover-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .diagram[data-inner-loop="active"] .providerDot {
   animation: provider-pass calc(var(--loop-inner) / 3) linear 1 normal none;
@@ -228,6 +304,15 @@
 @media (max-width: 700px) {
   .label {
     display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .subcycleOrbit,
+    .subcycleDot {
+      animation: none;
+    }
+    .hoverDetail {
+      animation: none;
+    }
   }
   .diagram {
     max-width: none;

@@ -164,6 +164,22 @@ describe("LoopDiagram", () => {
     );
   });
 
+  it("reveals the stage description when a reader hovers or focuses a node", () => {
+    render(<Loop />);
+    const concept = node("concept");
+    fireEvent.mouseEnter(concept);
+    expect(screen.getByTestId("loop-hover-detail")).toHaveTextContent(
+      copy.steps[0].summary,
+    );
+    expect(screen.getByText(/Discovery loop/i)).toBeInTheDocument();
+    fireEvent.mouseLeave(concept);
+    expect(screen.queryByTestId("loop-hover-detail")).not.toBeInTheDocument();
+    fireEvent.focus(concept);
+    expect(screen.getByTestId("loop-hover-detail")).toHaveTextContent(
+      copy.steps[0].summary,
+    );
+  });
+
   it("speaks French when asked, and English for anything else", () => {
     const french = resolveProcessCopy("fr");
     render(<Loop locale="fr-CA" />);

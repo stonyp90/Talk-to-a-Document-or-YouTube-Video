@@ -42,6 +42,7 @@ function canSpeak() {
 
 export function useLoopNarration(locale: string) {
   const [speaking, setSpeaking] = useState(false);
+  const [paused, setPaused] = useState(false);
   // Read rather than stored: the server has no speech synthesiser, so it must
   // render the control absent and the browser must agree with it until it has
   // hydrated. A state set from an effect would render one thing and then
@@ -53,6 +54,9 @@ export function useLoopNarration(locale: string) {
   );
   // What was last said, so a re-render on the same stage does not repeat it.
   const spoken = useRef<string | undefined>(undefined);
+  const spokenLines = useRef(new Set<string>());
+  const queue = useRef<string[]>([]);
+  const active = useRef(false);
 
   useEffect(() => {
     if (!available) return;
@@ -71,7 +75,11 @@ export function useLoopNarration(locale: string) {
 
   const stop = useCallback(() => {
     setSpeaking(false);
+    setPaused(false);
     spoken.current = undefined;
+    spokenLines.current.clear();
+    queue.current = [];
+    active.current = false;
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
   }, []);
 
@@ -79,36 +87,69 @@ export function useLoopNarration(locale: string) {
     (line: string) => {
       if (!speaking || typeof window === "undefined") return;
       if (!window.speechSynthesis) return;
-      if (spoken.current === line) return;
+      if (spokenLines.current.has(line) || queue.current.includes(line)) return;
       spoken.current = line;
+      spokenLines.current.add(line);
+      queue.current.push(line);
+      if (active.current) return;
       const spokenLocale = SPEECH_LOCALES[locale] ?? locale;
-      const utterance = new SpeechSynthesisUtterance(line);
-      utterance.lang = spokenLocale;
-      // The browser's own default is whichever voice was installed first, and
-      // it is usually the small robotic one; this picks the best one present.
-      const chosen = selectSpeechVoice(
-        window.speechSynthesis.getVoices?.() ?? [],
-        spokenLocale,
-      );
-      if (chosen) utterance.voice = chosen;
-      utterance.rate = SPEECH_DELIVERY.rate;
-      utterance.pitch = SPEECH_DELIVERY.pitch;
-      utterance.volume = SPEECH_DELIVERY.volume;
-      // One stage at a time: the walk moves on whether or not the last line
-      // finished, and two voices over each other is worse than a line missed.
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
+      const speakNext = () => {
+        const next = queue.current.shift();
+        if (!next || !speaking) {
+          active.current = false;
+          if (!next) setSpeaking(false);
+          return;
+        }
+        active.current = true;
+        const utterance = new SpeechSynthesisUtterance(next);
+        utterance.lang = spokenLocale;
+        const chosen = selectSpeechVoice(
+          window.speechSynthesis.getVoices?.() ?? [],
+          spokenLocale,
+        );
+        if (chosen) utterance.voice = chosen;
+        utterance.rate = SPEECH_DELIVERY.rate;
+        utterance.pitch = SPEECH_DELIVERY.pitch;
+        utterance.volume = SPEECH_DELIVERY.volume;
+        utterance.onend = () => {
+          active.current = false;
+          speakNext();
+        };
+        utterance.onerror = () => {
+          active.current = false;
+          speakNext();
+        };
+        window.speechSynthesis.speak(utterance);
+      };
+      speakNext();
     },
     [locale, speaking],
   );
 
-  const toggle = useCallback(() => {
-    setSpeaking((on) => {
-      if (on && typeof window !== "undefined") window.speechSynthesis?.cancel();
-      spoken.current = undefined;
-      return !on;
-    });
+  const pause = useCallback(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.pause();
+    setPaused(true);
   }, []);
 
-  return { speaking, available, toggle, stop, say };
+  const resume = useCallback(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.resume();
+    setPaused(false);
+  }, []);
+
+  const toggle = useCallback(() => {
+    setSpeaking((on) => {
+      if (on) {
+        stop();
+        return false;
+      }
+      spoken.current = undefined;
+      spokenLines.current.clear();
+      queue.current = [];
+      return !on;
+    });
+  }, [stop]);
+
+  return { speaking, paused, available, toggle, pause, resume, stop, say };
 }

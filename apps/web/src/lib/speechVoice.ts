@@ -14,7 +14,7 @@ export type SpeakableVoice = {
 };
 
 /** A reply that is confirming an action is clearer a little below full speed. */
-export const SPEECH_DELIVERY = { rate: 0.95, pitch: 1, volume: 1 } as const;
+export const SPEECH_DELIVERY = { rate: 0.9, pitch: 0.98, volume: 1 } as const;
 
 /** Names vendors give to their better voices. */
 const PREFERRED_NAMES = [
@@ -23,6 +23,11 @@ const PREFERRED_NAMES = [
   "neural",
   "natural",
   "siri",
+  "google",
+  "microsoft",
+  "samantha",
+  "alex",
+  "amelie",
 ] as const;
 /** The stripped-down voices, kept only as a last resort. */
 const REDUCED_NAMES = ["compact", "eloquence"] as const;

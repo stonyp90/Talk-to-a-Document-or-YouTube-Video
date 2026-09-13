@@ -167,10 +167,13 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
   const active = copy.steps[index];
   // Each stage names itself as the walk reaches it, once, and only while a
   // reader has asked to hear it.
-  const { say, speaking } = narration;
+  const { say, speaking, paused } = narration;
   useEffect(() => {
-    if (speaking) say(`${active.title}. ${active.summary}`);
-  }, [say, speaking, active.title, active.summary]);
+    if (!speaking) return;
+    // Queue the complete explanation immediately so the browser can finish
+    // every stage even while the visual loop continues moving.
+    for (const step of copy.steps) say(`${step.title}. ${step.summary}`);
+  }, [copy.steps, say, speaking]);
   const number = String(index + 1).padStart(2, "0");
   const diagramStyle = {
     "--loop-travel": `${travelMs}ms`,
@@ -386,14 +389,30 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
         {/* The page argues that listening should be an option; here it is one
             about the page itself. It is silent until it is asked. */}
         {narration.available && (
-          <button
-            type="button"
-            className={`secondary ${styles.toggle}`}
-            aria-pressed={narration.speaking}
-            onClick={narration.toggle}
-          >
-            {narration.speaking ? copy.controls.silence : copy.controls.narrate}
-          </button>
+          <>
+            <button
+              type="button"
+              className={`secondary ${styles.toggle}`}
+              aria-pressed={narration.speaking}
+              onClick={narration.toggle}
+            >
+              {narration.speaking
+                ? copy.controls.silence
+                : copy.controls.narrate}
+            </button>
+            {narration.speaking && (
+              <button
+                type="button"
+                className={`secondary ${styles.toggle}`}
+                onClick={paused ? narration.resume : narration.pause}
+                aria-label={
+                  paused ? copy.controls.resumeVoice : copy.controls.pauseVoice
+                }
+              >
+                {paused ? copy.controls.resumeVoice : copy.controls.pauseVoice}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

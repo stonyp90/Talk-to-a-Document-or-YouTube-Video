@@ -50,6 +50,8 @@ export type ProcessCopy = {
     /** Asks the page to name each stage aloud as the walk reaches it. */
     narrate: string;
     silence: string;
+    pauseVoice: string;
+    resumeVoice: string;
   };
   steps: ProcessStepCopy[];
   mission: {
@@ -85,6 +87,8 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       stepList: "Stages of the loop",
       narrate: "Hear the loop",
       silence: "Stop the voice",
+      pauseVoice: "Pause the voice",
+      resumeVoice: "Resume the voice",
     },
     steps: [
       {
@@ -183,6 +187,8 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       stepList: "Les étapes de la boucle",
       narrate: "Écouter la boucle",
       silence: "Arrêter la voix",
+      pauseVoice: "Mettre la voix en pause",
+      resumeVoice: "Reprendre la voix",
     },
     steps: [
       {

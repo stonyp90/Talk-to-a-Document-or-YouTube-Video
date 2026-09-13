@@ -27,6 +27,12 @@ describe("normalizeEmail", () => {
     ["reader@.com", "a domain starting with a dot"],
     ["reader@example.", "a domain ending with a dot"],
     ["read er@example.com", "an inner space"],
+    [".reader@example.com", "a local part starting with a dot"],
+    ["reader..name@example.com", "a local part with consecutive dots"],
+    ["reader@-example.com", "a domain label starting with a hyphen"],
+    ["reader@example-.com", "a domain label ending with a hyphen"],
+    ["reader@example..com", "consecutive domain dots"],
+    ["reader@exam_ple.com", "an underscore in a domain label"],
   ])("refuses %j because it has %s", (raw) => {
     expect(() => normalizeEmail(raw)).toThrow(InvalidEmailError);
   });

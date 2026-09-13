@@ -52,9 +52,29 @@ export function normalizeEmail(raw: string): string {
   if (parts.length !== 2) throw invalid("Enter a valid email address.");
   const [local, domain] = parts;
   if (!local || !domain) throw invalid("Enter a valid email address.");
+  if (
+    local.length > 64 ||
+    local.startsWith(".") ||
+    local.endsWith(".") ||
+    local.includes("..") ||
+    !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local)
+  )
+    throw invalid("Enter a valid email address.");
   if (!domain.includes(".") || domain.startsWith(".") || domain.endsWith("."))
     throw invalid("Enter a valid email address.");
   if (domain.includes("..")) throw invalid("Enter a valid email address.");
+  const labels = domain.split(".");
+  if (
+    labels.some(
+      (label) =>
+        !label ||
+        label.length > 63 ||
+        label.startsWith("-") ||
+        label.endsWith("-") ||
+        !/^[a-z0-9-]+$/.test(label),
+    )
+  )
+    throw invalid("Enter a valid email address.");
 
   return email;
 }

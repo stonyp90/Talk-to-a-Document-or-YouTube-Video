@@ -54,7 +54,12 @@ jobs:
       - name: Declare outstanding external release requirements
         run: echo '::notice::Scenarios tagged @external are not verified by local CI. Live provider, simulator, and deployed AWS evidence remains required for full release acceptance.'
       - run: npm run test:e2e
-      - run: npm audit --omit=dev --audit-level=critical
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Enforce release quality thresholds
+        run: |
+          test "$(find apps/web apps/mobile packages/core -type f \( -name '*.test.ts' -o -name '*.test.tsx' \) | wc -l | tr -d ' ')" -ge 30
+          test "$(find tests/e2e -type f -name '*.spec.ts' | wc -l | tr -d ' ')" -ge 2
+          test "$(find tests/bdd -type f -name '*.ts' | wc -l | tr -d ' ')" -ge 6
       - run: node --test infrastructure/tests/*.test.cjs
       - if: always()
         run: docker compose down -v

@@ -525,6 +525,16 @@ Scenarios tagged `@external` need real providers or a deployed environment; mock
 
 Mobile: `npm run typecheck --prefix apps/mobile && npm test --prefix apps/mobile`.
 
+CI applies mandatory release thresholds, not just a green aggregate job:
+
+- at least 30 web/mobile/core test files, 2 browser specs, and 6 acceptance step files;
+- zero failed tests, type errors, build failures, or high/critical production dependency advisories;
+- secret scanning, infrastructure validation, container smoke tests, and mobile checks must all pass.
+
+These are minimum floors: adding tests is expected as the product grows, while
+lowering a floor requires an intentional review rather than silently shipping a
+smaller safety net.
+
 ---
 
 ## How we build

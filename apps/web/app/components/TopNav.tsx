@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type ReactNode,
   type RefObject,
@@ -73,6 +74,32 @@ function useActiveSection(ids: readonly string[]): string | undefined {
 }
 
 const NO_SECTIONS: readonly string[] = [];
+const THEME_KEY = "ursly-theme";
+type Theme = "light" | "dark";
+
+function readTheme(): Theme {
+  if (typeof document !== "undefined" && document.documentElement.dataset.theme)
+    return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  if (typeof window !== "undefined") {
+    const saved = window.localStorage.getItem(THEME_KEY);
+    if (saved === "dark" || saved === "light") return saved;
+    if (
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    )
+      return "dark";
+  }
+  return "light";
+}
+
+function subscribeToTheme(notify: () => void) {
+  window.addEventListener("storage", notify);
+  window.addEventListener("ursly-theme-change", notify);
+  return () => {
+    window.removeEventListener("storage", notify);
+    window.removeEventListener("ursly-theme-change", notify);
+  };
+}
 
 /**
  * Each page carries only its own concerns: the landing page owns the story
@@ -406,7 +433,11 @@ export function TopNav(props: TopNavProps) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const theme = useSyncExternalStore(
+    subscribeToTheme,
+    readTheme,
+    () => "light" as Theme,
+  );
   const active = useActiveSection(
     page === "landing" ? SECTION_IDS : NO_SECTIONS,
   );
@@ -421,23 +452,14 @@ export function TopNav(props: TopNavProps) {
   }, []);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("ursly-theme");
-    const next =
-      saved === "dark" || saved === "light"
-        ? saved
-        : typeof window.matchMedia === "function" &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light";
-    setTheme(next);
-    document.documentElement.dataset.theme = next;
-  }, []);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
     document.documentElement.dataset.theme = next;
-    window.localStorage.setItem("ursly-theme", next);
+    window.localStorage.setItem(THEME_KEY, next);
+    window.dispatchEvent(new Event("ursly-theme-change"));
   }
 
   // One slot, two faces: on the landing page it is the commitment to go and

@@ -68,16 +68,16 @@ locals {
   )
   environments = {
     api = merge({
-      PORT                     = "3000", HOSTNAME = "0.0.0.0", PROVIDER_MODE = "live"
-      OPENAI_SECRET_ARN        = var.openai_secret_arn
-      UPLOAD_BUCKET            = aws_s3_bucket.uploads.id
-      SESSION_BUCKET           = aws_s3_bucket.uploads.id
-      APP_ORIGIN               = local.public_origin
-      YOUTUBE_TRANSCRIPT_MODE  = "live"
-      TRANSCRIPT_SERVICE_URL   = aws_apigatewayv2_api.http.api_endpoint
-      OPENAI_BASE_URL          = "https://api.openai.com"
-      OPENAI_REALTIME_MODEL    = "gpt-realtime", OPENAI_TEXT_MODEL = "gpt-4.1-mini"
-      CONTEXT_CHARACTER_BUDGET = tostring(var.context_character_budget)
+      PORT                      = "3000", HOSTNAME = "0.0.0.0", PROVIDER_MODE = "live"
+      OPENAI_SECRET_ARN         = var.openai_secret_arn
+      UPLOAD_BUCKET             = aws_s3_bucket.uploads.id
+      SESSION_BUCKET            = aws_s3_bucket.uploads.id
+      APP_ORIGIN                = local.public_origin
+      YOUTUBE_TRANSCRIPT_MODE   = "live"
+      TRANSCRIPT_SERVICE_URL    = aws_apigatewayv2_api.http.api_endpoint
+      OPENAI_BASE_URL           = "https://api.openai.com"
+      OPENAI_REALTIME_MODEL     = "gpt-realtime", OPENAI_TEXT_MODEL = "gpt-4.1-mini"
+      CONTEXT_CHARACTER_BUDGET  = tostring(var.context_character_budget)
       RATE_LIMIT_ADDRESS_SOURCE = "aws-request-context"
       SESSION_STORE_MAX_BYTES   = tostring(floor(local.functions.api.memory * 1024 * 1024 / 4))
       # The gate, the allowance, and the two things without which nobody can

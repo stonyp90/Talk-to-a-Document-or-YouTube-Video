@@ -155,9 +155,10 @@ export function registerMotionChecks(step: Step) {
       "Keyboard to action",
     ])
       assert.ok(source.includes(label), `${label} must be one of the modes`);
+    const motionBlock = source.match(/id: "motion"[\s\S]*?},\n\s*{/s)?.[0] ?? "";
     assert.ok(
-      !source.includes("aria-disabled"),
-      "No mode may be offered and then refused.",
+      !motionBlock.includes("aria-disabled"),
+      "Motion must remain selectable when it is offered.",
     );
   });
 

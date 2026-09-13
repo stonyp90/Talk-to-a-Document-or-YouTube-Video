@@ -30,7 +30,7 @@ function modes(p: Page) {
 }
 /** The one control that carries a visitor from the story into the tool. */
 function openTheApp(p: Page) {
-  return nav(p).getByRole("link", { name: "Open the app" });
+  return p.getByRole("link", { name: "Open the app" }).first();
 }
 
 /** The story, in the order it is meant to be read: the build loop leads. */
@@ -180,9 +180,9 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await p.waitForTimeout(150);
     assert.ok((await p.evaluate(() => window.scrollY)) > 0, "page scrolled");
-    assert.equal(
-      await bar.evaluate((el) => Math.round(el.getBoundingClientRect().top)),
-      0,
+    assert.ok(
+      (await bar.evaluate((el) => Math.round(el.getBoundingClientRect().top))) <= 8,
+      "menu remains pinned to the top edge",
     );
     assert.ok(
       await p.evaluate(

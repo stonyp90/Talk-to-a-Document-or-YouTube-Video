@@ -110,8 +110,11 @@ describe("Arrival", () => {
     const section = mount().querySelector("section")!;
     expect(TITLES).toHaveLength(PROCESS_STEP_IDS.length);
     const rail = screen.getByRole("list", { name: copy.controls.stepList });
-    const railText = announced(rail);
-    for (const title of TITLES) expect(mentions(railText, title), title).toBe(1);
+    const stageTitles = [...rail.querySelectorAll("button")].map(
+      (button) => button.children[1]?.textContent?.trim(),
+    );
+    for (const title of TITLES)
+      expect(stageTitles.filter((stage) => stage === title), title).toHaveLength(1);
     expect(section).toHaveTextContent(copy.subcycles[PROCESS_STEP_IDS[0]].title);
   });
 

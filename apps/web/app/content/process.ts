@@ -199,7 +199,7 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
         id: "secure",
         title: "Validate",
         summary:
-          "Check behaviour, quality, privacy, and security and compliance throughout the delivery cycle.",
+          "Check behaviour, quality, privacy, security and compliance, with continuous integration and delivery throughout the cycle.",
       },
       {
         id: "deliver",

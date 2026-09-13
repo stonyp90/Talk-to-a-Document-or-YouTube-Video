@@ -31,6 +31,11 @@ const CARDS: readonly Card[] = [
     title: "A simple site today. Every surface tomorrow.",
     body: "Talking to a document is the first surface. The same platform is designed to drive connected objects, 3D objects and interfaces that do not exist yet, without changing how you ask.",
   },
+  {
+    icon: "eye",
+    title: "A spatial interface, built responsibly.",
+    body: "As AR, VR and 3D screens become useful, Ursly can carry the same source-grounded conversation into the room around you. Connected devices should respond only to an explicit request, and brain-computer interfaces remain research—not a promise.",
+  },
 ];
 
 const ROADMAP = [
@@ -44,7 +49,7 @@ const ROADMAP = [
   },
   {
     stage: "Later",
-    text: "Connected objects, 3D objects and other surfaces. Whole industries, not only websites.",
+    text: "Connected objects, 3D spaces and other surfaces. Whole industries, not only websites—with permission at every boundary.",
   },
 ] as const;
 
@@ -76,7 +81,7 @@ export function PlatformSection({
         </h2>
         <p className="platform-lede">
           {t(
-            "Ursly sits between what you mean and what a screen does. You speak; you move; you can still type. It listens, adapts to how you talk, and keeps you, not the model, in charge of what happens next.",
+            "Ursly sits between what you mean and what the connected world does. You speak; you move; you can still type. The same source-grounded intelligence can travel from a browser into spatial 3D interfaces and, one day, new ways of communicating with machines—always with you in charge of what happens next.",
           )}
         </p>
       </div>

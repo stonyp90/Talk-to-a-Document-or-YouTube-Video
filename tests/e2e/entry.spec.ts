@@ -27,7 +27,7 @@ test.describe("first visit", () => {
       .toBe(true);
     // Focus starts on the one control a visitor needs: skip.
     await expect(
-      intro(page).getByRole("button", { name: "Skip intro" }),
+      page.getByRole("button", { name: "Skip intro" }),
     ).toBeFocused();
     await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
     await page.getByRole("button", { name: "Skip intro" }).click();
@@ -93,7 +93,7 @@ test.describe("first visit", () => {
     await expect(video).not.toHaveAttribute("autoplay", "");
     expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
     await expect(
-      intro(page).getByRole("button", { name: "Play the intro" }),
+      page.getByRole("button", { name: "Play the intro" }),
     ).toBeVisible();
     await expect(
       intro(page).getByText("Read the intro instead", { exact: true }),

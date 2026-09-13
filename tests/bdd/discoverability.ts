@@ -153,7 +153,7 @@ export function registerDiscoverabilityChecks(step: Step) {
       assert.match(text, /^# Ursly/);
       assert.match(text, /https:\/\/ursly\.io\/fr/);
       assert.match(text, /Keyboard is complete\. Brain is a research beta\./);
-      assert.match(text, /plus la porte d\u2019entrée\./);
+      assert.match(text, /Le clavier est complet\. Le cerveau est en bêta recherche\./);
     },
   );
 }

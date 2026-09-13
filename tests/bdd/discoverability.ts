@@ -152,7 +152,7 @@ export function registerDiscoverabilityChecks(step: Step) {
       const text = states.get(this)!.text;
       assert.match(text, /^# Ursly/);
       assert.match(text, /https:\/\/ursly\.io\/fr/);
-      assert.match(text, /It is simply no longer the way in\./);
+      assert.match(text, /Keyboard is complete\. Brain is a research beta\./);
       assert.match(text, /plus la porte d\u2019entrée\./);
     },
   );

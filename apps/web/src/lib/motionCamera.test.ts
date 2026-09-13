@@ -20,9 +20,11 @@ function fakeStream() {
   };
 }
 
-function fakeVideo(): HTMLVideoElement {
+function fakeVideo(
+  play: (() => Promise<void>) | undefined = () => Promise.resolve(),
+) {
   const element = document.createElement("video");
-  Object.defineProperty(element, "play", { value: () => Promise.resolve() });
+  if (play) Object.defineProperty(element, "play", { value: play });
   return element;
 }
 
@@ -113,6 +115,21 @@ describe("reading frames", () => {
     expect(video.srcObject).toBeTruthy();
   });
 
+  it("still starts when a browser has no video play promise", async () => {
+    const events: MotionCameraEvent[] = [];
+    const camera = new MotionCamera({
+      video: fakeVideo(undefined),
+      onEvent: (event) => events.push(event),
+      openCamera: async () => fakeStream().stream,
+      capture: () => new Array(12).fill(30),
+      schedule: () => 1,
+      cancel: () => {},
+    });
+    await expect(camera.start()).resolves.toBeUndefined();
+    expect(events[0]).toEqual({ type: "ready" });
+    camera.stop();
+  });
+
   it("reads at the configured rate rather than at every animation frame", async () => {
     const { camera, events, tick } = harness();
     await camera.start();
@@ -181,5 +198,20 @@ describe("reading frames", () => {
     release(opened.stream);
     await starting;
     expect(opened.stopped).toEqual(["video"]);
+  });
+
+  it("does not turn a cancelled permission request into an error", async () => {
+    let rejectOpen: (error: unknown) => void = () => {};
+    const { camera, events } = harness({
+      openCamera: () =>
+        new Promise<MediaStream>((_, reject) => {
+          rejectOpen = reject;
+        }),
+    });
+    const starting = camera.start();
+    camera.stop();
+    rejectOpen(new Error("permission dialog closed"));
+    await starting;
+    expect(events).toEqual([{ type: "ended" }]);
   });
 });

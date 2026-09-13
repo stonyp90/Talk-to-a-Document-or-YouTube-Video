@@ -92,7 +92,8 @@ export function MotionActions({
       if (gesture === "right" || gesture === "left") {
         const length = Math.max(1, prompts.length);
         const next =
-          (chosenRef.current + (gesture === "right" ? 1 : -1) + length) % length;
+          (chosenRef.current + (gesture === "right" ? 1 : -1) + length) %
+          length;
         chosenRef.current = next;
         setChosen(next);
         announce(prompts[next] ?? "");
@@ -173,7 +174,18 @@ export function MotionActions({
       ? createCamera({ video: video.current, onEvent })
       : new MotionCamera({ video: video.current, onEvent });
     camera.current = created;
-    await created.start();
+    try {
+      await created.start();
+    } catch {
+      // Camera adapters are allowed to reject as well as report an event.
+      // Keep the panel usable instead of leaving the start button disabled.
+      camera.current = null;
+      setStarting(false);
+      setWatching(false);
+      setError(
+        t("The camera could not be started. Check it is not already in use."),
+      );
+    }
   }
 
   function stop() {
@@ -212,7 +224,11 @@ export function MotionActions({
               aria-hidden="true"
               style={
                 at
-                  ? { left: `${at.x * 100}%`, top: `${at.y * 100}%`, opacity: 1 }
+                  ? {
+                      left: `${at.x * 100}%`,
+                      top: `${at.y * 100}%`,
+                      opacity: 1,
+                    }
                   : { opacity: 0 }
               }
             />

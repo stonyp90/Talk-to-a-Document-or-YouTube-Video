@@ -16,7 +16,12 @@ import {
 
 export type MotionCameraEvent =
   | { type: "ready" }
-  | { type: "reading"; moving: boolean; energy: number; at?: { x: number; y: number } }
+  | {
+      type: "reading";
+      moving: boolean;
+      energy: number;
+      at?: { x: number; y: number };
+    }
   | { type: "gesture"; gesture: MotionGestureId }
   | { type: "error"; code: MotionErrorCode; message: string }
   | { type: "ended" };
@@ -171,7 +176,7 @@ export class MotionCamera {
       this.stream = stream;
       this.options.video.srcObject = stream;
       this.options.video.muted = true;
-      await this.options.video.play?.().catch(() => {
+      await Promise.resolve(this.options.video.play?.()).catch(() => {
         // A paused preview still delivers frames to the canvas on most
         // browsers, and the reader is told by the meter either way.
       });
@@ -179,6 +184,9 @@ export class MotionCamera {
       this.options.onEvent({ type: "ready" });
       this.tick();
     } catch (error) {
+      // Stopping while permission is pending is a normal lifecycle transition,
+      // not a camera failure to show to the reader.
+      if (!this.running) return;
       this.running = false;
       this.options.onEvent({ type: "error", ...describeCameraFailure(error) });
     }

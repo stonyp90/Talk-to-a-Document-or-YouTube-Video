@@ -19,6 +19,7 @@ import { TopNav } from "./TopNav";
 import { Markdown } from "./Markdown";
 import { VoiceActions, type VoiceActionId } from "./VoiceActions";
 import { MotionActions } from "./MotionActions";
+import { DeviceConnect } from "./DeviceConnect";
 import { defaultPhrases } from "@/packages/core/src/domain/voiceCommands";
 import { VoiceLending } from "./VoiceLending";
 import { useLanguage } from "../i18n/LanguageProvider";
@@ -1275,6 +1276,7 @@ export default function Workspace() {
 
           {account !== null && voiceActions}
           {account !== null && motionActions}
+          {account !== null && <DeviceConnect />}
 
           <div
             className="workspace"
@@ -1880,12 +1882,16 @@ export default function Workspace() {
                 <p className={`channel-state ${channelStatus}`} role="status">
                   <span className="channel-dot" aria-hidden="true" />
                   {channelStatus === "live"
-                    ? t("Live channel open — answers arrive as they are written")
+                    ? t(
+                        "Live channel open — answers arrive as they are written",
+                      )
                     : channelStatus === "connecting"
                       ? t("Opening the live channel…")
                       : channelStatus === "reconnecting"
                         ? t("Reopening the live channel…")
-                        : t("The live channel is closed; answers still arrive.")}
+                        : t(
+                            "The live channel is closed; answers still arrive.",
+                          )}
                 </p>
               )}
 

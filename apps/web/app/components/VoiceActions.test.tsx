@@ -209,4 +209,12 @@ describe("speaking a question", () => {
     expect(spies.onDictate).not.toHaveBeenCalled();
     expect(action(spies.onAction)).toContain("cancel");
   });
+
+  it("clears an unfinished hypothesis when listening stops", () => {
+    show();
+    hear("back", false);
+    expect(screen.getByText("back")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Stop listening" }));
+    expect(screen.queryByText("back")).not.toBeInTheDocument();
+  });
 });

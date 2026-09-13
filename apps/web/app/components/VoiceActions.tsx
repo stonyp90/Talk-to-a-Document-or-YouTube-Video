@@ -297,6 +297,7 @@ export function VoiceActions({
     listener.current?.stop();
     if (settleTimer.current) clearTimeout(settleTimer.current);
     settleTimer.current = undefined;
+    setHeard("");
     setNotice(message);
   }, []);
 

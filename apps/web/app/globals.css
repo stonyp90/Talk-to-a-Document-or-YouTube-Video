@@ -131,6 +131,8 @@
   --radius-2xl: 24px;
   --overlay: #29273599;
   --focus-wash: #a8433220;
+  --future-grid: #2927350a;
+  --future-glow: #f4776218;
   /* Figures that have to line up in a column: stage numbers, counters, the
      small print of a measurement. Named once, like the display face. */
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -495,12 +497,31 @@ h3 {
   padding-top: var(--space-2xs);
 }
 .workspace {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.35fr);
   align-items: stretch;
   gap: var(--space-lg);
   min-height: min(650px, calc(100svh - 236px));
   perspective: 1200px;
+}
+.workspace::before {
+  position: absolute;
+  z-index: -1;
+  inset: -18px -12px;
+  border: 1px solid var(--future-grid);
+  border-radius: calc(var(--radius-2xl) + 4px);
+  background:
+    linear-gradient(var(--future-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--future-grid) 1px, transparent 1px),
+    radial-gradient(circle at 78% 12%, var(--future-glow), transparent 36%);
+  background-size:
+    32px 32px,
+    32px 32px,
+    100% 100%;
+  pointer-events: none;
+  content: "";
+  opacity: 0.7;
 }
 .card {
   min-width: 0;
@@ -515,6 +536,26 @@ h3 {
     border-color var(--motion-base) ease,
     box-shadow var(--motion-base) var(--ease-out),
     transform var(--motion-base) var(--ease-out);
+}
+.card::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    125deg,
+    color-mix(in srgb, var(--surface) 30%, transparent),
+    transparent 42%
+  );
+  pointer-events: none;
+  content: "";
+}
+.card {
+  position: relative;
+  isolation: isolate;
+}
+.card > * {
+  position: relative;
+  z-index: 1;
 }
 .conversation-card {
   display: flex;
@@ -2068,6 +2109,9 @@ h3 {
 .mode[aria-checked="true"] {
   border-color: var(--ink);
   color: var(--ink);
+  box-shadow:
+    0 0 0 1px var(--accent-border-wash),
+    0 5px 16px var(--shadow-sm);
 }
 .mode[aria-disabled="true"] {
   color: var(--disabled-ink);
@@ -2086,6 +2130,13 @@ h3 {
 .mode-voice[aria-checked="true"] {
   border-color: var(--accent-border);
   background: var(--accent-wash-soft);
+  color: var(--accent);
+}
+.mode-motion[aria-checked="true"] {
+  border-color: var(--accent-border);
+  background:
+    linear-gradient(135deg, var(--accent-wash-soft), var(--violet-tint)),
+    var(--surface);
   color: var(--accent);
 }
 /* The keyboard is the previous generation of input. It is kept, supported and
@@ -2702,6 +2753,90 @@ h3 {
   align-items: center;
   gap: var(--space-xs);
   width: 100%;
+}
+.device-connect {
+  margin: 0 0 var(--space-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 6px 20px var(--shadow-sm);
+}
+.device-connect > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 48px;
+  padding: var(--space-sm) var(--space-lg);
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  list-style: none;
+}
+.device-connect > summary::-webkit-details-marker {
+  display: none;
+}
+.device-connect > summary::after {
+  margin-left: auto;
+  content: "+";
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 400;
+}
+.device-connect[open] > summary::after {
+  content: "−";
+}
+.device-connect > summary span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+.device-connect-body {
+  display: grid;
+  gap: var(--space-md);
+  padding: 0 var(--space-lg) var(--space-lg);
+}
+.device-connect-options {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--space-md);
+  align-items: end;
+}
+.device-internet-form {
+  display: grid;
+  gap: var(--space-xs);
+}
+.device-internet-form label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+.device-internet-form > div {
+  display: flex;
+  gap: var(--space-xs);
+}
+.device-internet-form input {
+  min-width: 0;
+  flex: 1;
+  min-height: 40px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+}
+.device-connect-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--success);
+  font-size: 11px;
+}
+.device-connect-status .status {
+  width: 6px;
+  height: 6px;
 }
 .voice-example-say {
   margin-right: var(--space-2xs);
@@ -4042,6 +4177,18 @@ h3 {
  * last one wins.
  * ------------------------------------------------------------------------- */
 @media (max-width: 700px) {
+  .device-connect-options {
+    grid-template-columns: 1fr;
+  }
+  .device-connect > summary span {
+    margin-left: auto;
+  }
+  .device-internet-form > div {
+    align-items: stretch;
+  }
+  .device-internet-form input {
+    width: 100%;
+  }
   .voice-example,
   .voice-customize summary,
   .voice-trigger-form input,

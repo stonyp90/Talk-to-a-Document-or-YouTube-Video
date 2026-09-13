@@ -75,7 +75,9 @@ afterEach(() => {
 describe("driving the application with a hand", () => {
   it("says the camera is off, and that nothing is recorded, before it starts", () => {
     draw();
-    expect(screen.getByText(/nothing is recorded or sent/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/nothing is recorded or sent/i),
+    ).toBeInTheDocument();
   });
 
   it("starts on a press, because a camera is never taken without one", async () => {
@@ -152,12 +154,27 @@ describe("driving the application with a hand", () => {
     camera.send({
       type: "error",
       code: "DENIED",
-      message: "The camera was not allowed. Allow it in your browser, then start motion again.",
+      message:
+        "The camera was not allowed. Allow it in your browser, then start motion again.",
     });
     expect(await screen.findByRole("alert")).toHaveTextContent(/not allowed/i);
     expect(
       screen.getByRole("button", { name: /start motion/i }),
     ).toBeInTheDocument();
+  });
+
+  it("recovers when an injected camera rejects while starting", async () => {
+    const camera = stubCamera();
+    camera.create = () => ({
+      start: () => Promise.reject(new Error("camera unavailable")),
+      stop: () => {},
+    });
+    draw({}, camera);
+    start();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /camera could not be started/i,
+    );
+    expect(screen.getByRole("button", { name: /start motion/i })).toBeEnabled();
   });
 
   it("releases the camera when the reader leaves motion behind", () => {

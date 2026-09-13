@@ -75,11 +75,11 @@ export const INTRO_CHAPTERS: readonly IntroChapter[] = [
     title: "The features",
     headline: ["Three modes.", "Two languages."],
     summary:
-      "Voice, keyboard and motion in beta; English or French in one tap; answers you can check against the source text.",
+      "Voice, keyboard and motion in beta; Brain is a research beta; English or French in one tap; answers you can check against the source text.",
     seconds: 8,
     captions: [
       "Voice, keyboard, and motion in beta: three ways to do the same thing.",
-      "English or French in one tap. Answers you can check in the source text.",
+      "Brain is a research beta. English or French in one tap.",
     ],
   },
 ];

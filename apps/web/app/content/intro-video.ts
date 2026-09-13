@@ -42,7 +42,7 @@ export const INTRO_SCENES = [
   {
     id: "voice",
     headline: "Voice to action.",
-    lede: "Say it, and Ursly does it.",
+    lede: "Say it, and Ursly does it. Motion works in beta.",
   },
   {
     id: "motion",
@@ -51,13 +51,13 @@ export const INTRO_SCENES = [
   },
   {
     id: "keyboard",
-    headline: "The keyboard still works.",
-    lede: "It is simply no longer the way in.",
+    headline: "Every way in stays open.",
+    lede: "Keyboard is complete. Brain is a research beta.",
   },
   {
     id: "loop",
-    headline: "Nothing ships until the loop closes.",
-    lede: "Concept to production, tested in production, every cycle.",
+    headline: "One continuous lifecycle.",
+    lede: "Smaller loops at every stage, from canary release to learning.",
   },
 ] as const;
 

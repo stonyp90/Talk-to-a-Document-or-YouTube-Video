@@ -109,7 +109,7 @@ export const introCopy = {
       {
         id: "voice",
         headline: "Voice to action.",
-        lede: "Say it, and Ursly does it.",
+        lede: "Say it, and Ursly does it. Motion works in beta.",
       },
       {
         id: "motion",
@@ -118,13 +118,13 @@ export const introCopy = {
       },
       {
         id: "keyboard",
-        headline: "The keyboard still works.",
-        lede: "It is simply no longer the way in.",
+        headline: "Every way in stays open.",
+        lede: "Keyboard is complete. Brain is a research beta.",
       },
       {
         id: "loop",
-        headline: "Nothing ships until the loop closes.",
-        lede: "Concept to production, tested in production, every cycle.",
+        headline: "One continuous lifecycle.",
+        lede: "Smaller loops at every stage, from canary release to learning.",
       },
     ],
   },
@@ -168,7 +168,7 @@ export const introCopy = {
       {
         id: "voice",
         headline: "Voix vers action.",
-        lede: "Dites-le, Ursly le fait.",
+        lede: "Dites-le, Ursly le fait. Le mouvement fonctionne en bêta.",
       },
       {
         id: "motion",
@@ -177,13 +177,13 @@ export const introCopy = {
       },
       {
         id: "keyboard",
-        headline: "Le clavier fonctionne toujours.",
-        lede: "Ce n’est simplement plus la porte d’entrée.",
+        headline: "Toutes les portes restent ouvertes.",
+        lede: "Le clavier est complet. Le cerveau est en bêta recherche.",
       },
       {
         id: "loop",
-        headline: "Rien ne sort tant que la boucle n’est pas bouclée.",
-        lede: "Du concept à la production, testé en production, à chaque cycle.",
+        headline: "Un cycle de vie continu.",
+        lede: "De petites boucles à chaque étape, du déploiement canary à l’apprentissage.",
       },
     ],
   },

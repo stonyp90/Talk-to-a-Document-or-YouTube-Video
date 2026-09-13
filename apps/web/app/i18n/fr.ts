@@ -143,10 +143,12 @@ export const french: Dictionary = {
   "Two languages.": "Deux langues.",
   "Voice, keyboard and motion in beta; English or French in one tap; answers you can check against the source text.":
     "Voix, clavier et mouvement en bêta ; anglais ou français en un geste ; des réponses vérifiables dans le texte source.",
+  "Voice, keyboard and motion in beta; Brain is a research beta; English or French in one tap; answers you can check against the source text.":
+    "Voix, clavier et mouvement en bêta ; le cerveau est une bêta de recherche ; anglais ou français en un geste ; des réponses vérifiables dans le texte source.",
   "Voice, keyboard, and motion in beta: three ways to do the same thing.":
     "Voix, clavier et mouvement en bêta : trois façons de faire la même chose.",
-  "English or French in one tap. Answers you can check in the source text.":
-    "Anglais ou français en un geste. Des réponses vérifiables dans le texte source.",
+  "Brain is a research beta. English or French in one tap.":
+    "Le cerveau est une bêta de recherche. Anglais ou français en un geste.",
   "In {seconds} seconds.": "En {seconds} secondes.",
   "Ursly introduction": "Présentation d’Ursly",
   "The Ursly introduction": "L’introduction d’Ursly",
@@ -176,6 +178,14 @@ export const french: Dictionary = {
     "Ursly le lit, et ne répond qu’à partir de lui.",
   "Voice to action.": "Voix vers action.",
   "Say it, and Ursly does it.": "Dites-le, Ursly le fait.",
+  "Say it, and Ursly does it. Motion works in beta.":
+    "Dites-le, Ursly le fait. Le mouvement fonctionne en bêta.",
+  "Every way in stays open.": "Toutes les portes restent ouvertes.",
+  "Keyboard is complete. Brain is a research beta.":
+    "Le clavier est complet. Le cerveau est en bêta recherche.",
+  "One continuous lifecycle.": "Un cycle de vie continu.",
+  "Smaller loops at every stage, from canary release to learning.":
+    "De petites boucles à chaque étape, du déploiement canary à l’apprentissage.",
   "Motion to action.": "Mouvement vers action.",
   "In beta, built for the headsets coming next.":
     "En bêta, pensé pour les casques qui arrivent.",

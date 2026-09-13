@@ -60,6 +60,9 @@ export type ProcessCopy = {
     zoomOut: string;
     zoomReset: string;
     zoomHint: string;
+    closeDetails: string;
+    whyItMatters: string;
+    exitSignal: string;
   };
   steps: ProcessStepCopy[];
   mission: {
@@ -159,6 +162,9 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       zoomOut: "Zoom out of the lifecycle",
       zoomReset: "Reset lifecycle zoom",
       zoomHint: "Scroll to explore the enlarged lifecycle",
+      closeDetails: "Close stage details",
+      whyItMatters: "Why it matters",
+      exitSignal: "Exit signal",
     },
     steps: [
       {
@@ -351,6 +357,9 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       zoomOut: "Réduire le cycle de vie",
       zoomReset: "Réinitialiser le zoom du cycle",
       zoomHint: "Faire défiler pour explorer le cycle agrandi",
+      closeDetails: "Fermer les détails de l’étape",
+      whyItMatters: "Pourquoi c’est important",
+      exitSignal: "Signal de sortie",
     },
     steps: [
       {

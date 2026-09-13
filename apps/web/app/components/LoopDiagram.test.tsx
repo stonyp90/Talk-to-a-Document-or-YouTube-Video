@@ -180,6 +180,26 @@ describe("LoopDiagram", () => {
     );
   });
 
+  it("opens a detailed stage explorer and lets readers choose a sub-cycle step", () => {
+    render(<Loop />);
+    fireEvent.click(node("concept"));
+
+    expect(
+      screen.getByRole("heading", { name: copy.steps[0].title }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(copy.subcycles.concept.criterion)).toBeInTheDocument();
+    const prototype = screen.getByRole("button", { name: /Prototype/ });
+    fireEvent.click(prototype);
+    expect(prototype).toHaveAttribute("aria-current", "step");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: copy.controls.closeDetails }),
+    );
+    expect(
+      screen.queryByRole("heading", { name: copy.steps[0].title }),
+    ).not.toBeInTheDocument();
+  });
+
   it("lets readers enlarge the lifecycle and reset it without losing the controls", () => {
     render(<Loop />);
     const viewport = diagram().parentElement!;

@@ -174,12 +174,18 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
     loop;
   const narration = useLoopNarration(locale ?? "en");
   const [hovered, setHovered] = useState<ProcessStepId | null>(null);
+  const [explored, setExplored] = useState<ProcessStepId | null>(null);
+  const [selectedSubstep, setSelectedSubstep] = useState(0);
   const [zoom, setZoom] = useState(ZOOM_MIN);
   const { holdMs, travelMs, innerLoopMultiplier } = loop.timing;
   const innerHoldMs = holdMs * innerLoopMultiplier;
   const angle = position * STEP_DEGREES;
   const active = copy.steps[index];
   const activeSubcycle = copy.subcycles[active.id];
+  const exploredStep = explored
+    ? copy.steps.find((step) => step.id === explored)
+    : null;
+  const exploredSubcycle = explored ? copy.subcycles[explored] : null;
   // Each stage names itself as the walk reaches it, once, and only while a
   // reader has asked to hear it.
   const { say, speaking, paused } = narration;
@@ -295,7 +301,22 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
               className={styles.node}
               data-stage={node.id}
               data-active={node.index === index}
-              onClick={() => loop.select(node.index)}
+              role="button"
+              tabIndex={0}
+              aria-label={`${copy.steps[node.index].title}: ${copy.steps[node.index].summary}`}
+              onClick={() => {
+                loop.select(node.index);
+                setExplored(node.id);
+                setSelectedSubstep(0);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  loop.select(node.index);
+                  setExplored(node.id);
+                  setSelectedSubstep(0);
+                }
+              }}
               onMouseEnter={() => setHovered(node.id)}
               onMouseLeave={() => setHovered(null)}
               onFocus={() => setHovered(node.id)}
@@ -448,6 +469,53 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
           <p>{copy.steps.find((step) => step.id === hovered)?.summary}</p>
           <small>{copy.subcycles[hovered].title}</small>
         </aside>
+      )}
+      {exploredStep && exploredSubcycle && (
+        <section className={styles.explorer} aria-live="polite" aria-labelledby="loop-explorer-title">
+          <div className={styles.explorerHeader}>
+            <div>
+              <span className="eyebrow">{exploredSubcycle.title}</span>
+              <h3 id="loop-explorer-title">{exploredStep.title}</h3>
+            </div>
+            <button
+              type="button"
+              className={styles.explorerClose}
+              onClick={() => setExplored(null)}
+              aria-label={copy.controls.closeDetails}
+            >
+              ×
+            </button>
+          </div>
+          <p className={styles.explorerPurpose}>{exploredStep.summary}</p>
+          <div className={styles.explorerBody}>
+            <div>
+              <span className="eyebrow">{copy.controls.whyItMatters}</span>
+              <p>
+              {exploredStep.summary} {exploredSubcycle.title} keeps this stage rigorous without making it rigid.
+              </p>
+            </div>
+            <div>
+              <span className="eyebrow">{exploredSubcycle.title}</span>
+              <ol className={styles.explorerSteps}>
+                {exploredSubcycle.steps.map((step, stepIndex) => (
+                  <li key={step}>
+                    <button
+                      type="button"
+                      aria-current={stepIndex === selectedSubstep ? "step" : undefined}
+                      onClick={() => setSelectedSubstep(stepIndex)}
+                    >
+                      <span>{String(stepIndex + 1).padStart(2, "0")}</span>
+                      {step}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              <p className={styles.explorerCriterion}>
+                <strong>{copy.controls.exitSignal}</strong> {exploredSubcycle.criterion}
+              </p>
+            </div>
+          </div>
+        </section>
       )}
       <p className={styles.target}>
         {copy.target.eyebrow} {copy.target.statement.join(" ")}{" "}

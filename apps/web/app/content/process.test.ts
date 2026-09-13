@@ -83,7 +83,7 @@ describe("process copy", () => {
       "Improve",
     ]);
     expect(step(processCopy.en, "secure")).toMatch(
-      /quality, privacy, security, and compliance throughout/i,
+      /quality, privacy, and security and compliance throughout/i,
     );
     expect(step(processCopy.en, "deliver")).toMatch(/reversible/i);
     expect(step(processCopy.fr, "secure")).toMatch(

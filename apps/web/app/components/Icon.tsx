@@ -4,6 +4,7 @@ export type IconName =
   | "arrow"
   | "voice"
   | "motion"
+  | "brain"
   | "download"
   | "external"
   | "bell"
@@ -26,6 +27,11 @@ const PATHS: Record<IconName, string[]> = {
     "M11 12V6a1.5 1.5 0 0 1 3 0v7",
     "M14 11V8a1.5 1.5 0 0 1 3 0v5",
     "M17 12v-1a1.5 1.5 0 0 1 3 0v4c0 4-2.5 6-6 6h-2.5a4 4 0 0 1-3.5-2l-2.5-4",
+  ],
+  brain: [
+    "M9 4.5a3 3 0 0 0-3 3v.5a3 3 0 0 0-2 2.8A3 3 0 0 0 6.5 14H7",
+    "M15 4.5a3 3 0 0 1 3 3v.5a3 3 0 0 1 2 2.8 3 3 0 0 1-2.5 3.2H17",
+    "M9 4.5v15M15 4.5v15M9 8h6M9 13h6M9 18h6",
   ],
   download: ["M12 3v12", "m7 10 5 5 5-5", "M5 21h14"],
   external: [

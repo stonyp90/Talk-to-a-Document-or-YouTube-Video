@@ -43,6 +43,10 @@ export type ProcessCopy = {
   quote: string;
   target: { eyebrow: string; statement: string[]; note: string };
   innerLoop: string;
+  subcycles: Record<
+    string,
+    { title: string; steps: string[]; criterion: string }
+  >;
   controls: {
     pause: string;
     play: string;
@@ -67,20 +71,78 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
   en: {
     eyebrow: "How we build",
     heading: {
-      lead: "Nothing ships until ",
-      accent: "the loop closes",
-      trail: ".",
+      lead: "One continuous lifecycle. ",
+      accent: "Smaller loops",
+      trail: " at every stage.",
     },
     intro:
-      "Ursly is built in short cycles. Each one starts as an idea and ends with real people using it and telling us what to improve. In between, it is planned, built with the right tools, run and tested on one machine, secured, delivered continuously and proven in production. A feature is finished only when the whole loop has been walked.",
-    quote: "The loop is our definition of done.",
+      "We design, build, and validate before release—then operate, listen, and improve. Every loop has a purpose. Every release moves the product forward.",
+    quote:
+      "The main lifecycle connects the loops; feedback returns where it matters.",
     target: {
       eyebrow: "The mission",
       statement: ["The bridge to", "tomorrow’s internet."],
-      note: "One loop · nothing skipped",
+      note: "One lifecycle · smaller loops",
     },
     innerLoop:
       "Training is a loop of its own: the best model from one provider proves itself, then an event hands off to the best from the next provider, each iterating on its own, first locally, then in beta, through this same loop. The big loop waits until the small one closes.",
+    subcycles: {
+      concept: {
+        title: "Discovery loop",
+        steps: ["Discover", "Design", "Prototype", "Review", "Repeat"],
+        criterion: "A clear concept and a reviewed prototype.",
+      },
+      plan: {
+        title: "Discovery loop",
+        steps: ["Discover", "Design", "Prototype", "Review", "Repeat"],
+        criterion: "A clear concept and a reviewed prototype.",
+      },
+      tools: {
+        title: "Development loop",
+        steps: ["Build", "Test", "Review", "Fix", "Repeat"],
+        criterion: "A validated release candidate.",
+      },
+      local: {
+        title: "Development loop",
+        steps: ["Build", "Test", "Review", "Fix", "Repeat"],
+        criterion: "A validated release candidate.",
+      },
+      test: {
+        title: "Development loop",
+        steps: ["Build", "Test", "Review", "Fix", "Repeat"],
+        criterion: "A validated release candidate.",
+      },
+      secure: {
+        title: "Development loop",
+        steps: ["Build", "Test", "Review", "Fix", "Repeat"],
+        criterion: "A validated release candidate.",
+      },
+      deliver: {
+        title: "Delivery loop",
+        steps: ["Deploy", "Verify", "Observe", "Adjust", "Revalidate"],
+        criterion: "A verified production release.",
+      },
+      production: {
+        title: "Delivery loop",
+        steps: ["Deploy", "Verify", "Observe", "Adjust", "Revalidate"],
+        criterion: "A verified production release.",
+      },
+      sustain: {
+        title: "Learning loop",
+        steps: ["Measure", "Gather feedback", "Improve", "Evaluate", "Repeat"],
+        criterion: "An improvement ready for planning.",
+      },
+      listen: {
+        title: "Learning loop",
+        steps: ["Measure", "Gather feedback", "Improve", "Evaluate", "Repeat"],
+        criterion: "An improvement ready for planning.",
+      },
+      train: {
+        title: "Learning loop",
+        steps: ["Measure", "Gather feedback", "Improve", "Evaluate", "Repeat"],
+        criterion: "An improvement ready for planning.",
+      },
+    },
     controls: {
       pause: "Pause the loop",
       play: "Play the loop",
@@ -167,20 +229,108 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
   fr: {
     eyebrow: "Notre façon de bâtir",
     heading: {
-      lead: "Rien ne sort tant que ",
-      accent: "la boucle n’est pas bouclée",
-      trail: ".",
+      lead: "Un cycle de vie continu. ",
+      accent: "De petites boucles",
+      trail: " à chaque étape.",
     },
     intro:
-      "Ursly se construit en cycles courts. Chacun commence par une idée et se termine avec de vraies personnes qui l’utilisent et nous disent quoi améliorer. Entre les deux, il est planifié, bâti avec les bons outils, exécuté et testé sur une seule machine, sécurisé, livré en continu et prouvé en production. Une fonctionnalité n’est terminée que lorsque toute la boucle a été parcourue.",
-    quote: "La boucle est notre définition de « terminé ».",
+      "Nous concevons, bâtissons et validons avant la sortie, puis nous opérons, écoutons et améliorons. Chaque boucle a un but. Chaque version fait avancer le produit.",
+    quote:
+      "Le cycle principal relie les boucles; les retours reviennent à l’étape utile.",
     target: {
       eyebrow: "La mission",
       statement: ["Le pont vers", "l’Internet de demain."],
-      note: "Une boucle · rien de sauté",
+      note: "Un cycle · de petites boucles",
     },
     innerLoop:
       "L’entraînement est une boucle à part : le meilleur modèle d’un fournisseur fait ses preuves, puis un événement passe le relais au meilleur du fournisseur suivant, chacun itérant de lui-même, en local d’abord, puis en bêta, dans cette même boucle. La grande boucle attend que la petite soit bouclée.",
+    subcycles: {
+      concept: {
+        title: "Boucle de découverte",
+        steps: [
+          "Découvrir",
+          "Concevoir",
+          "Prototyper",
+          "Revoir",
+          "Recommencer",
+        ],
+        criterion: "Un concept clair et un prototype revu.",
+      },
+      plan: {
+        title: "Boucle de découverte",
+        steps: [
+          "Découvrir",
+          "Concevoir",
+          "Prototyper",
+          "Revoir",
+          "Recommencer",
+        ],
+        criterion: "Un concept clair et un prototype revu.",
+      },
+      tools: {
+        title: "Boucle de développement",
+        steps: ["Bâtir", "Tester", "Revoir", "Corriger", "Recommencer"],
+        criterion: "Une version candidate validée.",
+      },
+      local: {
+        title: "Boucle de développement",
+        steps: ["Bâtir", "Tester", "Revoir", "Corriger", "Recommencer"],
+        criterion: "Une version candidate validée.",
+      },
+      test: {
+        title: "Boucle de développement",
+        steps: ["Bâtir", "Tester", "Revoir", "Corriger", "Recommencer"],
+        criterion: "Une version candidate validée.",
+      },
+      secure: {
+        title: "Boucle de développement",
+        steps: ["Bâtir", "Tester", "Revoir", "Corriger", "Recommencer"],
+        criterion: "Une version candidate validée.",
+      },
+      deliver: {
+        title: "Boucle de livraison",
+        steps: ["Déployer", "Vérifier", "Observer", "Ajuster", "Revalider"],
+        criterion: "Une version de production vérifiée.",
+      },
+      production: {
+        title: "Boucle de livraison",
+        steps: ["Déployer", "Vérifier", "Observer", "Ajuster", "Revalider"],
+        criterion: "Une version de production vérifiée.",
+      },
+      sustain: {
+        title: "Boucle d’apprentissage",
+        steps: [
+          "Mesurer",
+          "Recueillir les retours",
+          "Améliorer",
+          "Évaluer",
+          "Recommencer",
+        ],
+        criterion: "Une amélioration prête pour le plan.",
+      },
+      listen: {
+        title: "Boucle d’apprentissage",
+        steps: [
+          "Mesurer",
+          "Recueillir les retours",
+          "Améliorer",
+          "Évaluer",
+          "Recommencer",
+        ],
+        criterion: "Une amélioration prête pour le plan.",
+      },
+      train: {
+        title: "Boucle d’apprentissage",
+        steps: [
+          "Mesurer",
+          "Recueillir les retours",
+          "Améliorer",
+          "Évaluer",
+          "Recommencer",
+        ],
+        criterion: "Une amélioration prête pour le plan.",
+      },
+    },
     controls: {
       pause: "Mettre la boucle en pause",
       play: "Relancer la boucle",

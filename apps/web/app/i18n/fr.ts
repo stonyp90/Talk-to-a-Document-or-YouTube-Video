@@ -36,6 +36,8 @@ export const french: Dictionary = {
   Keyboard: "Clavier",
   Motion: "Mouvement",
   Beta: "Bêta",
+  "Brain to action": "Cerveau vers action",
+  Brain: "Cerveau",
   Legacy: "Ancien",
   // Motion to action
   "Your hand is the shortcut.": "Votre main est le raccourci.",

@@ -696,6 +696,19 @@ h3 {
   text-transform: uppercase;
   color: var(--muted);
 }
+.mode-unavailable {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+.mode-unavailable:hover {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  transform: none;
+}
+.mode-brain .icon {
+  color: var(--accent);
+}
 .motion-choice-prompt {
   font-size: 15px;
   font-weight: 620;
@@ -3645,7 +3658,7 @@ h3 {
   }
   .modes {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     width: 100%;
     padding: var(--space-2xs);
     border-radius: var(--radius-lg);

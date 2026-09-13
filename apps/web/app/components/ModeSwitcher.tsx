@@ -49,6 +49,13 @@ const MODES: readonly Mode[] = [
   },
 ];
 
+const BRAIN_MODE = {
+  label: "Brain to action",
+  short: "Brain",
+  detail: "Beta",
+  icon: "brain" as IconName,
+};
+
 /** The modes in the order they are drawn, which is the order the keys walk. */
 const SELECTABLE = MODES.map((mode) => mode.id);
 
@@ -96,11 +103,7 @@ export function ModeSwitcher({
   }
 
   return (
-    <div
-      className="modes"
-      role="radiogroup"
-      aria-label={t("Control mode")}
-    >
+    <div className="modes" role="radiogroup" aria-label={t("Control mode")}>
       {MODES.map((item) => {
         const checked = item.id === mode;
         return (
@@ -127,6 +130,20 @@ export function ModeSwitcher({
           </button>
         );
       })}
+      <button
+        type="button"
+        className="mode mode-brain mode-unavailable"
+        aria-label={t(BRAIN_MODE.label)}
+        aria-disabled="true"
+        onClick={() => undefined}
+      >
+        <Icon name={BRAIN_MODE.icon} />
+        <span className="mode-label">
+          <span className="mode-label-full">{t(BRAIN_MODE.label)}</span>
+          <span className="mode-label-short">{t(BRAIN_MODE.short)}</span>
+        </span>
+        <small className="mode-detail">{t(BRAIN_MODE.detail)}</small>
+      </button>
     </div>
   );
 }

@@ -30,6 +30,8 @@ export function Process({
   loop: Loop;
 }) {
   const copy = resolveProcessCopy(locale);
+  const activeStep = copy.steps[loop.index];
+  const subcycle = copy.subcycles[activeStep.id];
 
   return (
     <div className={`arrival-words ${styles.words}`}>
@@ -60,6 +62,23 @@ export function Process({
       </ol>
 
       <p className={styles.quote}>{copy.quote}</p>
+
+      <section className={styles.subcycle} aria-live="polite">
+        <div>
+          <span className="eyebrow">{subcycle.title}</span>
+          <p className={styles.subcycleCriterion}>{subcycle.criterion}</p>
+        </div>
+        <ol className={styles.subcycleSteps}>
+          {subcycle.steps.map((step, index) => (
+            <li key={step}>
+              <span aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <div className={styles.mission}>
         <div className={styles.missionCopy}>

@@ -49,6 +49,14 @@ describe("ModeSwitcher", () => {
     expect(radio(/Voice to action/).querySelector(".mode-detail")).toBeNull();
   });
 
+  it("shows brain as a research beta without pretending it is available", () => {
+    mount();
+    const brain = screen.getByRole("button", { name: "Brain to action" });
+    expect(brain).toHaveAttribute("aria-disabled", "true");
+    expect(brain).toHaveClass("mode-brain", "mode-unavailable");
+    expect(within(brain).getByText("Beta")).toHaveClass("mode-detail");
+  });
+
   it("demotes the keyboard without disabling it", () => {
     const onChange = mount();
     const keyboard = radio(/Keyboard to action/);

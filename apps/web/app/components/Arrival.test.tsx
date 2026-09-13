@@ -119,7 +119,7 @@ describe("Arrival", () => {
     const section = mount().querySelector("section")!;
     const rail = screen.getByRole("list", { name: copy.controls.stepList });
     const reachable = [
-      ...section.querySelectorAll<HTMLElement>("a, button, [tabindex]"),
+      ...rail.querySelectorAll<HTMLElement>("a, button, [tabindex]"),
     ].filter((control) =>
       TITLES.some((title) => mentions(announced(control), title) > 0),
     );

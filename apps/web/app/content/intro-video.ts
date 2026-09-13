@@ -14,7 +14,7 @@
 export const INTRO_SCENE_SECONDS = 6;
 
 /** The date the introduction was first published on this origin. */
-export const INTRO_PUBLISHED_ON = "2026-09-12";
+export const INTRO_PUBLISHED_ON = "2026-09-13";
 
 /**
  * The argument the film makes, one scene at a time.

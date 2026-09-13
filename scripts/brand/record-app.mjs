@@ -205,7 +205,10 @@ async function journey(page, surface, language, { t0, filmed }) {
   // in and the order the film argues them in. The session is real: in mock
   // mode the app still opens one, reports itself connected and sits there
   // listening, so nothing here is a picture of a feature.
-  const startVoice = page.getByRole("button", { name: words.voice });
+  const startVoice = page.getByRole("button", {
+    name: words.voice,
+    exact: true,
+  });
   if (surface.scrolls) await reveal(page, startVoice);
   await startVoice.click();
   // The mute control is rendered only once the session reports itself

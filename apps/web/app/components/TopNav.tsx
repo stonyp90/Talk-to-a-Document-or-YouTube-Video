@@ -406,6 +406,7 @@ export function TopNav(props: TopNavProps) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const active = useActiveSection(
     page === "landing" ? SECTION_IDS : NO_SECTIONS,
   );
@@ -418,6 +419,26 @@ export function TopNav(props: TopNavProps) {
     update();
     return subscribeToScroll(update);
   }, []);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("ursly-theme");
+    const next =
+      saved === "dark" || saved === "light"
+        ? saved
+        : typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+  }, []);
+
+  function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    window.localStorage.setItem("ursly-theme", next);
+  }
 
   // One slot, two faces: on the landing page it is the commitment to go and
   // use the app; in the app it is the quiet way back to the story.
@@ -537,6 +558,15 @@ export function TopNav(props: TopNavProps) {
                 </a>
               ))}
             </div>
+            <button
+              type="button"
+              className="nav-theme"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Use light theme" : "Use dark theme"}
+              title={theme === "dark" ? "Use light theme" : "Use dark theme"}
+            >
+              <Icon name={theme === "dark" ? "sun" : "moon"} />
+            </button>
           </div>
         </div>
         {/* How far the story has been read, drawn along the edge of the bar. */}

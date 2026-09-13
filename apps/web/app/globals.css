@@ -150,6 +150,40 @@
     "Segoe UI",
     sans-serif;
 }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f4efe8;
+  --muted: #b4acb4;
+  --paper: #17151b;
+  --surface: #211e26;
+  --surface-soft: #2a2630;
+  --field: #110f14;
+  --line: #3a3440;
+  --line-strong: #554b59;
+  --accent: #f47762;
+  --accent-glow: #ff9a86;
+  --accent-wash: #482b2b;
+  --accent-wash-soft: #2e2021;
+  --accent-border: #9f5c50;
+  --accent-border-wash: #69413e;
+  --violet-wash: #2a2632;
+  --violet-tint: #302b38;
+  --violet-tint-alt: #25212c;
+  --violet-line: #4e4658;
+  --danger: #f18484;
+  --success: #8fc7a0;
+  --success-wash: #213629;
+  --notice-wash: #3b3420;
+  --notice-ink: #f0d982;
+  --nav-glass: #17151bd4;
+  --nav-glass-strong: #17151bf2;
+  --nav-solid: var(--paper);
+  --nav-aurora: #f4776224;
+  --nav-edge: #3a3440;
+  --nav-glow: #f4776250;
+  --nav-index-ink: #9b929f;
+}
 [hidden] {
   display: none !important;
 }
@@ -2069,6 +2103,32 @@ h3 {
   background: var(--accent-wash-soft);
   box-shadow: inset 0 0 0 1px var(--accent-border);
   color: var(--accent);
+}
+.nav-theme {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-left: var(--space-xs);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+.nav-theme:hover,
+.nav-theme:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+.nav-theme .icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* The mode switcher: a radio group that looks like a segmented control. */

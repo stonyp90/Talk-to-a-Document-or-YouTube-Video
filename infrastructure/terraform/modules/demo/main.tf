@@ -78,6 +78,8 @@ locals {
       OPENAI_BASE_URL          = "https://api.openai.com"
       OPENAI_REALTIME_MODEL    = "gpt-realtime", OPENAI_TEXT_MODEL = "gpt-4.1-mini"
       CONTEXT_CHARACTER_BUDGET = tostring(var.context_character_budget)
+      RATE_LIMIT_ADDRESS_SOURCE = "aws-request-context"
+      SESSION_STORE_MAX_BYTES   = tostring(floor(local.functions.api.memory * 1024 * 1024 / 4))
       # The gate, the allowance, and the two things without which nobody can
       # sign in. The pepper arrives as an ARN and is read at runtime, exactly
       # like the provider key beside it; its value is never in this file. The

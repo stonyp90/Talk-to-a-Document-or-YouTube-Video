@@ -75,7 +75,7 @@ async function page(world: World) {
   if (!world.page) {
     browser ??= await chromium.launch();
     world.page = await browser.newPage({
-      viewport: { width: 390, height: 844 },
+      viewport: { width: 1440, height: 900 },
       locale: world.locale,
     });
     // The introduction is a modal dialog, so every scenario that is not

@@ -12,7 +12,7 @@ type Helpers = {
 const INTRO_STORAGE_KEY = "ursly-intro-v1";
 
 function intro(p: Page) {
-  return p.getByRole("dialog", { name: /Web 3\.0/ });
+  return p.getByRole("dialog", { name: /Ursly/ });
 }
 function video(p: Page) {
   return intro(p).locator("video");

@@ -272,6 +272,131 @@ function AppDownloadsMenu({ prefix }: { prefix: string }) {
   );
 }
 
+function MobileNavMenu({
+  page,
+  language,
+  active,
+  story,
+  route,
+}: {
+  page: "landing" | "app";
+  language: Language;
+  active?: string;
+  story?: StoryControls;
+  route: { href: string; full: string };
+}) {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const holder = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (!holder.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
+
+  const close = () => setOpen(false);
+
+  return (
+    <div className="nav-mobile-menu" ref={holder}>
+      <button
+        type="button"
+        className="nav-mobile-trigger"
+        aria-expanded={open}
+        aria-controls="mobile-navigation"
+        aria-label={open ? t("Close menu") : t("Open menu")}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span aria-hidden="true" />
+        <span aria-hidden="true" />
+        <span aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="nav-mobile-panel" id="mobile-navigation">
+          <div className="nav-mobile-heading">
+            <span>{t("Navigate")}</span>
+            <button type="button" onClick={close}>
+              {t("Close")}
+            </button>
+          </div>
+          {page === "landing" &&
+            SECTIONS.map((section) => (
+              <a
+                key={section.id}
+                className="nav-mobile-link"
+                href={`#${section.id}`}
+                aria-current={active === section.id ? "location" : undefined}
+                onClick={close}
+              >
+                <span className="nav-index" aria-hidden="true">
+                  {String(SECTIONS.indexOf(section) + 1).padStart(2, "0")}
+                </span>
+                {t(section.label)}
+              </a>
+            ))}
+          <a
+            className="nav-mobile-link nav-mobile-primary"
+            href={route.href}
+            onClick={close}
+          >
+            <span className="nav-orb" aria-hidden="true">
+              <span className="nav-orb-core" />
+            </span>
+            {t(route.full)}
+          </a>
+          <a
+            className="nav-mobile-link"
+            href={
+              page === "app" ? `/${language}#applications` : "#applications"
+            }
+            onClick={close}
+          >
+            <Icon name="download" />
+            {t("Get the app")}
+          </a>
+          {story && (
+            <button
+              type="button"
+              className="nav-mobile-link nav-mobile-button"
+              onClick={() => {
+                close();
+                story.onReplayIntro();
+              }}
+            >
+              <Icon name="play" />
+              {t("Watch the intro")}
+            </button>
+          )}
+          <div className="nav-mobile-languages" aria-label={t("Language")}>
+            {LANGUAGES.map((code) => (
+              <a
+                key={code}
+                href={withLanguage(usePathname(), code)}
+                hrefLang={code}
+                lang={code}
+                aria-current={code === language ? "true" : undefined}
+                onClick={close}
+              >
+                {LANGUAGE_NAMES[code]}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TopNav(props: TopNavProps) {
   const { page } = props;
   const story = props.page === "landing" ? props : undefined;
@@ -308,6 +433,14 @@ export function TopNav(props: TopNavProps) {
           short: "Story",
           className: "nav-link",
         };
+  const mobileCenter =
+    page === "app"
+      ? props.mode === "voice"
+        ? "Voice to action"
+        : props.mode === "motion"
+          ? "Motion to action"
+          : "Keyboard to action"
+      : "The joy of understanding";
 
   // The film's bar: the same panel, and only the way out of it. Declared after
   // every hook above, so the two variants run the same ones in the same order.
@@ -336,6 +469,22 @@ export function TopNav(props: TopNavProps) {
       >
         <div className="nav-inner">
           <Brand href={`/${language}`} label={t("Ursly home")} />
+          <span className="nav-mobile-center" aria-live="polite">
+            <span className="nav-mobile-signal" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>{t(mobileCenter)}</span>
+          </span>
+          <MobileNavMenu
+            page={props.page === "app" ? "app" : "landing"}
+            language={language}
+            active={active}
+            story={story}
+            route={route}
+          />
 
           {props.page === "app" ? (
             <div className="nav-modes">

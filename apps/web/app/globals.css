@@ -1911,6 +1911,10 @@ h3 {
   align-items: center;
   gap: var(--space-xs);
 }
+.nav-mobile-menu,
+.nav-mobile-center {
+  display: none;
+}
 .nav-link {
   display: inline-flex;
   align-items: center;
@@ -3353,9 +3357,9 @@ h3 {
   }
   .nav-inner {
     grid-template-areas:
-      "brand actions"
-      "modes modes";
-    grid-template-columns: auto 1fr;
+      "brand center menu"
+      "modes modes modes";
+    grid-template-columns: auto 1fr auto;
     height: var(--nav-h-mobile);
     row-gap: 0;
     column-gap: var(--space-sm);
@@ -3374,9 +3378,199 @@ h3 {
     margin-right: var(--space-xs);
   }
   .nav-actions {
-    grid-area: actions;
-    justify-self: end;
+    display: none;
+  }
+  .nav-mobile-center {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    grid-area: center;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    text-align: center;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .nav-mobile-signal {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 14px;
+    padding: 0 3px;
+  }
+  .nav-mobile-signal i {
+    display: block;
+    width: 2px;
+    height: 5px;
+    border-radius: 2px;
+    background: var(--accent);
+    animation: nav-signal 1200ms var(--ease-in-out) infinite alternate;
+  }
+  .nav-mobile-signal i:nth-child(2) {
+    height: 10px;
+    animation-delay: 140ms;
+  }
+  .nav-mobile-signal i:nth-child(3) {
+    height: 14px;
+    animation-delay: 280ms;
+  }
+  .nav-mobile-signal i:nth-child(4) {
+    height: 8px;
+    animation-delay: 420ms;
+  }
+  @keyframes nav-signal {
+    to {
+      opacity: 0.35;
+      transform: scaleY(0.55);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav-mobile-signal i {
+      animation: none;
+    }
+  }
+  .nav-mobile-menu {
+    position: relative;
+    display: block;
+    grid-area: menu;
+  }
+  .nav-mobile-trigger {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .nav-mobile-trigger:hover,
+  .nav-mobile-trigger[aria-expanded="true"] {
+    border-color: var(--accent-border);
+    background: var(--accent-wash-soft);
+    color: var(--accent);
+  }
+  .nav-mobile-trigger span {
+    display: block;
+    width: 16px;
+    height: 1.5px;
+    border-radius: 2px;
+    background: currentColor;
+    transition:
+      transform var(--motion-fast) ease,
+      opacity var(--motion-fast) ease;
+  }
+  .nav-mobile-trigger[aria-expanded="true"] span:nth-child(1) {
+    transform: translateY(5.5px) rotate(45deg);
+  }
+  .nav-mobile-trigger[aria-expanded="true"] span:nth-child(2) {
+    opacity: 0;
+  }
+  .nav-mobile-trigger[aria-expanded="true"] span:nth-child(3) {
+    transform: translateY(-5.5px) rotate(-45deg);
+  }
+  .nav-mobile-panel {
+    position: fixed;
+    top: calc(var(--safe-top) + var(--nav-row) + 8px);
+    right: var(--gutter);
+    left: var(--gutter);
+    z-index: 2;
+    display: grid;
     gap: var(--space-2xs);
+    max-height: calc(100svh - var(--safe-top) - var(--nav-row) - 24px);
+    overflow-y: auto;
+    padding: var(--space-sm);
+    border: 1px solid var(--nav-edge);
+    border-radius: var(--radius-lg);
+    background: var(--nav-solid);
+    box-shadow: 0 18px 40px var(--shadow-md);
+  }
+  .nav-mobile-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-xs) var(--space-sm) var(--space-sm);
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .nav-mobile-heading button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    cursor: pointer;
+  }
+  .nav-mobile-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-height: 48px;
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .nav-mobile-link:hover,
+  .nav-mobile-link:focus-visible,
+  .nav-mobile-link[aria-current="location"] {
+    background: var(--accent-wash-soft);
+    color: var(--accent);
+  }
+  .nav-mobile-button {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .nav-mobile-primary {
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+  .nav-mobile-primary:hover,
+  .nav-mobile-primary:focus-visible {
+    background: var(--accent-strong);
+    color: var(--accent-contrast);
+  }
+  .nav-mobile-languages {
+    display: flex;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-sm) var(--space-xs);
+    border-top: 1px solid var(--line);
+  }
+  .nav-mobile-languages a {
+    flex: 1;
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+  }
+  .nav-mobile-languages a[aria-current="true"] {
+    background: var(--accent-wash-soft);
+    color: var(--accent);
   }
   /* The bar is an instrument, and an instrument has to be playable with a
      thumb. Inside the 52px row every control keeps a 44px target, whatever
@@ -3438,7 +3632,7 @@ h3 {
     font-size: 10px;
   }
   .nav-sections {
-    grid-area: modes;
+    display: none;
     align-self: start;
     justify-content: flex-start;
     overflow-x: auto;

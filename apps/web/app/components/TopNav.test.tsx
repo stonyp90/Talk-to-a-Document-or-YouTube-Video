@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React, { createRef } from "react";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TopNav } from "./TopNav";
 import { LanguageProvider } from "../i18n/LanguageProvider";
@@ -140,5 +147,32 @@ describe("the fixed top menu", () => {
     expect(
       screen.getByRole("link", { name: french["Get the app"] }),
     ).toHaveAttribute("href", "#applications");
+  });
+
+  it("provides a mobile menu with the story links and a centered page signal", () => {
+    landing();
+    expect(navigation().querySelector(".nav-mobile-center")).toHaveTextContent(
+      "The joy of understanding",
+    );
+    const trigger = screen.getByRole("button", { name: "Open menu" });
+    fireEvent.click(trigger);
+    const panel = document.getElementById("mobile-navigation");
+    expect(panel).toBeInTheDocument();
+    expect(
+      within(panel as HTMLElement).getByRole("link", {
+        name: MENU_SECTIONS[0].label,
+      }),
+    ).toHaveAttribute("href", `#${MENU_SECTIONS[0].id}`);
+    fireEvent.click(screen.getByRole("button", { name: "Close menu" }));
+    expect(
+      screen.getByRole("button", { name: "Open menu" }),
+    ).toBeInTheDocument();
+  });
+
+  it("updates the centered signal for the selected app mode", () => {
+    mount(<TopNav page="app" mode="motion" onModeChange={() => {}} />);
+    expect(navigation().querySelector(".nav-mobile-center")).toHaveTextContent(
+      "Motion to action",
+    );
   });
 });

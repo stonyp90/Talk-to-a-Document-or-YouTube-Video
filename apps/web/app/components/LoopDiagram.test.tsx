@@ -61,6 +61,10 @@ describe("LoopDiagram", () => {
   it("draws every stage of the loop and names the lit one", () => {
     render(<Loop />);
     for (const id of PROCESS_STEP_IDS) expect(node(id)).toBeInTheDocument();
+    expect(screen.getByTestId("loop-brand-mark")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("loop-brand-mark").querySelectorAll("rect"),
+    ).toHaveLength(5);
     expect(lit()).toBe(0);
     expect(screen.getByTestId("loop-caption")).toHaveTextContent(
       copy.steps[0].title,
@@ -187,7 +191,9 @@ describe("LoopDiagram", () => {
     expect(
       screen.getByRole("heading", { name: copy.steps[0].title }),
     ).toBeInTheDocument();
-    expect(screen.getByText(copy.subcycles.concept.criterion)).toBeInTheDocument();
+    expect(
+      screen.getByText(copy.subcycles.concept.criterion),
+    ).toBeInTheDocument();
     const prototype = screen.getByRole("button", { name: /Prototype/ });
     fireEvent.click(prototype);
     expect(prototype).toHaveAttribute("aria-current", "step");
@@ -217,7 +223,9 @@ describe("LoopDiagram", () => {
       screen.getByRole("button", { name: copy.controls.zoomReset }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: copy.controls.zoomReset }));
+    fireEvent.click(
+      screen.getByRole("button", { name: copy.controls.zoomReset }),
+    );
     expect(viewport).toHaveAttribute("data-zoomed", "false");
     expect(screen.getByText("100%")).toBeInTheDocument();
   });

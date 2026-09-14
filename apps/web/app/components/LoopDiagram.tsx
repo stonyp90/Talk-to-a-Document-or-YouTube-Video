@@ -222,208 +222,256 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
           aria-hidden="true"
           focusable="false"
         >
-        <g className={styles.plot}>
-          <circle
-            className={styles.ring}
-            cx={GEOMETRY.cx}
-            cy={GEOMETRY.cy}
-            r={GEOMETRY.ring}
-          />
-          {ARROWS.map((arrow) => (
-            <path
-              key={arrow.index}
-              className={styles.arrow}
-              d="M -4 -5 L 3 0 L -4 5"
-              data-passed={arrow.index < index}
-              transform={`translate(${arrow.x} ${arrow.y}) rotate(${arrow.rotation})`}
+          <g className={styles.plot}>
+            <circle
+              className={styles.ring}
+              cx={GEOMETRY.cx}
+              cy={GEOMETRY.cy}
+              r={GEOMETRY.ring}
             />
-          ))}
-          <circle
-            className={styles.discHalo}
-            cx={GEOMETRY.cx}
-            cy={GEOMETRY.cy}
-            r={GEOMETRY.disc + 12}
-          />
-          <circle
-            className={styles.disc}
-            cx={GEOMETRY.cx}
-            cy={GEOMETRY.cy}
-            r={GEOMETRY.disc}
-          />
-          <text
-            className={styles.discEyebrow}
-            x={GEOMETRY.cx}
-            y={GEOMETRY.cy - 36}
-            textAnchor="middle"
-          >
-            {copy.target.eyebrow}
-          </text>
-          <text
-            className={styles.discStatement}
-            x={GEOMETRY.cx}
-            y={GEOMETRY.cy - 6}
-            textAnchor="middle"
-          >
-            {copy.target.statement.map((line, index) => (
-              <tspan key={line} x={GEOMETRY.cx} dy={index === 0 ? 0 : 22}>
-                {line}
-              </tspan>
-            ))}
-          </text>
-          <text
-            className={styles.discNote}
-            x={GEOMETRY.cx}
-            y={GEOMETRY.cy + 52}
-            textAnchor="middle"
-          >
-            {copy.target.note}
-          </text>
-
-          <g
-            className={styles.traveller}
-            style={{ transform: `rotate(${angle}deg)` }}
-          >
-            {TRAIL.map((dot) => (
-              <circle
-                key={dot.lag}
-                className={styles.comet}
-                cx={dot.x}
-                cy={dot.y}
-                r={dot.radius}
-                opacity={dot.opacity}
+            {ARROWS.map((arrow) => (
+              <path
+                key={arrow.index}
+                className={styles.arrow}
+                d="M -4 -5 L 3 0 L -4 5"
+                data-passed={arrow.index < index}
+                transform={`translate(${arrow.x} ${arrow.y}) rotate(${arrow.rotation})`}
               />
             ))}
-          </g>
-
-          {NODES.map((node) => (
+            <circle
+              className={styles.discHalo}
+              cx={GEOMETRY.cx}
+              cy={GEOMETRY.cy}
+              r={GEOMETRY.disc + 12}
+            />
+            <circle
+              className={styles.disc}
+              cx={GEOMETRY.cx}
+              cy={GEOMETRY.cy}
+              r={GEOMETRY.disc}
+            />
             <g
-              key={node.id}
-              className={styles.node}
-              data-stage={node.id}
-              data-active={node.index === index}
-              role="button"
-              tabIndex={0}
-              aria-label={`${copy.steps[node.index].title}: ${copy.steps[node.index].summary}`}
-              onClick={() => {
-                loop.select(node.index);
-                setExplored(node.id);
-                setSelectedSubstep(0);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
+              className={styles.brandMark}
+              data-testid="loop-brand-mark"
+              aria-hidden="true"
+              transform={`translate(${GEOMETRY.cx - 32} ${GEOMETRY.cy - 112})`}
+            >
+              <circle className={styles.brandMarkHalo} cx="32" cy="32" r="31" />
+              <rect
+                className={styles.brandBar}
+                x="18"
+                y="25"
+                width="5"
+                height="14"
+                rx="2.5"
+              />
+              <rect
+                className={styles.brandBar}
+                x="27"
+                y="14"
+                width="5"
+                height="36"
+                rx="2.5"
+              />
+              <rect
+                className={styles.brandBar}
+                x="36"
+                y="18"
+                width="5"
+                height="28"
+                rx="2.5"
+              />
+              <rect
+                className={styles.brandBar}
+                x="45"
+                y="14"
+                width="5"
+                height="36"
+                rx="2.5"
+              />
+              <rect
+                className={styles.brandBar}
+                x="54"
+                y="21"
+                width="5"
+                height="22"
+                rx="2.5"
+              />
+            </g>
+            <text
+              className={styles.discEyebrow}
+              x={GEOMETRY.cx}
+            y={GEOMETRY.cy - 38}
+              textAnchor="middle"
+            >
+              {copy.target.eyebrow}
+            </text>
+            <text
+              className={styles.discStatement}
+              x={GEOMETRY.cx}
+            y={GEOMETRY.cy - 10}
+              textAnchor="middle"
+            >
+              {copy.target.statement.map((line, index) => (
+                <tspan key={line} x={GEOMETRY.cx} dy={index === 0 ? 0 : 22}>
+                  {line}
+                </tspan>
+              ))}
+            </text>
+            <text
+              className={styles.discNote}
+              x={GEOMETRY.cx}
+            y={GEOMETRY.cy + 55}
+              textAnchor="middle"
+            >
+              {copy.target.note}
+            </text>
+
+            <g
+              className={styles.traveller}
+              style={{ transform: `rotate(${angle}deg)` }}
+            >
+              {TRAIL.map((dot) => (
+                <circle
+                  key={dot.lag}
+                  className={styles.comet}
+                  cx={dot.x}
+                  cy={dot.y}
+                  r={dot.radius}
+                  opacity={dot.opacity}
+                />
+              ))}
+            </g>
+
+            {NODES.map((node) => (
+              <g
+                key={node.id}
+                className={styles.node}
+                data-stage={node.id}
+                data-active={node.index === index}
+                role="button"
+                tabIndex={0}
+                aria-label={`${copy.steps[node.index].title}: ${copy.steps[node.index].summary}`}
+                onClick={() => {
                   loop.select(node.index);
                   setExplored(node.id);
                   setSelectedSubstep(0);
-                }
-              }}
-              onMouseEnter={() => setHovered(node.id)}
-              onMouseLeave={() => setHovered(null)}
-              onFocus={() => setHovered(node.id)}
-              onBlur={() => setHovered(null)}
-            >
-              <title>{copy.steps[node.index].summary}</title>
-              {node.inner && (
-                <>
-                  <circle
-                    className={styles.satelliteRing}
-                    cx={node.x}
-                    cy={node.y}
-                    r={GEOMETRY.satellite}
-                  />
-                  {PROVIDERS.map((provider) => (
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    loop.select(node.index);
+                    setExplored(node.id);
+                    setSelectedSubstep(0);
+                  }
+                }}
+                onMouseEnter={() => setHovered(node.id)}
+                onMouseLeave={() => setHovered(null)}
+                onFocus={() => setHovered(node.id)}
+                onBlur={() => setHovered(null)}
+              >
+                <title>{copy.steps[node.index].summary}</title>
+                {node.inner && (
+                  <>
                     <circle
-                      key={provider.index}
-                      className={styles.providerDot}
-                      data-provider={provider.index}
-                      style={{
-                        animationDelay: `calc(var(--loop-inner) * ${provider.index} / ${PROVIDER_TURNS})`,
-                      }}
-                      cx={node.x + provider.dx}
-                      cy={node.y + provider.dy}
-                      r={3.2}
-                    />
-                  ))}
-                  <g
-                    className={styles.satellite}
-                    style={{
-                      transform: `rotate(${innerTurns * 360}deg)`,
-                      transformOrigin: `${node.x}px ${node.y}px`,
-                    }}
-                  >
-                    <circle
-                      className={styles.satelliteDot}
+                      className={styles.satelliteRing}
                       cx={node.x}
-                      cy={node.y - GEOMETRY.satellite}
-                      r={4}
+                      cy={node.y}
+                      r={GEOMETRY.satellite}
                     />
-                  </g>
-                </>
-              )}
-              {node.index === index && (
-                // Keyed on the walk's position rather than on the stage, so the
-                // ring opens again every time round and not only the first.
-                <>
-                  <circle
-                    key={position}
-                    className={styles.pulse}
-                    cx={node.x}
-                    cy={node.y}
-                    r={GEOMETRY.node}
-                  />
-                  <g
-                    className={styles.subcycleOrbit}
-                    transform={`translate(${node.x} ${node.y})`}
-                  >
-                    <circle className={styles.subcycleTrack} r="27" />
-                    {SUBCYCLE_DOTS.map((dot) => (
+                    {PROVIDERS.map((provider) => (
                       <circle
-                        key={dot.index}
-                        className={styles.subcycleDot}
-                        cx={dot.dx}
-                        cy={dot.dy}
-                        r="2.5"
-                        data-subcycle-step={dot.index}
+                        key={provider.index}
+                        className={styles.providerDot}
+                        data-provider={provider.index}
+                        style={{
+                          animationDelay: `calc(var(--loop-inner) * ${provider.index} / ${PROVIDER_TURNS})`,
+                        }}
+                        cx={node.x + provider.dx}
+                        cy={node.y + provider.dy}
+                        r={3.2}
                       />
                     ))}
-                  </g>
-                </>
-              )}
-              <circle
-                className={styles.nodeDisc}
-                cx={node.x}
-                cy={node.y}
-                r={GEOMETRY.node}
-              />
-              <svg
-                x={node.x - 10}
-                y={node.y - 10}
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                {ICONS[node.id].map((path) => (
-                  <path key={path} d={path} />
-                ))}
-              </svg>
-              <text
-                className={styles.label}
-                x={node.label.x}
-                y={node.label.y + node.placement.dy}
-                textAnchor={node.placement.anchor}
-                dominantBaseline={node.placement.baseline}
-              >
-                {copy.steps[node.index].title}
-              </text>
-            </g>
-          ))}
-        </g>
-      </svg>
+                    <g
+                      className={styles.satellite}
+                      style={{
+                        transform: `rotate(${innerTurns * 360}deg)`,
+                        transformOrigin: `${node.x}px ${node.y}px`,
+                      }}
+                    >
+                      <circle
+                        className={styles.satelliteDot}
+                        cx={node.x}
+                        cy={node.y - GEOMETRY.satellite}
+                        r={4}
+                      />
+                    </g>
+                  </>
+                )}
+                {node.index === index && (
+                  // Keyed on the walk's position rather than on the stage, so the
+                  // ring opens again every time round and not only the first.
+                  <>
+                    <circle
+                      key={position}
+                      className={styles.pulse}
+                      cx={node.x}
+                      cy={node.y}
+                      r={GEOMETRY.node}
+                    />
+                    <g
+                      className={styles.subcycleOrbit}
+                      transform={`translate(${node.x} ${node.y})`}
+                    >
+                      <circle className={styles.subcycleTrack} r="27" />
+                      {SUBCYCLE_DOTS.map((dot) => (
+                        <circle
+                          key={dot.index}
+                          className={styles.subcycleDot}
+                          cx={dot.dx}
+                          cy={dot.dy}
+                          r="2.5"
+                          data-subcycle-step={dot.index}
+                        />
+                      ))}
+                    </g>
+                  </>
+                )}
+                <circle
+                  className={styles.nodeDisc}
+                  cx={node.x}
+                  cy={node.y}
+                  r={GEOMETRY.node}
+                />
+                <svg
+                  x={node.x - 10}
+                  y={node.y - 10}
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {ICONS[node.id].map((path) => (
+                    <path key={path} d={path} />
+                  ))}
+                </svg>
+                <text
+                  className={styles.label}
+                  x={node.label.x}
+                  y={node.label.y + node.placement.dy}
+                  textAnchor={node.placement.anchor}
+                  dominantBaseline={node.placement.baseline}
+                >
+                  {copy.steps[node.index].title}
+                </text>
+              </g>
+            ))}
+          </g>
+        </svg>
       </div>
       <div className={styles.zoomControls} aria-label={copy.controls.zoomHint}>
         <button

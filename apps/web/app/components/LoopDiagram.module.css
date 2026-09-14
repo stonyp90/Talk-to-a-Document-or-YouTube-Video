@@ -136,6 +136,57 @@
   stroke: var(--line);
   stroke-dasharray: 2 5;
 }
+.brandMark {
+  overflow: visible;
+}
+.brandMarkHalo {
+  fill: var(--accent-wash-soft);
+  stroke: var(--accent-border-wash);
+  stroke-width: 1;
+  animation: brand-halo 2200ms var(--ease-in-out) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.brandBar {
+  fill: var(--accent);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: brand-bar 1200ms var(--ease-in-out) infinite;
+}
+.brandBar:nth-of-type(3) {
+  animation-delay: 120ms;
+}
+.brandBar:nth-of-type(4) {
+  animation-delay: 240ms;
+}
+.brandBar:nth-of-type(5) {
+  animation-delay: 360ms;
+}
+.brandBar:nth-of-type(6) {
+  animation-delay: 480ms;
+}
+@keyframes brand-bar {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scaleY(0.78);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.08);
+  }
+}
+@keyframes brand-halo {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
 .discEyebrow,
 .discNote {
   font-family: var(--mono);
@@ -590,5 +641,11 @@
 @media (max-width: 350px) {
   .caption {
     min-height: 9.9em;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brandMarkHalo,
+  .brandBar {
+    animation: none;
   }
 }

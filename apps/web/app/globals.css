@@ -2336,6 +2336,10 @@ h3 {
 .intro-player {
   display: block;
   width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   max-width: calc((100vh - 240px) * 16 / 9);
   max-height: 100%;
   aspect-ratio: 16 / 9;
@@ -3835,6 +3839,8 @@ h3 {
     white-space: nowrap;
   }
   .intro-player {
+    width: min(100%, calc((100dvh - 390px) * 16 / 9));
+    height: auto;
     aspect-ratio: 16 / 9;
   }
   .intro-scene {

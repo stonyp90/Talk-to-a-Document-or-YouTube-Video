@@ -3839,21 +3839,18 @@ h3 {
     white-space: nowrap;
   }
   .intro-player {
-    width: min(100%, calc((100dvh - 390px) * 16 / 9));
-    height: auto;
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     aspect-ratio: 16 / 9;
-  }
-  @media (orientation: landscape) {
-    .intro-player {
-      width: min(100%, calc((100dvh - 160px) * 16 / 9));
-    }
   }
   .intro-scene {
     display: grid;
     align-content: start;
     gap: var(--space-sm);
     margin: 0;
-    padding: var(--space-xl) 0 0;
+    padding: var(--space-xl) calc(var(--measure) - var(--nav-inset)) 0;
   }
   .intro-scene strong {
     font-family: Georgia, serif;

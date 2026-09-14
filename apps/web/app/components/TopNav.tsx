@@ -76,8 +76,10 @@ function useActiveSection(ids: readonly string[]): string | undefined {
 const NO_SECTIONS: readonly string[] = [];
 const THEME_KEY = "ursly-theme";
 type Theme = "light" | "dark";
+let activeTheme: Theme | undefined;
 
 function readTheme(): Theme {
+  if (activeTheme) return activeTheme;
   if (typeof window !== "undefined") {
     try {
       const saved = window.localStorage.getItem(THEME_KEY);
@@ -101,11 +103,24 @@ function subscribeToTheme(notify: () => void) {
     typeof window.matchMedia === "function"
       ? window.matchMedia("(prefers-color-scheme: dark)")
       : undefined;
-  media?.addEventListener("change", notify);
+  if (media) {
+    activeTheme = media.matches ? "dark" : "light";
+    const onMediaChange = (event: MediaQueryListEvent) => {
+      activeTheme = event.matches ? "dark" : "light";
+      notify();
+    };
+    media.addEventListener?.("change", onMediaChange);
+    media.addListener?.(onMediaChange);
+    return () => {
+      media.removeEventListener?.("change", onMediaChange);
+      media.removeListener?.(onMediaChange);
+      window.removeEventListener("storage", notify);
+      window.removeEventListener("ursly-theme-change", notify);
+    };
+  }
   window.addEventListener("storage", notify);
   window.addEventListener("ursly-theme-change", notify);
   return () => {
-    media?.removeEventListener("change", notify);
     window.removeEventListener("storage", notify);
     window.removeEventListener("ursly-theme-change", notify);
   };
@@ -467,6 +482,7 @@ export function TopNav(props: TopNavProps) {
 
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
+    activeTheme = next;
     document.documentElement.dataset.theme = next;
     window.localStorage.setItem(THEME_KEY, next);
     window.dispatchEvent(new Event("ursly-theme-change"));

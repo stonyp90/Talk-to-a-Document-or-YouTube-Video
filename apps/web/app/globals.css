@@ -3721,6 +3721,11 @@ h3 {
     justify-content: center;
     padding: var(--space-xs);
   }
+  /* Theme follows the system preference on compact layouts; keeping its
+     desktop toggle in the row pushes the language pair outside the viewport. */
+  .nav-theme {
+    display: none;
+  }
   /* A menu anchored to the right edge of a narrow screen must not push the
      page sideways, so it spans the gutter instead of hanging off it. */
   .nav-download-menu {

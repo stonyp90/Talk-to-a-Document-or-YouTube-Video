@@ -4,7 +4,7 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AppState,
   KeyboardAvoidingView,
@@ -149,6 +149,34 @@ export function MobileVoiceActions({
   triggersRef.current = triggers;
   tRef.current = t;
 
+  const clearListeningTimers = useCallback(() => {
+    if (restart.current) clearTimeout(restart.current);
+    if (maximumTimer.current) clearTimeout(maximumTimer.current);
+    if (silenceTimer.current) clearTimeout(silenceTimer.current);
+    restart.current = undefined;
+    maximumTimer.current = undefined;
+    silenceTimer.current = undefined;
+  }, []);
+
+  const stopListening = useCallback(
+    (message = t("Voice actions are off")) => {
+      listeningEpoch.current += 1;
+      armedRef.current = false;
+      startInFlight.current = false;
+      resumeAfterSpeech.current = false;
+      clearListeningTimers();
+      try {
+        ExpoSpeechRecognitionModule.stop();
+      } catch {
+        /* Native recognition stop is idempotent from the app's perspective. */
+      }
+      setArmed(false);
+      setRecognizing(false);
+      setNotice(message);
+    },
+    [t, clearListeningTimers],
+  );
+
   useEffect(() => {
     onActionRef.current = onAction;
   }, [onAction]);
@@ -242,15 +270,6 @@ export function MobileVoiceActions({
     return () => subscription.remove();
   }, [t, stopListening]);
 
-  function clearListeningTimers() {
-    if (restart.current) clearTimeout(restart.current);
-    if (maximumTimer.current) clearTimeout(maximumTimer.current);
-    if (silenceTimer.current) clearTimeout(silenceTimer.current);
-    restart.current = undefined;
-    maximumTimer.current = undefined;
-    silenceTimer.current = undefined;
-  }
-
   function resetSilenceTimer(epoch: number) {
     if (!armedRef.current || epoch !== listeningEpoch.current) return;
     if (silenceTimer.current) clearTimeout(silenceTimer.current);
@@ -259,25 +278,6 @@ export function MobileVoiceActions({
       stopListening(t("Voice actions stopped after 8 seconds without speech."));
     }, SILENCE_TIMEOUT_MS);
   }
-
-  const stopListening = React.useCallback(
-    (message = t("Voice actions are off")) => {
-      listeningEpoch.current += 1;
-      armedRef.current = false;
-      startInFlight.current = false;
-      resumeAfterSpeech.current = false;
-      clearListeningTimers();
-      try {
-        ExpoSpeechRecognitionModule.stop();
-      } catch {
-        /* Native recognition stop is idempotent from the app's perspective. */
-      }
-      setArmed(false);
-      setRecognizing(false);
-      setNotice(message);
-    },
-    [t],
-  );
 
   function closeBuilder() {
     setOpen(false);

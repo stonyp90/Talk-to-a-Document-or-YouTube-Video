@@ -301,7 +301,7 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
             <text
               className={styles.discEyebrow}
               x={GEOMETRY.cx}
-            y={GEOMETRY.cy - 38}
+              y={GEOMETRY.cy - 38}
               textAnchor="middle"
             >
               {copy.target.eyebrow}
@@ -309,7 +309,7 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
             <text
               className={styles.discStatement}
               x={GEOMETRY.cx}
-            y={GEOMETRY.cy - 10}
+              y={GEOMETRY.cy - 10}
               textAnchor="middle"
             >
               {copy.target.statement.map((line, index) => (
@@ -321,7 +321,7 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
             <text
               className={styles.discNote}
               x={GEOMETRY.cx}
-            y={GEOMETRY.cy + 55}
+              y={GEOMETRY.cy + 55}
               textAnchor="middle"
             >
               {copy.target.note}
@@ -477,7 +477,9 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
         <button
           type="button"
           className={styles.zoomButton}
-          onClick={() => setZoom((value) => Math.max(ZOOM_MIN, value - ZOOM_STEP))}
+          onClick={() =>
+            setZoom((value) => Math.max(ZOOM_MIN, value - ZOOM_STEP))
+          }
           disabled={zoom === ZOOM_MIN}
           aria-label={copy.controls.zoomOut}
         >
@@ -489,7 +491,9 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
         <button
           type="button"
           className={styles.zoomButton}
-          onClick={() => setZoom((value) => Math.min(ZOOM_MAX, value + ZOOM_STEP))}
+          onClick={() =>
+            setZoom((value) => Math.min(ZOOM_MAX, value + ZOOM_STEP))
+          }
           disabled={zoom === ZOOM_MAX}
           aria-label={copy.controls.zoomIn}
         >
@@ -519,7 +523,11 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
         </aside>
       )}
       {exploredStep && exploredSubcycle && (
-        <section className={styles.explorer} aria-live="polite" aria-labelledby="loop-explorer-title">
+        <section
+          className={styles.explorer}
+          aria-live="polite"
+          aria-labelledby="loop-explorer-title"
+        >
           <div className={styles.explorerHeader}>
             <div>
               <span className="eyebrow">{exploredSubcycle.title}</span>
@@ -539,7 +547,8 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
             <div>
               <span className="eyebrow">{copy.controls.whyItMatters}</span>
               <p>
-              {exploredStep.summary} {exploredSubcycle.title} keeps this stage rigorous without making it rigid.
+                {exploredStep.summary} {exploredSubcycle.title} keeps this stage
+                rigorous without making it rigid.
               </p>
             </div>
             <div>
@@ -549,7 +558,9 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
                   <li key={step}>
                     <button
                       type="button"
-                      aria-current={stepIndex === selectedSubstep ? "step" : undefined}
+                      aria-current={
+                        stepIndex === selectedSubstep ? "step" : undefined
+                      }
                       onClick={() => setSelectedSubstep(stepIndex)}
                     >
                       <span>{String(stepIndex + 1).padStart(2, "0")}</span>
@@ -559,7 +570,8 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
                 ))}
               </ol>
               <p className={styles.explorerCriterion}>
-                <strong>{copy.controls.exitSignal}</strong> {exploredSubcycle.criterion}
+                <strong>{copy.controls.exitSignal}</strong>{" "}
+                {exploredSubcycle.criterion}
               </p>
             </div>
           </div>

@@ -2340,7 +2340,7 @@ h3 {
   max-height: 100%;
   aspect-ratio: 16 / 9;
   background: var(--paper);
-  object-fit: cover;
+  object-fit: contain;
 }
 .intro-play {
   position: absolute;

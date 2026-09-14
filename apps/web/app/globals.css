@@ -3473,7 +3473,9 @@ h3 {
     margin-right: var(--space-xs);
   }
   .nav-actions {
-    display: none;
+    display: inline-flex;
+    flex: 0 1 auto;
+    min-width: 0;
   }
   .nav[data-page="intro"] .nav-inner {
     display: flex;

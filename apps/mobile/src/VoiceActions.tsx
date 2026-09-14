@@ -230,7 +230,7 @@ export function MobileVoiceActions({
   useEffect(() => {
     if (!voiceBusy || !armedRef.current) return;
     stopListening(t("Voice actions paused while Ursly is busy."));
-  }, [t, voiceBusy]);
+  }, [t, voiceBusy, stopListening]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
@@ -240,7 +240,7 @@ export function MobileVoiceActions({
         );
     });
     return () => subscription.remove();
-  }, [t]);
+  }, [t, stopListening]);
 
   function clearListeningTimers() {
     if (restart.current) clearTimeout(restart.current);
@@ -260,21 +260,24 @@ export function MobileVoiceActions({
     }, SILENCE_TIMEOUT_MS);
   }
 
-  function stopListening(message = t("Voice actions are off")) {
-    listeningEpoch.current += 1;
-    armedRef.current = false;
-    startInFlight.current = false;
-    resumeAfterSpeech.current = false;
-    clearListeningTimers();
-    try {
-      ExpoSpeechRecognitionModule.stop();
-    } catch {
-      /* Native recognition stop is idempotent from the app's perspective. */
-    }
-    setArmed(false);
-    setRecognizing(false);
-    setNotice(message);
-  }
+  const stopListening = React.useCallback(
+    (message = t("Voice actions are off")) => {
+      listeningEpoch.current += 1;
+      armedRef.current = false;
+      startInFlight.current = false;
+      resumeAfterSpeech.current = false;
+      clearListeningTimers();
+      try {
+        ExpoSpeechRecognitionModule.stop();
+      } catch {
+        /* Native recognition stop is idempotent from the app's perspective. */
+      }
+      setArmed(false);
+      setRecognizing(false);
+      setNotice(message);
+    },
+    [t],
+  );
 
   function closeBuilder() {
     setOpen(false);
@@ -527,7 +530,7 @@ export function MobileVoiceActions({
           label={t(armed ? "Stop listening" : "Arm voice actions")}
           motion={motion}
           disabled={voiceBusy}
-          onPress={armed ? stopListening : startListening}
+          onPress={armed ? () => stopListening() : startListening}
           style={s.armButton}
         >
           <View style={s.armContent}>

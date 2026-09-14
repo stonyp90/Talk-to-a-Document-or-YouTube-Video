@@ -3843,6 +3843,11 @@ h3 {
     height: auto;
     aspect-ratio: 16 / 9;
   }
+  @media (orientation: landscape) {
+    .intro-player {
+      width: min(100%, calc((100dvh - 160px) * 16 / 9));
+    }
+  }
   .intro-scene {
     display: grid;
     align-content: start;

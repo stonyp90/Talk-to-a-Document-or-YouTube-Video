@@ -3726,6 +3726,10 @@ h3 {
   .nav-theme {
     display: none;
   }
+  .nav[data-page="landing"] .nav-downloads,
+  .nav[data-page="landing"] .nav-intro {
+    display: none;
+  }
   /* A menu anchored to the right edge of a narrow screen must not push the
      page sideways, so it spans the gutter instead of hanging off it. */
   .nav-download-menu {

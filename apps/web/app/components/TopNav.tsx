@@ -78,8 +78,6 @@ const THEME_KEY = "ursly-theme";
 type Theme = "light" | "dark";
 
 function readTheme(): Theme {
-  if (typeof document !== "undefined" && document.documentElement.dataset.theme)
-    return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
   if (typeof window !== "undefined") {
     const saved = window.localStorage.getItem(THEME_KEY);
     if (saved === "dark" || saved === "light") return saved;
@@ -89,13 +87,21 @@ function readTheme(): Theme {
     )
       return "dark";
   }
+  if (typeof document !== "undefined" && document.documentElement.dataset.theme)
+    return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
   return "light";
 }
 
 function subscribeToTheme(notify: () => void) {
+  const media =
+    typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-color-scheme: dark)")
+      : undefined;
+  media?.addEventListener("change", notify);
   window.addEventListener("storage", notify);
   window.addEventListener("ursly-theme-change", notify);
   return () => {
+    media?.removeEventListener("change", notify);
     window.removeEventListener("storage", notify);
     window.removeEventListener("ursly-theme-change", notify);
   };

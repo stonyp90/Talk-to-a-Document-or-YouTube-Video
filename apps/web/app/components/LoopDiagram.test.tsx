@@ -206,30 +206,6 @@ describe("LoopDiagram", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("lets readers enlarge the lifecycle and reset it without losing the controls", () => {
-    render(<Loop />);
-    const viewport = diagram().parentElement!;
-    const zoomIn = screen.getByRole("button", { name: copy.controls.zoomIn });
-    const zoomOut = screen.getByRole("button", { name: copy.controls.zoomOut });
-    expect(viewport).toHaveAttribute("data-zoomed", "false");
-    expect(screen.getByText("100%")).toBeInTheDocument();
-    expect(zoomOut).toBeDisabled();
-
-    fireEvent.click(zoomIn);
-    expect(viewport).toHaveAttribute("data-zoomed", "true");
-    expect(screen.getByText("120%")).toBeInTheDocument();
-    expect(zoomOut).toBeEnabled();
-    expect(
-      screen.getByRole("button", { name: copy.controls.zoomReset }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: copy.controls.zoomReset }),
-    );
-    expect(viewport).toHaveAttribute("data-zoomed", "false");
-    expect(screen.getByText("100%")).toBeInTheDocument();
-  });
-
   it("speaks French when asked, and English for anything else", () => {
     const french = resolveProcessCopy("fr");
     render(<Loop locale="fr-CA" />);

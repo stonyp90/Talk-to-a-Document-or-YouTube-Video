@@ -143,7 +143,7 @@
   fill: var(--accent-wash-soft);
   stroke: var(--accent-border-wash);
   stroke-width: 1;
-  animation: brand-halo 2200ms var(--ease-in-out) infinite;
+  animation: brand-halo 2200ms var(--ease-in-out) both;
   transform-box: fill-box;
   transform-origin: center;
 }
@@ -151,7 +151,7 @@
   fill: var(--accent);
   transform-box: fill-box;
   transform-origin: center;
-  animation: brand-bar 1200ms var(--ease-in-out) infinite;
+  animation: brand-bar 1200ms var(--ease-in-out) both;
 }
 .brandBar:nth-of-type(3) {
   animation-delay: 120ms;

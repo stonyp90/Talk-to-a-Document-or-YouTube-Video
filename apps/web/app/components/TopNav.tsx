@@ -79,8 +79,12 @@ type Theme = "light" | "dark";
 
 function readTheme(): Theme {
   if (typeof window !== "undefined") {
-    const saved = window.localStorage.getItem(THEME_KEY);
-    if (saved === "dark" || saved === "light") return saved;
+    try {
+      const saved = window.localStorage.getItem(THEME_KEY);
+      if (saved === "dark" || saved === "light") return saved;
+    } catch {
+      // A privacy-restricted browser can deny storage; use its system theme.
+    }
     if (
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches

@@ -519,6 +519,15 @@
   .label {
     display: none;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .subcycleOrbit,
+    .subcycleDot,
+    .hoverDetail,
+    .explorer {
+      animation: none;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     .subcycleOrbit,
     .subcycleDot {

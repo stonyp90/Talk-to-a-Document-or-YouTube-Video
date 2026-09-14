@@ -3471,6 +3471,13 @@ h3 {
   .nav-actions {
     display: none;
   }
+  .nav[data-page="intro"] .nav-inner {
+    display: flex;
+    justify-content: space-between;
+  }
+  .nav[data-page="intro"] .nav-actions {
+    display: inline-flex;
+  }
   .nav-mobile-center {
     display: inline-flex;
     align-items: center;
@@ -3811,7 +3818,6 @@ h3 {
     gap: var(--space-md);
   }
   .intro-stage {
-    align-self: start;
     animation: intro-stage-in var(--motion-base) var(--ease-out) both;
   }
   .intro-gate-footer {

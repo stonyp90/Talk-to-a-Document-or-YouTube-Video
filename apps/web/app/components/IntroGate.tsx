@@ -79,7 +79,8 @@ export function IntroGate({
   );
   const dialog = useRef<HTMLDialogElement>(null);
   const video = useRef<HTMLVideoElement>(null);
-  const [reduced, setReduced] = useState(prefersReducedMotion);
+  const skipButton = useRef<HTMLButtonElement>(null);
+  const [reduced, setReduced] = useState(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -104,9 +105,9 @@ export function IntroGate({
       // A test DOM may lack the dialog API; the attribute still shows it.
       if (typeof element.showModal === "function") element.showModal();
       else element.setAttribute("open", "");
-      requestAnimationFrame(() => {
-        element.querySelector<HTMLButtonElement>(".intro-skip")?.focus();
-      });
+      skipButton.current?.focus();
+      requestAnimationFrame(() => skipButton.current?.focus());
+      window.setTimeout(() => skipButton.current?.focus(), 0);
     } else if (!open && element.open) {
       if (typeof element.close === "function") element.close();
       else {
@@ -190,6 +191,7 @@ export function IntroGate({
             <button
               type="button"
               className="intro-skip"
+              ref={skipButton}
               autoFocus
               onClick={finish}
             >

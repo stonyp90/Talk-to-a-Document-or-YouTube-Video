@@ -4,7 +4,7 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   AppState,
   KeyboardAvoidingView,
@@ -146,6 +146,7 @@ export function MobileVoiceActions({
   const startInFlight = useRef(false);
   const resumeAfterSpeech = useRef(false);
   const onActionRef = useRef(onAction);
+
   triggersRef.current = triggers;
   tRef.current = t;
 
@@ -212,6 +213,7 @@ export function MobileVoiceActions({
     if (hydrated.current)
       void AsyncStorage.setItem(storageKey, JSON.stringify(triggers));
   }, [triggers]);
+
   useEffect(
     () => () => {
       armedRef.current = false;
@@ -227,6 +229,28 @@ export function MobileVoiceActions({
     },
     [],
   );
+
+
+
+  const stopListening = React.useCallback(
+    (message = t("Voice actions are off")) => {
+      listeningEpoch.current += 1;
+      armedRef.current = false;
+      startInFlight.current = false;
+      resumeAfterSpeech.current = false;
+      clearListeningTimers();
+      try {
+        ExpoSpeechRecognitionModule.stop();
+      } catch {
+        /* Native recognition stop is idempotent from the app's perspective. */
+      }
+      setArmed(false);
+      setRecognizing(false);
+      setNotice(message);
+    },
+    [t],
+  );
+
   useEffect(() => {
     if (!voiceBusy || !armedRef.current) return;
     stopListening(t("Voice actions paused while Ursly is busy."));
@@ -259,25 +283,6 @@ export function MobileVoiceActions({
       stopListening(t("Voice actions stopped after 8 seconds without speech."));
     }, SILENCE_TIMEOUT_MS);
   }
-
-  const stopListening = React.useCallback(
-    (message = t("Voice actions are off")) => {
-      listeningEpoch.current += 1;
-      armedRef.current = false;
-      startInFlight.current = false;
-      resumeAfterSpeech.current = false;
-      clearListeningTimers();
-      try {
-        ExpoSpeechRecognitionModule.stop();
-      } catch {
-        /* Native recognition stop is idempotent from the app's perspective. */
-      }
-      setArmed(false);
-      setRecognizing(false);
-      setNotice(message);
-    },
-    [t],
-  );
 
   function closeBuilder() {
     setOpen(false);

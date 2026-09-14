@@ -117,7 +117,7 @@ export function registerProcessChecks(step: Step, h: Helpers) {
       // the page — named in the lede, drawn on the ring, then listed again a
       // screen below — and this is the step that stops the third telling
       // drifting back under the fold.
-      await p.setViewportSize({ width: 1440, height: 900 });
+      await p.setViewportSize({ width: 1440, height: 1200 });
       await p.evaluate(() => window.scrollTo(0, 0));
       // Whole, not merely touching the bottom edge: a rail half off the
       // screen is a rail a reader has to go looking for.

@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from "react";
 import { Applications } from "./Applications";
+import { ArchitectureSection } from "./ArchitectureSection";
 import { Arrival } from "./Arrival";
 import { HowItWorks } from "./HowItWorks";
 import { Icon } from "./Icon";
@@ -142,6 +143,8 @@ export default function LandingPage() {
             const Section = STORY_VIEWS[section.id];
             return <Section key={section.id} {...story} />;
           })}
+
+          <ArchitectureSection language={language} />
 
           <section className="invitation" aria-labelledby="invitation-heading">
             <div className="invitation-copy">

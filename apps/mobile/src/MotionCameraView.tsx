@@ -253,7 +253,7 @@ export function MotionCameraView({
 
   return (
     <View style={s.container} {...panResponder.panHandlers}>
-      {/* 1. Camera Background Simulation / Live Viewfinder */}
+      {/* Touch-based gesture simulation — not a real camera feed. */}
       <View style={s.cameraViewfinder}>
         <View style={s.cameraVignette} />
         <View style={s.gridPattern} />
@@ -337,7 +337,7 @@ export function MotionCameraView({
         <View style={s.topBarInner}>
           <View style={s.liveBadge}>
             <View style={s.liveDot} />
-            <Text style={s.liveText}>VISION TRACKING LIVE</Text>
+            <Text style={s.liveText}>TOUCH GESTURES ACTIVE</Text>
           </View>
 
           <View style={s.topRightActions}>

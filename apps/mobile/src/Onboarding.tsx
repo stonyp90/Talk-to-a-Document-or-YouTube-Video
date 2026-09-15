@@ -214,7 +214,11 @@ export function MobileOnboarding({ motion, language, t }: Props) {
               t={t}
             />
           ) : (
-            <>
+            <ScrollView
+              style={s.guideScroll}
+              contentContainerStyle={s.guideScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
               <Animated.View
                 style={[
                   s.artFrame,
@@ -244,7 +248,7 @@ export function MobileOnboarding({ motion, language, t }: Props) {
                   <Text style={s.note}>{t(current.note)}</Text>
                 </View>
               </View>
-            </>
+            </ScrollView>
           )}
         </Animated.View>
 
@@ -521,8 +525,15 @@ const s = StyleSheet.create({
   },
   pauseIcon: { color: c.coral, fontSize: 10, fontWeight: "800" },
   pauseText: { color: c.muted, fontSize: 10 },
-  content: { flex: 1, justifyContent: "center", gap: 28 },
-  artFrame: { minHeight: 260, alignItems: "center", justifyContent: "center" },
+  content: { flex: 1 },
+  guideScroll: { flex: 1 },
+  guideScrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    gap: 28,
+    paddingVertical: 10,
+  },
+  artFrame: { minHeight: 180, alignItems: "center", justifyContent: "center" },
   copy: { gap: 12 },
   stepLabel: {
     color: "#A9513A",

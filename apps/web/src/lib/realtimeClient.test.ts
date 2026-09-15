@@ -208,6 +208,37 @@ describe("Realtime WebRTC client", () => {
       text: "Hi there",
     });
   });
+  it("keeps a spoken question before its answer when transcription finishes later", async () => {
+    await connected();
+    peer().channel.emit({
+      type: "input_audio_buffer.committed",
+      item_id: "question",
+    });
+    peer().channel.emit({
+      type: "response.output_item.added",
+      item: { id: "answer", type: "message", role: "assistant" },
+    });
+    peer().channel.emit({
+      type: "response.output_audio_transcript.done",
+      item_id: "answer",
+      transcript: "Take a short break.",
+    });
+    peer().channel.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "question",
+      transcript: "What restores attention?",
+    });
+    expect(
+      events.mock.calls
+        .filter(([event]) => event.type === "message-started")
+        .map(([event]) => event.message?.role),
+    ).toEqual(["user", "assistant"]);
+    expect(events).toHaveBeenLastCalledWith({
+      type: "message-completed",
+      id: "question",
+      text: "What restores attention?",
+    });
+  });
   it("shows a typed user item with the same id sent to the API", async () => {
     await connected();
     client.sendText("Explain");
@@ -346,6 +377,43 @@ describe("Realtime WebRTC client", () => {
       events.mock.calls.filter(([e]) => e.type === "message-delta"),
     ).toHaveLength(1);
     expect(peer().channel.send).not.toHaveBeenCalled();
+  });
+  it("keeps the speaking indicator until queued audio finishes playing", async () => {
+    await connected();
+    peer().channel.emit({ type: "response.created" });
+    peer().channel.emit({ type: "output_audio_buffer.started" });
+    peer().channel.emit({
+      type: "response.done",
+      response: { status: "completed" },
+    });
+    expect(events).toHaveBeenLastCalledWith({
+      type: "activity",
+      activity: "speaking",
+    });
+    peer().channel.emit({ type: "output_audio_buffer.stopped" });
+    expect(events).toHaveBeenLastCalledWith({
+      type: "activity",
+      activity: "idle",
+    });
+  });
+  it("preserves the caller's listening indicator when an interruption clears queued audio", async () => {
+    await connected();
+    peer().channel.emit({ type: "output_audio_buffer.started" });
+    peer().channel.emit({ type: "input_audio_buffer.speech_started" });
+    peer().channel.emit({ type: "output_audio_buffer.cleared" });
+    peer().channel.emit({
+      type: "response.done",
+      response: { status: "cancelled" },
+    });
+    expect(events).toHaveBeenLastCalledWith({
+      type: "activity",
+      activity: "listening",
+    });
+    peer().channel.emit({ type: "input_audio_buffer.speech_stopped" });
+    expect(events).toHaveBeenLastCalledWith({
+      type: "activity",
+      activity: "idle",
+    });
   });
   it("handles malformed events and channel errors without leaking resources", async () => {
     await connected();

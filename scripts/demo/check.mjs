@@ -32,6 +32,37 @@ async function json(path, body) {
   return response.json();
 }
 let live = false;
+await check("Application page and browser assets load", async () => {
+  const page = await fetch(new URL("/en/app", base), {
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!page.ok)
+    throw new Error(`Application page returned HTTP ${page.status}.`);
+  const html = await page.text();
+  const paths = new Set(
+    [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
+      .map((match) => new URL(match[1], base))
+      .filter(
+        (url) =>
+          url.origin === base.origin &&
+          url.pathname.startsWith("/_next/static/") &&
+          /\.(js|css)$/.test(url.pathname),
+      )
+      .map((url) => url.href),
+  );
+  if (!paths.size)
+    throw new Error(
+      "No browser assets were found; client startup is unverified.",
+    );
+  for (const url of paths) {
+    const asset = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    await asset.body?.cancel();
+    if (!asset.ok)
+      throw new Error(
+        `Browser asset returned HTTP ${asset.status}; a healthy API does not mean the interface can start.`,
+      );
+  }
+});
 await check("Live AI enabled", async () => {
   const health = await json("/api/health");
   if (!health.ok || health.mode !== "live")
@@ -74,7 +105,7 @@ if (live) {
     }
   });
   await check("Real ephemeral voice credential issued", async () => {
-    const session = await json("/api/realtime/session", source);
+    const session = await json("/api/realtime/session", { source });
     if (
       session.mode !== "live" ||
       typeof session.clientSecret !== "string" ||

@@ -53,6 +53,21 @@ export type PricingCopy = {
   eyebrow: string;
   heading: string;
   intro: string;
+  animation: {
+    label: string;
+    freeHeading: string;
+    paidHeading: string;
+    conversations: string;
+    models: string;
+    payment: string;
+    app: string;
+    freeResult: string;
+    paidResult: string;
+    sameFeatures: string;
+    voiceConsent: string;
+    replay: string;
+    pause: string;
+  };
   planListLabel: string;
   plans: PricingPlan[];
   /** Shown in place of the action while billing is not open. */
@@ -64,10 +79,24 @@ export type PricingCopy = {
 export const pricingCopy: Record<PricingLocale, PricingCopy> = {
   en: {
     eyebrow: "What it costs",
-    heading:
-      "Free if you help train the models. Paid if you would rather not.",
+    heading: "Free if you help train the models. Paid if you would rather not.",
     intro:
       "Nobody builds software for free, and we would rather say so than hide it. So there are two ways to use Ursly, and you choose which one. Free costs no money: your questions and the answers you get are used to train the models, and your voice too if you allow that separately. Paid costs money: nothing you bring, say or record is used for training, ever.",
+    animation: {
+      label: "Two ways to support Ursly",
+      freeHeading: "I help improve the models.",
+      paidHeading: "I prefer to pay.",
+      conversations: "Conversations",
+      models: "Better models",
+      payment: "Payment",
+      app: "Same app",
+      freeResult: "My conversations contribute to model training.",
+      paidResult: "My conversations stay out of model training.",
+      sameFeatures: "Same features. Two ways to contribute. Your choice.",
+      voiceConsent: "Voice recordings always need separate consent.",
+      replay: "Replay animation",
+      pause: "Pause animation",
+    },
     planListLabel: "The two ways to use Ursly",
     plans: [
       {
@@ -114,6 +143,24 @@ export const pricingCopy: Record<PricingLocale, PricingCopy> = {
       "Gratuit si vous aidez à entraîner les modèles. Payant si vous préférez que non.",
     intro:
       "Personne ne bâtit un logiciel gratuitement, et nous préférons le dire plutôt que le cacher. Il y a donc deux façons d’utiliser Ursly, et c’est vous qui choisissez. Le gratuit ne coûte pas d’argent : vos questions et les réponses reçues servent à entraîner les modèles, et votre voix aussi si vous l’autorisez à part. Le payant coûte de l’argent : rien de ce que vous apportez, dites ou enregistrez ne sert à l’entraînement, jamais.",
+    animation: {
+      label: "Deux façons de soutenir Ursly",
+      freeHeading: "J’aide à améliorer les modèles.",
+      paidHeading: "Je préfère payer.",
+      conversations: "Conversations",
+      models: "Modèles améliorés",
+      payment: "Paiement",
+      app: "Même application",
+      freeResult: "Mes conversations contribuent à l’entraînement des modèles.",
+      paidResult:
+        "Mes conversations restent hors de l’entraînement des modèles.",
+      sameFeatures:
+        "Mêmes fonctions. Deux façons de contribuer. À vous de choisir.",
+      voiceConsent:
+        "Les enregistrements vocaux exigent toujours un consentement distinct.",
+      replay: "Rejouer l’animation",
+      pause: "Mettre l’animation en pause",
+    },
     planListLabel: "Les deux façons d’utiliser Ursly",
     plans: [
       {

@@ -175,17 +175,33 @@ export function VoiceActions({
   );
   const triggers = editedTriggers ?? savedTriggers;
 
-  const supported = useSyncExternalStore(
+  const browserSupported = useSyncExternalStore(
     () => () => {},
     speechRecognitionSupported,
     () => true,
   );
+  const [speechProvider, setSpeechProvider] = useState<"browser" | "realtime">(
+    "browser",
+  );
+  const supported = speechProvider === "realtime" || browserSupported;
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/health", { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((health) => {
+        if (!controller.signal.aborted && health?.commandSpeech === "realtime")
+          setSpeechProvider("realtime");
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
 
   const [open, setOpen] = useState(false);
   const [phrase, setPhrase] = useState("");
   const [action, setAction] = useState<VoiceActionId>("summarize");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
+  const [connectingSpeech, setConnectingSpeech] = useState(false);
   const [heard, setHeard] = useState("");
   const [draft, setDraft] = useState("");
   const [notice, setNotice] = useState("");
@@ -430,11 +446,13 @@ export function VoiceActions({
 
   useEffect(() => {
     const instance = createSpeechListener({
+      provider: speechProvider,
       language: SPEECH_LOCALES[language],
       quietLimitMs: QUIET_LIMIT_MS,
       onPhrase: handlePhrase,
       onError: handleError,
       onListeningChange: setListening,
+      onConnectingChange: setConnectingSpeech,
     });
     listener.current = instance;
     return () => {
@@ -444,7 +462,7 @@ export function VoiceActions({
     // The listener is built once; language changes are applied below so that a
     // re-render never drops a microphone the reader is speaking into.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleError, handlePhrase]);
+  }, [handleError, handlePhrase, speechProvider]);
 
   useEffect(() => {
     listener.current?.setLanguage(SPEECH_LOCALES[language]);
@@ -559,6 +577,7 @@ export function VoiceActions({
   return (
     <section
       className="voice-commands"
+      data-speech-provider={speechProvider}
       aria-labelledby="voice-actions-heading"
       data-armed={listening}
       data-compact={compact}
@@ -568,20 +587,36 @@ export function VoiceActions({
           type="button"
           className="voice-mic"
           disabled={voiceBusy}
-          aria-pressed={listening}
-          onClick={listening ? () => stopListening("") : startListening}
+          aria-pressed={listening || connectingSpeech}
+          onClick={
+            listening || connectingSpeech
+              ? () => stopListening("")
+              : startListening
+          }
         >
           <span className="voice-mic-ring" aria-hidden="true" />
           <Icon name="voice" />
           <span className="voice-mic-label">
-            {listening ? t("Stop listening") : t("Speak")}
+            {connectingSpeech
+              ? t("Cancel")
+              : listening
+                ? t("Stop listening")
+                : t("Speak")}
           </span>
         </button>
         <div className="voice-commands-status" role="status" aria-live="polite">
           <strong id="voice-actions-heading">
-            {listening ? t("Listening") : t("Voice to action")}
+            {connectingSpeech
+              ? t("Connecting…")
+              : listening
+                ? t("Listening")
+                : t("Voice to action")}
           </strong>
-          <span>{notice || t(resting)}</span>
+          <span>
+            {connectingSpeech
+              ? t("Getting the microphone ready. You can cancel at any time.")
+              : notice || t(resting)}
+          </span>
         </div>
       </div>
 

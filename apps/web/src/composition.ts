@@ -45,11 +45,18 @@ import {
   createSecureTokens,
 } from "@/packages/adapters/src/accounts";
 import { getOpenAiKey } from "@/packages/adapters/src/secrets";
+import { createCommandSpeechSession } from "@/packages/adapters/src/commandSpeech";
 import { ensureSignInConfigured } from "./startup";
 
 /** Configuration is read here and nowhere in the core. */
 export const contextBudget = () =>
   resolveContextBudget(process.env.CONTEXT_CHARACTER_BUDGET);
+
+export const commandSpeechEnabled = () => process.env.PROVIDER_MODE === "live";
+export const openCommandSpeech = (
+  language: "en" | "fr",
+  signal?: AbortSignal,
+) => createCommandSpeechSession({ getKey: getOpenAiKey }, language, signal);
 
 function ingestion(transcripts?: TranscriptPort) {
   const root = path.join(process.cwd(), "apps/web/public");

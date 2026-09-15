@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "./Icon";
+import { ConversationDemo } from "./ConversationDemo";
 import { useLanguage } from "../i18n/LanguageProvider";
 
 const STEPS = [
@@ -47,6 +48,7 @@ export function HowItWorks({ appHref }: { appHref: string }) {
           {t("Three steps, about a minute. Nothing to install.")}
         </span>
       </p>
+      <ConversationDemo />
       <details className="help-detail">
         <summary>
           {t("Having trouble with a source or your microphone?")}

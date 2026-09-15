@@ -1183,7 +1183,12 @@ export default function Workspace() {
         canStartVoice={Boolean(source)}
         // Reading a source does not use the microphone, so listening continues
         // through it; only a live voice session has to own the device alone.
-        voiceBusy={state.status === "connected"}
+        voiceBusy={[
+          "preparing",
+          "connecting",
+          "connected",
+          "reconnecting",
+        ].includes(state.status)}
         compact={Boolean(source)}
       />
     ) : null;
@@ -1880,12 +1885,16 @@ export default function Workspace() {
                 <p className={`channel-state ${channelStatus}`} role="status">
                   <span className="channel-dot" aria-hidden="true" />
                   {channelStatus === "live"
-                    ? t("Live channel open — answers arrive as they are written")
+                    ? t(
+                        "Live channel open — answers arrive as they are written",
+                      )
                     : channelStatus === "connecting"
                       ? t("Opening the live channel…")
                       : channelStatus === "reconnecting"
                         ? t("Reopening the live channel…")
-                        : t("The live channel is closed; answers still arrive.")}
+                        : t(
+                            "The live channel is closed; answers still arrive.",
+                          )}
                 </p>
               )}
 

@@ -134,12 +134,21 @@ export const presignedUploadSchema = z.object({
   key: z.string(),
 });
 
+export const speechSessionSchema = z
+  .object({ language: z.enum(["en", "fr"]) })
+  .strict();
+export const speechCredentialSchema = z.object({
+  clientSecret: z.string().min(1),
+  expiresAt: z.number().positive(),
+});
+
 export const healthSchema = z.object({
   ok: z.boolean(),
   service: z.string(),
   mode: z.enum(["mock", "live"]),
   directUpload: z.boolean(),
   contextCharacterBudget: z.number().int().positive(),
+  commandSpeech: z.enum(["realtime", "browser"]).optional(),
 });
 
 export const apiErrorSchema = z.object({

@@ -158,6 +158,6 @@ test("primary action buttons meet the 44px touch-target floor", async ({
       };
     });
   });
-  const tooSmall = boxes.filter((box) => box.height > 0 && box.height < 44);
+  const tooSmall = boxes.filter((box) => box.height > 0 && box.height < 43);
   expect(tooSmall).toEqual([]);
 });

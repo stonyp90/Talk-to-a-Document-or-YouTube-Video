@@ -18,13 +18,13 @@ const STEP_DEGREES = 360 / COUNT;
 /** Everything is drawn in one viewBox so it scales as a single picture. */
 const GEOMETRY = {
   width: 600,
-  height: 520,
+  height: 580,
   cx: 300,
-  cy: 260,
+  cy: 290,
   ring: 168,
   node: 19,
-  label: 214,
-  innerLabel: 234,
+  label: 228,
+  innerLabel: 254,
   satellite: 31,
   disc: 104,
 };
@@ -91,8 +91,8 @@ function labelPlacement(degrees: number) {
   const sin = Math.sin((degrees * Math.PI) / 180);
   if (Math.abs(cos) < 0.2)
     return sin < 0
-      ? { anchor: "middle" as const, baseline: "auto" as const, dy: -4 }
-      : { anchor: "middle" as const, baseline: "hanging" as const, dy: 4 };
+      ? { anchor: "middle" as const, baseline: "auto" as const, dy: -8 }
+      : { anchor: "middle" as const, baseline: "hanging" as const, dy: 8 };
   return cos > 0
     ? { anchor: "start" as const, baseline: "middle" as const, dy: 0 }
     : { anchor: "end" as const, baseline: "middle" as const, dy: 0 };
@@ -141,10 +141,6 @@ const PROVIDERS = Array.from({ length: PROVIDER_TURNS }, (_, index) => {
   };
 });
 
-const ZOOM_MIN = 1;
-const ZOOM_MAX = 2.4;
-const ZOOM_STEP = 0.2;
-
 /** The comet: a dot with a fading trail, all rotated together. */
 const TRAIL = [
   { lag: 0, radius: 7, opacity: 1 },
@@ -168,7 +164,6 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
   const [hovered, setHovered] = useState<ProcessStepId | null>(null);
   const [explored, setExplored] = useState<ProcessStepId | null>(null);
   const [selectedSubstep, setSelectedSubstep] = useState(0);
-  const [zoom, setZoom] = useState(ZOOM_MIN);
   const { holdMs, travelMs, innerLoopMultiplier } = loop.timing;
   const innerHoldMs = holdMs * innerLoopMultiplier;
   const angle = position * STEP_DEGREES;
@@ -197,16 +192,15 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
       (GEOMETRY.ring + Math.max(GEOMETRY.node, GEOMETRY.satellite) + 2)
     ).toFixed(3),
   } as CSSProperties;
-  const zoomed = zoom > ZOOM_MIN;
 
   return (
     <div className={styles.stage} ref={attach}>
       {/* The list further down carries the words; this is for the eye. */}
-      <div className={styles.diagramViewport} data-zoomed={zoomed}>
+      <div className={styles.diagramViewport}>
         <svg
           className={styles.diagram}
           viewBox={`0 0 ${GEOMETRY.width} ${GEOMETRY.height}`}
-          style={{ ...diagramStyle, width: `${zoom * 100}%` }}
+          style={diagramStyle}
           data-testid="loop-diagram"
           data-angle={angle}
           data-inner-loop={innerActive ? "active" : "idle"}
@@ -446,42 +440,6 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
             ))}
           </g>
         </svg>
-      </div>
-      <div className={styles.zoomControls} aria-label={copy.controls.zoomHint}>
-        <button
-          type="button"
-          className={styles.zoomButton}
-          onClick={() =>
-            setZoom((value) => Math.max(ZOOM_MIN, value - ZOOM_STEP))
-          }
-          disabled={zoom === ZOOM_MIN}
-          aria-label={copy.controls.zoomOut}
-        >
-          −
-        </button>
-        <span aria-live="polite" className={styles.zoomValue}>
-          {Math.round(zoom * 100)}%
-        </span>
-        <button
-          type="button"
-          className={styles.zoomButton}
-          onClick={() =>
-            setZoom((value) => Math.min(ZOOM_MAX, value + ZOOM_STEP))
-          }
-          disabled={zoom === ZOOM_MAX}
-          aria-label={copy.controls.zoomIn}
-        >
-          +
-        </button>
-        {zoomed && (
-          <button
-            type="button"
-            className={styles.zoomReset}
-            onClick={() => setZoom(ZOOM_MIN)}
-          >
-            {copy.controls.zoomReset}
-          </button>
-        )}
       </div>
       {hovered && (
         <aside

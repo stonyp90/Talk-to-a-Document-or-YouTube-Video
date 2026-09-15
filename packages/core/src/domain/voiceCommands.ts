@@ -68,7 +68,7 @@ const NEAR_MISS_MAX_ENDING = 3;
 const MIN_QUESTION_WORDS = 3;
 
 /** A run of letters, digits or elision marks: one spoken word. */
-const WORD_PATTERN = /[\p{L}\p{N}'’ʼ]+/gu;
+const WORD_PATTERN = /[\p{L}\p{N}'’‘ʼ´]+/gu;
 
 /**
  * Phrases are stored already folded — "televerse", "precedent" — because that
@@ -130,7 +130,7 @@ export function normalizeSpeech(text: string): string {
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
     .toLowerCase()
-    .replace(/['’ʼ]/g, "")
+    .replace(/['’‘ʼ´]/g, "")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 }
@@ -236,7 +236,189 @@ type Hearing = {
   confidence: "exact" | "near";
 };
 
-function hear(words: SpokenWord[], phrase: string): Hearing | null {
+/**
+ * Words that turn the command after them into its opposite. "Don't go next"
+ * and "ne passe pas au suivant" both contain a command word and neither is a
+ * request to run it. Scope runs back to the nearest clause break, so "don't
+ * summarize, just go next" still goes next.
+ */
+const NEGATIONS = new Set([
+  "not",
+  "dont",
+  "cant",
+  "wont",
+  "never",
+  "without",
+  "ne",
+  "pas",
+  "jamais",
+  "sans",
+]);
+
+/**
+ * Words that mention a command word rather than use it: "explain the word
+ * next", "le mot suivant", "what does stop mean". A speaker asking about a
+ * word is talking to the document, not to the interface.
+ */
+const MENTION_CUES = new Set([
+  "word",
+  "words",
+  "phrase",
+  "term",
+  "expression",
+  "mean",
+  "means",
+  "meaning",
+  "called",
+  "say",
+  "says",
+  "said",
+  "saying",
+  "define",
+  "definition",
+  "spell",
+  "translate",
+  "quote",
+  "mot",
+  "mots",
+  "terme",
+  "signifie",
+  "appelle",
+  "dit",
+  "dire",
+  "definis",
+  "definissez",
+  "traduis",
+  "traduire",
+  "epelle",
+  "cite",
+]);
+
+/**
+ * Openers that make the sentence a question for the document. "What is the
+ * next chapter about" is a question about the document, and running "next"
+ * on it would answer it with a page change. "Can" and "peux" are absent on
+ * purpose: "can you go back please" is how people give a polite order.
+ */
+const QUESTION_OPENERS = new Set([
+  "what",
+  "whats",
+  "why",
+  "how",
+  "when",
+  "where",
+  "who",
+  "whom",
+  "which",
+  "does",
+  "did",
+  "is",
+  "are",
+  "was",
+  "were",
+  "explain",
+  "define",
+  "tell",
+  "quoi",
+  "pourquoi",
+  "comment",
+  "quand",
+  "qui",
+  "quel",
+  "quelle",
+  "quels",
+  "quelles",
+  "cest",
+  "quest",
+  "estce",
+  "explique",
+  "expliquez",
+  "definis",
+  "definissez",
+  "dis",
+  "dites",
+]);
+
+/** A conjunction that starts a new clause, ending the reach of what came before. */
+const CLAUSE_BREAKS = new Set([
+  "and",
+  "but",
+  "then",
+  "instead",
+  "et",
+  "mais",
+  "puis",
+  "ensuite",
+  "alors",
+  "donc",
+  "sinon",
+]);
+
+/** Spoken Quebec French drops the "ne": "continue pas" is still a refusal. */
+const TRAILING_NEGATIONS = new Set(["pas", "jamais"]);
+
+/** How far back a negation or mention can reach without a clause break. */
+const SHIELD_REACH = 6;
+const CLAUSE_PUNCTUATION = /[,;:.!?()–—]/u;
+const OPENING_QUOTES = /["“„«‘'`]$/u;
+const CLOSING_QUOTES = /^["”“»’'`]/u;
+
+function breaksClause(transcript: string, before: SpokenWord, after: SpokenWord) {
+  return CLAUSE_PUNCTUATION.test(transcript.slice(before.end, after.start));
+}
+
+/**
+ * Whether the words at `index` are mentioned rather than meant: negated,
+ * quoted, explained, or asked about. A shielded span is never a command,
+ * whatever it says.
+ */
+function isShielded(
+  transcript: string,
+  words: SpokenWord[],
+  index: number,
+  length: number,
+): boolean {
+  const first = words[index];
+  const last = words[index + length - 1];
+  const leading = transcript.slice(Math.max(0, first.start - 2), first.start);
+  const trailing = transcript.slice(last.end, last.end + 2);
+  const spoken = transcript.slice(first.start, last.end);
+  if (
+    (OPENING_QUOTES.test(leading.trimEnd()) || /^["“„«‘']/u.test(spoken)) &&
+    (CLOSING_QUOTES.test(trailing.trimStart()) || /["”»’']$/u.test(spoken))
+  )
+    return true;
+
+  const following = words[index + length];
+  if (
+    following &&
+    (MENTION_CUES.has(following.normalized) ||
+      TRAILING_NEGATIONS.has(following.normalized)) &&
+    !breaksClause(transcript, last, following)
+  )
+    return true;
+
+  let reached = 0;
+  for (let at = index - 1; at >= 0 && reached < SHIELD_REACH; at -= 1) {
+    const word = words[at];
+    if (
+      CLAUSE_BREAKS.has(word.normalized) ||
+      breaksClause(transcript, word, words[at + 1])
+    )
+      return false;
+    if (NEGATIONS.has(word.normalized) || MENTION_CUES.has(word.normalized))
+      return true;
+    if (at === 0 && QUESTION_OPENERS.has(word.normalized)) return true;
+    reached += 1;
+  }
+  return false;
+}
+
+function hear(
+  transcript: string,
+  words: SpokenWord[],
+  phrase: string,
+): Hearing | null {
   const wanted = phraseWords(phrase);
   if (wanted.length === 0) return null;
 
@@ -244,7 +426,7 @@ function hear(words: SpokenWord[], phrase: string): Hearing | null {
     const spoken = wanted.every(
       (word, offset) => words[index + offset].normalized === word,
     );
-    if (spoken)
+    if (spoken && !isShielded(transcript, words, index, wanted.length))
       return {
         position: words[index].position,
         index,
@@ -256,7 +438,10 @@ function hear(words: SpokenWord[], phrase: string): Hearing | null {
   // Tolerance is for one mis-heard word, not for a mis-heard sentence.
   if (wanted.length > 1) return null;
   for (let index = 0; index < words.length; index += 1)
-    if (isNearMiss(words[index].normalized, wanted[0]))
+    if (
+      isNearMiss(words[index].normalized, wanted[0]) &&
+      !isShielded(transcript, words, index, 1)
+    )
       return {
         position: words[index].position,
         index,
@@ -306,7 +491,7 @@ export function matchCommands(
 
     let best: { hearing: Hearing; id: string; phrase: string } | null = null;
     for (const { id, phrase } of spoken) {
-      const hearing = hear(words, phrase);
+      const hearing = hear(transcript, words, phrase);
       if (!hearing) continue;
       if (!best || beatsCurrent(hearing, best.hearing))
         best = { hearing, id, phrase };

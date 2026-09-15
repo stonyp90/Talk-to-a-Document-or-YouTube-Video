@@ -45,6 +45,24 @@ describe("speech normalization", () => {
   it("keeps nothing when nothing was said", () => {
     expect(normalizeSpeech("  …!?  ")).toBe("");
   });
+
+  it("treats every apostrophe a keyboard or recognizer produces as the same mark", () => {
+    for (const said of ["don't", "don’t", "don‘t", "donʼt", "don´t"])
+      expect(normalizeSpeech(said), said).toBe("dont");
+  });
+
+  it("treats a non-breaking space and French spacing as ordinary spaces", () => {
+    expect(normalizeSpeech("go\u00a0back")).toBe("go back");
+    expect(normalizeSpeech("suivant\u00a0?")).toBe("suivant");
+    expect(normalizeSpeech("Suivant\u202f!")).toBe("suivant");
+  });
+
+  it("hears a word the same with or without its trailing punctuation", () => {
+    expect(normalizeSpeech("next?")).toBe(normalizeSpeech("next"));
+    expect(normalizeSpeech("next…")).toBe(normalizeSpeech("Next."));
+    expect(actionsOf("next?")).toEqual(["next"]);
+    expect(actionsOf("suivant…", "fr")).toEqual(["next"]);
+  });
 });
 
 describe("the vocabulary", () => {
@@ -195,6 +213,141 @@ describe("matching a command inside real speech", () => {
       "summarize",
       "next",
     ]);
+  });
+
+  it("fires the longest phrase exactly once when a shorter one is inside it", () => {
+    for (const [said, phrase, action] of [
+      ["stop talking", "stop talking", "stop"],
+      ["go back", "go back", "back"],
+      ["please stop listening now", "stop listening", "stop"],
+      ["laisse tomber", "laisse tomber", "cancel"],
+      ["on se parle", "on se parle", "voice"],
+    ] as const) {
+      const matches = matchCommands(said, [], { language: "en" });
+      expect(matches, said).toHaveLength(1);
+      expect(matches[0].trigger.action, said).toBe(action);
+      expect(matches[0].trigger.phrase, said).toBe(phrase);
+    }
+  });
+
+  it("gives overlapping words to one action, never to two", () => {
+    // "annule ça" is a back phrase that contains the cancel phrase, and a saved
+    // "stop talking" for cancel overlaps the built-in one for stop. Whichever
+    // wins, the words are spent once.
+    const saved: VoiceTrigger = {
+      id: "saved-cancel",
+      phrase: "stop talking now",
+      action: "cancel",
+    };
+    const matches = matchCommands("stop talking now", [saved]);
+    expect(matches).toHaveLength(1);
+    expect(matches[0].trigger.id).toBe("saved-cancel");
+  });
+});
+
+/**
+ * The contract in the product's own words: a command word is only a command
+ * when it is meant. Frozen as data so that a change to the rules has to argue
+ * with every line here, in both languages, rather than with one example.
+ */
+const MUST_NOT_EXECUTE: ReadonlyArray<[string, "en" | "fr"]> = [
+  // Negated
+  ["Don't go next", "en"],
+  ["Do not go to the next one", "en"],
+  ["Don’t stop", "en"],
+  ["Please don't summarize this", "en"],
+  ["I can't go back from here", "en"],
+  ["Not the summary, the introduction", "en"],
+  ["Don't cancel it", "en"],
+  ["ne passe pas au suivant", "fr"],
+  ["Ne résume pas ça", "fr"],
+  ["n'arrête pas", "fr"],
+  ["continue pas", "fr"],
+  ["Je ne veux pas revenir en arrière", "fr"],
+  ["Sans retour possible", "fr"],
+  // Quoted or mentioned
+  ["Explain the word next", "en"],
+  ["What does “next” mean in this chapter", "en"],
+  ["The term 'previous' appears twice", "en"],
+  ["Define upload for me", "en"],
+  ["How would you translate continue", "en"],
+  ["le mot suivant", "fr"],
+  ["Explique le mot « suivant »", "fr"],
+  ["Que veut dire le terme retour ici", "fr"],
+  ["Traduis continue en français", "fr"],
+  // Questions addressed to the document
+  ["What is the next chapter about", "en"],
+  ["What happens when you upload a file in this system", "en"],
+  ["Why did they stop the trial", "en"],
+  ["Is this the previous version of the report", "en"],
+  ["How do I go back to the introduction", "en"],
+  ["Does the author summarise the findings anywhere", "en"],
+  ["Which video does the paper cite", "en"],
+  ["Pourquoi ont-ils arrêté l'étude", "fr"],
+  ["Quelle est la suite de l'argument", "fr"],
+  ["Comment continue le récit après ce chapitre", "fr"],
+  ["Qu'est-ce que suivant veut dire", "fr"],
+  ["C'est quoi la vidéo mentionnée", "fr"],
+];
+
+const MUST_EXECUTE: ReadonlyArray<[string, "en" | "fr", VoiceActionId]> = [
+  ["next", "en", "next"],
+  ["Next?", "en", "next"],
+  ["okay, next", "en", "next"],
+  ["can you go back please", "en", "back"],
+  ["Don't summarize, just go next", "en", "next"],
+  ["Explain this, then next", "en", "next"],
+  ["stop talking", "en", "stop"],
+  ["never mind", "en", "cancel"],
+  ["summarize this", "en", "summarize"],
+  ["let's talk", "en", "voice"],
+  ["suivant", "fr", "next"],
+  ["Suivant\u00a0!", "fr", "next"],
+  ["peux-tu résumer ça", "fr", "summarize"],
+  ["bon, la suite", "fr", "next"],
+  ["arrête", "fr", "stop"],
+  ["Résume ça et ensuite suivant", "fr", "summarize"],
+  ["laisse tomber", "fr", "cancel"],
+];
+
+describe("a command word that is mentioned rather than meant", () => {
+  it("freezes a corpus large enough to argue with", () => {
+    expect(MUST_NOT_EXECUTE.length).toBeGreaterThanOrEqual(25);
+    expect(MUST_EXECUTE.length).toBeGreaterThanOrEqual(15);
+    for (const language of ["en", "fr"] as const) {
+      expect(
+        MUST_NOT_EXECUTE.filter(([, said]) => said === language).length,
+      ).toBeGreaterThanOrEqual(10);
+      expect(
+        MUST_EXECUTE.filter(([, said]) => said === language).length,
+      ).toBeGreaterThanOrEqual(6);
+    }
+  });
+
+  it.each(MUST_NOT_EXECUTE)("does not execute “%s” (%s)", (said, language) => {
+    expect(actionsOf(said, language)).toEqual([]);
+  });
+
+  it.each(MUST_EXECUTE)(
+    "executes “%s” (%s) as %s",
+    (said, language, action) => {
+      expect(actionsOf(said, language)).toContain(action);
+    },
+  );
+
+  it("shields only the mentioned word, not the whole sentence", () => {
+    expect(actionsOf("Don't summarize, just go next")).toEqual(["next"]);
+    expect(actionsOf("Explain the word next and then go back")).toEqual([
+      "back",
+    ]);
+  });
+
+  it("hands the mention on as the question it was", () => {
+    const transcript = "Explain the word next";
+    const matches = matchCommands(transcript, []);
+    expect(matches).toEqual([]);
+    expect(dictationText(transcript, matches)).toBe(transcript);
+    expect(isLikelyQuestion(transcript)).toBe(true);
   });
 });
 

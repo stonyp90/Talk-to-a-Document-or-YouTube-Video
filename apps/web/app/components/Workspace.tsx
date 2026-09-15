@@ -1158,41 +1158,41 @@ export default function Workspace() {
    * Driving with a hand. It sits where the spoken panel sits, uses the same
    * action bus, and asks whichever question the reader has landed on, so a
    * conversation can be held without a word or a keystroke.
+   * Both voice and motion are always mounted — the entry mode controls which
+   * is visually primary, but a reader can use either at any time.
    */
-  const motionActions =
-    entryMode === "motion" ? (
-      <MotionActions
-        prompts={suggestions}
-        canAsk={Boolean(source)}
-        onAsk={(spoken) => {
-          setQuestion("");
-          void askQuestion(spoken);
-        }}
-        onAction={handleVoiceAction}
-      />
-    ) : null;
+  const motionActions = (
+    <MotionActions
+      prompts={suggestions}
+      canAsk={Boolean(source)}
+      onAsk={(spoken) => {
+        setQuestion("");
+        void askQuestion(spoken);
+      }}
+      onAction={handleVoiceAction}
+    />
+  );
 
-  const voiceActions =
-    entryMode === "voice" ? (
-      <VoiceActions
-        onAction={handleVoiceAction}
-        onDictate={(spoken) => {
-          setQuestion("");
-          void askQuestion(spoken);
-        }}
-        onDraft={setQuestion}
-        canStartVoice={Boolean(source)}
-        // Reading a source does not use the microphone, so listening continues
-        // through it; only a live voice session has to own the device alone.
-        voiceBusy={[
-          "preparing",
-          "connecting",
-          "connected",
-          "reconnecting",
-        ].includes(state.status)}
-        compact={Boolean(source)}
-      />
-    ) : null;
+  const voiceActions = (
+    <VoiceActions
+      onAction={handleVoiceAction}
+      onDictate={(spoken) => {
+        setQuestion("");
+        void askQuestion(spoken);
+      }}
+      onDraft={setQuestion}
+      canStartVoice={Boolean(source)}
+      // Reading a source does not use the microphone, so listening continues
+      // through it; only a live voice session has to own the device alone.
+      voiceBusy={[
+        "preparing",
+        "connecting",
+        "connected",
+        "reconnecting",
+      ].includes(state.status)}
+      compact={Boolean(source)}
+    />
+  );
 
   return (
     <>

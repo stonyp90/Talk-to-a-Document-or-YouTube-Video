@@ -244,8 +244,12 @@ export function MotionActions({
           <h4 className="motion-conf-title">{t("Motion & Video Conference Hub")}</h4>
         </div>
         <div className="motion-conf-meta">
-          <span className="motion-conf-pill">{watching ? "1080p · 60 FPS" : "Standby"}</span>
-          <span className="motion-conf-pill">{watching ? t("Hands & Eyes Active") : t("Privacy Protected")}</span>
+          <span className="motion-conf-pill">
+            {watching ? `${Math.round(energy * 100)}% ${t("motion energy")}` : t("Standby")}
+          </span>
+          <span className="motion-conf-pill">
+            {watching ? t("Gesture detection") : t("Privacy Protected")}
+          </span>
         </div>
       </div>
 

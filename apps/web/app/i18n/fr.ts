@@ -81,6 +81,9 @@ export const french: Dictionary = {
     "La caméra n’a pas pu démarrer. Vérifiez qu’elle n’est pas déjà utilisée.",
   "This browser will not share a camera here. Motion needs a secure connection.":
     "Ce navigateur ne partagera pas de caméra ici. Le mouvement exige une connexion sécurisée.",
+  "motion energy": "d'énergie de mouvement",
+  "Gesture detection": "Détection de gestes",
+  Standby: "En attente",
   Platform: "Plateforme",
   "How we build": "Notre façon de bâtir",
   Build: "Bâtir",

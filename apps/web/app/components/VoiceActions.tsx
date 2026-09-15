@@ -335,7 +335,7 @@ export function VoiceActions({
             ? t("Stopped listening.")
             : t("Cancelled. Nothing was sent."),
         );
-        if (target === "cancel") run(target);
+        run(target);
         return;
       }
       // With an argument the page says something far more useful than the

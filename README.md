@@ -355,6 +355,117 @@ being asked first. **Sustain** is the stage of the build loop that carries this.
 
 ---
 
+## Deployment architecture
+
+The application is **technology-agnostic at its core**. Domain rules and use cases depend on ports; hosting, storage, gateways, secrets, mail and model providers are adapters behind those ports. The repository currently ships an AWS deployment profile because it fits the scale-to-zero demo workload, but AWS is not a product dependency. The same boundaries can be implemented on another cloud, on containers, or on a self-hosted stack without rewriting the domain/application layers.
+
+The diagrams deliberately show only architectural boundaries. They omit account IDs, ARNs, regions, resource names, bucket names, exact endpoints, IAM role names, secret names and other operational identifiers.
+
+### Overall architecture
+
+```mermaid
+flowchart LR
+    U[Web / Mobile clients]
+
+    subgraph EDGE[Ingress and delivery]
+      H[HTTP gateway\ncurrent: API Gateway]
+      W[Realtime gateway\ncurrent: API Gateway WebSocket]
+      D[DNS + TLS\ncurrent: Route 53 + ACM]
+    end
+
+    subgraph COMPUTE[Stateless compute]
+      A[Web + API runtime\ncurrent: Lambda container]
+      T[Caption / extraction runtime\ncurrent: Lambda container]
+      C[Realtime chat runtime\ncurrent: Lambda container]
+    end
+
+    subgraph DATA[Private state]
+      O[Object + session storage\ncurrent: S3]
+      S[Secret / identity store\ncurrent: Secrets Manager]
+    end
+
+    subgraph SERVICES[Replaceable external capabilities]
+      M[AI / realtime provider]
+      E[Transactional email\ncurrent: SES]
+    end
+
+    subgraph DELIVERY[Build and release]
+      CI[CI/CD identity\nOIDC, no long-lived cloud key]
+      R[Container registry\ncurrent: ECR]
+      I[Infrastructure as code\nTerraform]
+    end
+
+    D --> H
+    D --> W
+    U --> H --> A
+    U --> W --> C
+    A --> T
+    A <--> O
+    C <--> O
+    A --> S
+    C --> S
+    A --> E
+    A --> M
+    C --> M
+    CI --> R --> A
+    R --> T
+    R --> C
+    CI --> I --> H
+    I --> W
+    I --> O
+```
+
+The replaceable boundaries are: **HTTP/realtime gateway, stateless compute, object/session storage, secret store, transactional mail, DNS/TLS, container registry and model provider**. A different implementation must satisfy the same ports and contracts; it does not change product behaviour.
+
+### Request and conversation sequence
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Client as Web / mobile client
+    participant API as Application API
+    participant Store as Private object/session store
+    participant Extract as Source extraction service
+    participant RT as Realtime gateway / chat runtime
+    participant Model as AI / realtime provider
+
+    User->>Client: Add PDF / video source
+    Client->>API: Request source ingestion or upload authorization
+    API-->>Client: Short-lived upload authorization when needed
+    Client->>Store: Upload source directly
+    Client->>API: Extract / ingest source
+    API->>Store: Read source
+    API->>Extract: Extract text / captions
+    Extract-->>API: Normalized source text
+    API->>Store: Save temporary source/session state
+    API-->>Client: Opaque source identifier
+
+    User->>Client: Start voice conversation
+    Client->>API: Request realtime session
+    API->>Model: Create short-lived client credential
+    Model-->>API: Ephemeral credential
+    API-->>Client: Ephemeral credential only
+    Client->>Model: Realtime/WebRTC voice session
+    Model-->>Client: Streaming voice response
+
+    User->>Client: Ask by text
+    Client->>RT: Open/continue realtime discussion
+    RT->>Store: Resolve shared source/session
+    RT->>Model: Stream question with grounded context
+    Model-->>RT: Answer fragments
+    RT-->>Client: Stream answer fragments
+
+    alt Realtime channel unavailable
+      Client->>API: HTTP text request
+      API->>Store: Resolve shared source/session
+      API->>Model: Generate grounded answer
+      Model-->>API: Answer
+      API-->>Client: HTTP response / stream
+    end
+```
+
+**Current AWS profile.** Terraform maps these boundaries to Lambda container functions, API Gateway HTTP/WebSocket APIs, S3, Secrets Manager, SES, ECR, Route 53 and ACM. GitHub Actions assumes a scoped AWS role through OIDC and deploys immutable commit-tagged images. Those are deployment choices, not requirements of `packages/core` or the application use cases.
+
 ## Technical overview
 
 ```text

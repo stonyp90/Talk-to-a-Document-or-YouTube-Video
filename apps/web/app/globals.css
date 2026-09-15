@@ -651,23 +651,90 @@ h3 {
    is a confidence signal, not a video call. */
 .motion-panel {
   margin: 0 0 var(--space-md);
-  padding: var(--space-md);
+  padding: var(--space-lg);
   border: 1px solid var(--accent-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   background: var(--accent-wash-soft);
   display: grid;
   gap: var(--space-md);
+  transition: all var(--motion-base) var(--ease-out);
 }
+.motion-panel-expanded {
+  margin: 0 calc(-1 * var(--space-md)) var(--space-lg);
+  padding: var(--space-xl);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+.motion-conference-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--accent-border-wash);
+}
+.motion-conf-title-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.motion-conf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+.motion-conf-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.motion-conf-dot[data-active] {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.motion-conf-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.motion-conf-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.motion-conf-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
 .motion-stage {
   position: relative;
   overflow: hidden;
-  aspect-ratio: 4 / 3;
-  max-height: 180px;
+  aspect-ratio: 16 / 9;
+  min-height: 280px;
+  max-height: 400px;
   border: 1px solid var(--accent-border-wash);
-  border-radius: var(--radius-md);
-  background: var(--surface-soft);
+  border-radius: var(--radius-lg);
+  background: #11141a;
   display: grid;
   place-items: center;
+  transition: min-height var(--motion-base) var(--ease-out), max-height var(--motion-base) var(--ease-out);
+}
+.motion-stage[data-expanded] {
+  min-height: 440px;
+  max-height: 560px;
 }
 .motion-preview {
   width: 100%;
@@ -686,14 +753,73 @@ h3 {
   margin: 0;
   padding: 0 var(--space-lg);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
 }
+
+/* Eye Tracking Reticles */
+.motion-face-box {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.motion-eye-marker {
+  position: absolute;
+  top: 32%;
+  width: 38px;
+  height: 38px;
+  margin: -19px 0 0 -19px;
+  border: 1.5px solid #38bdf8;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: eye-track 3s ease-in-out infinite alternate;
+}
+.motion-eye-marker.left {
+  left: 42%;
+}
+.motion-eye-marker.right {
+  left: 58%;
+}
+.motion-reticle-cross {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-left: 1px solid #38bdf8;
+  border-top: 1px solid #38bdf8;
+}
+.motion-pupil-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 6px #38bdf8;
+}
+.motion-reticle-tag {
+  position: absolute;
+  top: -16px;
+  font-size: 8px;
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.05em;
+}
+.motion-gaze-vector {
+  position: absolute;
+  top: 32%;
+  left: 42%;
+  width: 16%;
+  height: 1px;
+  background: rgba(56, 189, 248, 0.35);
+}
+
+/* Hand Tracking Overlay */
 .motion-marker {
   position: absolute;
-  width: 22px;
-  height: 22px;
-  margin: -11px 0 0 -11px;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
   border: 2px solid var(--accent);
   border-radius: 50%;
   background: var(--accent-wash);
@@ -703,13 +829,82 @@ h3 {
     top 90ms linear,
     opacity var(--motion-fast) var(--ease-out);
   pointer-events: none;
+  display: grid;
+  place-items: center;
 }
+.motion-palm-aura {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px dashed var(--accent);
+  opacity: 0.6;
+  animation: spin 6s linear infinite;
+}
+.motion-finger-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fde047;
+  border: 1px solid #000;
+}
+.motion-finger-dot.f1 { top: -14px; left: -10px; }
+.motion-finger-dot.f2 { top: -20px; left: -2px; }
+.motion-finger-dot.f3 { top: -22px; left: 8px; }
+.motion-finger-dot.f4 { top: -18px; left: 18px; }
+.motion-finger-dot.f5 { top: -8px; left: 24px; }
+.motion-marker-label {
+  position: absolute;
+  bottom: -16px;
+  font-size: 8px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+/* Live Action Trigger HUD on Video */
+.motion-hud-action-card {
+  position: absolute;
+  bottom: var(--space-md);
+  left: var(--space-md);
+  right: var(--space-md);
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.88);
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 5;
+  animation: slide-up 0.2s ease-out;
+}
+.motion-hud-gesture-badge {
+  background: var(--accent);
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.motion-hud-action-name {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .motion-energy {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 3px;
+  height: 4px;
   background: var(--accent);
   transform-origin: left center;
   transform: scaleX(0);
@@ -718,6 +913,21 @@ h3 {
 .motion-controls {
   display: flex;
   gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.motion-toolbar-btn {
+  font-size: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 600;
+}
+.motion-toolbar-btn:hover {
+  background: var(--surface-soft);
+  border-color: var(--accent);
 }
 .motion-choice {
   display: grid;

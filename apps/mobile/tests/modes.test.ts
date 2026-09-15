@@ -10,13 +10,13 @@ test('voice to action is the default and the first choice, as on the web', () =>
   assert.equal(MODES[1].label, 'Keyboard to action');
 });
 
-test('the motion beta is announced but cannot be chosen', () => {
+test('the motion mode is available and opens camera motion control', () => {
   const motion = MODES.find((mode) => mode.id === 'motion');
-  assert.equal(motion?.available, false);
+  assert.equal(motion?.available, true);
   assert.equal(motion?.detail, 'Beta');
-  const kept = chooseMode('text', 'motion');
-  assert.equal(kept.mode, 'text');
-  assert.match(kept.notice, /not available yet/);
+  const chosen = chooseMode('text', 'motion');
+  assert.equal(chosen.mode, 'motion');
+  assert.match(chosen.notice, /camera tracking/);
 });
 
 test('choosing a mode that exists switches and explains itself', () => {

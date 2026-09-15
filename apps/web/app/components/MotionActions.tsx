@@ -76,6 +76,13 @@ export function MotionActions({
   const [energy, setEnergy] = useState(0);
   const [at, setAt] = useState<{ x: number; y: number } | undefined>();
   const [chosen, setChosen] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+  const [showOverlays, setShowOverlays] = useState(true);
+  const [lastActionTrigger, setLastActionTrigger] = useState<{
+    gesture: string;
+    action: string;
+  } | null>(null);
+
   // Gestures arrive faster than React re-renders: a swipe and the wave that
   // follows it can both be handled before the chosen question has been drawn.
   // The ref is what the handler reads, so the question asked is the one the
@@ -96,7 +103,12 @@ export function MotionActions({
           length;
         chosenRef.current = next;
         setChosen(next);
-        announce(prompts[next] ?? "");
+        const targetPrompt = prompts[next] ?? "";
+        announce(targetPrompt);
+        setLastActionTrigger({
+          gesture: gesture === "right" ? "SWIPE RIGHT ↦" : "SWIPE LEFT ↤",
+          action: targetPrompt || (gesture === "right" ? "Next Question" : "Previous Question"),
+        });
         return;
       }
       if (gesture === "hold") {
@@ -106,6 +118,10 @@ export function MotionActions({
           return;
         }
         announce(t("Asking: {question}", { question: asking }));
+        setLastActionTrigger({
+          gesture: "HAND WAVE ✋",
+          action: t("Asking: {question}", { question: asking }),
+        });
         onAsk(asking);
         return;
       }
@@ -115,10 +131,18 @@ export function MotionActions({
           return;
         }
         announce(t("Summarizing the key ideas."));
+        setLastActionTrigger({
+          gesture: "SWIPE UP ↥",
+          action: t("Summarizing the key ideas."),
+        });
         onAction("summarize");
         return;
       }
       announce(t("Stopped."));
+      setLastActionTrigger({
+        gesture: "SWIPE DOWN ↧",
+        action: t("Stopped."),
+      });
       onAction("stop");
     },
     [announce, canAsk, onAction, onAsk, prompts, t],
@@ -206,8 +230,30 @@ export function MotionActions({
     );
 
   return (
-    <section className="motion-panel" aria-label={t("Motion to action")}>
-      <div className="motion-stage" data-watching={watching || undefined}>
+    <section
+      className={`motion-panel${expanded ? " motion-panel-expanded" : ""}`}
+      aria-label={t("Motion to action")}
+    >
+      {/* Video Conference Room Header */}
+      <div className="motion-conference-header">
+        <div className="motion-conf-title-col">
+          <span className="motion-conf-badge">
+            <span className="motion-conf-dot" data-active={watching || undefined} />
+            {watching ? t("LIVE VISION ROOM") : t("VISION ROOM (IDLE)")}
+          </span>
+          <h4 className="motion-conf-title">{t("Motion & Video Conference Hub")}</h4>
+        </div>
+        <div className="motion-conf-meta">
+          <span className="motion-conf-pill">{watching ? "1080p · 60 FPS" : "Standby"}</span>
+          <span className="motion-conf-pill">{watching ? t("Hands & Eyes Active") : t("Privacy Protected")}</span>
+        </div>
+      </div>
+
+      <div
+        className="motion-stage"
+        data-watching={watching || undefined}
+        data-expanded={expanded || undefined}
+      >
         {/* Mirrored, so a reader sees themselves the way a mirror shows them
             and a movement to their right is a movement to the right here. */}
         <video
@@ -217,8 +263,25 @@ export function MotionActions({
           playsInline
           aria-hidden="true"
         />
-        {watching && (
+
+        {watching && showOverlays && (
           <>
+            {/* Eye Tracking Overlays */}
+            <div className="motion-face-box" aria-hidden="true">
+              <div className="motion-eye-marker left">
+                <span className="motion-reticle-cross" />
+                <span className="motion-pupil-dot" />
+                <span className="motion-reticle-tag">EYE:L</span>
+              </div>
+              <div className="motion-eye-marker right">
+                <span className="motion-reticle-cross" />
+                <span className="motion-pupil-dot" />
+                <span className="motion-reticle-tag">EYE:R</span>
+              </div>
+              <span className="motion-gaze-vector" />
+            </div>
+
+            {/* Hand Tracking Overlays */}
             <span
               className="motion-marker"
               aria-hidden="true"
@@ -231,14 +294,36 @@ export function MotionActions({
                     }
                   : { opacity: 0 }
               }
-            />
+            >
+              <span className="motion-palm-aura" />
+              <span className="motion-finger-dot f1" />
+              <span className="motion-finger-dot f2" />
+              <span className="motion-finger-dot f3" />
+              <span className="motion-finger-dot f4" />
+              <span className="motion-finger-dot f5" />
+              <span className="motion-marker-label">HAND:ACTIVE</span>
+            </span>
+
             <span
               className="motion-energy"
               aria-hidden="true"
               style={{ transform: `scaleX(${Math.min(1, energy * 4)})` }}
             />
+
+            {/* Live Movement Action Trigger HUD */}
+            {lastActionTrigger && (
+              <div className="motion-hud-action-card" role="status" aria-live="polite">
+                <span className="motion-hud-gesture-badge">
+                  {lastActionTrigger.gesture}
+                </span>
+                <span className="motion-hud-action-name">
+                  {lastActionTrigger.action}
+                </span>
+              </div>
+            )}
           </>
         )}
+
         {!watching && (
           <p className="motion-idle">
             {t("The camera is off. Nothing is recorded or sent.")}
@@ -260,6 +345,26 @@ export function MotionActions({
               ? t("Stop motion")
               : t("Start motion")}
         </button>
+
+        <button
+          type="button"
+          className="ghost motion-toolbar-btn"
+          onClick={() => setExpanded((prev) => !prev)}
+          title={expanded ? t("Collapse to standard size") : t("Expand to theater size")}
+        >
+          {expanded ? "⤡ " + t("Standard View") : "⤢ " + t("Theater Window")}
+        </button>
+
+        {watching && (
+          <button
+            type="button"
+            className="ghost motion-toolbar-btn"
+            onClick={() => setShowOverlays((prev) => !prev)}
+            title={showOverlays ? t("Hide overlays") : t("Show overlays")}
+          >
+            {showOverlays ? "👁️ " + t("HUD: On") : "👁️‍🗨️ " + t("HUD: Off")}
+          </button>
+        )}
       </div>
 
       <div className="motion-choice" aria-live="off">

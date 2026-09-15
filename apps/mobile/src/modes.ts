@@ -1,8 +1,8 @@
 import type { TranslationKey } from "./i18n";
 
 /** The ways a person drives Ursly: the same three as the web's control menu. */
-export type EntryMode = "voice" | "text";
-export type ModeId = EntryMode | "motion";
+export type EntryMode = "voice" | "text" | "motion";
+export type ModeId = EntryMode;
 
 export type Mode = {
   id: ModeId;
@@ -22,7 +22,7 @@ export const MODES: readonly Mode[] = [
     label: "Motion to action",
     short: "Motion",
     detail: "Beta",
-    available: false,
+    available: true,
   },
 ];
 
@@ -32,14 +32,16 @@ export const DEFAULT_MODE: EntryMode = "voice";
 export const MODE_STORAGE_KEY = "ursly-mode-v1";
 
 export function parseSavedMode(value: string | null | undefined): EntryMode {
-  return value === "text" ? "text" : DEFAULT_MODE;
+  if (value === "text") return "text";
+  if (value === "motion") return "motion";
+  return DEFAULT_MODE;
 }
 
 const NOTICES: Record<ModeId, TranslationKey> = {
   voice: "Voice to action: say a command, or use the controls as usual.",
   text: "Keyboard to action: everything works by typing and clicking.",
   motion:
-    "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.",
+    "Motion to action: camera tracking hands and eyes to drive the app.",
 };
 
 /**
@@ -52,5 +54,5 @@ export function chooseMode(
 ): { mode: EntryMode; notice: TranslationKey } {
   const chosen = MODES.find((mode) => mode.id === id);
   if (!chosen?.available) return { mode: current, notice: NOTICES.motion };
-  return { mode: chosen.id as EntryMode, notice: NOTICES[chosen.id] };
+  return { mode: chosen.id, notice: NOTICES[chosen.id] };
 }

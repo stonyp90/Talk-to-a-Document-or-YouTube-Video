@@ -26,7 +26,7 @@ import { IntroVideo } from "./IntroVideo";
 import { planOffer, pricingCopy } from "./pricing";
 
 const storageKey = "ursly-mobile-onboarding-v1";
-const slideDuration = 5600;
+const slideDuration = 2800;
 
 /**
  * Four slides share one layout: art above, copy below. "What it costs" needs
@@ -104,8 +104,8 @@ export function MobileOnboarding({ motion, language, t }: Props) {
   useEffect(() => {
     let mounted = true;
     AsyncStorage.getItem(storageKey)
-      .then((value) => {
-        if (mounted) setVisible(value !== "done");
+      .then(() => {
+        if (mounted) setVisible(true);
       })
       .catch(() => {
         if (mounted) setVisible(true);

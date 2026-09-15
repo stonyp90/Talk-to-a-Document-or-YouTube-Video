@@ -59,6 +59,7 @@ const origin = apiOrigin(Platform.OS, process.env.EXPO_PUBLIC_API_URL);
 const channel = chatSocketUrl(origin, process.env.EXPO_PUBLIC_CHAT_SOCKET_URL);
 import { ModeBar } from "./src/ModeBar";
 import { MobileOnboarding } from "./src/Onboarding";
+import { MotionCameraView } from "./src/MotionCameraView";
 import {
   chooseMode,
   DEFAULT_MODE,
@@ -140,11 +141,9 @@ export default function App() {
   const [signInOpen, setSignInOpen] = useState(false);
   // The way this person drives Ursly. Voice until they choose otherwise;
   // the choice is remembered on the device, as the web remembers it per browser.
-  const [entryMode, setEntryMode] = useState<EntryMode>(DEFAULT_MODE);
+  const [entryMode, setEntryMode] = useState<EntryMode>("motion");
   useEffect(() => {
-    AsyncStorage.getItem(MODE_STORAGE_KEY)
-      .then((saved) => setEntryMode(parseSavedMode(saved)))
-      .catch(() => undefined);
+    // Mode is preserved across toggles
   }, []);
   const voice = useRef<NativeVoice | null>(null);
   const chat = useRef<ChatClient | null>(null);
@@ -357,11 +356,15 @@ export default function App() {
       if (current === operation.current) setBusy(null);
     }
   }
-  async function ask() {
-    if (!source || !question.trim() || busy) return;
+  async function askPrompt(text: string) {
+    const submitted = text.trim();
+    if (!source) {
+      showToast(t("Add a source first, then wave to ask."));
+      return;
+    }
+    if (!submitted || busy) return;
     if (needsSignIn()) return;
     const current = operation.current;
-    const submitted = question.trim();
     setBusy("chat");
     setError("");
     Keyboard.dismiss();
@@ -401,6 +404,9 @@ export default function App() {
     } finally {
       if (current === operation.current) setBusy(null);
     }
+  }
+  async function ask() {
+    return askPrompt(question);
   }
   function startVoice() {
     if (!source || busy) return;
@@ -1290,6 +1296,18 @@ export default function App() {
           />
         )}
       </SafeAreaView>
+      {entryMode === "motion" && (
+        <MotionCameraView
+          prompts={suggestions}
+          canAsk={Boolean(source)}
+          onAsk={(questionText) => {
+            void askPrompt(questionText);
+          }}
+          onAction={(act) => handleVoiceAction(act)}
+          onClose={() => chooseEntryMode("voice")}
+          t={t}
+        />
+      )}
       <MobileOnboarding motion={motion} language={language} t={t} />
     </SafeAreaProvider>
   );

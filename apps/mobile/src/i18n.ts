@@ -59,6 +59,8 @@ export const french = {
     "Clavier : tout fonctionne en écrivant et en touchant.",
   "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today.":
     "Le mouvement n’est pas encore disponible. Nous y travaillons. La voix et le clavier sont prêts dès aujourd’hui.",
+  "Motion to action: camera tracking hands and eyes to drive the app.":
+    "Mouvement : la caméra suit vos mains et vos yeux pour contrôler l’application.",
   "Import a PDF": "Importer un PDF",
   "A document": "Un document",
   "PDF · up to 25 MB": "PDF · jusqu’à 25 Mo",
@@ -219,7 +221,9 @@ export const french = {
   "Upload is ready — choose a PDF to finish.":
     "L’import est prêt : choisissez un PDF pour terminer.",
   "Add a source first, then say let’s talk again.":
-    "Ajoutez d’abord une source, puis dites à nouveau parlons-en.",
+    "Ajoutez d’abord une source, puis dites parlons à nouveau.",
+  "Add a source first, then wave to ask.":
+    "Ajoutez d’abord une source, puis faites un signe de la main pour demander.",
   "Your summary request is ready in the composer.":
     "Votre demande de résumé est prête dans le champ de question.",
   "Voice actions are saved on this device.":

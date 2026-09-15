@@ -45,3 +45,6 @@ __pycache__/
 
 # Local Claude Code scratch configuration, never part of the repository.
 .claude/
+
+# Local audit logs, browser captures and raw recording takes.
+/output/verification/

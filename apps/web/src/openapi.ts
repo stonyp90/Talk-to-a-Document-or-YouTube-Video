@@ -19,6 +19,8 @@ import {
   uploadRequestSchema,
   videoSearchResponseSchema,
   videoSearchSchema,
+  speechSessionSchema,
+  speechCredentialSchema,
 } from "./validation";
 
 /**
@@ -44,6 +46,25 @@ type Operation = {
 };
 
 const OPERATIONS: Operation[] = [
+  {
+    method: "post",
+    path: "/api/speech/session",
+    summary: "Start live command transcription",
+    description:
+      "Issues a short-lived transcription-only WebRTC credential. Uses the same account allowance and rate limits as source voice. No model tools or spoken answers are enabled.",
+    request: { schema: speechSessionSchema },
+    response: {
+      status: 200,
+      schema: speechCredentialSchema,
+      description: "Temporary microphone transcription credential.",
+    },
+    errors: [
+      { status: 400, description: "Invalid language." },
+      { status: 401, description: "Sign in first." },
+      { status: 429, description: "Allowance or rate limit exceeded." },
+      { status: 503, description: "Live command speech unavailable." },
+    ],
+  },
   {
     method: "get",
     path: "/api/health",
@@ -283,6 +304,10 @@ const OPERATIONS: Operation[] = [
         "Captioned videos, best match first. An empty list means nothing matched.",
     },
     errors: [
+      {
+        status: 503,
+        description: "Search is not configured. Paste a YouTube URL instead.",
+      },
       { status: 400, description: "The query is empty or too long." },
       { status: 401, description: "No session; sign in first." },
       {

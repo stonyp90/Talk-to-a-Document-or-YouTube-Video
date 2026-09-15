@@ -10,6 +10,13 @@ import type { VideoCandidate, VideoSearchPort } from "./ports";
 /** Long enough for a title and an artist, short enough to refuse a dictation that ran away. */
 export const MAX_VIDEO_QUERY_CHARACTERS = 200;
 
+export class VideoSearchUnavailableError extends Error {
+  constructor() {
+    super("Video search is unavailable. Paste a YouTube link instead.");
+    this.name = "VideoSearchUnavailableError";
+  }
+}
+
 /**
  * The first hit is opened and the rest are offered as alternatives, so the list
  * is read aloud or scanned. Past a handful it is noise, not choice.

@@ -52,3 +52,4 @@ docker-compose*.yml
 **/service-account*.json
 **/secrets.json
 tmp
+output/verification

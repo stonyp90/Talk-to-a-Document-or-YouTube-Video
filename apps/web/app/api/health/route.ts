@@ -1,4 +1,7 @@
-import { contextBudget } from "@/apps/web/src/composition";
+import {
+  commandSpeechEnabled,
+  contextBudget,
+} from "@/apps/web/src/composition";
 
 export function GET() {
   return Response.json(
@@ -8,6 +11,7 @@ export function GET() {
       mode: process.env.PROVIDER_MODE ?? "mock",
       directUpload: !!process.env.UPLOAD_BUCKET,
       contextCharacterBudget: contextBudget(),
+      commandSpeech: commandSpeechEnabled() ? "realtime" : "browser",
     },
     { headers: { "Cache-Control": "no-store" } },
   );

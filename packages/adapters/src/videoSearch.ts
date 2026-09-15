@@ -2,6 +2,7 @@ import type {
   VideoCandidate,
   VideoSearchPort,
 } from "../../core/src/application/ports";
+import { VideoSearchUnavailableError } from "../../core/src/application/videoSearch";
 
 /**
  * Finding a video from what somebody said. The whole point of the spoken path
@@ -168,15 +169,10 @@ export function createVideoSearchProvider(): VideoSearchPort {
     );
     return new MockVideoSearchProvider();
   }
-  // Unlike captions, a missing key here is not worth refusing over: without a
-  // fallback the whole spoken entry path would be dead on every machine that
-  // has no quota, including CI. It is loud rather than silent.
   if (!apiKey) {
-    announce(
-      "unconfigured",
-      "[video-search] No YOUTUBE_API_KEY is configured: spoken searches return deterministic fixtures, not real videos.",
-    );
-    return new MockVideoSearchProvider();
+    // Invented IDs look usable but fail as soon as real captions are requested.
+    // Fixtures belong only to an explicitly selected mock environment.
+    throw new VideoSearchUnavailableError();
   }
   return new YouTubeVideoSearchProvider(
     apiKey,

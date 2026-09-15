@@ -49,6 +49,7 @@ export class RealtimeClient {
   private abort?: AbortController;
   private status?: string;
   private activity: VoiceActivity = "idle";
+  private outputPlaying = false;
   private timers = new Set<ReturnType<typeof setTimeout>>();
   private recoveryTimer?: ReturnType<typeof setTimeout>;
   private playbackTimer?: ReturnType<typeof setTimeout>;
@@ -268,6 +269,7 @@ export class RealtimeClient {
     ++this.generation;
     this.status = undefined;
     this.activity = "idle";
+    this.outputPlaying = false;
     this.abort?.abort();
     this.abort = undefined;
     this.timers.forEach(clearTimeout);
@@ -389,13 +391,19 @@ export class RealtimeClient {
 
   private handleServerEvent(event: Record<string, unknown>): void {
     const type = event.type;
+    // Transcription completes independently of the answer. Reserve the spoken
+    // question's place when its audio is committed, before the answer arrives.
+    if (
+      type === "input_audio_buffer.committed" &&
+      typeof event.item_id === "string"
+    )
+      this.startMessage(event.item_id, "user");
     if (
       type === "response.output_item.added" ||
       type === "response.output_item.created"
     ) {
       const item = event.item as
-        | { id?: string; type?: string; role?: string }
-        | undefined;
+        { id?: string; type?: string; role?: string } | undefined;
       if (item?.type === "message" && item.role === "assistant" && item.id)
         this.startMessage(item.id, "assistant");
     }
@@ -438,13 +446,27 @@ export class RealtimeClient {
     }
     if (type === "input_audio_buffer.speech_stopped") this.setActivity("idle");
     if (type === "response.created") this.setActivity("speaking");
+    if (type === "output_audio_buffer.started") {
+      this.outputPlaying = true;
+      this.setActivity("speaking");
+    }
+    if (
+      type === "output_audio_buffer.stopped" ||
+      type === "output_audio_buffer.cleared"
+    ) {
+      this.outputPlaying = false;
+      // A clear can follow the caller interrupting. Keep their listening
+      // indicator until their own speech ends.
+      if (this.activity !== "listening") this.setActivity("idle");
+    }
     if (type === "response.done") {
       const response = event.response as
-        | { output?: { id?: string }[]; status?: string }
-        | undefined;
+        { output?: { id?: string }[]; status?: string } | undefined;
       for (const item of response?.output ?? [])
         if (item.id) this.completeMessage(item.id);
-      this.setActivity("idle");
+      // Generation finishes before the queued audio has reached the listener.
+      if (!this.outputPlaying && this.activity !== "listening")
+        this.setActivity("idle");
       if (response?.status === "failed")
         this.fail("Voice response failed. Start a new session.", true);
     }

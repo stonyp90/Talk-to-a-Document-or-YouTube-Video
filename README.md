@@ -144,9 +144,14 @@ OPENAI_API_KEY=<your-project-key>
 
 `PROVIDER_MODE` controls OpenAI; `YOUTUBE_TRANSCRIPT_MODE` controls the
 application's YouTube adapter, while the captions service itself uses
-`TRANSCRIPT_MODE`. Live calls cost money. Never put a secret in a
-`NEXT_PUBLIC_*` or `EXPO_PUBLIC_*` variable — those are shipped to clients
-— and never commit `.env.local`.
+`TRANSCRIPT_MODE`. In live mode, the Speak button uses OpenAI transcription
+over WebRTC with a server-issued one-minute credential. Browser recognition
+remains available in mock mode. Spoken commands never enable model tools: the
+application matches the transcript to its existing commands. The source voice
+session takes exclusive ownership of the microphone while it connects and
+runs. Live calls cost money. Never put a secret in a `NEXT_PUBLIC_*` or
+`EXPO_PUBLIC_*` variable — those are shipped to clients — and never commit
+`.env.local`.
 
 Full environment reference: [`.env.example`](.env.example) and [service setup](SERVICE-SETUP.md).
 
@@ -223,6 +228,29 @@ is remembered in a cookie. Interface copy is keyed by its English text in
 exists once per language (`scripts/brand/intro-video.mjs` renders both) because
 its text is burned into the frames.
 
+### The recorded conversation
+
+The guidance section offers **Watch a real conversation**, a separate recording
+of spoken upload/start commands and two live source-grounded exchanges. It loads
+only on request, uses native playback controls, and has English/French captions.
+The 36-second brand introduction keeps its own timing.
+
+To record a new take against a live local stack on port 3300:
+
+```sh
+DEMO_ORIGIN=http://localhost:3300 DEMO_OUTPUT=output/verification/onboarding \
+  node --import tsx scripts/demo/record-voice.mjs
+```
+
+This macOS recorder requires `say`, `ffmpeg` and Playwright Chromium. It uses
+generated caller audio as a microphone fixture; recognition, WebRTC transport,
+answers and UI actions are real. It waits for audible output to finish before
+the follow-up and Stop. The MP4, transcript events and timing evidence stay in
+the ignored verification directory. Review each take and its captions before
+copying the selected MP4/poster/VTT files into `apps/web/public/demo/`.
+See [recording provenance](docs/demo/VOICE-RECORDING-2026-09-12.md) and the
+[requirement-by-requirement audit](INTERVIEW-VERIFICATION.md).
+
 ### Rebuilding the introduction
 
 “Web 3.0 in 30 seconds” is six five-second scenes: what Ursly is, a source going
@@ -280,6 +308,12 @@ not runtime settings.
 Nobody builds software for free, so the product says how it is paid for — on the
 landing page, in the build loop, and here. There are two ways to use Ursly and
 the visitor picks one.
+
+An eight-second animation above the plan details shows both exchanges:
+conversations help improve models, or payment supports the same app while
+conversations stay out of training. It plays once when visible, can be paused
+or replayed, and stays static for reduced-motion preferences. Its copy is
+available in English and French in `apps/web/app/content/pricing.ts`.
 
 | Plan     | Money                | What happens to what you say                                                                                                          |
 | -------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -350,7 +384,7 @@ one-time code, so there is no password to store; the code is hashed with a
 server-side pepper and never logged, returned or kept in clear. `/api/health`
 and `/api/openapi` stay open. See [The gate](#the-gate) below.
 
-**A spoken source is searched, not spelled.** Nobody dictates "watch question mark v equals". Saying "YouTube, Miles Davis" posts the words to `POST /api/videos/search`, which asks the YouTube Data API only for videos that carry closed captions — an uncaptioned result would be a source that fails at the next step — and returns the best matches. The client opens the first and keeps the rest as alternatives. `VideoSearchPort` is the boundary: with `YOUTUBE_SEARCH_MODE=mock`, or with no `YOUTUBE_API_KEY` at all, the adapter returns deterministic fixtures derived from the query and says so in the log, so the spoken entry path works locally and in CI with no quota and no network.
+**A spoken source is searched, not spelled.** Nobody dictates "watch question mark v equals". Saying "YouTube, Miles Davis" posts the words to `POST /api/videos/search`, which asks the YouTube Data API only for videos that carry closed captions — an uncaptioned result would be a source that fails at the next step — and returns the best matches. The client opens the first and keeps the rest as alternatives. `VideoSearchPort` is the boundary: with `YOUTUBE_SEARCH_MODE=mock`, the adapter returns deterministic fixtures for local tests. In live mode it requires `YOUTUBE_API_KEY`; missing configuration returns an explicit unavailable response and the reader can paste a YouTube URL. No invented video IDs are substituted for live results.
 
 **Speaking is the interface, not a shortcut.** Listening is continuous: the
 browser engine hangs up by itself after a pause and the panel picks the
@@ -583,6 +617,20 @@ docker compose --env-file .env.local logs --tail=100 dev transcript chat
 - [Architecture](ARCHITECTURE.md) · [Terraform setup](infrastructure/terraform/README.md) · [Service setup](SERVICE-SETUP.md)
 - [Walkthrough script](WALKTHROUGH.md) · [Native client](apps/mobile/README.md) · [Expo EAS builds](apps/mobile/EAS.md)
 - [Publishing the introduction on YouTube](YOUTUBE.md)
+
+### Live command recognition
+
+With `PROVIDER_MODE=live`, Speak uses a transcription-only OpenAI Realtime
+connection. The backend issues a 60-second ephemeral credential through
+`POST /api/speech/session`, using the existing authenticated usage allowance and
+rate limit. `OPENAI_TRANSCRIBE_MODEL` selects the transcription model. Only final
+transcripts enter the deterministic command matcher; source text cannot define
+new actions. The command microphone closes when the source voice conversation
+starts, when cancelled, or after two minutes without activity. Connection setup
+has a 20-second deadline and releases late microphone grants. Mock mode retains
+browser recognition for controlled tests. `/api/health` identifies this as
+`commandSpeech: realtime` or `browser`. Use buttons or typing if recognition is
+unavailable.
 
 ## AI-assisted development
 

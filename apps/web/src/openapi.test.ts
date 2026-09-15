@@ -13,6 +13,7 @@ describe("OpenAPI document", () => {
       "/api/health",
       "/api/ingest",
       "/api/realtime/session",
+      "/api/speech/session",
       "/api/text-chat",
       "/api/text-chat/stream",
       "/api/uploads",
@@ -116,6 +117,7 @@ describe("OpenAPI document", () => {
       "400",
       "401",
       "429",
+      "503",
     ]);
   });
 

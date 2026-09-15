@@ -25,6 +25,9 @@ export const IDENTICAL_IN_BOTH: readonly string[] = [
  * française: téléverser, clavier, objets connectés, version bêta.
  */
 export const french: Dictionary = {
+  "Connecting…": "Connexion…",
+  "Getting the microphone ready. You can cancel at any time.":
+    "Préparation du microphone. Vous pouvez annuler à tout moment.",
   // Navigation and modes
   Primary: "Principale",
   "Ursly home": "Accueil Ursly",
@@ -722,4 +725,13 @@ export const french: Dictionary = {
     "Le microphone n’a rendu aucun son, donc rien n’a été conservé. Prêtez votre voix de nouveau pour réessayer.",
   "Ursly could not open the microphone. Check the microphone permission in your browser and try again.":
     "Ursly n’a pas pu ouvrir le microphone. Vérifiez l’autorisation du microphone dans votre navigateur, puis réessayez.",
+  "Watch a real conversation": "Voir une vraie conversation",
+  "A spoken upload command, a document, and two questions. See Ursly in use.":
+    "Une commande de téléversement à voix haute, un document et deux questions. Découvrez Ursly en action.",
+  "Ursly voice conversation demonstration":
+    "Démonstration d’une conversation vocale avec Ursly",
+  "Your browser cannot play this video.":
+    "Votre navigateur ne peut pas lire cette vidéo.",
+  "English audio · English and French captions. Recorded in the app with a generated caller voice and live answers.":
+    "Audio en anglais · Sous-titres en anglais et en français. Enregistré dans l’application avec une voix générée pour les questions et des réponses en direct.",
 };

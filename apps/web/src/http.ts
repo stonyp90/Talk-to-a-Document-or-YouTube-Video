@@ -44,6 +44,8 @@ const named = (
   error instanceof Error && error.name === name;
 
 export function errorResponse(error: unknown, fallback: string): Response {
+  if (named(error, "VideoSearchUnavailableError"))
+    return jsonError("VIDEO_SEARCH_UNAVAILABLE", (error as Error).message, 503);
   if (
     error instanceof InputValidationError ||
     named(error, "InputValidationError")

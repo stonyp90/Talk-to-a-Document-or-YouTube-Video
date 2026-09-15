@@ -1,6 +1,7 @@
 "use client";
 
 import styles from "./Pricing.module.css";
+import { PricingExplainer } from "./PricingExplainer";
 import {
   paidPlanPrice,
   paidPlanUrl,
@@ -35,6 +36,7 @@ export function Pricing({
       <div className={styles.heading}>
         <span className="eyebrow">{copy.eyebrow}</span>
         <h2 id="pricing-heading">{copy.heading}</h2>
+        <PricingExplainer copy={copy} />
         <p className={styles.intro}>{copy.intro}</p>
       </div>
 

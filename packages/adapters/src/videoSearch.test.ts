@@ -158,17 +158,13 @@ describe("video search provider boundary", () => {
       expect(parseYouTubeVideoId(candidate.url)).toBe(candidate.videoId);
   });
 
-  it("falls back to fixtures, loudly, when no key is configured", async () => {
+  it("refuses unconfigured live search instead of inventing video IDs", async () => {
     vi.stubEnv("YOUTUBE_SEARCH_MODE", "");
     vi.stubEnv("YOUTUBE_API_KEY", "");
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
 
-    const found = await createVideoSearchProvider().search("miles davis", 2);
-    expect(found).toHaveLength(2);
+    expect(() => createVideoSearchProvider()).toThrow(/Paste a YouTube link/);
     expect(fetcher).not.toHaveBeenCalled();
-    expect(warn.mock.calls.flat().join(" ")).toMatch(/YOUTUBE_API_KEY/);
-    warn.mockRestore();
   });
 });

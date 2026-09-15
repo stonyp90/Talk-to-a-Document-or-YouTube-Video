@@ -1184,7 +1184,12 @@ export default function Workspace() {
         canStartVoice={Boolean(source)}
         // Reading a source does not use the microphone, so listening continues
         // through it; only a live voice session has to own the device alone.
-        voiceBusy={state.status === "connected"}
+        voiceBusy={[
+          "preparing",
+          "connecting",
+          "connected",
+          "reconnecting",
+        ].includes(state.status)}
         compact={Boolean(source)}
       />
     ) : null;

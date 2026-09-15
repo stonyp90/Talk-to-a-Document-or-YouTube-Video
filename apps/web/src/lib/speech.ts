@@ -1,3 +1,5 @@
+import { createRealtimeSpeechListener } from "./realtimeSpeech";
+
 /**
  * The browser speech engine, wrapped so the rest of the interface never has to
  * think about it. Two things the raw API gets wrong for a conversation:
@@ -65,10 +67,12 @@ export function speechRecognitionSupported(): boolean {
 }
 
 export type SpeechListenerOptions = {
+  provider?: "browser" | "realtime";
   language: string;
   onPhrase: (phrase: SpeechPhrase) => void;
   onError?: (reason: SpeechErrorReason) => void;
   onListeningChange?: (listening: boolean) => void;
+  onConnectingChange?: (connecting: boolean) => void;
   /** Silence after which listening stops on its own. */
   quietLimitMs?: number;
 };
@@ -80,7 +84,15 @@ export type SpeechListener = {
   setLanguage: (language: string) => void;
 };
 
-export function createSpeechListener({
+export function createSpeechListener(
+  options: SpeechListenerOptions,
+): SpeechListener {
+  if (options.provider === "realtime")
+    return createRealtimeSpeechListener(options);
+  return createBrowserSpeechListener(options);
+}
+
+function createBrowserSpeechListener({
   language,
   onPhrase,
   onError,

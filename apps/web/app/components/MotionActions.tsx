@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
+import { useHydrated } from "./useHydrated";
 import type { VoiceActionId } from "./VoiceActions";
 import {
   MotionCamera,
@@ -66,6 +67,7 @@ export function MotionActions({
   createCamera,
 }: MotionActionsProps) {
   const { t } = useLanguage();
+  const hydrated = useHydrated();
   const video = useRef<HTMLVideoElement>(null);
   const camera = useRef<{ start(): Promise<void>; stop(): void } | null>(null);
   const handle = useRef<(event: MotionCameraEvent) => void>(() => {});
@@ -76,7 +78,7 @@ export function MotionActions({
   const [energy, setEnergy] = useState(0);
   const [at, setAt] = useState<{ x: number; y: number } | undefined>();
   const [chosen, setChosen] = useState(0);
-  const [expanded, setExpanded] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
   const [lastActionTrigger, setLastActionTrigger] = useState<{
     gesture: string;
@@ -88,7 +90,7 @@ export function MotionActions({
   // The ref is what the handler reads, so the question asked is the one the
   // reader last landed on rather than the one that was on screen.
   const chosenRef = useRef(0);
-  const supported = createCamera ? true : cameraSupported();
+  const supported = hydrated && (createCamera ? true : cameraSupported());
   const prompt = prompts[chosen % Math.max(1, prompts.length)] ?? "";
 
   const announce = useCallback((message: string) => setNotice(message), []);
@@ -231,9 +233,19 @@ export function MotionActions({
 
   return (
     <section
-      className={`motion-panel${expanded ? " motion-panel-expanded" : ""}`}
+      className={`motion-panel${fullscreen ? " motion-panel-fullscreen" : ""}`}
       aria-label={t("Motion to action")}
     >
+      {fullscreen && (
+        <button
+          type="button"
+          className="motion-fullscreen-close"
+          onClick={() => setFullscreen(false)}
+          aria-label={t("Exit full screen")}
+        >
+          <Icon name="close" />
+        </button>
+      )}
       {/* Video Conference Room Header */}
       <div className="motion-conference-header">
         <div className="motion-conf-title-col">
@@ -256,7 +268,7 @@ export function MotionActions({
       <div
         className="motion-stage"
         data-watching={watching || undefined}
-        data-expanded={expanded || undefined}
+        data-expanded={fullscreen || undefined}
       >
         {/* Mirrored, so a reader sees themselves the way a mirror shows them
             and a movement to their right is a movement to the right here. */}
@@ -353,10 +365,10 @@ export function MotionActions({
         <button
           type="button"
           className="ghost motion-toolbar-btn"
-          onClick={() => setExpanded((prev) => !prev)}
-          title={expanded ? t("Collapse to standard size") : t("Expand to theater size")}
+          onClick={() => setFullscreen((prev) => !prev)}
+          title={fullscreen ? t("Exit full screen") : t("Full screen")}
         >
-          {expanded ? "⤡ " + t("Standard View") : "⤢ " + t("Theater Window")}
+          {fullscreen ? " " + t("Exit Full Screen") : "⤢ " + t("Full Screen")}
         </button>
 
         {watching && (

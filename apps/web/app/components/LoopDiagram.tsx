@@ -141,14 +141,6 @@ const PROVIDERS = Array.from({ length: PROVIDER_TURNS }, (_, index) => {
   };
 });
 
-const SUBCYCLE_DOTS = Array.from({ length: 5 }, (_, index) => {
-  const radians = ((-90 + (index * 360) / 5) * Math.PI) / 180;
-  return {
-    index,
-    dx: place(28 * Math.cos(radians)),
-    dy: place(28 * Math.sin(radians)),
-  };
-});
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 2.4;
 const ZOOM_STEP = 0.2;
@@ -254,54 +246,54 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
               className={styles.brandMark}
               data-testid="loop-brand-mark"
               aria-hidden="true"
-              transform={`translate(${GEOMETRY.cx - 32} ${GEOMETRY.cy - 112})`}
+              transform={`translate(${GEOMETRY.cx} ${GEOMETRY.cy - 64})`}
             >
-              <circle className={styles.brandMarkHalo} cx="32" cy="32" r="31" />
+              <circle className={styles.brandMarkHalo} cx="0" cy="0" r="19" />
               <rect
                 className={styles.brandBar}
-                x="18"
-                y="25"
-                width="5"
+                x="-14.75"
+                y="-4"
+                width="3.5"
+                height="8"
+                rx="1.75"
+              />
+              <rect
+                className={styles.brandBar}
+                x="-8.25"
+                y="-9"
+                width="3.5"
+                height="18"
+                rx="1.75"
+              />
+              <rect
+                className={styles.brandBar}
+                x="-1.75"
+                y="-7"
+                width="3.5"
                 height="14"
-                rx="2.5"
+                rx="1.75"
               />
               <rect
                 className={styles.brandBar}
-                x="27"
-                y="14"
-                width="5"
-                height="36"
-                rx="2.5"
+                x="4.75"
+                y="-9"
+                width="3.5"
+                height="18"
+                rx="1.75"
               />
               <rect
                 className={styles.brandBar}
-                x="36"
-                y="18"
-                width="5"
-                height="28"
-                rx="2.5"
-              />
-              <rect
-                className={styles.brandBar}
-                x="45"
-                y="14"
-                width="5"
-                height="36"
-                rx="2.5"
-              />
-              <rect
-                className={styles.brandBar}
-                x="54"
-                y="21"
-                width="5"
-                height="22"
-                rx="2.5"
+                x="11.25"
+                y="-5"
+                width="3.5"
+                height="10"
+                rx="1.75"
               />
             </g>
             <text
               className={styles.discEyebrow}
               x={GEOMETRY.cx}
-              y={GEOMETRY.cy - 38}
+              y={GEOMETRY.cy - 24}
               textAnchor="middle"
             >
               {copy.target.eyebrow}
@@ -309,11 +301,11 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
             <text
               className={styles.discStatement}
               x={GEOMETRY.cx}
-              y={GEOMETRY.cy - 10}
+              y={GEOMETRY.cy + 2}
               textAnchor="middle"
             >
               {copy.target.statement.map((line, index) => (
-                <tspan key={line} x={GEOMETRY.cx} dy={index === 0 ? 0 : 22}>
+                <tspan key={line} x={GEOMETRY.cx} dy={index === 0 ? 0 : 20}>
                   {line}
                 </tspan>
               ))}
@@ -321,7 +313,7 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
             <text
               className={styles.discNote}
               x={GEOMETRY.cx}
-              y={GEOMETRY.cy + 55}
+              y={GEOMETRY.cy + 50}
               textAnchor="middle"
             >
               {copy.target.note}
@@ -411,31 +403,13 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
                 {node.index === index && (
                   // Keyed on the walk's position rather than on the stage, so the
                   // ring opens again every time round and not only the first.
-                  <>
-                    <circle
-                      key={position}
-                      className={styles.pulse}
-                      cx={node.x}
-                      cy={node.y}
-                      r={GEOMETRY.node}
-                    />
-                    <g
-                      className={styles.subcycleOrbit}
-                      transform={`translate(${node.x} ${node.y})`}
-                    >
-                      <circle className={styles.subcycleTrack} r="27" />
-                      {SUBCYCLE_DOTS.map((dot) => (
-                        <circle
-                          key={dot.index}
-                          className={styles.subcycleDot}
-                          cx={dot.dx}
-                          cy={dot.dy}
-                          r="2.5"
-                          data-subcycle-step={dot.index}
-                        />
-                      ))}
-                    </g>
-                  </>
+                  <circle
+                    key={position}
+                    className={styles.pulse}
+                    cx={node.x}
+                    cy={node.y}
+                    r={GEOMETRY.node}
+                  />
                 )}
                 <circle
                   className={styles.nodeDisc}

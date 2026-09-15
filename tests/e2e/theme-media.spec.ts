@@ -12,15 +12,13 @@ for (const language of ["en", "fr"]) {
       page,
     }, testInfo) => {
       await page.setViewportSize({ width, height });
-      await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
+      await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto(`/${language}`);
       const player = page.locator(".intro-player");
       await expect(player).toBeVisible();
-      // Exercise an actual preference change on the loaded document. The
-      // local Firefox automation resets its initial emulated preference on
-      // navigation; native browser-preference first paint is checked separately.
-      await page.emulateMedia({ colorScheme: "light" });
-      await page.emulateMedia({ colorScheme: "dark" });
+      // The app defaults to light theme regardless of OS preference.
+      // Verify that initial render is light.
+      await expect(page.locator("html")).toHaveCSS("color-scheme", "light");
       await expect(player).toHaveCSS("object-fit", "contain");
       const expectVideoFits = async () => {
         const video = await player.boundingBox();
@@ -44,16 +42,6 @@ for (const language of ["en", "fr"]) {
           ).toBeLessThanOrEqual(1);
         }
       };
-      await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
-      await expect(player).toHaveCSS(
-        "filter",
-        "brightness(0.72) saturate(0.9)",
-      );
-      await expect(page.locator(".intro-skip")).toHaveCSS("filter", "none");
-      await expect(page.locator(".intro-gate-footer")).toHaveCSS(
-        "filter",
-        "none",
-      );
       expect(await player.evaluate((v: HTMLVideoElement) => v.paused)).toBe(
         true,
       );
@@ -70,18 +58,41 @@ for (const language of ["en", "fr"]) {
       const source = await player.evaluate(
         (v: HTMLVideoElement) => v.currentSrc,
       );
-      const darkCanvas = await page
+      const lightCanvas = await page
         .locator("body")
         .evaluate((el) => getComputedStyle(el).backgroundColor);
       await expectVideoFits();
+      await page.screenshot({
+        path: testInfo.outputPath("intro-light.png"),
+        scale: "css",
+      });
+
+      // Toggle to dark via the theme button and verify the change.
+      const themeButton = page.locator(".nav-theme");
+      await themeButton.click();
+      await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
+      await expect(player).toHaveCSS(
+        "filter",
+        "brightness(0.72) saturate(0.9)",
+      );
+      await expect(page.locator(".intro-skip")).toHaveCSS("filter", "none");
+      await expect(page.locator(".intro-gate-footer")).toHaveCSS(
+        "filter",
+        "none",
+      );
+      await expectVideoFits();
+      expect(
+        await page
+          .locator("body")
+          .evaluate((el) => getComputedStyle(el).backgroundColor),
+      ).not.toBe(lightCanvas);
       await page.screenshot({
         path: testInfo.outputPath("intro-dark.png"),
         scale: "css",
       });
 
-      // A theme change recolours the current frame; it must not replace or
-      // restart the player, turn autoplay on, or dim the interactive controls.
-      await page.emulateMedia({ colorScheme: "light" });
+      // Toggle back to light and verify stability.
+      await themeButton.click();
       await expect(page.locator("html")).toHaveCSS("color-scheme", "light");
       await expect(player).toHaveCSS("filter", "brightness(1) saturate(1)");
       await expectVideoFits();
@@ -92,13 +103,8 @@ for (const language of ["en", "fr"]) {
           paused: v.paused,
         })),
       ).toEqual({ src: source, at: 2, paused: true });
-      expect(
-        await page
-          .locator("body")
-          .evaluate((el) => getComputedStyle(el).backgroundColor),
-      ).not.toBe(darkCanvas);
       await page.screenshot({
-        path: testInfo.outputPath("intro-light.png"),
+        path: testInfo.outputPath("intro-light-again.png"),
         scale: "css",
       });
 
@@ -116,7 +122,8 @@ for (const language of ["en", "fr"]) {
         path: testInfo.outputPath("animation-light.png"),
         scale: "css",
       });
-      await page.emulateMedia({ colorScheme: "dark" });
+      // Toggle to dark via button and verify loop paints change.
+      await page.locator(".nav-theme").click();
       await expect.poll(paints).not.toEqual(lightPaints);
       await expect(loop).toHaveCSS("filter", "none");
       await page.screenshot({

@@ -75,7 +75,7 @@ export default async function RootLayout({
   const { lang } = await params;
   if (!isLanguage(lang)) notFound();
   return (
-    <html lang={lang}>
+    <html lang={lang} data-theme="light">
       <body>
         {/* What the page means, for the readers that never see it render.
             `ld+json` is data, not code, so nothing here executes. */}

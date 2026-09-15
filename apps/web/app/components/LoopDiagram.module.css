@@ -278,49 +278,6 @@
 .satelliteDot {
   fill: var(--accent);
 }
-.subcycleOrbit {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: none;
-  pointer-events: none;
-}
-.subcycleTrack {
-  fill: none;
-  stroke: var(--accent-border);
-  stroke-width: 0.9;
-  stroke-dasharray: 2 3;
-}
-.subcycleDot {
-  fill: var(--surface);
-  stroke: var(--accent);
-  stroke-width: 1;
-  animation: none;
-}
-.subcycleDot:nth-of-type(3) {
-  animation-delay: 320ms;
-}
-.subcycleDot:nth-of-type(4) {
-  animation-delay: 640ms;
-}
-.subcycleDot:nth-of-type(5) {
-  animation-delay: 960ms;
-}
-@keyframes subcycle-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes subcycle-beat {
-  0%,
-  100% {
-    fill: var(--surface);
-    transform: scale(1);
-  }
-  45% {
-    fill: var(--accent);
-    transform: scale(1.45);
-  }
-}
 .diagram[data-inner-loop="active"] .satelliteRing {
   stroke-width: 2;
 }

@@ -85,13 +85,8 @@ function readTheme(): Theme {
       const saved = window.localStorage.getItem(THEME_KEY);
       if (saved === "dark" || saved === "light") return saved;
     } catch {
-      // A privacy-restricted browser can deny storage; use its system theme.
+      // A privacy-restricted browser can deny storage.
     }
-    if (
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    )
-      return "dark";
   }
   if (typeof document !== "undefined" && document.documentElement.dataset.theme)
     return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
@@ -99,30 +94,21 @@ function readTheme(): Theme {
 }
 
 function subscribeToTheme(notify: () => void) {
-  const media =
-    typeof window.matchMedia === "function"
-      ? window.matchMedia("(prefers-color-scheme: dark)")
-      : undefined;
-  if (media) {
-    activeTheme = media.matches ? "dark" : "light";
-    const onMediaChange = (event: MediaQueryListEvent) => {
-      activeTheme = event.matches ? "dark" : "light";
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === THEME_KEY) {
+      activeTheme = event.newValue === "dark" ? "dark" : "light";
       notify();
-    };
-    media.addEventListener?.("change", onMediaChange);
-    media.addListener?.(onMediaChange);
-    return () => {
-      media.removeEventListener?.("change", onMediaChange);
-      media.removeListener?.(onMediaChange);
-      window.removeEventListener("storage", notify);
-      window.removeEventListener("ursly-theme-change", notify);
-    };
-  }
-  window.addEventListener("storage", notify);
-  window.addEventListener("ursly-theme-change", notify);
+    }
+  };
+  const onCustom = () => {
+    activeTheme = undefined;
+    notify();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener("ursly-theme-change", onCustom);
   return () => {
-    window.removeEventListener("storage", notify);
-    window.removeEventListener("ursly-theme-change", notify);
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener("ursly-theme-change", onCustom);
   };
 }
 

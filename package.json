@@ -45,17 +45,17 @@
     "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
-    "@types/node": "26.4.1",
+    "@types/node": "26.5.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.28.2",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.4",
+    "eslint": "^10.10.0",
+    "eslint-config-next": "^16.3.5",
     "jsdom": "30.0.1",
     "prettier": "3.9.6",
     "tsx": "^4.23.13",
-    "typescript": "5.8.3",
+    "typescript": "7.0.2",
     "vitest": "^5.0.0"
   }
 }

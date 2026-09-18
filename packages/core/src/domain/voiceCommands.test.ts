@@ -77,6 +77,9 @@ describe("the vocabulary", () => {
       "back",
       "next",
       "cancel",
+      "open",
+      "select",
+      "search",
     ]);
   });
 
@@ -144,7 +147,7 @@ describe("matching a command inside real speech", () => {
 
   it("hears a politely wrapped English request", () => {
     expect(actionsOf("can you summarise this")).toEqual(["summarize"]);
-    expect(actionsOf("open the uploader")).toEqual(["upload"]);
+    expect(actionsOf("open the uploader")).toEqual(["open", "upload"]);
   });
 
   it("hears French speech that no English phrase could match", () => {

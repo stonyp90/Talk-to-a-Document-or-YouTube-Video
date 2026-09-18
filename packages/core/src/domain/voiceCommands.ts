@@ -20,7 +20,10 @@ export type VoiceActionId =
   | "stop"
   | "back"
   | "next"
-  | "cancel";
+  | "cancel"
+  | "open"
+  | "select"
+  | "search";
 
 export type VoiceLanguage = "en" | "fr";
 
@@ -51,6 +54,9 @@ export const VOICE_ACTIONS: readonly VoiceActionId[] = [
   "back",
   "next",
   "cancel",
+  "open",
+  "select",
+  "search",
 ];
 
 /**
@@ -91,6 +97,9 @@ const PHRASES: Record<VoiceLanguage, Record<VoiceActionId, string[]>> = {
     back: ["back", "go back", "previous", "undo"],
     next: ["next", "continue", "carry on", "go forward"],
     cancel: ["cancel", "never mind", "forget it"],
+    open: ["open"],
+    select: ["select"],
+    search: ["search"],
   },
   // Written the way a reader would write them, accents and all. Matching folds
   // both sides, so the spelling here is free to be the one shown on screen.
@@ -116,6 +125,9 @@ const PHRASES: Record<VoiceLanguage, Record<VoiceActionId, string[]>> = {
     back: ["retour", "reviens", "précédent", "annule ça", "revenez"],
     next: ["suivant", "continue", "la suite", "continuez"],
     cancel: ["annule", "laisse tomber", "oublie ça", "annulez"],
+    open: ["ouvrir"],
+    select: ["sélectionner"],
+    search: ["chercher"],
   },
 };
 
@@ -590,7 +602,12 @@ export function isLikelyQuestion(text: string): boolean {
  * its own opens the tab; "YouTube, Daft Punk Around the World" is a search, and
  * nobody is going to read a video address out loud one character at a time.
  */
-export const ARGUMENT_ACTIONS: readonly VoiceActionId[] = ["youtube"];
+export const ARGUMENT_ACTIONS: readonly VoiceActionId[] = [
+  "youtube",
+  "open",
+  "select",
+  "search",
+];
 
 export function takesSpokenArgument(action: VoiceActionId): boolean {
   return ARGUMENT_ACTIONS.includes(action);

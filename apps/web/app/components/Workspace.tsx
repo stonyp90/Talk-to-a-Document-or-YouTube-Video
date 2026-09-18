@@ -48,6 +48,7 @@ import {
 } from "@/apps/web/src/lib/api";
 import { streamAnswer } from "@/apps/web/src/lib/streamAnswer";
 import { readSession, signOut } from "@/apps/web/src/lib/account";
+import { YouTubePlayer } from "./YouTubePlayer";
 
 type SourceTab = "pdf" | "youtube";
 
@@ -68,6 +69,31 @@ type VideoResult = {
 const STREAM_DEADLINE_MS = 120000;
 /** Below this distance from the end, the log keeps following the latest words. */
 const FOLLOW_THRESHOLD_PX = 64;
+
+/**
+ * Extracts a YouTube video ID from a URL. Returns undefined if the URL is not
+ * a valid YouTube link or the ID cannot be parsed.
+ */
+function extractVideoId(rawUrl: string): string | undefined {
+  if (!rawUrl) return undefined;
+  const trimmed = rawUrl.trim();
+  try {
+    const url = new URL(
+      /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`,
+    );
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "youtu.be") {
+      const segments = url.pathname.split("/").filter(Boolean);
+      return segments[0] || undefined;
+    }
+    if (host.includes("youtube.com")) {
+      return url.searchParams.get("v") || undefined;
+    }
+  } catch {
+    // Not a valid URL
+  }
+  return undefined;
+}
 
 async function withDeadline<T>(
   controller: AbortController,
@@ -152,10 +178,10 @@ function readSavedMode(): EntryMode {
 }
 
 /**
- * The application itself, at `/<lang>/app`: add a source, then ask about it.
- * It holds every piece of conversation state and nothing about the story —
- * the pitch, the introduction and the platform sections live on the landing
- * page, one tap away through the menu.
+ * The application itself, at `/<lang>/app`: one immersive space where a source
+ * is added and questions are asked. The source picker floats as an overlay;
+ * the conversation unfolds in the same space. Voice, motion and keyboard are
+ * always available — the entry mode controls which is visually primary.
  */
 export default function Workspace() {
   const { t, language } = useLanguage();
@@ -202,6 +228,7 @@ export default function Workspace() {
   const [videoQuery, setVideoQuery] = useState("");
   const [videoChoices, setVideoChoices] = useState<VideoResult[]>([]);
   const [searchingVideos, setSearchingVideos] = useState(false);
+  const [videoId, setVideoId] = useState<string | undefined>(undefined);
   const micSupported = useSyncExternalStore(
     NO_CHANGE,
     readMicrophoneSupport,
@@ -272,6 +299,19 @@ export default function Workspace() {
     const chosen = fileInput.current?.files?.[0];
     if (chosen) setFile((current) => current ?? chosen);
   }, []);
+
+  // Escape key closes the source overlay dialog for keyboard accessibility.
+  useEffect(() => {
+    if (!sourcePickerOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSourcePickerOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [sourcePickerOpen]);
 
   useEffect(() => {
     let current = true;
@@ -507,13 +547,19 @@ export default function Workspace() {
     setUploadProgress(undefined);
     setError("");
     setSource(undefined);
-    setSourcePickerOpen(true);
     setContext(undefined);
     sourceIdRef.current = undefined;
     followMessages.current = true;
     setProviderMode("");
     setQuestion("");
     dispatch({ type: "RESET" });
+
+    // Extract the video ID for the immersive player when the source is YouTube.
+    if (kind === "youtube") {
+      setVideoId(extractVideoId(wanted));
+    } else {
+      setVideoId(undefined);
+    }
 
     try {
       const envelope = await withDeadline(
@@ -597,7 +643,7 @@ export default function Workspace() {
       if (current())
         setError(
           t(
-            readable(caught, "We couldn’t read this source. Please try again."),
+            readable(caught, "We couldn't read this source. Please try again."),
           ),
         );
     } finally {
@@ -663,7 +709,7 @@ export default function Workspace() {
             setActivity("idle");
             dispatch({
               type: "ERROR",
-              message: event.error ?? "Realtime error",
+              message: event.error ?? t("Realtime error"),
             });
           }
           if (event.type === "message-started" && event.message) {
@@ -780,7 +826,7 @@ export default function Workspace() {
       if (!best) {
         setVideoChoices([]);
         setVoiceActionNotice(
-          t("Nothing captioned found for “{query}”. Try other words.", {
+          t("Nothing captioned found for \u201c{query}\u201d. Try other words.", {
             query,
           }),
         );
@@ -789,7 +835,7 @@ export default function Workspace() {
       setTab("youtube");
       setUrl(best.url);
       setVideoChoices(rest);
-      setVoiceActionNotice(t("Opening “{title}”.", { title: best.title }));
+      setVoiceActionNotice(t("Opening \u201c{title}\u201d.", { title: best.title }));
       await startIngest({ url: best.url });
     } catch (caught) {
       noteSignedOut(caught);
@@ -1074,7 +1120,7 @@ export default function Workspace() {
     if (action === "voice") {
       if (!source) {
         setVoiceActionNotice(
-          t("Add a PDF or YouTube source first, then say “{phrase}” again.", {
+          t("Add a PDF or YouTube source first, then say \u201c{phrase}\u201d again.", {
             phrase: spokenPhrase("voice"),
           }),
         );
@@ -1086,7 +1132,7 @@ export default function Workspace() {
     if (action === "summarize") {
       if (!source) {
         setVoiceActionNotice(
-          t("Add a PDF or YouTube source first, then say “{phrase}” again.", {
+          t("Add a PDF or YouTube source first, then say \u201c{phrase}\u201d again.", {
             phrase: spokenPhrase("summarize"),
           }),
         );
@@ -1102,7 +1148,7 @@ export default function Workspace() {
     if (action === "ask") {
       const pending = question.trim();
       if (!pending) {
-        setVoiceActionNotice(t("Say your question first, then say “send it”."));
+        setVoiceActionNotice(t("Say your question first, then say \u201csend it\u201d."));
         return;
       }
       setQuestion("");
@@ -1227,36 +1273,51 @@ export default function Workspace() {
             </p>
           )}
 
-          <div className="workspace-heading">
-            <div className="workspace-heading-copy">
-              <h1>
-                {t("Your source.")} <span>{t("Your questions.")}</span>
-              </h1>
-              <p className="lede">
-                {entryMode === "voice"
+          <div className="immersive-header">
+            <h1>
+              {source ? (
+                <>
+                  {t("Exploring")} <span>{source.sourceName}</span>
+                </>
+              ) : (
+                <>
+                  {t("Your source.")} <span>{t("Your questions.")}</span>
+                </>
+              )}
+            </h1>
+            <p className="lede">
+              {entryMode === "voice"
+                ? t(
+                    "Speak to add a source, speak to ask a question. Everything is one conversation.",
+                  )
+                : entryMode === "motion"
                   ? t(
-                      "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.",
+                      "Your hand is the way in. Swipe to choose, wave to ask. Everything is one flow.",
                     )
-                  : entryMode === "motion"
-                    ? t(
-                        "Add a PDF or a captioned YouTube video, then drive it with your hand. Swipe to choose a question, wave to ask it, and type whenever you prefer.",
-                      )
-                    : t(
-                        "Add a PDF or a captioned YouTube video, then ask about it by typing. This is the old way in, and it still does everything. Voice is one tap away.",
-                      )}
-              </p>
-            </div>
-            <ol className="progress-steps" aria-label={t("Progress")}>
-              <li
-                aria-current={source ? undefined : "step"}
-                data-done={Boolean(source)}
+                  : t(
+                      "Add a source, ask a question — all in one space. Voice and motion are one tap away.",
+                    )}
+            </p>
+            {!source && (
+              <button
+                type="button"
+                className="immersive-source-toggle"
+                onClick={() => setSourcePickerOpen((open) => !open)}
+                aria-expanded={sourcePickerOpen}
               >
-                <span>{source ? "✓" : "1"}</span> {t("Add a source")}
-              </li>
-              <li aria-current={source ? "step" : undefined}>
-                <span>2</span> {t("Ask a question")}
-              </li>
-            </ol>
+                <Icon name="download" /> {t("Add a source")}
+              </button>
+            )}
+            {source && (
+              <button
+                type="button"
+                className="immersive-source-toggle"
+                onClick={() => setSourcePickerOpen((open) => !open)}
+                aria-expanded={sourcePickerOpen}
+              >
+                <Icon name="document" /> {t("Change source")}
+              </button>
+            )}
           </div>
 
           {voiceActionNotice && (
@@ -1291,365 +1352,348 @@ export default function Workspace() {
           {account !== null && <DeviceConnect />}
 
           <div
-            className="workspace"
+            className="workspace immersive-workspace"
             id="workspace"
             tabIndex={-1}
           >
             <div className="particle-field" aria-hidden="true" />
-            <section
-              className="card holo-panel source-card"
-              aria-labelledby="source-heading"
-            >
-              <div className="status-row">
-                <h2 id="source-heading">
-                  {source ? t("Your source") : t("1. Add a source")}
-                </h2>
-                <span
-                  className="status"
-                  data-state={busy ? "preparing" : source ? "ready" : "idle"}
-                  aria-live="polite"
-                >
-                  {busy
-                    ? t("Extracting")
-                    : source
-                      ? t("Source ready")
-                      : t("Step 1 of 2")}
-                </span>
-              </div>
 
-              {source && (
-                <div className="source-ready">
-                  <Icon
-                    name={source.kind === "youtube" ? "video" : "document"}
-                  />
-                  <div>
-                    <strong>{source.sourceName}</strong>
-                    <span>
-                      {t("Ready · Your answers will use this source")}
-                    </span>
-                  </div>
-                </div>
-              )}
+            {/* The video plays as the immersive background when the source is YouTube. */}
+            {videoId && (
+              <YouTubePlayer
+                videoId={videoId}
+                className="immersive-video-background"
+              />
+            )}
 
-              <details
-                className="source-picker"
-                data-collapsible={Boolean(source)}
-                open={!source || sourcePickerOpen}
-                onToggle={(event) => {
-                  if (source) setSourcePickerOpen(event.currentTarget.open);
-                }}
+            {/* The source picker floats as an overlay — one space, not two steps. */}
+            {sourcePickerOpen && (
+              <div
+                className="source-overlay"
+                role="dialog"
+                aria-label={t("Add a source")}
               >
-                <summary>
-                  {source
-                    ? t("Change source")
-                    : t("Choose a PDF or a video to get started")}
-                </summary>
-                <p className="section-intro">
-                  {source
-                    ? t("Adding a new source starts a new conversation.")
-                    : t("We’ll read it for you. Then you can ask about it.")}
-                </p>
-                <div className="source-controls">
-                  <div
-                    className="tabs"
-                    data-tab={tab}
-                    role="tablist"
-                    aria-label={t("Source type")}
-                  >
-                    {(
-                      [
-                        { id: "pdf", label: "PDF document", icon: "document" },
-                        {
-                          id: "youtube",
-                          label: "YouTube video",
-                          icon: "video",
-                        },
-                      ] as const
-                    ).map(({ id, label, icon }) => (
-                      <button
-                        key={id}
-                        className={`tab ${tab === id ? "active" : ""}`}
-                        id={`tab-${id}`}
-                        disabled={busy}
-                        aria-controls="source-panel"
-                        tabIndex={tab === id ? 0 : -1}
-                        role="tab"
-                        aria-selected={tab === id}
-                        onKeyDown={(event) => {
-                          if (
-                            ["ArrowRight", "ArrowLeft", "Home", "End"].includes(
-                              event.key,
-                            )
-                          ) {
-                            event.preventDefault();
-                            const next = id === "pdf" ? "youtube" : "pdf";
-                            setTab(next);
-                            document.getElementById(`tab-${next}`)?.focus();
-                          }
-                        }}
-                        onClick={() => {
-                          setTab(id);
-                          setError("");
-                        }}
-                      >
-                        <Icon name={icon} /> {t(label)}
-                      </button>
-                    ))}
-                  </div>
-
-                  <form
-                    onSubmit={ingest}
-                    className="source-grid"
-                    id="source-panel"
-                    role="tabpanel"
-                    aria-labelledby={`tab-${tab}`}
-                    aria-busy={busy}
-                  >
-                    {tab === "pdf" ? (
-                      <label
-                        className="dropzone full"
-                        htmlFor="pdf-file"
-                        data-dragging={dragging}
-                        data-filled={Boolean(file)}
-                        onDragOver={(event) => {
-                          event.preventDefault();
-                          if (!busy) setDragging(true);
-                        }}
-                        onDragLeave={() => setDragging(false)}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          setDragging(false);
-                          if (busy) return;
-                          const dropped = event.dataTransfer.files?.[0];
-                          if (dropped) {
-                            setFile(dropped);
-                            setError("");
-                          }
-                        }}
-                      >
-                        <span className="upload-icon">
-                          <Icon name={file ? "document" : "download"} />
-                        </span>
-                        <strong>
-                          {file ? file.name : t("Drop a PDF here")}
-                        </strong>
-                        <div className="hint">
-                          {file
-                            ? t("{size} MB · Ready to continue", {
-                                size: (file.size / 1024 / 1024).toFixed(1),
-                              })
-                            : t(
-                                "or choose one from your device · up to 25 MB, text-based",
-                              )}
-                        </div>
-                        <span
-                          className="secondary dropzone-button"
-                          aria-hidden="true"
-                        >
-                          {file ? t("Choose another PDF") : t("Choose a PDF")}
-                        </span>
-                        <input
-                          id="pdf-file"
-                          aria-label={t("PDF file")}
-                          ref={fileInput}
-                          type="file"
-                          accept="application/pdf,.pdf"
-                          onChange={onFile}
-                          disabled={busy}
-                        />
-                      </label>
-                    ) : (
-                      <div className="field full" key="youtube">
-                        <span className="upload-icon">
-                          <Icon name="video" />
-                        </span>
-                        <label htmlFor="youtube-url">{t("YouTube URL")}</label>
-                        <input
-                          id="youtube-url"
-                          value={url}
-                          onChange={(event) => setUrl(event.target.value)}
-                          placeholder="https://youtube.com/watch?v=..."
-                          inputMode="url"
-                          disabled={busy}
-                          aria-describedby="youtube-hint"
-                        />
-                        <p id="youtube-hint" className="hint">
-                          {t(
-                            "Say the artist or the title, or paste a link. Watch pages, Shorts, share links and embeds all work.",
-                          )}
-                        </p>
-                        {searchingVideos && (
-                          <p className="hint" role="status">
-                            <span className="spinner" aria-hidden="true" />{" "}
-                            {t("Searching for “{query}”…", {
-                              query: videoQuery,
-                            })}
-                          </p>
-                        )}
-                        {videoChoices.length > 0 && (
-                          <div className="video-choices">
-                            <span className="video-choices-label">
-                              {t("Not the one? Also found")}
-                            </span>
-                            {videoChoices.map((choice) => (
-                              <button
-                                type="button"
-                                className="video-choice"
-                                key={choice.videoId}
-                                disabled={busy}
-                                onClick={() => {
-                                  setUrl(choice.url);
-                                  setVideoChoices((current) =>
-                                    current.filter(
-                                      (item) => item.videoId !== choice.videoId,
-                                    ),
-                                  );
-                                  void startIngest({ url: choice.url });
-                                }}
-                              >
-                                <strong>{choice.title}</strong>
-                                {choice.channel && (
-                                  <span>{choice.channel}</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <div className="actions full">
-                      <button
-                        className="primary"
-                        disabled={!canIngest || busy}
-                        type="submit"
-                      >
-                        {busy ? (
-                          <span className="spinner" aria-hidden="true" />
-                        ) : (
-                          <Icon name="arrow" />
-                        )}
-                        {busy
-                          ? t("Reading your source…")
-                          : t("Continue to questions")}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </details>
-
-              {uploadProgress !== undefined && (
-                <div className="progress" role="status">
-                  <div
-                    className="progress-track"
-                    role="progressbar"
-                    aria-label={t("Upload progress")}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.round(uploadProgress * 100)}
-                  >
+                <div className="source-overlay-inner card holo-panel">
+                  <div className="status-row">
+                    <h2 id="source-heading">
+                      {source ? t("Your source") : t("Add a source")}
+                    </h2>
                     <span
-                      style={{ width: `${Math.round(uploadProgress * 100)}%` }}
-                    />
-                  </div>
-                  <span className="hint">
-                    {t("Uploading · {percent}%", {
-                      percent: Math.round(uploadProgress * 100),
-                    })}
-                  </span>
-                </div>
-              )}
-
-              {!source && error && (
-                <p className="error" role="alert">
-                  {error}
-                </p>
-              )}
-              {!source && error && tab === "youtube" && (
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => {
-                    setTab("pdf");
-                    setError("");
-                    document.getElementById("tab-pdf")?.focus();
-                  }}
-                >
-                  {t("Use a PDF instead")}
-                </button>
-              )}
-              {busy && uploadProgress === undefined && (
-                <p className="hint" role="status">
-                  {t(
-                    "Reading your source. This may take up to a minute. Your questions are next.",
-                  )}
-                </p>
-              )}
-
-              {source && (
-                <details className="preview">
-                  <summary>
-                    {t("View source text · {count} characters", {
-                      count: source.characters.toLocaleString(),
-                    })}
-                  </summary>
-                  <div className="preview-text">{source.text}</div>
-                </details>
-              )}
-              {context?.truncated && (
-                <p className="hint context-note" role="status">
-                  {t(
-                    "This source is longer than one conversation can hold. The assistant reads {used} of {total} characters, taken from the opening and the ending. The full text stays available above.",
-                    {
-                      used: context.usedCharacters.toLocaleString(),
-                      total: context.totalCharacters.toLocaleString(),
-                    },
-                  )}
-                </p>
-              )}
-              {source && (
-                <div className="source-next-step">
-                  <span className="source-next-step-number">2</span>
-                  <div>
-                    <strong>{t("Next: ask a question")}</strong>
-                    <span>
-                      {t(
-                        "Use voice or type below. Answers stay anchored to this source.",
-                      )}
+                      className="status"
+                      data-state={busy ? "preparing" : source ? "ready" : "idle"}
+                      aria-live="polite"
+                    >
+                      {busy
+                        ? t("Extracting")
+                        : source
+                          ? t("Source ready")
+                          : t("Ready")}
                     </span>
+                    <button
+                      type="button"
+                      className="source-overlay-close"
+                      onClick={() => setSourcePickerOpen(false)}
+                      aria-label={t("Close source picker")}
+                    >
+                      ×
+                    </button>
                   </div>
+
+                  {source && (
+                    <div className="source-ready">
+                      <Icon
+                        name={source.kind === "youtube" ? "video" : "document"}
+                      />
+                      <div>
+                        <strong>{source.sourceName}</strong>
+                        <span>
+                          {t("Ready · Your answers will use this source")}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="source-controls">
+                    <div
+                      className="tabs"
+                      data-tab={tab}
+                      role="tablist"
+                      aria-label={t("Source type")}
+                    >
+                      {(
+                        [
+                          { id: "pdf", label: "PDF document", icon: "document" },
+                          {
+                            id: "youtube",
+                            label: "YouTube video",
+                            icon: "video",
+                          },
+                        ] as const
+                      ).map(({ id, label, icon }) => (
+                        <button
+                          key={id}
+                          className={`tab ${tab === id ? "active" : ""}`}
+                          id={`tab-${id}`}
+                          disabled={busy}
+                          aria-controls="source-panel"
+                          tabIndex={tab === id ? 0 : -1}
+                          role="tab"
+                          aria-selected={tab === id}
+                          onKeyDown={(event) => {
+                            if (
+                              [
+                                "ArrowRight",
+                                "ArrowLeft",
+                                "Home",
+                                "End",
+                              ].includes(event.key)
+                            ) {
+                              event.preventDefault();
+                              const next = id === "pdf" ? "youtube" : "pdf";
+                              setTab(next);
+                              document.getElementById(`tab-${next}`)?.focus();
+                            }
+                          }}
+                          onClick={() => {
+                            setTab(id);
+                            setError("");
+                          }}
+                        >
+                          <Icon name={icon} /> {t(label)}
+                        </button>
+                      ))}
+                    </div>
+
+                    <form
+                      onSubmit={ingest}
+                      className="source-grid"
+                      id="source-panel"
+                      role="tabpanel"
+                      aria-labelledby={`tab-${tab}`}
+                      aria-busy={busy}
+                    >
+                      {tab === "pdf" ? (
+                        <label
+                          className="dropzone full"
+                          htmlFor="pdf-file"
+                          data-dragging={dragging}
+                          data-filled={Boolean(file)}
+                          onDragOver={(event) => {
+                            event.preventDefault();
+                            if (!busy) setDragging(true);
+                          }}
+                          onDragLeave={() => setDragging(false)}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            setDragging(false);
+                            if (busy) return;
+                            const dropped = event.dataTransfer.files?.[0];
+                            if (dropped) {
+                              setFile(dropped);
+                              setError("");
+                            }
+                          }}
+                        >
+                          <span className="upload-icon">
+                            <Icon name={file ? "document" : "download"} />
+                          </span>
+                          <strong>
+                            {file ? file.name : t("Drop a PDF here")}
+                          </strong>
+                          <div className="hint">
+                            {file
+                              ? t("{size} MB · Ready to continue", {
+                                  size: (file.size / 1024 / 1024).toFixed(1),
+                                })
+                              : t(
+                                  "or choose one from your device · up to 25 MB, text-based",
+                                )}
+                          </div>
+                          <span
+                            className="secondary dropzone-button"
+                            aria-hidden="true"
+                          >
+                            {file
+                              ? t("Choose another PDF")
+                              : t("Choose a PDF")}
+                          </span>
+                          <input
+                            id="pdf-file"
+                            aria-label={t("PDF file")}
+                            ref={fileInput}
+                            type="file"
+                            accept="application/pdf,.pdf"
+                            onChange={onFile}
+                            disabled={busy}
+                          />
+                        </label>
+                      ) : (
+                        <div className="field full" key="youtube">
+                          <span className="upload-icon">
+                            <Icon name="video" />
+                          </span>
+                          <label htmlFor="youtube-url">{t("YouTube URL")}</label>
+                          <input
+                            id="youtube-url"
+                            value={url}
+                            onChange={(event) => setUrl(event.target.value)}
+                            placeholder="https://youtube.com/watch?v=..."
+                            inputMode="url"
+                            disabled={busy}
+                            aria-describedby="youtube-hint"
+                          />
+                          <p id="youtube-hint" className="hint">
+                            {t(
+                              "Say the artist or the title, or paste a link. Watch pages, Shorts, share links and embeds all work.",
+                            )}
+                          </p>
+                          {searchingVideos && (
+                            <p className="hint" role="status">
+                              <span className="spinner" aria-hidden="true" />{" "}
+                              {t("Searching for \u201c{query}\u201d\u2026", {
+                                query: videoQuery,
+                              })}
+                            </p>
+                          )}
+                          {videoChoices.length > 0 && (
+                            <div className="video-choices">
+                              <span className="video-choices-label">
+                                {t("Not the one? Also found")}
+                              </span>
+                              {videoChoices.map((choice) => (
+                                <button
+                                  type="button"
+                                  className="video-choice"
+                                  key={choice.videoId}
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setUrl(choice.url);
+                                    setVideoChoices((current) =>
+                                      current.filter(
+                                        (item) =>
+                                          item.videoId !== choice.videoId,
+                                      ),
+                                    );
+                                    void startIngest({ url: choice.url });
+                                  }}
+                                >
+                                  <strong>{choice.title}</strong>
+                                  {choice.channel && (
+                                    <span>{choice.channel}</span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div className="actions full">
+                        <button
+                          className="primary"
+                          disabled={!canIngest || busy}
+                          type="submit"
+                        >
+                          {busy ? (
+                            <span className="spinner" aria-hidden="true" />
+                          ) : (
+                            <Icon name="arrow" />
+                          )}
+                          {busy
+                            ? t("Reading your source…")
+                            : source
+                              ? t("Load new source")
+                              : t("Continue")}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {uploadProgress !== undefined && (
+                    <div className="progress" role="status">
+                      <div
+                        className="progress-track"
+                        role="progressbar"
+                        aria-label={t("Upload progress")}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round(uploadProgress * 100)}
+                      >
+                        <span
+                          style={{
+                            width: `${Math.round(uploadProgress * 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="hint">
+                        {t("Uploading · {percent}%", {
+                          percent: Math.round(uploadProgress * 100),
+                        })}
+                      </span>
+                    </div>
+                  )}
+
+                  {!source && error && (
+                    <p className="error" role="alert">
+                      {error}
+                    </p>
+                  )}
+                  {!source && error && tab === "youtube" && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => {
+                        setTab("pdf");
+                        setError("");
+                        document.getElementById("tab-pdf")?.focus();
+                      }}
+                    >
+                      {t("Use a PDF instead")}
+                    </button>
+                  )}
+                  {busy && uploadProgress === undefined && (
+                    <p className="hint" role="status">
+                      {t(
+                        "Reading your source. This may take up to a minute.",
+                      )}
+                    </p>
+                  )}
+
+                  {source && (
+                    <details className="preview">
+                      <summary>
+                        {t("View source text · {count} characters", {
+                          count: source.characters.toLocaleString(),
+                        })}
+                      </summary>
+                      <div className="preview-text">{source.text}</div>
+                    </details>
+                  )}
+                  {context?.truncated && (
+                    <p className="hint context-note" role="status">
+                      {t(
+                        "This source is longer than one conversation can hold. The assistant reads {used} of {total} characters, taken from the opening and the ending. The full text stays available above.",
+                        {
+                          used: context.usedCharacters.toLocaleString(),
+                          total: context.totalCharacters.toLocaleString(),
+                        },
+                      )}
+                    </p>
+                  )}
                 </div>
-              )}
-            </section>
-
-            <section
-              className="card holo-panel conversation-card"
-              data-ready={source ? "true" : "false"}
-              aria-labelledby="conversation-heading"
-            >
-              <div className="status-row">
-                <h2 id="conversation-heading" tabIndex={-1}>
-                  {t("2. Ask a question")}
-                </h2>
-                <span
-                  className="status"
-                  data-state={state.status}
-                  aria-live="polite"
-                >
-                  {statusText[state.status]}
-                </span>
               </div>
+            )}
 
-              {/*
-                Talking to Ursly teaches it nothing about how you sound, and
-                saying otherwise here would make the consent below meaningless.
-                So the badge says which voice is answering, and points at the
-                one control that changes it.
-              */}
+            {/* The conversation unfolds in the same immersive space. */}
+            <div className="immersive-conversation" role="region" aria-labelledby="conversation-heading">
+              <h2 id="conversation-heading" className="sr-only" tabIndex={-1}>
+                {t("Conversation")}
+              </h2>
+
               {sessionLive && state.status === "connected" && (
                 <a className="voice-learning" href="#voice-lending">
                   <span className="voice-learning-dot" aria-hidden="true" />
                   <span>
-                    <strong>{t("Answering in Ursly’s preset voice")}</strong>
+                    <strong>{t("Answering in Ursly\u2019s preset voice")}</strong>
                     <small>
                       {t(
                         "Talking here teaches Ursly nothing about your voice. Lending it yours is a separate, deliberate step.",
@@ -1659,11 +1703,6 @@ export default function Workspace() {
                 </a>
               )}
 
-              {source && (
-                <p className="conversation-source">
-                  {t("Exploring")} <strong>{source.sourceName}</strong>
-                </p>
-              )}
               {providerMode === "mock" && (
                 <p className="hint" role="status">
                   {t(
@@ -1851,6 +1890,7 @@ export default function Workspace() {
                                 onClick={() =>
                                   void copyMessage(message.id, message.text)
                                 }
+                                aria-label={t("Copy message")}
                               >
                                 {copiedId === message.id
                                   ? t("Copied")
@@ -1862,6 +1902,7 @@ export default function Workspace() {
                                   className="message-action"
                                   disabled={pendingAnswers > 0}
                                   onClick={regenerate}
+                                  aria-label={t("Regenerate answer")}
                                 >
                                   {t("Try again")}
                                 </button>
@@ -1935,8 +1976,6 @@ export default function Workspace() {
                   value={question}
                   onChange={(event) => setQuestion(event.target.value)}
                   onKeyDown={(event) => {
-                    // Enter sends, because this is a conversation. A newline is
-                    // still one modifier away for anyone pasting a long prompt.
                     if (event.key !== "Enter" || event.shiftKey) return;
                     if (event.nativeEvent.isComposing) return;
                     event.preventDefault();
@@ -1977,13 +2016,13 @@ export default function Workspace() {
               <p className="hint answer-note">
                 {source
                   ? t(
-                      "Answers come from your source. Check important details in “View source text”.",
+                      "Answers come from your source. Check important details in \u201cView source text\u201d.",
                     )
                   : t(
                       "Add a PDF or YouTube source before sending so answers stay grounded.",
                     )}
               </p>
-            </section>
+            </div>
           </div>
 
           {/*

@@ -15,6 +15,7 @@ export const IDENTICAL_IN_BOTH: readonly string[] = [
   "Conversation",
   "Applications",
   "Guide",
+  "Internet 3.0",
   "Next.js · Expo · TypeScript",
 ];
 
@@ -42,6 +43,10 @@ export const french: Dictionary = {
   "Brain to action": "Cerveau vers action",
   Brain: "Cerveau",
   Legacy: "Ancien",
+  "Open menu": "Ouvrir le menu",
+  "Close menu": "Fermer le menu",
+  Navigate: "Navigation",
+  Close: "Fermer",
   // Motion to action
   "Your hand is the shortcut.": "Votre main est le raccourci.",
   "Motion to action: start the camera, then swipe to choose a question and wave to ask it.":
@@ -81,18 +86,27 @@ export const french: Dictionary = {
     "La caméra n’a pas pu démarrer. Vérifiez qu’elle n’est pas déjà utilisée.",
   "This browser will not share a camera here. Motion needs a secure connection.":
     "Ce navigateur ne partagera pas de caméra ici. Le mouvement exige une connexion sécurisée.",
-  "motion energy": "d'énergie de mouvement",
+  "motion energy": "d’énergie de mouvement",
   "Gesture detection": "Détection de gestes",
   Standby: "En attente",
   "VISION ROOM (IDLE)": "SALLE VISION (INACTIF)",
   "LIVE VISION ROOM": "SALLE VISION (EN DIRECT)",
   "Motion & Video Conference Hub": "Hub de motion et visioconférence",
   "Privacy Protected": "Confidentialité protégée",
+  "Full screen": "Plein écran",
+  "Exit full screen": "Quitter le plein écran",
+  "Full Screen": "Plein écran",
+  "Exit Full Screen": "Quitter le plein écran",
+  "Show overlays": "Afficher les repères",
+  "Hide overlays": "Masquer les repères",
+  "HUD: On": "Repères : activés",
+  "HUD: Off": "Repères : désactivés",
   Platform: "Plateforme",
   "How we build": "Notre façon de bâtir",
   Build: "Bâtir",
   // Identical in French on purpose; see IDENTICAL_IN_BOTH above.
   Guide: "Guide",
+  "Internet 3.0": "Internet 3.0",
   // The narrow-screen short forms of "Applications" and "Ouvrir
   // l’application". French abbreviates application as appli.
   Apps: "Applis",
@@ -111,6 +125,8 @@ export const french: Dictionary = {
   App: "Appli",
   "Back to the story": "Retour à l’histoire",
   Story: "Histoire",
+  // The bar’s tagline, the same words as the French page title.
+  "The joy of understanding": "Le plaisir de comprendre",
 
   // Introduction
   Welcome: "Bienvenue",
@@ -183,6 +199,9 @@ export const french: Dictionary = {
   // deliberately absent: the platform section below already owns that sentence,
   // and the film must not say it a second, slightly different way.
   "The next generation of internet.": "La nouvelle génération d’internet.",
+  // The film’s description, also the one search engines and answer engines read.
+  "The next generation of internet: a source, a question, and a conversation you never have to type — built in one loop that closes before anything ships.":
+    "La nouvelle génération d’internet : une source, une question, et une conversation que vous n’aurez jamais à taper au clavier — le tout bâti en une seule boucle qui se referme avant la sortie de chaque version.",
   "Bring a document or a video.": "Apportez un document ou une vidéo.",
   "Ursly reads it, and answers only from it.":
     "Ursly le lit, et ne répond qu’à partir de lui.",
@@ -214,6 +233,12 @@ export const french: Dictionary = {
   "Your questions.": "Vos questions.",
   "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.":
     "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis parlez-lui. Dites une commande, posez votre question à voix haute ou écrivez quand vous préférez.",
+  "Speak to add a source, speak to ask a question. Everything is one conversation.":
+    "Parlez pour ajouter une source, parlez pour poser une question. Tout est une conversation.",
+  "Your hand is the way in. Swipe to choose, wave to ask. Everything is one flow.":
+    "Votre main est le chemin. Glissez pour choisir, faites un geste pour demander. Tout est un flux.",
+  "Add a source, ask a question — all in one space. Voice and motion are one tap away.":
+    "Ajoutez une source, posez une question — tout en un seul espace. La voix et le geste sont à un geste.",
   "Add a PDF or a captioned YouTube video, then ask about it by typing. This is the old way in, and it still does everything. Voice is one tap away.":
     "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis posez vos questions au clavier. C’est l’ancienne porte d’entrée, et elle fait encore tout. La voix est à un geste.",
   Progress: "Progression",
@@ -236,6 +261,8 @@ export const french: Dictionary = {
   "Ready · Your answers will use this source":
     "Prête · Vos réponses s’appuieront sur cette source",
   "Change source": "Changer de source",
+  "Close source picker": "Fermer le sélecteur de source",
+  "Load new source": "Charger une nouvelle source",
   "Choose a PDF or a video to get started":
     "Choisissez un PDF ou une vidéo pour commencer",
   "Adding a new source starts a new conversation.":
@@ -256,12 +283,14 @@ export const french: Dictionary = {
   "Paste a link to a captioned video. Watch pages, Shorts, share links and embeds all work.":
     "Collez le lien d’une vidéo sous-titrée. Les pages de lecture, les Shorts, les liens de partage et les intégrations fonctionnent tous.",
   "Reading your source…": "Lecture de votre source…",
-  "Continue to questions": "Passer aux questions",
+  Continue: "Continuer",
   "Upload progress": "Progression du téléversement",
   "Uploading · {percent}%": "Téléversement · {percent} %",
   "Use a PDF instead": "Utiliser un PDF plutôt",
   "Reading your source. This may take up to a minute. Your questions are next.":
     "Lecture de votre source. Cela peut prendre jusqu’à une minute. Vos questions viennent ensuite.",
+  "Reading your source. This may take up to a minute.":
+    "Lecture de votre source. Cela peut prendre jusqu’à une minute.",
   "View source text · {count} characters":
     "Voir le texte de la source · {count} caractères",
   "This source is longer than one conversation can hold. The assistant reads {used} of {total} characters, taken from the opening and the ending. The full text stays available above.":
@@ -277,6 +306,7 @@ export const french: Dictionary = {
   // Voice commands
   "Speak a command": "Dire une commande",
   "Stop listening": "Arrêter l’écoute",
+  Cancel: "Annuler",
   "Listening for a command": "À l’écoute d’une commande",
   "Press once, then say a command such as “{first}” or “{second}”.":
     "Appuyez une fois, puis dites une commande comme « {first} » ou « {second} ».",
@@ -511,17 +541,15 @@ export const french: Dictionary = {
     "Moins défiler. Mieux comprendre. Sur chaque surface à venir.",
 
   // How it works
-  "A little guidance": "Un peu d’accompagnement",
-  "From information to understanding.": "De l’information à la compréhension.",
+  "Three steps. About a minute.": "Trois étapes. Environ une minute.",
   "Bring your source": "Apportez votre source",
-  "Choose a text-based PDF up to 25 MB or a captioned YouTube video, then check the extracted text in the preview.":
-    "Choisissez un PDF avec du texte, jusqu’à 25 Mo, ou une vidéo YouTube sous-titrée, puis vérifiez le texte extrait dans l’aperçu.",
+  "A PDF or a captioned YouTube video.":
+    "Un PDF ou une vidéo YouTube sous-titrée.",
   "Start talking": "Commencez à parler",
-  "Select Start Voice Chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want. The keyboard is still there, it is simply no longer the way in.":
-    "Choisissez Démarrer la conversation vocale, autorisez le microphone et posez votre question à voix haute. Interrompez ou coupez le micro quand vous voulez. Le clavier est toujours là, il n’est simplement plus la porte d’entrée.",
-  "Go a little deeper": "Allez un peu plus loin",
-  "Use a suggestion or ask a follow-up in your own words. Keep the source nearby to check important details.":
-    "Utilisez une suggestion ou posez une question de suivi dans vos mots. Gardez la source à portée pour vérifier les détails importants.",
+  "Allow the microphone and ask out loud.":
+    "Autorisez le microphone et posez votre question à voix haute.",
+  "Go deeper": "Allez plus loin",
+  "Follow up in your own words.": "Poursuivez avec vos propres mots.",
   "Having trouble with a source or your microphone?":
     "Un problème avec une source ou votre microphone?",
   "Scanned PDFs need a text layer before upload. YouTube captions must be available, and some videos may be blocked by YouTube. For voice, allow microphone access in your browser. If voice cannot connect, the keyboard is right there and answers every question about an extracted source.":
@@ -690,9 +718,7 @@ export const french: Dictionary = {
   // The apps, offered from the top menu
   "Get the app": "Obtenir l’appli",
   "Android APK": "APK Android",
-  "Android 7.0 or later": "Android 7.0 ou plus récent",
   "iOS Simulator build": "Version pour le simulateur iOS",
-  "Xcode Simulator, Apple silicon": "Simulateur Xcode, puce Apple",
   "All builds and instructions": "Toutes les versions et les instructions",
   "Release notes": "Notes de version",
   "Ask your question out loud, or say a command. It sends when you pause.":
@@ -749,9 +775,29 @@ export const french: Dictionary = {
   // Device connection
   "Connect a device": "Connecter un appareil",
   "Bluetooth or internet": "Bluetooth ou internet",
+  "Connect a nearby device over Bluetooth, or enter the secure address of a device on your network. Ursly only checks the endpoint you choose.":
+    "Connectez un appareil à proximité par Bluetooth, ou saisissez l’adresse sécurisée d’un appareil de votre réseau. Ursly ne vérifie que le point de terminaison que vous choisissez.",
+  "Find Bluetooth device": "Rechercher un appareil Bluetooth",
+  "Bluetooth unavailable": "Bluetooth indisponible",
+  "Device address": "Adresse de l’appareil",
+  Connect: "Connecter",
+  "Bluetooth device": "Appareil Bluetooth",
+  "Bluetooth device connected.": "Appareil Bluetooth connecté.",
+  "Internet device connected.": "Appareil Internet connecté.",
+  "No device selected.": "Aucun appareil sélectionné.",
+  "Bluetooth connection was not completed.":
+    "La connexion Bluetooth n’a pas abouti.",
+  "Enter a valid http or https device address.":
+    "Saisissez une adresse d’appareil http ou https valide.",
+  "The device did not respond. Check its address and allow browser access.":
+    "L’appareil n’a pas répondu. Vérifiez son adresse et autorisez l’accès depuis le navigateur.",
   // Motion theater
   "Theater Window": "Fenêtre théâtre",
   "Expand to theater size": "Agrandir en mode théâtre",
   // AppLoader
-  "Ursly is opening": "Ursly s'ouvre",
+  "Ursly is opening": "Ursly s’ouvre",
+  // Conversation actions
+  "Copy message": "Copier le message",
+  "Regenerate answer": "Régénérer la réponse",
+  "Realtime error": "Erreur en temps réel",
 };

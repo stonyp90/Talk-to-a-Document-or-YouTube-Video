@@ -569,8 +569,8 @@ h3 {
 .toast-dismiss {
   display: grid;
   place-items: center;
-  width: 28px;
-  min-height: 28px;
+  width: 44px;
+  min-height: 44px;
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--paper) 30%, transparent);
   border-radius: 50%;
@@ -701,39 +701,18 @@ h3 {
 }
 .workspace {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.35fr);
-  align-items: stretch;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-lg);
   min-height: min(650px, calc(100svh - 236px));
-  perspective: 1200px;
-}
-.workspace::before {
-  position: absolute;
-  z-index: -1;
-  inset: -18px -12px;
-  border: 1px solid var(--future-grid);
-  border-radius: calc(var(--radius-2xl) + 4px);
-  background:
-    linear-gradient(var(--future-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--future-grid) 1px, transparent 1px),
-    radial-gradient(circle at 78% 12%, var(--future-glow), transparent 36%);
-  background-size:
-    32px 32px,
-    32px 32px,
-    100% 100%;
-  pointer-events: none;
-  content: "";
-  opacity: 0.7;
 }
 .card {
   min-width: 0;
   min-height: 0;
   padding: var(--space-xl);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  box-shadow: 0 8px 28px var(--shadow-sm);
+  background: transparent;
   animation: panel-enter 680ms var(--ease-out) 320ms both;
   transition:
     border-color var(--motion-base) ease,
@@ -925,10 +904,10 @@ h3 {
   top: var(--space-md);
   right: var(--space-md);
   z-index: 10000;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: 1px solid var(--accent-border);
+  border: 2px solid var(--accent-border);
   background: var(--surface);
   color: var(--ink);
   font-size: 18px;
@@ -1523,12 +1502,15 @@ h3 {
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  min-height: 40px;
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--accent-border);
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  font-weight: 650;
+  min-height: 44px;
+  padding: 8px 20px;
+  border: 2px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: border-color 180ms ease, color 180ms ease;
 }
 /* Buttons are drawn, never filled: a border and a colour, no solid block. */
 .primary {
@@ -1542,7 +1524,7 @@ h3 {
 }
 .secondary {
   border-color: var(--line-strong);
-  background: var(--surface);
+  background: transparent;
   color: var(--ink);
 }
 .danger {
@@ -1583,7 +1565,7 @@ h3 {
   gap: var(--space-md);
   margin-top: auto;
   padding: var(--space-lg) 0 var(--space-3xs);
-  border-top: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
 }
 .source-next-step-number {
   display: grid;
@@ -1627,7 +1609,7 @@ h3 {
 .preview {
   margin-top: var(--space-md);
   padding-top: var(--space-md);
-  border-top: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
 }
 .preview summary {
   min-height: 30px;
@@ -1837,7 +1819,7 @@ h3 {
   max-width: 90%;
   padding: var(--space-md) var(--space-md);
   border-radius: var(--radius-lg);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1859,7 +1841,7 @@ h3 {
 .message-author {
   display: block;
   margin-bottom: var(--space-2xs);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1931,7 +1913,7 @@ h3 {
   gap: var(--space-sm);
   margin-top: var(--space-sm);
   padding-top: var(--space-md);
-  border-top: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
 }
 .composer .secondary {
   min-width: 70px;
@@ -1941,7 +1923,7 @@ h3 {
 }
 .how-it-works {
   padding: var(--section-y) 0 0;
-  border-top: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
   scroll-margin-top: calc(var(--nav-h) + var(--safe-top) + var(--nav-gap));
   animation: rise-in 680ms var(--ease-out) 520ms both;
 }
@@ -1952,40 +1934,40 @@ h3 {
   font-weight: 400;
   letter-spacing: -0.04em;
 }
-.guide-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-2xl);
+.guide-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
-.guide-grid article {
-  min-height: 176px;
-  padding: var(--space-xl);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--surface) 82%, var(--violet-tint));
-  box-shadow: 0 6px 18px var(--shadow-sm);
+.guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
 }
-.guide-number {
+.guide-step-number {
   display: inline-grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--accent-wash);
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border: 2px solid var(--accent);
   color: var(--accent);
-  font-size: 10px;
+  font-size: 14px;
+  font-weight: 500;
 }
-.guide-grid h3 {
-  margin: var(--space-md) 0 var(--space-xs);
-  font-size: 16px;
-  font-weight: 650;
+.guide-step h3 {
+  margin: 0 0 var(--space-2xs);
+  font-size: 18px;
+  font-weight: 600;
 }
-.guide-grid p,
-.help-detail p {
+.guide-step p {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 1.5;
 }
 .help-detail {
   margin-top: var(--space-2xl);
@@ -2002,6 +1984,7 @@ h3 {
 }
 .footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--space-lg);
   padding: var(--section-gap) 0 var(--space-2xl);
@@ -2238,24 +2221,6 @@ h3 {
   }
   .composer .secondary {
     width: 100%;
-  }
-  .guide-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-xl);
-  }
-  .guide-grid article {
-    display: grid;
-    grid-template-columns: 30px 1fr;
-    column-gap: var(--space-md);
-  }
-  .guide-number {
-    grid-row: span 2;
-  }
-  .guide-grid h3 {
-    margin-top: var(--space-3xs);
-  }
-  .guide-grid p {
-    grid-column: 2;
   }
   .guide-heading h2 {
     font-size: 27px;
@@ -2990,79 +2955,274 @@ h3 {
 }
 
 /* ---------------------------------------------------------------------------
- * Workspace heading: a title, not a billboard. The app is the first screen.
+ * Immersive header: one heading for the whole experience, not two step labels.
  * ------------------------------------------------------------------------- */
-.workspace-heading {
+.immersive-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-2xl);
-  padding: var(--space-2xl) 0 var(--space-xl);
+  gap: var(--space-lg);
+  padding: var(--space-xl) 0 var(--space-lg);
+  position: relative;
+  z-index: var(--z-surface);
   animation: rise-in var(--motion-slow) var(--ease-out) both;
 }
-.workspace-heading-copy {
-  min-width: 0;
+/* Gradient backdrop for header readability over video. */
+.immersive-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--ink) 85%, transparent) 0%,
+    color-mix(in srgb, var(--ink) 60%, transparent) 100%
+  );
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  border-radius: var(--radius-xl);
 }
-.workspace-heading h1 {
+.immersive-header h1 {
   max-width: 760px;
   text-wrap: balance;
   margin: 0;
   font-family: var(--display);
-  font-size: clamp(32px, 4.5vw, 48px);
+  font-size: clamp(28px, 4vw, 44px);
   font-weight: 400;
-  line-height: 1.05;
+  line-height: 1.08;
   letter-spacing: -0.035em;
+  color: var(--paper);
+  text-shadow: 0 2px 8px color-mix(in srgb, var(--ink) 50%, transparent);
 }
-.workspace-heading .lede {
+.immersive-header h1 span {
+  color: color-mix(in srgb, var(--paper) 70%, transparent);
+}
+.immersive-header .lede {
   max-width: 640px;
-  margin-top: var(--space-sm);
+  margin-top: var(--space-xs);
   font-size: 14px;
+  color: color-mix(in srgb, var(--paper) 80%, transparent);
+  text-shadow: 0 1px 4px color-mix(in srgb, var(--ink) 60%, transparent);
 }
-.progress-steps {
-  display: inline-flex;
-  flex-shrink: 0;
-  gap: var(--space-xs);
-  margin: 0;
-  padding: var(--space-2xs);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  list-style: none;
-}
-.progress-steps li {
+.immersive-source-toggle {
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
-  min-height: 32px;
-  padding: var(--space-2xs) var(--space-md) var(--space-2xs) var(--space-xs);
+  padding: var(--space-sm) var(--space-lg);
+  min-height: 44px;
+  border: 2px solid var(--line-strong);
   border-radius: var(--radius-xl);
-  color: var(--muted);
-  font-size: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
   font-weight: 600;
-  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast) ease;
 }
-.progress-steps li span {
-  display: inline-grid;
+.immersive-source-toggle:hover {
+  border-color: var(--accent-border);
+}
+.immersive-source-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* The source picker floats above the conversation as a dialog overlay. */
+.source-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-float);
+  display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--line-strong);
+  padding: var(--space-3xl);
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
+  backdrop-filter: blur(12px);
+  animation: fade-in var(--motion-base) var(--ease-out) both;
+}
+.source-overlay-inner {
+  width: min(560px, 100%);
+  max-height: calc(100svh - 120px);
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--ink) 30%, transparent);
+  animation: panel-enter var(--motion-base) var(--ease-out) both;
+}
+.source-overlay-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--line);
   border-radius: 50%;
-  font-size: 10px;
-  font-weight: 700;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) ease;
 }
-.progress-steps li[aria-current="step"] {
-  box-shadow: inset 0 0 0 1px var(--accent-border);
-  color: var(--accent);
+.source-overlay-close:hover {
+  border-color: var(--accent-border);
+  color: var(--ink);
 }
-.progress-steps li[aria-current="step"] span {
-  border-color: var(--accent);
-  color: var(--accent);
+.source-overlay-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
-.progress-steps li[data-done="true"] span {
-  border-color: var(--success);
-  background: var(--success-wash);
-  color: var(--success);
+/* The conversation fills the immersive space without a card wrapper. */
+.immersive-conversation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-height: 0;
+  position: relative;
+  z-index: var(--z-surface);
+  animation: rise-in var(--motion-slow) var(--ease-out) 200ms both;
+}
+/* Dark backdrop for readability when video is playing. */
+.immersive-conversation::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--ink) 75%, transparent);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+/* Voice panel floats with a glass backdrop over the video. */
+.immersive-conversation .voice-panel {
+  position: relative;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+}
+.immersive-conversation .voice-controls {
+  gap: var(--space-sm);
+}
+.immersive-conversation .voice-controls button {
+  background: color-mix(in srgb, var(--ink) 60%, transparent);
+  color: var(--paper);
+  border-color: color-mix(in srgb, var(--paper) 20%, transparent);
+}
+.immersive-conversation .voice-controls button:hover {
+  background: color-mix(in srgb, var(--ink) 70%, transparent);
+}
+.immersive-conversation .voice-hint {
+  color: color-mix(in srgb, var(--paper) 80%, transparent);
+}
+/* Chat messages need to read clearly over the video. */
+.immersive-conversation .chat {
+  position: relative;
+}
+.immersive-conversation .message {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+}
+.immersive-conversation .message-author {
+  color: var(--ink);
+  font-weight: 600;
+}
+.immersive-conversation .message-text {
+  color: var(--ink);
+}
+.immersive-conversation .message-text.rendered {
+  color: var(--ink);
+}
+/* Suggestions float as glass pills over the video. */
+.immersive-conversation .suggestions {
+  gap: var(--space-sm);
+}
+.immersive-conversation .suggestion {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.immersive-conversation .suggestion:hover {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border-color: var(--accent-border);
+}
+/* Composer sits at the bottom with a glass backdrop. */
+.immersive-conversation .composer {
+  position: relative;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 2px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: var(--space-md);
+}
+.immersive-conversation .composer textarea {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+.immersive-conversation .composer textarea::placeholder {
+  color: var(--muted);
+}
+.immersive-conversation .composer-buttons button {
+  background: color-mix(in srgb, var(--ink) 60%, transparent);
+  color: var(--paper);
+  border-color: color-mix(in srgb, var(--paper) 20%, transparent);
+}
+.immersive-conversation .composer-buttons button:hover {
+  background: color-mix(in srgb, var(--ink) 70%, transparent);
+}
+/* Voice learning link and hints need contrast. */
+.immersive-conversation .voice-learning {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-md);
+  color: var(--ink);
+}
+.immersive-conversation .voice-learning strong {
+  color: var(--ink);
+}
+.immersive-conversation .voice-learning small {
+  color: var(--muted);
+}
+.immersive-conversation .hint {
+  color: color-mix(in srgb, var(--paper) 75%, transparent);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 50%, transparent);
+}
+.immersive-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-height: calc(100svh - var(--nav-h) - var(--safe-top) - 200px);
+  perspective: none;
+  position: relative;
+}
+.immersive-workspace::before {
+  display: none;
+}
+/* The YouTube video plays as the immersive background, filling the workspace. */
+.immersive-video-background {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-void);
+  overflow: hidden;
+  pointer-events: none;
+}
+.immersive-video-background iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 100vh;
+  min-width: 177.77vh; /* 16:9 aspect ratio */
+  min-height: 56.25vw;
+  transform: translate(-50%, -50%);
+  border: 0;
 }
 .workspace {
   min-height: calc(100svh - var(--nav-h) - var(--safe-top) - 150px);
@@ -3157,7 +3317,11 @@ h3 {
  */
 .arrival-loop::before {
   transform-origin: right center;
-  animation: field-wipe var(--motion-slow) var(--ease-out) both;
+  /* The plate and the ring standing on it arrive together. The ring waits out a
+     delay before settling, and wiping the field in during that wait painted a
+     large empty plate where the loop was about to be. */
+  animation: field-wipe var(--motion-slow) var(--ease-out) var(--motion-fast)
+    both;
 }
 @keyframes field-wipe {
   from {
@@ -3650,7 +3814,7 @@ h3 {
  * ------------------------------------------------------------------------- */
 .platform {
   padding: var(--section-y) 0 0;
-  border-top: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
   scroll-margin-top: calc(var(--nav-h) + var(--safe-top) + var(--nav-gap));
 }
 .platform-heading h2 {
@@ -3784,7 +3948,7 @@ h3 {
   gap: var(--space-sm) var(--space-xl);
   margin-top: var(--space-2xl);
   padding-top: var(--space-lg);
-  border-top: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
   font-size: 12px;
 }
 .platform-proof a,
@@ -3812,6 +3976,28 @@ h3 {
   gap: var(--space-lg);
 }
 
+/* The builds you install rather than open, named by the same file the release
+   is cut from. A line of links with a label, not a section with a heading: it
+   is the last word of the page, not another deck. */
+.footer-builds {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-md);
+}
+.footer-builds-label {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 700px) {
+  .footer-builds {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+}
+
 /* The story anchors carry their full label where the bar is wide and a short
    one where it is not. The accessible name is the section's real name at
    every width, so the menu reads the same to a screen reader as to an eye. */
@@ -3828,18 +4014,6 @@ h3 {
   line-height: 1.6;
 }
 
-/* The way into the app at the end of the guide, and at the end of the story. */
-.guide-action {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-md);
-  margin: var(--space-2xl) 0 0;
-}
-.guide-action-note {
-  color: var(--muted);
-  font-size: 12px;
-}
 .platform-way-in {
   display: inline-flex;
   align-items: center;
@@ -3857,28 +4031,36 @@ h3 {
   gap: var(--space-xl);
   margin: var(--section-y) 0 var(--space-sm);
   padding: var(--space-2xl) var(--gutter);
-  border: 1px solid var(--accent-border-wash);
+  border: 2px solid var(--accent);
   border-radius: var(--radius-xl);
-  background:
-    radial-gradient(circle at 0% 0%, var(--accent-wash), transparent 60%),
-    var(--accent-wash-soft);
+  background: transparent;
 }
 .invitation-copy {
   max-width: 560px;
 }
 .invitation-copy h2 {
   margin: var(--space-sm) 0 0;
+  font-family: var(--display);
   font-size: clamp(28px, 4vw, 42px);
+  font-weight: 400;
   letter-spacing: -0.035em;
 }
 .invitation-copy p {
   margin: var(--space-sm) 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.6;
 }
 .invitation-action {
   flex: none;
+}
+/* The two ways into the app are the only calls this page makes, so they are
+   the only buttons allowed to sit above the bar's own size. */
+.hero-cta,
+.invitation-action {
+  min-height: 44px;
+  padding: 10px 24px;
+  font-size: 14px;
 }
 
 @media (max-width: 960px) {
@@ -3977,9 +4159,17 @@ h3 {
     letter-spacing: 0.08em;
     line-height: 1.2;
     text-align: center;
-    text-overflow: ellipsis;
     text-transform: uppercase;
-    white-space: nowrap;
+  }
+  /* The page's whole name has to fit beside the brand and the menu, and a
+     French tagline is longer than the English it translates. Two lines of a
+     ten-point label still sit inside the bar; a word cut in half does not. */
+  .nav-mobile-center > :last-child {
+    min-width: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
   }
   .nav-mobile-signal {
     display: inline-flex;
@@ -4142,7 +4332,7 @@ h3 {
     display: flex;
     gap: var(--space-xs);
     padding: var(--space-sm) var(--space-sm) var(--space-xs);
-    border-top: 1px solid var(--line);
+    border-top: 2px solid var(--accent);
   }
   .nav-mobile-languages a {
     flex: 1;
@@ -4284,17 +4474,14 @@ h3 {
     font-size: 7.5px;
     letter-spacing: 0.04em;
   }
-  .workspace-heading {
+  .immersive-header {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-md);
     padding: var(--space-lg) 0 var(--space-md);
   }
-  .workspace-heading h1 {
-    font-size: 28px;
-  }
-  .progress-steps {
-    display: none;
+  .immersive-header h1 {
+    font-size: 24px;
   }
   .workspace {
     min-height: auto;
@@ -4562,13 +4749,13 @@ h3 {
   z-index: 2;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
-  padding: 6px 12px;
-  border: 1px solid var(--accent-border);
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 2px solid var(--accent-border);
   border-radius: var(--radius-xl);
   background: var(--surface);
   color: var(--accent);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 650;
   box-shadow: 0 6px 20px var(--shadow-md);
   animation: rise-in var(--motion-fast) var(--ease-out) both;
@@ -4778,7 +4965,7 @@ h3 {
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  border-top: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
   border-radius: var(--radius-md);
   color: var(--accent);
   font-size: 11px;
@@ -4898,9 +5085,9 @@ h3 {
   overflow-wrap: anywhere;
 }
 .footer-signout {
-  min-height: 26px;
-  padding: 3px 9px;
-  border: 1px solid var(--line);
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 2px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--accent);
@@ -5022,6 +5209,32 @@ h3 {
   }
   .saved-trigger-remove {
     min-width: 44px;
+  }
+  /* The page's one disclosure is how a reader finds help. Padding rather than
+     min-height: the native marker is drawn only while a summary is a list
+     item, and centring it another way would cost the triangle. */
+  .help-detail summary {
+    padding-block: 14px;
+  }
+  /* The way in is the point of both screens that offer it. A thumb gets the
+     full width of the phone, a taller row and a label at the size a body is
+     read at — while the button stays a border and a colour, so "big" costs
+     nothing in weight. */
+  .hero-cta,
+  .invitation-action {
+    width: 100%;
+    min-height: 54px;
+    padding: 14px 24px;
+    font-size: 16px;
+  }
+  /* Wrapped, the invitation stranded its button on a row of its own at the
+     bottom of the card. Stacked and aligned, the card is one thought that
+     ends on the thing to do. */
+  .invitation {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-lg);
+    text-align: center;
   }
 }
 

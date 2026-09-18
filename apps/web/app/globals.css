@@ -5246,3 +5246,235 @@ h3 {
     display: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   F Système — Immersive File Browser Overlay
+   ═══════════════════════════════════════════════════════════ */
+
+.fs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-hologram);
+  display: flex;
+  flex-direction: column;
+  animation: materialize var(--motion-base) var(--ease-hologram) both;
+}
+
+.fs-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    color-mix(in srgb, var(--void-deep) 60%, transparent),
+    color-mix(in srgb, var(--void-deep) 90%, transparent)
+  );
+  backdrop-filter: blur(12px);
+}
+
+.fs-overlay-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 2rem 3rem;
+  overflow: hidden;
+}
+
+.fs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1.5rem;
+  flex-shrink: 0;
+}
+
+.fs-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: color-mix(in srgb, var(--text) 70%, transparent);
+}
+
+.fs-breadcrumb-sep {
+  margin: 0 0.25rem;
+  opacity: 0.4;
+}
+
+.fs-breadcrumb-link {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: background var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.fs-breadcrumb-link:hover {
+  background: color-mix(in srgb, var(--plasma-cyan) 10%, transparent);
+  color: var(--plasma-cyan);
+}
+
+.fs-breadcrumb-item:last-child .fs-breadcrumb-link {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.fs-close {
+  background: color-mix(in srgb, var(--surface) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--plasma-cyan) 20%, transparent);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.125rem;
+  display: grid;
+  place-items: center;
+  transition: background var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.fs-close:hover {
+  background: color-mix(in srgb, var(--plasma-cyan) 15%, transparent);
+  border-color: var(--plasma-cyan);
+}
+
+.fs-grid {
+  display: grid;
+  gap: 1.25rem;
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 0;
+  align-content: start;
+}
+
+.fs-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  border-radius: 16px;
+  cursor: pointer;
+  text-align: center;
+  transition: transform var(--motion-fast) var(--ease-float),
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+  animation: materialize var(--motion-base) var(--ease-hologram) both;
+  animation-delay: calc(var(--card-index, 0) * 60ms);
+}
+
+.fs-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: color-mix(in srgb, var(--plasma-cyan) 40%, transparent);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--plasma-cyan) 12%, transparent);
+}
+
+.fs-card-selected {
+  border-color: var(--plasma-cyan);
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--plasma-cyan) 20%, transparent),
+    inset 0 0 16px color-mix(in srgb, var(--plasma-cyan) 8%, transparent);
+}
+
+.fs-card-directory {
+  background: color-mix(
+    in srgb,
+    var(--plasma-violet) 6%,
+    var(--surface) 70%
+  );
+}
+
+.fs-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.fs-card-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.fs-card-subtitle {
+  font-size: 0.75rem;
+  color: color-mix(in srgb, var(--text) 50%, transparent);
+}
+
+.fs-gaze-ring {
+  position: absolute;
+  inset: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  pointer-events: none;
+}
+
+.fs-gaze-ring circle {
+  transition: stroke-dasharray 100ms linear;
+}
+
+.fs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex: 1;
+  opacity: 0.5;
+}
+
+.fs-empty-icon {
+  font-size: 3rem;
+}
+
+.fs-empty-text {
+  font-size: 1rem;
+  color: color-mix(in srgb, var(--text) 60%, transparent);
+}
+
+.fs-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.fs-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid color-mix(in srgb, var(--plasma-cyan) 20%, transparent);
+  border-top-color: var(--plasma-cyan);
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 700px) {
+  .fs-overlay-content {
+    padding: 1rem;
+  }
+
+  .fs-grid {
+    gap: 0.75rem;
+  }
+
+  .fs-card {
+    padding: 1rem 0.75rem;
+  }
+
+  .fs-card-icon {
+    font-size: 1.5rem;
+  }
+}

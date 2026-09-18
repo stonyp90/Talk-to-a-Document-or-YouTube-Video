@@ -805,7 +805,7 @@ const s = StyleSheet.create({
   headingRow: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
   flex: { flex: 1 },
   eyebrow: {
-    color: "#A9513A",
+    color: c.stepLabel,
     fontSize: 9,
     letterSpacing: 1.4,
     fontWeight: "800",
@@ -928,7 +928,7 @@ const s = StyleSheet.create({
   },
   exampleReveal: {
     alignItems: "center",
-    backgroundColor: "#FDFBF7",
+    backgroundColor: c.revealBg,
     borderTopColor: c.line,
     borderTopWidth: 1,
     borderRadius: 0,
@@ -980,10 +980,10 @@ const s = StyleSheet.create({
   modalRoot: { flex: 1, justifyContent: "flex-end" },
   modalScrim: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "#201A2B80",
+    backgroundColor: c.scrim,
   },
   builderSheet: {
-    backgroundColor: "#F2EEE8",
+    backgroundColor: c.sheetBg,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     height: "92%",
@@ -1000,7 +1000,7 @@ const s = StyleSheet.create({
   },
   builderHeaderCopy: { flex: 1, gap: 3 },
   builderKicker: {
-    color: "#A9513A",
+    color: c.stepLabel,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1.6,
@@ -1039,7 +1039,7 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   builderStepNumber: {
-    color: "#765B48",
+    color: c.stepNumber,
     fontFamily: serif,
     fontSize: 20,
     fontWeight: "700",
@@ -1050,7 +1050,7 @@ const s = StyleSheet.create({
   builderHint: { color: c.muted, fontSize: 13, lineHeight: 18, marginTop: -5 },
   input: {
     backgroundColor: c.white,
-    borderColor: "#D9D0C2",
+    borderColor: c.strongLine,
     borderRadius: 12,
     borderWidth: 1.5,
     color: c.ink,
@@ -1066,7 +1066,7 @@ const s = StyleSheet.create({
   },
   actionChoice: {
     backgroundColor: c.white,
-    borderColor: "#D9D0C2",
+    borderColor: c.strongLine,
     borderRadius: 14,
     flexGrow: 0,
     minHeight: 88,
@@ -1076,7 +1076,7 @@ const s = StyleSheet.create({
   },
   actionChoiceWide: { width: "100%" },
   actionChoiceSelected: {
-    backgroundColor: "#FFE0D5",
+    backgroundColor: c.selectedBg,
     borderColor: c.coral,
     borderWidth: 2,
   },
@@ -1113,8 +1113,8 @@ const s = StyleSheet.create({
     width: "100%",
   },
   builderFooter: {
-    backgroundColor: "#F2EEE8",
-    borderTopColor: "#D9D1C5",
+    backgroundColor: c.sheetBg,
+    borderTopColor: c.strongLine,
     borderTopWidth: 1,
     paddingBottom: 4,
     paddingTop: 10,

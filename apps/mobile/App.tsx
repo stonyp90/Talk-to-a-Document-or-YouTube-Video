@@ -141,7 +141,7 @@ export default function App() {
   const [signInOpen, setSignInOpen] = useState(false);
   // The way this person drives Ursly. Voice until they choose otherwise;
   // the choice is remembered on the device, as the web remembers it per browser.
-  const [entryMode, setEntryMode] = useState<EntryMode>("motion");
+  const [entryMode, setEntryMode] = useState<EntryMode>("voice");
   useEffect(() => {
     // Mode is preserved across toggles
   }, []);
@@ -1308,7 +1308,12 @@ export default function App() {
           t={t}
         />
       )}
-      <MobileOnboarding motion={motion} language={language} t={t} />
+      <MobileOnboarding
+        motion={motion}
+        language={language}
+        onLanguageChange={setLanguage}
+        t={t}
+      />
     </SafeAreaProvider>
   );
 }

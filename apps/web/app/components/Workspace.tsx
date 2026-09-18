@@ -829,7 +829,14 @@ export default function Workspace() {
 
   async function askQuestion(text: string) {
     const trimmed = text.trim();
-    if (!source || !trimmed) return;
+    if (!trimmed) return;
+    if (!source) {
+      setError(
+        t("Add a PDF or YouTube video first, then ask your question."),
+      );
+      setQuestion(trimmed);
+      return;
+    }
     setError("");
     dispatch({ type: "CLEAR_ERROR" });
     followMessages.current = true;
@@ -1210,7 +1217,7 @@ export default function Workspace() {
       </a>
       <TopNav page="app" mode={entryMode} onModeChange={switchEntryMode} />
 
-      <main className="shell">
+      <main className="shell" data-mode={entryMode}>
         <div className="container app-frame">
           {!online && (
             <p className="banner banner-offline" role="alert">
@@ -1287,10 +1294,10 @@ export default function Workspace() {
             className="workspace"
             id="workspace"
             tabIndex={-1}
-            data-mode={entryMode}
           >
+            <div className="particle-field" aria-hidden="true" />
             <section
-              className="card source-card"
+              className="card holo-panel source-card"
               aria-labelledby="source-heading"
             >
               <div className="status-row">
@@ -1615,7 +1622,7 @@ export default function Workspace() {
             </section>
 
             <section
-              className="card conversation-card"
+              className="card holo-panel conversation-card"
               data-ready={source ? "true" : "false"}
               aria-labelledby="conversation-heading"
             >

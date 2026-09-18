@@ -19,6 +19,11 @@
   --accent-wash-soft: #fff5f2;
   --accent-border: #d6b3a9;
   --accent-border-wash: #ead3cc;
+  /* Voice orb: warm brand colours in light mode so the orb sits on paper
+     rather than leaking dark-mode plasma into the warm theme. */
+  --orb-primary: #f47762;
+  --orb-secondary: #a84332;
+  --orb-speaking: #ec4899;
   --violet-wash: #eee9e1;
   --violet-tint: #f2eee8;
   --violet-tint-alt: #f8f4ee;
@@ -195,6 +200,9 @@
   --accent-wash-soft: #081e24;
   --accent-border: #1a6878;
   --accent-border-wash: #124550;
+  --orb-primary: var(--plasma-cyan);
+  --orb-secondary: var(--plasma-violet);
+  --orb-speaking: var(--plasma-pink);
   --violet-wash: #1a1830;
   --violet-tint: #1e1c38;
   --violet-tint-alt: #14132a;
@@ -3000,7 +3008,7 @@ h3 {
   text-wrap: balance;
   margin: 0;
   font-family: var(--display);
-  font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+  font-size: clamp(32px, 4.5vw, 48px);
   font-weight: 400;
   line-height: 1.05;
   letter-spacing: -0.035em;
@@ -3075,7 +3083,7 @@ h3 {
    a display size declared above this line would simply never arrive. */
 .hero h1 {
   margin: var(--space-md) 0;
-  font-size: clamp(2rem, 5vw, 3rem);
+  font-size: clamp(32px, 4.5vw, 48px);
   line-height: 1.05;
   letter-spacing: -0.05em;
 }
@@ -3860,7 +3868,7 @@ h3 {
 }
 .invitation-copy h2 {
   margin: var(--space-sm) 0 0;
-  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-size: clamp(28px, 4vw, 42px);
   letter-spacing: -0.035em;
 }
 .invitation-copy p {
@@ -4283,7 +4291,7 @@ h3 {
     padding: var(--space-lg) 0 var(--space-md);
   }
   .workspace-heading h1 {
-    font-size: 1.7rem;
+    font-size: 28px;
   }
   .progress-steps {
     display: none;
@@ -4337,7 +4345,7 @@ h3 {
     padding: var(--space-xl) calc(var(--measure) - var(--nav-inset)) 0;
   }
   .intro-scene strong {
-    font-family: Georgia, serif;
+    font-family: var(--display);
     font-size: clamp(26px, 8vw, 38px);
     font-weight: 400;
     letter-spacing: -0.03em;

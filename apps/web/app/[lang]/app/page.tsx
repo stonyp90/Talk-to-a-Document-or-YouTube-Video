@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Workspace from "../../components/Workspace";
+import { AppLoaderShell } from "../../components/AppLoader";
 import { LanguageProvider } from "../../i18n/LanguageProvider";
 import { dictionaryFor } from "../../i18n/dictionaries";
 import { isLanguage, type Language } from "../../i18n/languages";
@@ -46,6 +47,7 @@ export default async function Page({ params }: LanguageParams) {
   if (!isLanguage(lang)) notFound();
   return (
     <LanguageProvider language={lang} dictionary={dictionaryFor(lang)}>
+      <AppLoaderShell />
       <Workspace />
     </LanguageProvider>
   );

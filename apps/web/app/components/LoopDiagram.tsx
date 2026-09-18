@@ -208,6 +208,12 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
           aria-hidden="true"
           focusable="false"
         >
+          <defs>
+            <radialGradient id="disc-gradient" cx="50%" cy="42%" r="58%">
+              <stop offset="0%" stopColor="color-mix(in srgb, var(--surface) 85%, white)" />
+              <stop offset="100%" stopColor="var(--surface)" />
+            </radialGradient>
+          </defs>
           <g className={styles.plot}>
             <circle
               className={styles.ring}
@@ -236,11 +242,17 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
               cy={GEOMETRY.cy}
               r={GEOMETRY.disc}
             />
+            <circle
+              className={styles.discGlow}
+              cx={GEOMETRY.cx}
+              cy={GEOMETRY.cy}
+              r={GEOMETRY.disc - 3}
+            />
             <g
               className={styles.brandMark}
               data-testid="loop-brand-mark"
               aria-hidden="true"
-              transform={`translate(${GEOMETRY.cx} ${GEOMETRY.cy - 64})`}
+              transform={`translate(${GEOMETRY.cx} ${GEOMETRY.cy - 52}) scale(1.5)`}
             >
               <circle className={styles.brandMarkHalo} cx="0" cy="0" r="19" />
               <rect
@@ -287,7 +299,7 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
             <text
               className={styles.discEyebrow}
               x={GEOMETRY.cx}
-              y={GEOMETRY.cy - 24}
+              y={GEOMETRY.cy - 16}
               textAnchor="middle"
             >
               {copy.target.eyebrow}
@@ -295,11 +307,11 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
             <text
               className={styles.discStatement}
               x={GEOMETRY.cx}
-              y={GEOMETRY.cy + 2}
+              y={GEOMETRY.cy + 8}
               textAnchor="middle"
             >
               {copy.target.statement.map((line, index) => (
-                <tspan key={line} x={GEOMETRY.cx} dy={index === 0 ? 0 : 20}>
+                <tspan key={line} x={GEOMETRY.cx} dy={index === 0 ? 0 : 22}>
                   {line}
                 </tspan>
               ))}
@@ -307,7 +319,7 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
             <text
               className={styles.discNote}
               x={GEOMETRY.cx}
-              y={GEOMETRY.cy + 50}
+              y={GEOMETRY.cy + 46}
               textAnchor="middle"
             >
               {copy.target.note}

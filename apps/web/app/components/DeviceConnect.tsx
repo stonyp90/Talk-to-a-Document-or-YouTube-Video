@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Icon } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
+import { useHydrated } from "./useHydrated";
 
 type BluetoothDevice = {
   name?: string;
@@ -20,11 +21,13 @@ type BluetoothNavigator = Navigator & {
 
 export function DeviceConnect() {
   const { t } = useLanguage();
+  const hydrated = useHydrated();
   const [endpoint, setEndpoint] = useState("");
   const [device, setDevice] = useState("");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const bluetoothAvailable =
+    hydrated &&
     typeof navigator !== "undefined" &&
     Boolean((navigator as BluetoothNavigator).bluetooth);
 

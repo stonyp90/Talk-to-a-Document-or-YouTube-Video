@@ -138,6 +138,7 @@ export default function LandingPage() {
       />
 
       <main className="shell" id="main" tabIndex={-1}>
+        <div className="particle-field" aria-hidden="true" />
         <div className="container">
           {STORY_SECTIONS.map((section) => {
             const Section = STORY_VIEWS[section.id];

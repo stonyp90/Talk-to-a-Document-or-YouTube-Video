@@ -1,7 +1,8 @@
 "use client";
 
-import type { RefObject } from "react";
+import { useState, useEffect, type RefObject } from "react";
 import { Icon } from "./Icon";
+import { Galaxy3D } from "./Galaxy3D";
 import { LoopDiagram } from "./LoopDiagram";
 import { Process } from "./Process";
 import { VoiceMark } from "./VoiceMark";
@@ -43,6 +44,21 @@ export function Arrival({
 }) {
   const { t } = useLanguage();
   const hydrated = useHydrated();
+  const [use3D, setUse3D] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const canvas = document.createElement("canvas");
+      const supported = !!(
+        window.WebGLRenderingContext &&
+        (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+      );
+      setUse3D(supported);
+    } catch {
+      setUse3D(false);
+    }
+  }, []);
 
   return (
     <section
@@ -51,22 +67,14 @@ export function Arrival({
       aria-labelledby="hero-heading"
     >
       <div className="arrival-copy">
-        {/* The film runs this along the top of every headline it sets. */}
         <VoiceMark className="arrival-wave" />
         <span className="eyebrow">{t("Internet 3.0")}</span>
         <h1 id="hero-heading">
           {t("A new way to build software.")}{" "}
           <span>{t("For tomorrow’s internet.")}</span>
         </h1>
-        {/* The film opens on this sentence and the page carries it, so what
-            Ursly claims to be is said in the same words in both places. */}
         <p className="arrival-claim">
           {t("Not a new website. A new way to use one.")}
-        </p>
-        <p className="lede">
-          {t(
-            "From concept to production and back through real-world feedback. Every release is validated before it ships—and improved through what comes next.",
-          )}
         </p>
         <div className="hero-actions">
           <a ref={heroCta} className="primary" href={appHref}>
@@ -82,11 +90,6 @@ export function Arrival({
             {INTRO_DURATION_SECONDS} s
           </button>
         </div>
-        <p className="hero-note">
-          {t(
-            "What it does today: bring a PDF or a captioned YouTube video and talk to it. How it is built is the rest of this page.",
-          )}
-        </p>
       </div>
 
       <div className="arrival-loop">
@@ -95,7 +98,11 @@ export function Arrival({
         <span className="eyebrow arrival-loop-label">
           {t("The software development lifecycle")}
         </span>
-        <LoopDiagram locale={language} loop={loop} />
+        {use3D ? (
+          <Galaxy3D width={300} height={300} />
+        ) : (
+          <LoopDiagram locale={language} loop={loop} />
+        )}
       </div>
 
       <Process locale={language} appHref={appHref} loop={loop} />

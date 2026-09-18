@@ -313,6 +313,7 @@ export const french = {
   "Preview only": "Aperçu seulement",
   "Always in your control": "Toujours sous votre contrôle",
   "Skip onboarding": "Passer la présentation",
+  Menu: "Menu",
   Continue: "Continuer",
   "Open Ursly": "Ouvrir Ursly",
   PDF: "PDF",
@@ -407,6 +408,7 @@ export const french = {
   "You have reached your limit for now. It reopens shortly.":
     "Vous avez atteint votre limite pour le moment. Elle se rouvre sous peu.",
   "Sign in to continue": "Connectez-vous pour continuer",
+  Language: "Langue",
 } as const;
 export type TranslationKey = keyof typeof french;
 export function translate(language: Language, key: TranslationKey): string {

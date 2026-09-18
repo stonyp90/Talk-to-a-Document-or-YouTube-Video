@@ -281,7 +281,7 @@ const s = StyleSheet.create({
   artFrame: { minHeight: 180, alignItems: "center", justifyContent: "center" },
   copy: { gap: 12 },
   stepLabel: {
-    color: "#A9513A",
+    color: c.stepLabel,
     fontSize: 10,
     letterSpacing: 1.5,
     fontWeight: "800",
@@ -296,7 +296,7 @@ const s = StyleSheet.create({
   body: { color: c.muted, fontSize: 15, lineHeight: 23, maxWidth: 430 },
   input: {
     backgroundColor: c.white,
-    borderColor: "#C9C0B5",
+    borderColor: c.inputBorder,
     borderWidth: 1,
     borderRadius: 17,
     padding: 17,

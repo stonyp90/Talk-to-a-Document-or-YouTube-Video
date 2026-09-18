@@ -477,16 +477,19 @@ const SURFACES = {
     spec: PICTURE,
     // Rest, the source going in, the voice session answering, and the answer
     // still standing behind the keyboard.
-    cues: [0.3, 6.3, 16.2, null, 22.0, null],
+    cues: [0.3, 6.5, 12.3, null, 19.5, null],
   },
-  phone: {
-    clip: "app-phone",
+  iosHome: {
+    clip: "ios-home",
     spec: PHONE_SCREEN,
-    // The phone is the only surface that shows the whole exchange at once, so
-    // it is cut to the five seconds that contain the payoff: the last of the
-    // question being typed, the send, the answer arriving, and the answer held
-    // long enough to be recognised as one.
-    cues: [null, null, 21.0, null, null, null],
+    // iOS home screen in the phone position for scenes 1, 2, 3, and 5.
+    cues: [0.0, 0.0, 0.0, null, 0.0, null],
+  },
+  iosMotion: {
+    clip: "ios-motion",
+    spec: PHONE_SCREEN,
+    // iOS motion tracking view for scene 4.
+    cues: [null, null, null, 0.0, null, null],
   },
 };
 const WEB = "apps/web/public/brand";
@@ -847,6 +850,7 @@ function device(scale) {
 function claim(scene, t, words_, elapsed) {
   const scale = pushed(elapsed);
   const arrival = entered(t, 0.35);
+  const lift = (1 - arrival) * RISE * 2;
   return {
     back: arriving(arrival, device(scale)) + words(scene, t),
     screens: [
@@ -855,6 +859,12 @@ function claim(scene, t, words_, elapsed) {
         rect: inStage(PICTURE, scale, (1 - arrival) * RISE),
         opacity: arrival,
       },
+      {
+        surface: "iosHome",
+        rect: inStage(PHONE_SCREEN, scale, lift),
+        opacity: arrival,
+      },
+      { surface: "bezel", rect: inStage(PHONE, scale, lift), opacity: arrival },
     ],
   };
 }
@@ -873,6 +883,8 @@ function ingest(scene, t, words_, elapsed) {
     back: device(scale) + words(scene, t),
     screens: [
       { surface: "desktop", rect: inStage(PICTURE, scale), opacity: 1 },
+      { surface: "iosHome", rect: inStage(PHONE_SCREEN, scale), opacity: 1 },
+      { surface: "bezel", rect: inStage(PHONE, scale), opacity: 1 },
     ],
   };
 }
@@ -894,7 +906,7 @@ function voice(scene, t, words_, elapsed) {
     screens: [
       { surface: "desktop", rect: inStage(PICTURE, scale), opacity: 1 },
       {
-        surface: "phone",
+        surface: "iosHome",
         rect: inStage(PHONE_SCREEN, scale, lift),
         opacity: arrival,
       },
@@ -1142,9 +1154,20 @@ function motion(scene, t, words_, elapsed) {
       words(scene, t) +
       arriving(entered(t, 1.1), chip) +
       staged(scale, horizon + rules + lanes + surfaces + reach),
-    // Every surface in this volume is drawn, not filmed: the product it will
-    // run is not built, so there is no recording to composite into it.
-    screens: [],
+    // The 3D space is drawn, not filmed; the phone beside it shows the real
+    // motion tracking view so the viewer sees both the volume and the device.
+    screens: [
+      {
+        surface: "iosMotion",
+        rect: inStage(PHONE_SCREEN, scale, (1 - arrival) * RISE),
+        opacity: arrival,
+      },
+      {
+        surface: "bezel",
+        rect: inStage(PHONE, scale, (1 - arrival) * RISE),
+        opacity: arrival,
+      },
+    ],
   };
 }
 
@@ -1325,6 +1348,8 @@ function legacy(scene, t, words_, elapsed) {
     back: device(scale) + words(scene, t) + chipRow.join(""),
     screens: [
       { surface: "desktop", rect: inStage(PICTURE, scale), opacity: 1 },
+      { surface: "iosHome", rect: inStage(PHONE_SCREEN, scale), opacity: 1 },
+      { surface: "bezel", rect: inStage(PHONE, scale), opacity: 1 },
     ],
     // The keyboard is the one thing in the film that has to sit on top of a
     // still, so it is handed back as its own layer rather than drawn into the

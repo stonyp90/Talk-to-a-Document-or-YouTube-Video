@@ -84,6 +84,10 @@ export const french: Dictionary = {
   "motion energy": "d'énergie de mouvement",
   "Gesture detection": "Détection de gestes",
   Standby: "En attente",
+  "VISION ROOM (IDLE)": "SALLE VISION (INACTIF)",
+  "LIVE VISION ROOM": "SALLE VISION (EN DIRECT)",
+  "Motion & Video Conference Hub": "Hub de motion et visioconférence",
+  "Privacy Protected": "Confidentialité protégée",
   Platform: "Plateforme",
   "How we build": "Notre façon de bâtir",
   Build: "Bâtir",
@@ -341,6 +345,8 @@ export const french: Dictionary = {
     "Les commandes vocales se sont arrêtées quand la page a été masquée.",
   "Add a PDF or YouTube source first, then say “{phrase}” again.":
     "Ajoutez d’abord un PDF ou une source YouTube, puis redites « {phrase} ».",
+  "Add a PDF or YouTube video first, then ask your question.":
+    "Ajoutez d’abord un PDF ou une vidéo YouTube, puis posez votre question.",
   "Voice actions are preparing for the next command.":
     "Les commandes vocales se préparent pour la prochaine commande.",
   "Use at least one letter or number in the trigger phrase.":
@@ -737,4 +743,15 @@ export const french: Dictionary = {
     "Votre navigateur ne peut pas lire cette vidéo.",
   "English audio · English and French captions. Recorded in the app with a generated caller voice and live answers.":
     "Audio en anglais · Sous-titres en anglais et en français. Enregistré dans l’application avec une voix générée pour les questions et des réponses en direct.",
+  // Theme toggle
+  "Use dark theme": "Utiliser le thème sombre",
+  "Use light theme": "Utiliser le thème clair",
+  // Device connection
+  "Connect a device": "Connecter un appareil",
+  "Bluetooth or internet": "Bluetooth ou internet",
+  // Motion theater
+  "Theater Window": "Fenêtre théâtre",
+  "Expand to theater size": "Agrandir en mode théâtre",
+  // AppLoader
+  "Ursly is opening": "Ursly s'ouvre",
 };

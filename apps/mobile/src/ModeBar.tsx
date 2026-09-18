@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
-  Animated,
-  Easing,
   StyleSheet,
   Text,
   View,
   type LayoutChangeEvent,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
+import { select } from "./haptics";
 import type { TranslationKey } from "./i18n";
 import { MODES, type EntryMode, type ModeId } from "./modes";
 import { palette as c, SourceIcon, Touch, Wave } from "./design";
@@ -40,45 +44,40 @@ function ModeItem({
   t: (key: TranslationKey) => string;
   onChoose: (id: ModeId) => void;
 }) {
-  const [selection] = useState(() => new Animated.Value(checked ? 1 : 0));
+  const checkedValue = useSharedValue(checked ? 1 : 0);
+
   useEffect(() => {
-    if (!motion) {
-      selection.setValue(checked ? 1 : 0);
-      return;
-    }
-    Animated.timing(selection, {
-      toValue: checked ? 1 : 0,
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [checked, motion, selection]);
+    // eslint-disable-next-line react-hooks/immutability -- reanimated shared values are mutated via .value
+    checkedValue.value = motion
+      ? withSpring(checked ? 1 : 0, { damping: 15, stiffness: 200 })
+      : checked ? 1 : 0;
+  }, [checked, motion, checkedValue]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: checkedValue.value,
+    transform: [
+      {
+        scale:
+          checkedValue.value === 1 && motion ? withSpring(1, { damping: 15 }) : 0.94 + 0.06 * checkedValue.value,
+      },
+    ],
+  }));
+
   return (
     <Touch
       label={t(item.label)}
       motion={motion}
       selected={checked}
       accessibilityRole="radio"
-      onPress={() => onChoose(item.id)}
+      onPress={() => {
+        select();
+        onChoose(item.id);
+      }}
       style={s.item}
     >
       <Animated.View
         pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          s.itemSelected,
-          {
-            opacity: selection,
-            transform: [
-              {
-                scale: selection.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.94, 1],
-                }),
-              },
-            ],
-          },
-        ]}
+        style={[StyleSheet.absoluteFill, s.itemSelected, animatedStyle]}
       />
       <View style={s.itemInner}>
         <Glyph id={item.id} color={color} />

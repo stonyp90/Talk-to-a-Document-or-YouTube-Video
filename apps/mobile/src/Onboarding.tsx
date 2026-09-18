@@ -24,6 +24,7 @@ import {
 } from "./design";
 import { IntroVideo } from "./IntroVideo";
 import { planOffer, pricingCopy } from "./pricing";
+import { select, success, tap } from "./haptics";
 
 const storageKey = "ursly-mobile-onboarding-v1";
 const slideDuration = 2800;
@@ -78,20 +79,23 @@ const steps: Step[] = [
 type Props = {
   motion: boolean;
   language: Language;
+  onLanguageChange: (language: Language) => void;
   t: (key: TranslationKey) => string;
 };
 
-export function MobileOnboarding({ motion, language, t }: Props) {
-  const [ready, setReady] = useState(false);
-  const [visible, setVisible] = useState(false);
+export function MobileOnboarding({ motion, language, onLanguageChange, t }: Props) {
+  const [ready, setReady] = useState(true);
+  const [visible, setVisible] = useState(false); // TEMP: bypass onboarding for testing
   const [step, setStep] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [copyOpacity] = useState(() => new Animated.Value(1));
   const [copyOffset] = useState(() => new Animated.Value(0));
   const [artOpacity] = useState(() => new Animated.Value(1));
   const [artScale] = useState(() => new Animated.Value(1));
 
   const finish = useCallback(() => {
+    success();
     setVisible(false);
     void AsyncStorage.setItem(storageKey, "done").catch(() => undefined);
   }, []);
@@ -104,8 +108,8 @@ export function MobileOnboarding({ motion, language, t }: Props) {
   useEffect(() => {
     let mounted = true;
     AsyncStorage.getItem(storageKey)
-      .then(() => {
-        if (mounted) setVisible(true);
+      .then((value) => {
+        if (mounted) setVisible(value !== "done");
       })
       .catch(() => {
         if (mounted) setVisible(true);
@@ -189,6 +193,18 @@ export function MobileOnboarding({ motion, language, t }: Props) {
             <IntroVideo motion={motion} language={language} t={t} />
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={t("Menu")}
+              onPress={() => setMenuOpen(true)}
+              style={s.menuButton}
+            >
+              <View style={s.hamburger}>
+                <View style={s.hamburgerLine} />
+                <View style={s.hamburgerLine} />
+                <View style={s.hamburgerLine} />
+              </View>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
               accessibilityLabel={t(paused ? "Resume slides" : "Pause slides")}
               onPress={() => setPaused((value) => !value)}
               style={s.pauseButton}
@@ -264,7 +280,10 @@ export function MobileOnboarding({ motion, language, t }: Props) {
                 key={item.label}
                 accessibilityRole="button"
                 accessibilityLabel={`${t("Go to step")} ${index + 1}: ${t(item.label)}`}
-                onPress={() => setStep(index)}
+                onPress={() => {
+                  select();
+                  setStep(index);
+                }}
                 style={[s.railItem, index === step && s.railItemActive]}
               >
                 <Text
@@ -285,7 +304,10 @@ export function MobileOnboarding({ motion, language, t }: Props) {
             <Touch
               label={t("Skip onboarding")}
               motion={motion}
-              onPress={finish}
+              onPress={() => {
+                tap();
+                finish();
+              }}
               style={s.skip}
             >
               <Text style={s.skipText}>{t("Skip onboarding")}</Text>
@@ -294,7 +316,10 @@ export function MobileOnboarding({ motion, language, t }: Props) {
               <Touch
                 label={t("Back")}
                 motion={motion}
-                onPress={() => setStep((current) => current - 1)}
+                onPress={() => {
+                  tap();
+                  setStep((current) => current - 1);
+                }}
                 style={s.back}
               >
                 <Text style={s.backText}>{t("Back")}</Text>
@@ -303,7 +328,10 @@ export function MobileOnboarding({ motion, language, t }: Props) {
             <Touch
               label={t(step === steps.length - 1 ? "Open Ursly" : "Continue")}
               motion={motion}
-              onPress={advance}
+              onPress={() => {
+                tap();
+                advance();
+              }}
               style={s.primary}
             >
               <Text style={s.primaryText}>
@@ -313,6 +341,65 @@ export function MobileOnboarding({ motion, language, t }: Props) {
             </Touch>
           </View>
         </View>
+
+        {menuOpen && (
+          <Modal
+            visible={menuOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setMenuOpen(false)}
+          >
+            <Pressable
+              style={s.menuOverlay}
+              onPress={() => setMenuOpen(false)}
+            >
+              <View style={s.menuSheet}>
+                <View style={s.menuHandle} />
+                <Text style={s.menuTitle}>{t("Menu")}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t("Skip onboarding")}
+                  onPress={() => {
+                    setMenuOpen(false);
+                    finish();
+                  }}
+                  style={s.menuItem}
+                >
+                  <Text style={s.menuItemText}>{t("Skip onboarding")}</Text>
+                  <Text style={s.menuArrow}>↗</Text>
+                </Pressable>
+                <View style={s.menuDivider} />
+                <Text style={s.menuSectionLabel}>{t("Language")}</Text>
+                <View style={s.languageRow}>
+                  {(["en", "fr"] as const).map((code) => (
+                    <Pressable
+                      key={code}
+                      accessibilityRole="button"
+                      accessibilityLabel={code === "en" ? "English" : "Français"}
+                      onPress={() => {
+                        onLanguageChange(code);
+                        setMenuOpen(false);
+                      }}
+                      style={[
+                        s.languageButton,
+                        language === code && s.languageButtonActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          s.languageButtonText,
+                          language === code && s.languageButtonTextActive,
+                        ]}
+                      >
+                        {code === "en" ? "English" : "Français"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </Pressable>
+          </Modal>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -525,6 +612,107 @@ const s = StyleSheet.create({
   },
   pauseIcon: { color: c.coral, fontSize: 10, fontWeight: "800" },
   pauseText: { color: c.muted, fontSize: 10 },
+  menuButton: {
+    paddingVertical: 5,
+    paddingHorizontal: 2,
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  hamburger: {
+    width: 18,
+    height: 14,
+    justifyContent: "space-between",
+  },
+  hamburgerLine: {
+    width: "100%",
+    height: 1.5,
+    backgroundColor: c.ink,
+    borderRadius: 1,
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: c.scrim,
+    justifyContent: "flex-end",
+  },
+  menuSheet: {
+    backgroundColor: c.paper,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 22,
+    paddingBottom: 34,
+    gap: 16,
+  },
+  menuHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: c.line,
+    alignSelf: "center",
+  },
+  menuTitle: {
+    color: c.ink,
+    fontSize: 18,
+    fontWeight: "800",
+    fontFamily: serif,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: c.line,
+    minHeight: 44,
+  },
+  menuItemText: {
+    color: c.ink,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  menuArrow: {
+    color: c.coral,
+    fontSize: 16,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: c.line,
+    marginTop: 4,
+  },
+  menuSectionLabel: {
+    color: c.muted,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+  languageRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  languageButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.line,
+    minHeight: 44,
+  },
+  languageButtonActive: {
+    borderColor: c.coral,
+    backgroundColor: c.peach,
+  },
+  languageButtonText: {
+    color: c.muted,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  languageButtonTextActive: {
+    color: c.ink,
+    fontWeight: "700",
+  },
   content: { flex: 1 },
   guideScroll: { flex: 1 },
   guideScrollContent: {
@@ -536,7 +724,7 @@ const s = StyleSheet.create({
   artFrame: { minHeight: 180, alignItems: "center", justifyContent: "center" },
   copy: { gap: 12 },
   stepLabel: {
-    color: "#A9513A",
+    color: c.stepLabel,
     fontSize: 10,
     letterSpacing: 1.5,
     fontWeight: "800",
@@ -563,7 +751,7 @@ const s = StyleSheet.create({
     paddingTop: 9,
   },
   railItemActive: { borderTopColor: c.coral },
-  railNumber: { color: "#9B9294", fontSize: 10, fontWeight: "700" },
+  railNumber: { color: c.softMuted, fontSize: 10, fontWeight: "700" },
   railNumberActive: { color: c.coral },
   railLabel: { color: c.muted, fontSize: 10 },
   railLabelActive: { color: c.ink, fontWeight: "700" },
@@ -709,7 +897,7 @@ const art = StyleSheet.create({
   line: {
     height: 3,
     borderRadius: 3,
-    backgroundColor: "#E7E1DB",
+    backgroundColor: c.softLavender,
     width: "78%",
   },
   sourcePill: {
@@ -724,9 +912,9 @@ const art = StyleSheet.create({
     paddingVertical: 9,
     paddingHorizontal: 13,
   },
-  pillDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#677C4A" },
+  pillDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.olive },
   pillText: {
-    color: "#4D5E39",
+    color: c.oliveDark,
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1,
@@ -750,9 +938,9 @@ const art = StyleSheet.create({
     height: 210,
     borderRadius: 110,
     borderWidth: 1,
-    borderColor: "#D9D1C5",
+    borderColor: c.strongLine,
   },
-  ringInner: { width: 160, height: 160, borderColor: "#C8B6A3" },
+  ringInner: { width: 160, height: 160, borderColor: c.warmLilac },
   voiceCore: {
     width: 112,
     height: 112,
@@ -810,7 +998,7 @@ const art = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  answerMarkText: { color: "#5D713E", fontSize: 15 },
+  answerMarkText: { color: c.oliveMid, fontSize: 15 },
   answerLines: { flex: 1, gap: 6, justifyContent: "center" },
   chatSpark: {
     position: "absolute",
@@ -851,7 +1039,7 @@ const art = StyleSheet.create({
     letterSpacing: 0.8,
   },
   modeDetail: { color: c.muted, fontSize: 10, marginLeft: "auto" },
-  motionGlyph: { color: "#677C4A", fontSize: 18 },
+  motionGlyph: { color: c.olive, fontSize: 18 },
   modeCaption: {
     position: "absolute",
     bottom: 5,

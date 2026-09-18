@@ -22,17 +22,81 @@ export const palette = {
   // Keep native surfaces on the same tokens as the web's light theme.
   coral: "#F47762",
   accent: "#A84332",
+  stepLabel: "#A9513A",
   peach: "#FBE2D6",
   lavender: "#EEE9E1",
+  softLavender: "#E7E1DB",
   lilac: "#B8AA99",
+  warmLilac: "#C8B6A3",
   lime: "#D8EEAE",
+  olive: "#677C4A",
+  oliveDark: "#4D5E39",
+  oliveMid: "#5D713E",
   // Keep native cards aligned with the web surface instead of pure white.
   white: "#FFFDF9",
   line: "#E5E0D8",
+  strongLine: "#D9D1C5",
+  inputBorder: "#C9C0B5",
   scrim: "#29273599",
   error: "#A23F3F",
   errorBg: "#FCE8E3",
+  softMuted: "#9B9294",
+  orbitRing: "#514B59",
+  orbitRingInner: "#77717B",
+  revealBg: "#FDFBF7",
+  sheetBg: "#F2EEE8",
+  stepNumber: "#765B48",
+  selectedBg: "#FFE0D5",
+  gestureWave: "#4D7C0F",
+  gestureSummarize: "#0369A1",
+  gestureCancel: "#B91C1C",
+  gestureGaze: "#7C3AED",
+  // Dark HUD overlay for the motion camera gesture controls
+  hudBg: "#0D0F12",
+  hudText: "#FFFFFF",
+  hudMuted: "rgba(255, 255, 255, 0.65)",
+  hudReticle: "#38BDF8",
+  hudReticleFocus: "#A855F7",
+  hudJoint: "#FDE047",
+  hudLive: "#EF4444",
+  hudPanel: "#0F172A",
+  hudPanelBorder: "rgba(242, 117, 97, 0.3)",
+  hudSubtleBorder: "rgba(255, 255, 255, 0.12)",
+  hudSubtleLine: "rgba(255, 255, 255, 0.15)",
+  hudWhite20: "rgba(255, 255, 255, 0.2)",
+  hudWhite6: "rgba(255, 255, 255, 0.06)",
+  hudWhite8: "rgba(255, 255, 255, 0.08)",
+  hudWhite10: "rgba(255, 255, 255, 0.1)",
+  hudWhite40: "rgba(255, 255, 255, 0.4)",
+  hudWhite50: "rgba(255, 255, 255, 0.5)",
+  hudWhite60: "rgba(255, 255, 255, 0.6)",
+  hudWhite70: "rgba(255, 255, 255, 0.7)",
+  hudReticleBg: "rgba(56, 189, 248, 0.15)",
+  hudFocusBg: "rgba(168, 85, 247, 0.28)",
+  hudGazeLine: "rgba(56, 189, 248, 0.4)",
+  hudPalmBg: "rgba(242, 117, 97, 0.18)",
+  hudPanelBg: "rgba(15, 23, 42, 0.75)",
+  hudPanelBgHeavy: "rgba(15, 23, 42, 0.9)",
+  hudChipBg: "rgba(255, 255, 255, 0.12)",
+  hudJointBorder: "#000000",
+  hudToggleBg: "rgba(255, 255, 255, 0.15)",
 };
+
+export const spacing = {
+  "3xs": 2,
+  "2xs": 4,
+  xs: 6,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  "2xl": 24,
+  "3xl": 32,
+  "4xl": 48,
+  "5xl": 64,
+  "6xl": 96,
+};
+
 export const serif = Platform.select({ ios: "Georgia", android: "serif" });
 
 export function useMotion() {
@@ -337,7 +401,7 @@ export function Orbit({ motion }: { motion: boolean }) {
       <View
         style={[
           d.orbitRing,
-          { width: 142, height: 142, borderColor: "#77717B" },
+          { width: 142, height: 142, borderColor: palette.orbitRingInner },
         ]}
       />
       <Animated.View
@@ -439,7 +503,7 @@ const d = StyleSheet.create({
     width: 164,
     height: 164,
     borderWidth: 1,
-    borderColor: "#514B59",
+    borderColor: palette.orbitRing,
     borderRadius: 100,
   },
   orbitCore: {

@@ -27,6 +27,7 @@ import { registerConversationChecks } from "./conversation";
 import { registerVoiceChecks } from "./voice";
 import { registerDiscussionChecks } from "./discussion";
 import { registerMotionChecks } from "./motion";
+import { registerFileBrowserChecks } from "./fileBrowser";
 import { APP_PATH } from "../routes";
 import { registerDiscoverabilityChecks } from "./discoverability";
 import { registerVoiceConsentChecks } from "./voice-consent";
@@ -137,7 +138,7 @@ async function upload(
         (r.url().endsWith("/api/uploads") && !r.ok())),
   );
   await p.getByLabel("PDF file").setInputFiles({ name, mimeType, buffer });
-  await p.getByRole("button", { name: "Continue to questions" }).click();
+  await p.getByRole("button", { name: "Continue" }).click();
   await response;
 }
 async function youtube(this: World, url = "https://youtu.be/dQw4w9WgXcQ") {
@@ -145,7 +146,7 @@ async function youtube(this: World, url = "https://youtu.be/dQw4w9WgXcQ") {
   await p.getByRole("tab", { name: "YouTube video" }).click();
   await p.getByLabel("YouTube URL").fill(url);
   const response = p.waitForResponse((r) => r.url().endsWith("/api/ingest"));
-  await p.getByRole("button", { name: "Continue to questions" }).click();
+  await p.getByRole("button", { name: "Continue" }).click();
   await result(this, await response);
 }
 async function ready(this: World) {
@@ -757,7 +758,7 @@ step("I select the retry action", async function () {
   const request = p.waitForRequest((r) => r.url().endsWith("/api/ingest"));
   const response = p.waitForResponse((r) => r.url().endsWith("/api/ingest"));
   // Resubmitting the retained input is the application's current retry action.
-  await p.getByRole("button", { name: /Retry|Continue to questions/ }).click();
+  await p.getByRole("button", { name: /Retry|Continue/ }).click();
   await request;
   await expect(
     p.locator(".voice-controls button").filter({ hasText: "Start Voice Chat" }),
@@ -795,7 +796,7 @@ step("the error explains what happened in plain language", async function () {
 step("a retry action is available when retrying is safe", async function () {
   await expect(
     (await page(this)).getByRole("button", {
-      name: /Retry|Continue to questions/,
+      name: /Retry|Continue/,
     }),
   ).toBeEnabled();
 });
@@ -811,7 +812,7 @@ step("I have submitted a source", async function () {
   });
   await p.getByRole("tab", { name: "YouTube video" }).click();
   await p.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
-  await p.getByRole("button", { name: "Continue to questions" }).click();
+  await p.getByRole("button", { name: "Continue" }).click();
 });
 step(
   ["ingestion is in progress", "a loading state is visible"],
@@ -979,6 +980,7 @@ registerMotionChecks(step);
 registerPricingChecks(step, { page });
 registerDiscoverabilityChecks(step);
 registerVoiceConsentChecks(step);
+registerFileBrowserChecks(step);
 const stopDiscussion = registerDiscussionChecks(step);
 
 // Static inventory: unsupported steps are PENDING, never successful. Newly added

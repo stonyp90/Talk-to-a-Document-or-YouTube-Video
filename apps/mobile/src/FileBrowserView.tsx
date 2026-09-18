@@ -24,6 +24,7 @@ type FileBrowserViewProps = {
   rootId: string;
   onClose: () => void;
   onFileSelect: (node: FileNode) => void;
+  navigatorRef?: React.MutableRefObject<ReturnType<typeof createFileNavigator> | null>;
 };
 
 const COLUMNS = 3;
@@ -33,10 +34,12 @@ export default function FileBrowserView({
   rootId,
   onClose,
   onFileSelect,
+  navigatorRef: externalNavigatorRef,
 }: FileBrowserViewProps): React.ReactElement {
-  const navigatorRef = useRef<ReturnType<typeof createFileNavigator> | null>(
+  const internalNavigatorRef = useRef<ReturnType<typeof createFileNavigator> | null>(
     null,
   );
+  const navigatorRef = externalNavigatorRef ?? internalNavigatorRef;
   const [navState, setNavState] = useState<FileNavState | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
 

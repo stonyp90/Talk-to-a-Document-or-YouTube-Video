@@ -60,6 +60,13 @@ const channel = chatSocketUrl(origin, process.env.EXPO_PUBLIC_CHAT_SOCKET_URL);
 import { ModeBar } from "./src/ModeBar";
 import { MobileOnboarding } from "./src/Onboarding";
 import { MotionCameraView } from "./src/MotionCameraView";
+import FileBrowserView from "./src/FileBrowserView";
+import { createMemoryFileSystem } from "../../packages/adapters/src/fileSystem";
+import type { FileNode } from "../../packages/core/src/domain/fileSystem";
+import {
+  createFileNavigator,
+  type FileNavAction,
+} from "../../packages/core/src/domain/fileNavigation";
 import {
   chooseMode,
   DEFAULT_MODE,
@@ -139,6 +146,7 @@ export default function App() {
   // Who is reading. Everything that spends provider credit waits for this.
   const [account, setAccount] = useState<{ email: string } | null>(null);
   const [signInOpen, setSignInOpen] = useState(false);
+  const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
   // The way this person drives Ursly. Voice until they choose otherwise;
   // the choice is remembered on the device, as the web remembers it per browser.
   const [entryMode, setEntryMode] = useState<EntryMode>("voice");
@@ -147,6 +155,8 @@ export default function App() {
   }, []);
   const voice = useRef<NativeVoice | null>(null);
   const chat = useRef<ChatClient | null>(null);
+  const fileSystemRef = useRef(createMemoryFileSystem());
+  const fileNavigatorRef = useRef<ReturnType<typeof createFileNavigator> | null>(null);
   /** What the channel calls this conversation, so a question is a short frame. */
   const sourceId = useRef<string | undefined>(undefined);
   const sourceRef = useRef<IngestedSource | undefined>(undefined);
@@ -443,6 +453,11 @@ export default function App() {
       return;
     }
     showToast(t("Voice action received"));
+    if (action === "open") {
+      setFileBrowserOpen(true);
+      setToast("Opening files");
+      return;
+    }
     if (action === "upload") {
       void ingest("pdf");
       return;
@@ -497,6 +512,9 @@ export default function App() {
     setSheet(null);
     setError("");
     setQuestion("");
+  }
+  function handleFileNav(action: FileNavAction) {
+    fileNavigatorRef.current?.dispatch(action);
   }
   function chooseEntryMode(id: ModeId) {
     const next = chooseMode(entryMode, id);
@@ -1296,14 +1314,28 @@ export default function App() {
           />
         )}
       </SafeAreaView>
+      {fileBrowserOpen && (
+        <FileBrowserView
+          fs={fileSystemRef.current}
+          rootId="root"
+          navigatorRef={fileNavigatorRef}
+          onClose={() => setFileBrowserOpen(false)}
+          onFileSelect={(node: FileNode) => {
+            setToast(`Selected: ${node.name}`);
+            setFileBrowserOpen(false);
+          }}
+        />
+      )}
       {entryMode === "motion" && (
         <MotionCameraView
           prompts={suggestions}
           canAsk={Boolean(source)}
+          fileBrowserOpen={fileBrowserOpen}
           onAsk={(questionText) => {
             void askPrompt(questionText);
           }}
           onAction={(act) => handleVoiceAction(act)}
+          onFileNav={handleFileNav}
           onClose={() => chooseEntryMode("voice")}
           t={t}
         />

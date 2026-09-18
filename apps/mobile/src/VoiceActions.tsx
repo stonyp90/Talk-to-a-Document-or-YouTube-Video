@@ -26,7 +26,7 @@ import {
 } from "./voiceCommandMatcher";
 
 export type MobileVoiceActionId =
-  "youtube" | "upload" | "voice" | "summarize" | "back" | "next" | "cancel";
+  "youtube" | "upload" | "voice" | "summarize" | "back" | "next" | "cancel" | "open";
 
 type VoiceTrigger = {
   id: string;
@@ -58,6 +58,7 @@ const actionLabels: Record<MobileVoiceActionId, TranslationKey> = {
   back: "Go back or undo the last step",
   next: "Go forward to the next step",
   cancel: "Cancel the current action",
+  open: "Open the file browser",
 };
 const actionTitles: Record<MobileVoiceActionId, TranslationKey> = {
   youtube: "YouTube",
@@ -67,6 +68,7 @@ const actionTitles: Record<MobileVoiceActionId, TranslationKey> = {
   back: "Undo last step",
   next: "Next step",
   cancel: "Cancel action",
+  open: "Files",
 };
 const actionDescriptions: Record<MobileVoiceActionId, TranslationKey> = {
   youtube: "Open your YouTube source",
@@ -76,6 +78,7 @@ const actionDescriptions: Record<MobileVoiceActionId, TranslationKey> = {
   back: "Go back or undo the previous step",
   next: "Continue to the next step",
   cancel: "Stop the current action",
+  open: "Browse your files and documents",
 };
 const actionReplies: Record<MobileVoiceActionId, TranslationKey> = {
   youtube: "Opening the YouTube source.",
@@ -85,6 +88,7 @@ const actionReplies: Record<MobileVoiceActionId, TranslationKey> = {
   back: "Going back and undoing the last step.",
   next: "Moving forward to the next step.",
   cancel: "Cancelling the current action.",
+  open: "Opening the file browser.",
 };
 const defaultTriggers: VoiceTrigger[] = [
   { id: "default-back", phrase: "back", action: "back" },

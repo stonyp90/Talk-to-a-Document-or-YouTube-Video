@@ -30,14 +30,17 @@ import {
 import { medium } from "./haptics";
 import type { TranslationKey } from "./i18n";
 import type { MobileVoiceActionId } from "./VoiceActions";
+import type { FileNavAction } from "../../../packages/core/src/domain/fileNavigation";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export type MotionCameraViewProps = {
   prompts: readonly string[];
   canAsk: boolean;
+  fileBrowserOpen?: boolean;
   onAsk: (prompt: string) => void;
   onAction: (action: MobileVoiceActionId) => void;
+  onFileNav?: (action: FileNavAction) => void;
   onClose: () => void;
   t: (key: TranslationKey) => string;
 };
@@ -107,8 +110,10 @@ function SettingSlider({
 export function MotionCameraView({
   prompts,
   canAsk,
+  fileBrowserOpen = false,
   onAsk,
   onAction,
+  onFileNav,
   onClose,
   t,
 }: MotionCameraViewProps) {
@@ -378,16 +383,28 @@ export function MotionCameraView({
 
   // Gestures Handlers
   const handleSwipeLeft = useCallback(() => {
+    if (fileBrowserOpen) {
+      fireAction("SWIPE LEFT ↤", "File: Previous", () => {
+        onFileNav?.({ type: "prev" });
+      }, c.gestureGaze);
+      return;
+    }
     fireAction("SWIPE LEFT ↤", "Previous Question", () => {
       setChosenPromptIndex((idx) => (idx > 0 ? idx - 1 : prompts.length - 1));
     });
-  }, [fireAction, prompts.length]);
+  }, [fireAction, prompts.length, fileBrowserOpen, onFileNav]);
 
   const handleSwipeRight = useCallback(() => {
+    if (fileBrowserOpen) {
+      fireAction("SWIPE RIGHT ↦", "File: Next", () => {
+        onFileNav?.({ type: "next" });
+      }, c.gestureGaze);
+      return;
+    }
     fireAction("SWIPE RIGHT ↦", "Next Question", () => {
       setChosenPromptIndex((idx) => idx + 1);
     });
-  }, [fireAction]);
+  }, [fireAction, fileBrowserOpen, onFileNav]);
 
   const handleHandWave = useCallback(() => {
     fireAction(
@@ -401,6 +418,12 @@ export function MotionCameraView({
   }, [currentPrompt, fireAction, onAsk]);
 
   const handleSwipeUp = useCallback(() => {
+    if (fileBrowserOpen) {
+      fireAction("SWIPE UP ↥", "File: Open", () => {
+        onFileNav?.({ type: "openSelected" });
+      }, c.gestureWave);
+      return;
+    }
     fireAction(
       "SWIPE UP ↥",
       "Summarize Document",
@@ -409,9 +432,15 @@ export function MotionCameraView({
       },
       c.gestureSummarize,
     );
-  }, [fireAction, onAction]);
+  }, [fireAction, onAction, fileBrowserOpen, onFileNav]);
 
   const handleSwipeDown = useCallback(() => {
+    if (fileBrowserOpen) {
+      fireAction("SWIPE DOWN ↧", "File: Go Up", () => {
+        onFileNav?.({ type: "navigateUp" });
+      }, c.gestureCancel);
+      return;
+    }
     fireAction(
       "SWIPE DOWN ↧",
       "Cancel / Stop",
@@ -420,7 +449,7 @@ export function MotionCameraView({
       },
       c.gestureCancel,
     );
-  }, [fireAction, onAction]);
+  }, [fireAction, onAction, fileBrowserOpen, onFileNav]);
 
   const handleEyeFocus = useCallback(() => {
     setEyeFocused(true);
@@ -440,6 +469,35 @@ export function MotionCameraView({
     (gesture: BodyGestureId) => {
       setLastBodyGesture(gesture);
       setBodyGestureCount((c) => c + 1);
+
+      // When the file browser is open, remap body gestures to file navigation
+      if (fileBrowserOpen) {
+        switch (gesture) {
+          case "leanLeft":
+            fireAction("LEAN LEFT ↤", "File: Previous", () => {
+              onFileNav?.({ type: "prev" });
+            }, c.gestureGaze);
+            break;
+          case "leanRight":
+            fireAction("LEAN RIGHT ↦", "File: Next", () => {
+              onFileNav?.({ type: "next" });
+            }, c.gestureGaze);
+            break;
+          case "nod":
+            fireAction("NOD", "File: Open", () => {
+              onFileNav?.({ type: "openSelected" });
+            }, c.gestureWave);
+            break;
+          case "shake":
+            fireAction("HEAD SHAKE", "File: Go Up", () => {
+              onFileNav?.({ type: "navigateUp" });
+            }, c.gestureCancel);
+            break;
+          default:
+            break;
+        }
+        return;
+      }
 
       switch (gesture) {
         case "wave":
@@ -492,7 +550,7 @@ export function MotionCameraView({
           break;
       }
     },
-    [fireAction, currentPrompt, onAsk, onAction, handleSwipeLeft, handleSwipeRight],
+    [fireAction, currentPrompt, onAsk, onAction, handleSwipeLeft, handleSwipeRight, fileBrowserOpen, onFileNav],
   );
 
   // PanResponder to allow direct gesture control across the screen

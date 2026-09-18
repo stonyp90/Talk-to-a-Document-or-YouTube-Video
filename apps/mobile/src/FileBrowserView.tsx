@@ -15,9 +15,12 @@ import type {
 } from "../../../packages/core/src/domain/fileSystem";
 import {
   createFileNavigator,
+  type FileNavIntent,
   type FileNavState,
 } from "../../../packages/core/src/domain/fileNavigation";
 import FileNodeCard from "./FileNodeCard";
+
+const Z_HOLOGRAM = 100;
 
 type FileBrowserViewProps = {
   fs: FileSystemPort;
@@ -157,7 +160,7 @@ export default function FileBrowserView({
 const s = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFill,
-    zIndex: 9999,
+    zIndex: Z_HOLOGRAM,
     backgroundColor: "rgba(10, 10, 18, 0.95)",
   },
   safe: {

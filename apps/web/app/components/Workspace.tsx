@@ -49,6 +49,9 @@ import {
 import { streamAnswer } from "@/apps/web/src/lib/streamAnswer";
 import { readSession, signOut } from "@/apps/web/src/lib/account";
 import { YouTubePlayer } from "./YouTubePlayer";
+import ImmersiveFileBrowser from "./ImmersiveFileBrowser";
+import { createMemoryFileSystem } from "@/packages/adapters/src/fileSystem";
+import type { FileNode } from "@/packages/core/src/domain/fileSystem";
 
 type SourceTab = "pdf" | "youtube";
 
@@ -229,6 +232,9 @@ export default function Workspace() {
   const [videoChoices, setVideoChoices] = useState<VideoResult[]>([]);
   const [searchingVideos, setSearchingVideos] = useState(false);
   const [videoId, setVideoId] = useState<string | undefined>(undefined);
+  const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
+  const fileSystemRef = useRef(createMemoryFileSystem());
+  const [gazePosition, setGazePosition] = useState<{ x: number; y: number } | null>(null);
   const micSupported = useSyncExternalStore(
     NO_CHANGE,
     readMicrophoneSupport,
@@ -1180,6 +1186,19 @@ export default function Workspace() {
       window.requestAnimationFrame(() => questionInput.current?.focus());
       return;
     }
+    if (action === "open") {
+      setFileBrowserOpen(true);
+      setVoiceActionNotice("Opening file browser");
+      return;
+    }
+    if (action === "select") {
+      setVoiceActionNotice("Select a file with gaze or gesture");
+      return;
+    }
+    if (action === "search") {
+      setVoiceActionNotice("Search coming soon");
+      return;
+    }
 
     invalidateVoice();
     uploadRequest.current?.abort();
@@ -1223,6 +1242,11 @@ export default function Workspace() {
         void askQuestion(spoken);
       }}
       onAction={handleVoiceAction}
+      fileBrowserOpen={fileBrowserOpen}
+      onFileAction={(fileAction) => {
+        setVoiceActionNotice(`File: ${fileAction}`);
+      }}
+      onGazeUpdate={(position) => setGazePosition(position)}
     />
   );
 
@@ -2049,6 +2073,20 @@ export default function Workspace() {
           )}
           <SiteFooter page="app" />
         </div>
+
+        <ImmersiveFileBrowser
+          open={fileBrowserOpen}
+          fs={fileSystemRef.current}
+          rootId="root"
+          onClose={() => setFileBrowserOpen(false)}
+          onFileSelect={(node: FileNode) => {
+            if (node.kind === "file" && node.sourceId) {
+              setVoiceActionNotice(`Selected: ${node.name}`);
+            }
+            setFileBrowserOpen(false);
+          }}
+          gaze={gazePosition}
+        />
       </main>
     </>
   );

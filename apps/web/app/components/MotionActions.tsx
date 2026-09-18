@@ -40,6 +40,12 @@ export type MotionActionsProps = {
     video: HTMLVideoElement;
     onEvent: (event: MotionCameraEvent) => void;
   }) => { start(): Promise<void>; stop(): void };
+  /** Whether the file browser overlay is currently open. */
+  fileBrowserOpen?: boolean;
+  /** Actions available while the file browser is open. */
+  onFileAction?: (action: "navigateUp" | "next" | "prev" | "openSelected") => void;
+  /** Reports the current gaze/face position in normalised coordinates. */
+  onGazeUpdate?: (position: { x: number; y: number } | null) => void;
 };
 
 /** What each movement does, in the order the legend lists them. */
@@ -65,6 +71,9 @@ export function MotionActions({
   onAction,
   canAsk,
   createCamera,
+  fileBrowserOpen = false,
+  onFileAction,
+  onGazeUpdate,
 }: MotionActionsProps) {
   const { t } = useLanguage();
   const hydrated = useHydrated();
@@ -98,6 +107,29 @@ export function MotionActions({
   /** What each movement does. The panel owns the choosing; the rest is the bus. */
   const perform = useCallback(
     (gesture: MotionGestureId) => {
+      // When the file browser is open, gestures drive file navigation instead
+      // of the normal question-selection flow.
+      if (fileBrowserOpen && onFileAction) {
+        switch (gesture) {
+          case "right":
+            onFileAction("next");
+            setLastActionTrigger({ gesture: "SWIPE RIGHT ↦", action: "Next file" });
+            return;
+          case "left":
+            onFileAction("prev");
+            setLastActionTrigger({ gesture: "SWIPE LEFT ↤", action: "Previous file" });
+            return;
+          case "hold":
+            onFileAction("openSelected");
+            setLastActionTrigger({ gesture: "HAND WAVE ✋", action: "Open selected file" });
+            return;
+          case "up":
+            onFileAction("navigateUp");
+            setLastActionTrigger({ gesture: "SWIPE UP ↥", action: "Navigate up" });
+            return;
+        }
+      }
+
       if (gesture === "right" || gesture === "left") {
         const length = Math.max(1, prompts.length);
         const next =
@@ -147,7 +179,7 @@ export function MotionActions({
       });
       onAction("stop");
     },
-    [announce, canAsk, onAction, onAsk, prompts, t],
+    [announce, canAsk, onAction, onAsk, prompts, t, fileBrowserOpen, onFileAction],
   );
 
   // Read through a ref, so a new question or a language change never restarts
@@ -158,6 +190,7 @@ export function MotionActions({
     if (event.type === "reading") {
       setEnergy(event.energy);
       setAt(event.at);
+      onGazeUpdate?.(event.at ?? null);
       return;
     }
     if (event.type === "gesture") return perform(event.gesture);
@@ -172,6 +205,7 @@ export function MotionActions({
       setWatching(false);
       setEnergy(0);
       setAt(undefined);
+      onGazeUpdate?.(null);
       return;
     }
     setStarting(false);

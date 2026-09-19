@@ -7,6 +7,7 @@ import { Box3, Vector3, type Group } from "three";
 import { Asset } from "expo-asset";
 import { CameraController } from "./CameraController";
 import { Starfield } from "./Starfield";
+import type { Planet } from "./useGalaxyState";
 
 function GalaxyModel() {
   const spin = useRef<Group>(null);
@@ -46,7 +47,50 @@ function LoadingFallback() {
   );
 }
 
-export function GalaxyScene() {
+function PlanetIndicators({
+  planets,
+  selectedId,
+  onSelect,
+}: {
+  planets: Planet[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <>
+      {planets.map((planet) => {
+        const isSelected = planet.id === selectedId;
+        return (
+          <mesh
+            key={planet.id}
+            position={planet.position}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(planet.id);
+            }}
+          >
+            <sphereGeometry args={[isSelected ? 0.2 : 0.12, 16, 16]} />
+            <meshStandardMaterial
+              color={planet.color}
+              emissive={planet.color}
+              emissiveIntensity={isSelected ? 0.8 : 0.3}
+            />
+          </mesh>
+        );
+      })}
+    </>
+  );
+}
+
+export function GalaxyScene({
+  planets,
+  selectedId,
+  orbitAngle,
+}: {
+  planets: Planet[];
+  selectedId: string | null;
+  orbitAngle: number;
+}) {
   return (
     <View style={styles.container}>
       <Suspense fallback={<LoadingFallback />}>
@@ -59,7 +103,12 @@ export function GalaxyScene() {
           <directionalLight position={[5, 5, 5]} intensity={1} />
           <Starfield />
           <GalaxyModel />
-          <CameraController selectedId={null} planets={[]} />
+          <PlanetIndicators
+            planets={planets}
+            selectedId={selectedId}
+            onSelect={() => {}}
+          />
+          <CameraController selectedId={selectedId} planets={planets} orbitAngle={orbitAngle} />
         </Canvas>
       </Suspense>
     </View>

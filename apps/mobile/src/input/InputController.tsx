@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useVoiceInput } from "./useVoiceInput";
 import { useMotionInput } from "./useMotionInput";
 import { useGazeInput } from "./useGazeInput";
@@ -26,7 +26,10 @@ export function InputController({
   );
 
   const action = resolveIntention(signals);
-  if (action) onAction(action);
+
+  useEffect(() => {
+    if (action) onAction(action);
+  }, [action, onAction]);
 
   return null;
 }

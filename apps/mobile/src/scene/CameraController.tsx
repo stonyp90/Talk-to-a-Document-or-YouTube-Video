@@ -6,13 +6,16 @@ import type { Planet } from "./useGalaxyState";
 const OVERVIEW_POSITION = new Vector3(0, 2, 8);
 const ORBIT_DISTANCE = 2.5;
 const FLY_SPEED = 3.0;
+const Y_AXIS = new Vector3(0, 1, 0);
 
 export function CameraController({
   selectedId,
   planets,
+  orbitAngle,
 }: {
   selectedId: string | null;
   planets: Planet[];
+  orbitAngle: number;
 }) {
   const { camera } = useThree();
   const target = useRef(OVERVIEW_POSITION.clone());
@@ -32,10 +35,10 @@ export function CameraController({
         lookTarget.current.set(px, py, pz);
       }
     } else {
-      target.current.copy(OVERVIEW_POSITION);
+      target.current.copy(OVERVIEW_POSITION).applyAxisAngle(Y_AXIS, orbitAngle);
       lookTarget.current.set(0, 0, 0);
     }
-  }, [selectedId, planets]);
+  }, [selectedId, planets, orbitAngle]);
 
   useFrame((_, delta) => {
     const step = delta * FLY_SPEED;

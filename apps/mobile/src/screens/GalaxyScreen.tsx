@@ -12,33 +12,62 @@ import { ARProvider, useAR } from "../ar/ARProvider";
 import { VoiceOrb } from "../ui/VoiceOrb";
 import { ARToggle } from "../ui/ARToggle";
 import { Breadcrumb } from "../ui/Breadcrumb";
+import { ConversationOverlay } from "./ConversationScreen";
 import type { SceneAction, GestureSignal } from "../input/intentionResolver";
 
 function GalaxyScreenInner() {
   const state = useGalaxyState();
   const ar = useAR();
   const [motionOffset, setMotionOffset] = useState<MotionOffset>({ x: 0, y: 0 });
+  const [conversationOpen, setConversationOpen] = useState(false);
   const stateRef = useRef(state);
   stateRef.current = state;
   const orbitRef = useRef(state.orbitAngle);
   orbitRef.current = state.orbitAngle;
+
+  const openConversation = useCallback(() => {
+    if (stateRef.current.selectedId) setConversationOpen(true);
+  }, []);
+
+  const closeConversation = useCallback(() => {
+    setConversationOpen(false);
+  }, []);
 
   const handleAction = useCallback(
     (action: SceneAction) => {
       const s = stateRef.current;
       switch (action.type) {
         case "fly-to":
-          s.selectPlanet(action.planetId);
+          if (s.selectedId === action.planetId) {
+            openConversation();
+          } else {
+            s.selectPlanet(action.planetId);
+          }
           break;
         case "fly-back":
-          s.flyBack();
+          if (conversationOpen) {
+            closeConversation();
+          } else {
+            s.flyBack();
+          }
           break;
         case "toggle-reality":
           ar.toggle();
           break;
+        case "open":
+          openConversation();
+          break;
+        case "dwell-select":
+        case "tap-planet":
+          if (s.selectedId === action.planetId) {
+            openConversation();
+          } else {
+            s.selectPlanet(action.planetId);
+          }
+          break;
       }
     },
-    [ar],
+    [ar, conversationOpen, openConversation, closeConversation],
   );
 
   const handleGesture = useCallback(
@@ -62,6 +91,14 @@ function GalaxyScreenInner() {
   const selectedPlanet = state.planets.find((p) => p.id === state.selectedId);
   const location = selectedPlanet ? selectedPlanet.name : "Galaxy";
 
+  const handleVoiceOrbPress = useCallback(() => {
+    if (stateRef.current.selectedId) {
+      openConversation();
+    } else {
+      voice.toggleListening();
+    }
+  }, [openConversation, voice]);
+
   return (
     <GestureDetector gesture={gesture}>
       <View style={styles.container}>
@@ -78,7 +115,7 @@ function GalaxyScreenInner() {
             <ARToggle active={ar.active} onToggle={ar.toggle} />
           </View>
           <View style={styles.bottomBar} pointerEvents="auto">
-            <VoiceOrb listening={voice.listening} onPress={voice.toggleListening} />
+            <VoiceOrb listening={voice.listening} onPress={handleVoiceOrbPress} />
           </View>
         </View>
         <InputController
@@ -89,6 +126,9 @@ function GalaxyScreenInner() {
           onGestureSignal={handleGesture}
           onMotionOffset={setMotionOffset}
         />
+        {conversationOpen && selectedPlanet && (
+          <ConversationOverlay planetName={selectedPlanet.name} onClose={closeConversation} />
+        )}
       </View>
     </GestureDetector>
   );

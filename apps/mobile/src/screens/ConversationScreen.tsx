@@ -1,12 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Text, Pressable } from "react-native";
 import { MessageStream } from "../ui/MessageStream";
 import { VoiceOrb } from "../ui/VoiceOrb";
 import { palette } from "../design";
 import { useConversation } from "../conversation/useConversation";
 import { useConversationVoice } from "../conversation/useConversationVoice";
-
-type Message = { id: string; role: "user" | "assistant"; text: string };
+import { generateReply } from "../conversation/generateReply";
 
 export function ConversationOverlay({
   planetName,
@@ -15,8 +14,15 @@ export function ConversationOverlay({
   planetName: string;
   onClose: () => void;
 }) {
-  const { messages, addUserMessage } = useConversation(planetName);
+  const { messages, addUserMessage, addAssistantMessage } = useConversation(planetName);
   const [listening, setListening] = useState(false);
+  const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (replyTimer.current) clearTimeout(replyTimer.current);
+    };
+  }, []);
 
   const handleUserSpeech = useCallback(
     (text: string) => {
@@ -26,8 +32,12 @@ export function ConversationOverlay({
         return;
       }
       addUserMessage(text);
+      const reply = generateReply(planetName, text);
+      replyTimer.current = setTimeout(() => {
+        addAssistantMessage(reply);
+      }, 800);
     },
-    [onClose, addUserMessage],
+    [onClose, addUserMessage, addAssistantMessage, planetName],
   );
 
   const { startListening, stopListening } = useConversationVoice(

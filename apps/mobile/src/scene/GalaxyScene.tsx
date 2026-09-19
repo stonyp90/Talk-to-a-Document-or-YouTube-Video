@@ -6,6 +6,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { Box3, Vector3, type Group } from "three";
 import { Asset } from "expo-asset";
 import { CameraController } from "./CameraController";
+import { Starfield } from "./Starfield";
 
 function GalaxyModel() {
   const spin = useRef<Group>(null);
@@ -56,6 +57,7 @@ export function GalaxyScene() {
         >
           <ambientLight intensity={0.5} />
           <directionalLight position={[5, 5, 5]} intensity={1} />
+          <Starfield />
           <GalaxyModel />
           <CameraController selectedId={null} planets={[]} />
         </Canvas>

@@ -5,6 +5,7 @@ import { GalaxyScene } from "../scene/GalaxyScene";
 import { useGalaxyState } from "../scene/useGalaxyState";
 import { InputController } from "../input/InputController";
 import { useGestureInput } from "../input/useGestureInput";
+import { useGalaxyVoice } from "../input/useGalaxyVoice";
 import { ARProvider, useAR } from "../ar/ARProvider";
 import { VoiceOrb } from "../ui/VoiceOrb";
 import { ARToggle } from "../ui/ARToggle";
@@ -78,6 +79,7 @@ function GalaxyScreenInner() {
   );
 
   const gesture = useGestureInput(hitTest, handleGesture);
+  const voice = useGalaxyVoice();
 
   const selectedPlanet = state.planets.find((p) => p.id === state.selectedId);
   const location = selectedPlanet ? selectedPlanet.name : "Galaxy";
@@ -96,13 +98,13 @@ function GalaxyScreenInner() {
             <Breadcrumb location={location} />
             <ARToggle active={ar.active} onToggle={ar.toggle} />
           </View>
-          <View style={styles.bottomBar}>
-            <VoiceOrb listening={false} />
+          <View style={styles.bottomBar} pointerEvents="auto">
+            <VoiceOrb listening={voice.listening} onPress={voice.toggleListening} />
           </View>
         </View>
         <InputController
           planets={state.planets}
-          transcript=""
+          transcript={voice.transcript}
           onAction={handleAction}
           onGestureSignal={handleGesture}
         />

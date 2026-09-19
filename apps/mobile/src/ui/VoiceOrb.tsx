@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Pressable } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,7 +9,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { palette } from "../design";
 
-export function VoiceOrb({ listening }: { listening: boolean }) {
+export function VoiceOrb({
+  listening,
+  onPress,
+}: {
+  listening: boolean;
+  onPress?: () => void;
+}) {
   const scale = useSharedValue(1);
 
   useEffect(() => {
@@ -29,15 +35,17 @@ export function VoiceOrb({ listening }: { listening: boolean }) {
   }));
 
   return (
-    <View style={styles.container}>
-      <Animated.View
-        style={[
-          styles.orb,
-          { backgroundColor: listening ? palette.coral : palette.muted },
-          animatedStyle,
-        ]}
-      />
-    </View>
+    <Pressable onPress={onPress} style={styles.container}>
+      <View>
+        <Animated.View
+          style={[
+            styles.orb,
+            { backgroundColor: listening ? palette.coral : palette.muted },
+            animatedStyle,
+          ]}
+        />
+      </View>
+    </Pressable>
   );
 }
 

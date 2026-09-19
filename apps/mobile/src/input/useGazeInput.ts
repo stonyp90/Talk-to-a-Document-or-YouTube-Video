@@ -8,10 +8,13 @@ import type { Planet } from "../scene/useGalaxyState";
 
 const DWELL_THRESHOLD_MS = 1500;
 
+export type GazePosition = { x: number; y: number };
+
 export function useGazeInput(
   enabled: boolean,
   _planets: Planet[],
   screenToPlanet: (gazeX: number, gazeY: number) => string | null,
+  onPosition?: (pos: GazePosition | null) => void,
 ): GazeSignal | undefined {
   const detector = useRef(createSimulatedFaceDetector());
   const dwellStart = useRef<number | null>(null);
@@ -28,6 +31,8 @@ export function useGazeInput(
       const gazeX = detection.landmarks.noseTip.x * width;
       const gazeY = detection.landmarks.noseTip.y * height;
       const planetId = screenToPlanet(gazeX, gazeY);
+
+      onPosition?.({ x: gazeX / width, y: gazeY / height });
 
       if (planetId && planetId === lastPlanet.current) {
         const elapsed = Date.now() - (dwellStart.current ?? Date.now());

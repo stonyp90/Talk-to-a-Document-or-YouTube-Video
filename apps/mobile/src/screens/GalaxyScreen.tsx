@@ -14,6 +14,8 @@ import { ARToggle } from "../ui/ARToggle";
 import { Breadcrumb } from "../ui/Breadcrumb";
 import { ConversationOverlay } from "./ConversationScreen";
 import { haptic } from "../ui/haptics";
+import { GazeCursor } from "../ui/GazeCursor";
+import type { GazePosition } from "../input/useGazeInput";
 import type { SceneAction, GestureSignal } from "../input/intentionResolver";
 
 function GalaxyScreenInner() {
@@ -21,6 +23,7 @@ function GalaxyScreenInner() {
   const ar = useAR();
   const [motionOffset, setMotionOffset] = useState<MotionOffset>({ x: 0, y: 0 });
   const [conversationOpen, setConversationOpen] = useState(false);
+  const [gazePosition, setGazePosition] = useState<GazePosition | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
   const orbitRef = useRef(state.orbitAngle);
@@ -139,7 +142,9 @@ function GalaxyScreenInner() {
           onAction={handleAction}
           onGestureSignal={handleGesture}
           onMotionOffset={setMotionOffset}
+          onGazePosition={setGazePosition}
         />
+        <GazeCursor position={gazePosition} />
         {conversationOpen && selectedPlanet && (
           <ConversationOverlay planetName={selectedPlanet.name} onClose={closeConversation} />
         )}

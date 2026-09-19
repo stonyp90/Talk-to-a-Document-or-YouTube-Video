@@ -13,6 +13,7 @@ import { VoiceOrb } from "../ui/VoiceOrb";
 import { ARToggle } from "../ui/ARToggle";
 import { Breadcrumb } from "../ui/Breadcrumb";
 import { ConversationOverlay } from "./ConversationScreen";
+import { haptic } from "../ui/haptics";
 import type { SceneAction, GestureSignal } from "../input/intentionResolver";
 
 function GalaxyScreenInner() {
@@ -39,12 +40,15 @@ function GalaxyScreenInner() {
       switch (action.type) {
         case "fly-to":
           if (s.selectedId === action.planetId) {
+            haptic.openConversation();
             openConversation();
           } else {
+            haptic.selectPlanet();
             s.selectPlanet(action.planetId);
           }
           break;
         case "fly-back":
+          haptic.flyBack();
           if (conversationOpen) {
             closeConversation();
           } else {
@@ -52,16 +56,20 @@ function GalaxyScreenInner() {
           }
           break;
         case "toggle-reality":
+          haptic.voiceCommand();
           ar.toggle();
           break;
         case "open":
+          haptic.openConversation();
           openConversation();
           break;
         case "dwell-select":
         case "tap-planet":
           if (s.selectedId === action.planetId) {
+            haptic.openConversation();
             openConversation();
           } else {
+            haptic.selectPlanet();
             s.selectPlanet(action.planetId);
           }
           break;
@@ -73,8 +81,14 @@ function GalaxyScreenInner() {
   const handleGesture = useCallback(
     (signal: GestureSignal) => {
       const s = stateRef.current;
-      if (signal.type === "tap-planet") s.selectPlanet(signal.planetId);
-      if (signal.type === "tap-empty") s.flyBack();
+      if (signal.type === "tap-planet") {
+        haptic.selectPlanet();
+        s.selectPlanet(signal.planetId);
+      }
+      if (signal.type === "tap-empty") {
+        haptic.flyBack();
+        s.flyBack();
+      }
       if (signal.type === "orbit") s.setOrbitAngle(s.orbitAngle + signal.delta);
     },
     [],

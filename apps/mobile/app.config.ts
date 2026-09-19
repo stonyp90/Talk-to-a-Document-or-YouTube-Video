@@ -139,6 +139,7 @@ const config = {
       "expo-dev-client",
       "expo-speech-recognition",
       "@config-plugins/react-native-webrtc",
+      "./src/ar/expo-ar-scene",
       [
         "expo-splash-screen",
         {

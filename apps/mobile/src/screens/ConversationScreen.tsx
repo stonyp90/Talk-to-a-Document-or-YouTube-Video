@@ -6,6 +6,7 @@ import { palette } from "../design";
 import { useConversation } from "../conversation/useConversation";
 import { useConversationVoice } from "../conversation/useConversationVoice";
 import { generateReply } from "../conversation/generateReply";
+import { useSpeech } from "../conversation/useSpeech";
 
 export function ConversationOverlay({
   planetName,
@@ -17,17 +18,20 @@ export function ConversationOverlay({
   const { messages, addUserMessage, addAssistantMessage } = useConversation(planetName);
   const [listening, setListening] = useState(false);
   const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { speak, stop: stopSpeaking } = useSpeech();
 
   useEffect(() => {
     return () => {
       if (replyTimer.current) clearTimeout(replyTimer.current);
+      stopSpeaking();
     };
-  }, []);
+  }, [stopSpeaking]);
 
   const handleUserSpeech = useCallback(
     (text: string) => {
       const lower = text.toLowerCase();
       if (lower.includes("go back") || lower.includes("close")) {
+        stopSpeaking();
         onClose();
         return;
       }
@@ -35,9 +39,10 @@ export function ConversationOverlay({
       const reply = generateReply(planetName, text);
       replyTimer.current = setTimeout(() => {
         addAssistantMessage(reply);
+        speak(reply);
       }, 800);
     },
-    [onClose, addUserMessage, addAssistantMessage, planetName],
+    [onClose, addUserMessage, addAssistantMessage, planetName, speak, stopSpeaking],
   );
 
   const { startListening, stopListening } = useConversationVoice(

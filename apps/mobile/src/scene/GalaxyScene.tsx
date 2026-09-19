@@ -8,6 +8,7 @@ import { Asset } from "expo-asset";
 import { CameraController } from "./CameraController";
 import { Starfield } from "./Starfield";
 import type { Planet } from "./useGalaxyState";
+import type { MotionOffset } from "../input/useMotionInput";
 
 function GalaxyModel() {
   const spin = useRef<Group>(null);
@@ -86,10 +87,12 @@ export function GalaxyScene({
   planets,
   selectedId,
   orbitAngle,
+  motionOffset,
 }: {
   planets: Planet[];
   selectedId: string | null;
   orbitAngle: number;
+  motionOffset: MotionOffset;
 }) {
   return (
     <View style={styles.container}>
@@ -108,7 +111,12 @@ export function GalaxyScene({
             selectedId={selectedId}
             onSelect={() => {}}
           />
-          <CameraController selectedId={selectedId} planets={planets} orbitAngle={orbitAngle} />
+          <CameraController
+            selectedId={selectedId}
+            planets={planets}
+            orbitAngle={orbitAngle}
+            motionOffset={motionOffset}
+          />
         </Canvas>
       </Suspense>
     </View>

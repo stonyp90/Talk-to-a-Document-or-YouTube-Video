@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { View, StyleSheet, StatusBar } from "react-native";
 import { GestureHandlerRootView, GestureDetector } from "react-native-gesture-handler";
 import { GalaxyScene } from "../scene/GalaxyScene";
@@ -7,6 +7,7 @@ import { InputController } from "../input/InputController";
 import { useGestureInput } from "../input/useGestureInput";
 import { screenToPlanet } from "../input/screenToPlanet";
 import { useGalaxyVoice } from "../input/useGalaxyVoice";
+import type { MotionOffset } from "../input/useMotionInput";
 import { ARProvider, useAR } from "../ar/ARProvider";
 import { VoiceOrb } from "../ui/VoiceOrb";
 import { ARToggle } from "../ui/ARToggle";
@@ -16,6 +17,7 @@ import type { SceneAction, GestureSignal } from "../input/intentionResolver";
 function GalaxyScreenInner() {
   const state = useGalaxyState();
   const ar = useAR();
+  const [motionOffset, setMotionOffset] = useState<MotionOffset>({ x: 0, y: 0 });
   const stateRef = useRef(state);
   stateRef.current = state;
   const orbitRef = useRef(state.orbitAngle);
@@ -68,6 +70,7 @@ function GalaxyScreenInner() {
           planets={state.planets}
           selectedId={state.selectedId}
           orbitAngle={state.orbitAngle}
+          motionOffset={motionOffset}
         />
         <View style={styles.hud} pointerEvents="none">
           <View style={styles.topBar} pointerEvents="auto">
@@ -84,6 +87,7 @@ function GalaxyScreenInner() {
           orbitAngle={state.orbitAngle}
           onAction={handleAction}
           onGestureSignal={handleGesture}
+          onMotionOffset={setMotionOffset}
         />
       </View>
     </GestureDetector>

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from "react";
 import { useVoiceInput } from "./useVoiceInput";
-import { useMotionInput } from "./useMotionInput";
+import { useMotionInput, type MotionOffset } from "./useMotionInput";
 import { useGazeInput } from "./useGazeInput";
 import { screenToPlanet } from "./screenToPlanet";
 import { resolveIntention, type InputSignals, type SceneAction, type GestureSignal } from "./intentionResolver";
@@ -12,15 +12,21 @@ export function InputController({
   orbitAngle,
   onAction,
   onGestureSignal,
+  onMotionOffset,
 }: {
   planets: Planet[];
   transcript: string;
   orbitAngle: number;
   onAction: (action: SceneAction) => void;
   onGestureSignal: (signal: GestureSignal) => void;
+  onMotionOffset: (offset: MotionOffset) => void;
 }) {
   const voiceCommand = useVoiceInput(transcript, planets);
-  const _motionOffset = useMotionInput(true);
+  const motionOffset = useMotionInput(true);
+
+  useEffect(() => {
+    onMotionOffset(motionOffset);
+  }, [motionOffset, onMotionOffset]);
 
   const gazeHitTest = useCallback(
     (x: number, y: number) => screenToPlanet(x, y, orbitAngle),

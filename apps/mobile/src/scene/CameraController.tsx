@@ -2,20 +2,24 @@ import { useRef, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3 } from "three";
 import type { Planet } from "./useGalaxyState";
+import type { MotionOffset } from "../input/useMotionInput";
 
 const OVERVIEW_POSITION = new Vector3(0, 2, 8);
 const ORBIT_DISTANCE = 2.5;
 const FLY_SPEED = 3.0;
 const Y_AXIS = new Vector3(0, 1, 0);
+const PARALLAX_SCALE = 0.05;
 
 export function CameraController({
   selectedId,
   planets,
   orbitAngle,
+  motionOffset,
 }: {
   selectedId: string | null;
   planets: Planet[];
   orbitAngle: number;
+  motionOffset: MotionOffset;
 }) {
   const { camera } = useThree();
   const target = useRef(OVERVIEW_POSITION.clone());
@@ -43,6 +47,8 @@ export function CameraController({
   useFrame((_, delta) => {
     const step = delta * FLY_SPEED;
     camera.position.lerp(target.current, step);
+    camera.position.x += motionOffset.x * PARALLAX_SCALE;
+    camera.position.y += motionOffset.y * PARALLAX_SCALE;
     const currentLook = new Vector3();
     camera.getWorldDirection(currentLook);
     const desiredLook = lookTarget.current.clone().sub(camera.position).normalize();

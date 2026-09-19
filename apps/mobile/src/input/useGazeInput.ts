@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react";
+import { Dimensions } from "react-native";
 import {
   createSimulatedFaceDetector,
 } from "../faceTracking";
@@ -23,8 +24,9 @@ export function useGazeInput(
       const detection = detector.current.detect();
       if (!detection) return;
 
-      const gazeX = detection.landmarks.noseTip.x;
-      const gazeY = detection.landmarks.noseTip.y;
+      const { width, height } = Dimensions.get("window");
+      const gazeX = detection.landmarks.noseTip.x * width;
+      const gazeY = detection.landmarks.noseTip.y * height;
       const planetId = screenToPlanet(gazeX, gazeY);
 
       if (planetId && planetId === lastPlanet.current) {

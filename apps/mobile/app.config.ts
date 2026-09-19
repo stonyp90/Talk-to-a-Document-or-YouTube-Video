@@ -134,6 +134,7 @@ const config = {
     },
     plugins: [
       withLocalCleartext,
+      "expo-asset",
       "expo-document-picker",
       "expo-dev-client",
       "expo-speech-recognition",

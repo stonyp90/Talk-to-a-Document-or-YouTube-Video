@@ -79,7 +79,7 @@ export function GalaxyScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0D0F12" },
   hud: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "space-between",
     padding: 16,
   },

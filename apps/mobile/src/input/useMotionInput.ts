@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Accelerometer, Gyroscope, type Subscription } from "expo-sensors";
+import { Accelerometer, Gyroscope } from "expo-sensors";
+import type { EventSubscription } from "expo-modules-core";
 
 export type MotionOffset = { x: number; y: number };
 
 export function useMotionInput(enabled: boolean): MotionOffset {
   const [offset, setOffset] = useState<MotionOffset>({ x: 0, y: 0 });
-  const subs = useRef<Subscription[]>([]);
+  const subs = useRef<EventSubscription[]>([]);
 
   useEffect(() => {
     if (!enabled) return;

@@ -31,7 +31,10 @@ export type SceneAction =
   | { type: "zoom"; factor: number }
   | { type: "tap-planet"; planetId: string }
   | { type: "dwell-select"; planetId: string }
-  | { type: "summarize" };
+  | { type: "summarize" }
+  | { type: "open" }
+  | { type: "next" }
+  | { type: "previous" };
 
 export function resolveIntention(signals: InputSignals): SceneAction | null {
   if (signals.voiceCommand) {

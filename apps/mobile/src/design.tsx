@@ -80,6 +80,12 @@ export const palette = {
   hudChipBg: "rgba(255, 255, 255, 0.12)",
   hudJointBorder: "#000000",
   hudToggleBg: "rgba(255, 255, 255, 0.15)",
+  void: "#0D0F12",
+  starGlow: "#FDE047",
+  planetHighlight: "#A855F7",
+  glassBg: "rgba(255,255,255,0.1)",
+  glassBorder: "rgba(255,255,255,0.15)",
+  glassText: "#FFFDF9",
 };
 
 export const spacing = {

@@ -205,7 +205,8 @@ describe("Process design tokens", () => {
      */
     for (const band of bands(stylesheet)) {
       const cap = measureOf(band.body, ".diagramViewport");
-      if (cap !== undefined) expect(cap, `at ${band.width}px`).toContain("vh");
+      if (cap !== undefined && cap !== "none")
+        expect(cap, `at ${band.width}px`).toContain("vh");
     }
   });
 

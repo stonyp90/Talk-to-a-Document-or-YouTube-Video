@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ConversationMessage } from "@/packages/core/src/domain/conversation";
+import { Markdown } from "./Markdown";
 
 type Speaker = {
   id: string;
@@ -245,16 +246,24 @@ function StreamMessage({
         >
           {expanded ? (
             <span className="stream-msg-text stream-msg-text--full">
-              {message.text || (streaming ? "" : "...")}
+              {message.role === "assistant" && message.text ? (
+                <Markdown text={message.text} />
+              ) : (
+                message.text || (streaming ? "" : "...")
+              )}
             </span>
           ) : (
             <span className="stream-msg-preview">
               <span className="stream-msg-text">
-                {message.text
-                  ? message.text.slice(0, 80) + (message.text.length > 80 ? "..." : "")
-                  : streaming
-                    ? ""
-                    : "..."}
+                {message.role === "assistant" && message.text ? (
+                  <Markdown text={message.text.slice(0, 80) + (message.text.length > 80 ? "..." : "")} />
+                ) : (
+                  message.text
+                    ? message.text.slice(0, 80) + (message.text.length > 80 ? "..." : "")
+                    : streaming
+                      ? ""
+                      : "..."
+                )}
               </span>
               {message.text && message.text.length > 80 && (
                 <span className="stream-msg-expand">tap to read</span>

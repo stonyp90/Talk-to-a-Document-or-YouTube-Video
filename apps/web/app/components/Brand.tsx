@@ -32,19 +32,14 @@ export function Brand({
 }) {
   const content = (
     <>
-      <svg
+      <img
         className="brand-mark"
-        viewBox="15 20 70 60"
+        src="/brand/ursly-mark.svg"
+        alt=""
         width="34"
         height="34"
         aria-hidden="true"
-      >
-        <rect className="brand-bar brand-bar-1" x="27" y="43" width="6" height="14" rx="3" />
-        <rect className="brand-bar brand-bar-2" x="37" y="30" width="6" height="40" rx="3" />
-        <rect className="brand-bar brand-bar-3" x="47" y="35" width="6" height="30" rx="3" />
-        <rect className="brand-bar brand-bar-4" x="57" y="30" width="6" height="40" rx="3" />
-        <rect className="brand-bar brand-bar-5" x="67" y="39" width="6" height="22" rx="3" />
-      </svg>
+      />
       {name}
       {showDot && <span className="brand-dot">.</span>}
     </>

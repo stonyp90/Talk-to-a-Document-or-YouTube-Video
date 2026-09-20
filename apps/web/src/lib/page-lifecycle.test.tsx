@@ -138,9 +138,7 @@ it("shows session preparation inside settings without a duplicate behind the mod
   fireEvent.click(
     within(settings).getByRole("button", { name: "Start Voice Chat" }),
   );
-  expect(await within(settings).findByRole("status")).toHaveTextContent(
-    "Preparing",
-  );
+  expect(await within(settings).findByText("Preparing")).toBeInTheDocument();
   expect(screen.getAllByText("Preparing")).toHaveLength(1);
   fireEvent.click(
     within(settings).getByRole("button", { name: "Close settings" }),

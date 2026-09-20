@@ -1,4 +1,4 @@
-import type { FileNode, FileSystemListing, FileType } from "./fileSystem";
+import type { FileNode, FileSystemListing, FileSystemPort, FileType } from "./fileSystem";
 
 const MAX_DEPTH = 10;
 
@@ -10,7 +10,12 @@ type AddFileInput = {
   parentId?: string;
 };
 
-export function createVirtualFileSystem() {
+export type VirtualFileSystem = FileSystemPort & {
+  addFile(input: AddFileInput): Promise<FileNode>;
+  createDirectory(name: string, parentId: string): Promise<string>;
+};
+
+export function createVirtualFileSystem(): VirtualFileSystem {
   const nodes = new Map<string, FileNode>();
   let nextId = 100;
 
@@ -73,13 +78,30 @@ export function createVirtualFileSystem() {
   }
 
   return {
-    list(directoryId: string): FileSystemListing {
+    async list(directoryId: string): Promise<FileSystemListing> {
       const dir = nodes.get(directoryId);
       if (!dir || dir.kind !== "directory") return [];
       return dir.children.map((id) => nodes.get(id)!).filter(Boolean);
     },
 
-    addFile(input: AddFileInput): FileNode {
+    async getNode(nodeId: string): Promise<FileNode | null> {
+      return nodes.get(nodeId) ?? null;
+    },
+
+    async search(query: string): Promise<FileSystemListing> {
+      const q = query.trim().toLowerCase();
+      if (!q) return [];
+      const results: FileNode[] = [];
+      for (const node of nodes.values()) {
+        if (node.kind === "directory") continue;
+        if (node.name.toLowerCase().includes(q)) {
+          results.push(node);
+        }
+      }
+      return results;
+    },
+
+    async addFile(input: AddFileInput): Promise<FileNode> {
       const id = makeId();
       const parentId = input.parentId || "uploads";
       const node: FileNode = {
@@ -108,7 +130,7 @@ export function createVirtualFileSystem() {
       return node;
     },
 
-    createDirectory(name: string, parentId: string): string {
+    async createDirectory(name: string, parentId: string): Promise<string> {
       if (getDepth(parentId) >= MAX_DEPTH) {
         throw new Error(`Maximum folder depth (${MAX_DEPTH}) exceeded`);
       }
@@ -129,10 +151,6 @@ export function createVirtualFileSystem() {
         parent.children.push(id);
       }
       return id;
-    },
-
-    getNode(nodeId: string): FileNode | null {
-      return nodes.get(nodeId) || null;
     },
   };
 }

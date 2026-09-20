@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useRef, useEffect } from "react";
 import ImmersiveFileBrowser from "./ImmersiveFileBrowser";
 import type {
   FileNode,
@@ -22,6 +21,46 @@ export function mirrorGesture(
   return gesture;
 }
 
+/**
+ * Maps a motion gesture (after hand-mirroring) to a file navigation action.
+ * Exported for testability and for use by integration code (Task 22).
+ */
+export function gestureToNavAction(
+  gesture: MotionGestureId,
+  handPreference: HandPreference,
+): FileNavAction | null {
+  const mirrored = mirrorGesture(gesture, handPreference);
+  switch (mirrored) {
+    case "up":
+      return { type: "navigateUp" };
+    case "down":
+      return { type: "openSelected" };
+    case "right":
+      return { type: "next" };
+    case "left":
+      return { type: "prev" };
+    case "hold":
+      return { type: "openSelected" };
+  }
+}
+
+/**
+ * Debounce window in milliseconds. Two gestures within this window collapse
+ * into the first; the second is dropped.
+ */
+export const GESTURE_DEBOUNCE_MS = 300;
+
+/**
+ * Returns true if a gesture at `now` should be accepted given the last
+ * accepted gesture timestamp. Pure function for testability.
+ */
+export function isGestureAccepted(
+  now: number,
+  lastAcceptedAt: number,
+): boolean {
+  return now - lastAcceptedAt >= GESTURE_DEBOUNCE_MS;
+}
+
 interface GestureFileBrowserProps {
   open: boolean;
   fs: FileSystemPort;
@@ -32,6 +71,15 @@ interface GestureFileBrowserProps {
   motionGesture?: MotionGestureId | null;
 }
 
+/**
+ * Wraps ImmersiveFileBrowser with gesture-aware input.
+ *
+ * Gesture-to-navigation dispatch is not yet wired: ImmersiveFileBrowser
+ * creates its own navigator internally and does not yet accept external
+ * navigation actions. Task 22 (Integration) will connect the gesture
+ * pipeline (mirrorGesture -> gestureToNavAction -> debounce) to the
+ * browser's navigator via a shared ref or context.
+ */
 export function GestureFileBrowser({
   open,
   fs,
@@ -39,37 +87,12 @@ export function GestureFileBrowser({
   handPreference,
   onClose,
   onFileSelect,
-  motionGesture,
+  motionGesture: _motionGesture,
 }: GestureFileBrowserProps) {
-  const lastGestureTime = useRef(0);
-  const DEBOUNCE_MS = 300;
-
-  const gestureToNavAction = useCallback(
-    (gesture: MotionGestureId): FileNavAction | null => {
-      const mirrored = mirrorGesture(gesture, handPreference);
-      switch (mirrored) {
-        case "up":
-          return { type: "navigateUp" };
-        case "down":
-          return { type: "openSelected" };
-        case "right":
-          return { type: "next" };
-        case "left":
-          return { type: "prev" };
-        case "hold":
-          return { type: "openSelected" };
-      }
-    },
-    [handPreference],
-  );
-
-  useEffect(() => {
-    if (!motionGesture) return;
-    const now = Date.now();
-    if (now - lastGestureTime.current < DEBOUNCE_MS) return;
-    lastGestureTime.current = now;
-    // Gesture-to-nav dispatch is handled by the parent via navRef
-  }, [motionGesture, gestureToNavAction]);
+  // motionGesture is accepted but not yet dispatched. The gesture pipeline
+  // (mirror -> map -> debounce) is fully implemented as pure exported
+  // functions above. Task 22 will wire them to ImmersiveFileBrowser's
+  // navigator.
 
   if (!open) return null;
 

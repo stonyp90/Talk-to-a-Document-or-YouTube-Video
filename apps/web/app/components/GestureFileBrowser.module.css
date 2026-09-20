@@ -3,3 +3,13 @@
   inset: 0;
   z-index: 50;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .gestureBrowser {
+    /* Disable all transitions and animations for users who prefer reduced motion.
+       This component currently has no animations, but this block ensures
+       future additions respect the accessibility constraint. */
+    transition: none !important;
+    animation: none !important;
+  }
+}

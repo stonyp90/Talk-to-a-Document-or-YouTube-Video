@@ -12,7 +12,7 @@ interface QuickToggleBarProps {
 
 export function QuickToggleBar({ voiceActive, cameraActive, onToggleVoice, onToggleCamera }: QuickToggleBarProps) {
   const [debouncing, setDebouncing] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout>(undefined);
 
   const handleToggle = useCallback((toggleFn: () => void) => {
     if (debouncing) return;

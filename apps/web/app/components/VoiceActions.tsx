@@ -97,6 +97,7 @@ function actionLabels(): Record<VoiceActionId, string> {
     open: "Open the file browser",
     select: "Select a file with gaze or gesture",
     search: "Search for a file by name",
+    settings: "Open settings",
   };
 }
 

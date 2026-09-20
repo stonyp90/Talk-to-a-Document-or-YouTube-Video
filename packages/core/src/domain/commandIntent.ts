@@ -116,6 +116,7 @@ const ACTION_NAMES: Record<VoiceActionId, string> = {
   open: "Open",
   select: "Select",
   search: "Search",
+  settings: "Settings",
 };
 
 /**

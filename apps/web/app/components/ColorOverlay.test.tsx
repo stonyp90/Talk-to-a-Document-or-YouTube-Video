@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import { ColorOverlay, signalToColor } from "./ColorOverlay";
-import type { NonVerbalSignal } from "@talk-to-a-document/core/src/domain/nonVerbalTracker";
+import type { NonVerbalSignal } from "@talk/core/domain/nonVerbalTracker";
 
 describe("signalToColor", () => {
   it("returns blue for calm movement", () => {

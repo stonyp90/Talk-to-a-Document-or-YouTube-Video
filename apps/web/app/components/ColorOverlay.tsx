@@ -1,6 +1,6 @@
 "use client";
 
-import type { NonVerbalSignal } from "@talk-to-a-document/core/src/domain/nonVerbalTracker";
+import type { NonVerbalSignal } from "@talk/core/domain/nonVerbalTracker";
 import styles from "./ColorOverlay.module.css";
 
 export function signalToColor(signal: NonVerbalSignal): string {
@@ -15,6 +15,8 @@ export function signalToColor(signal: NonVerbalSignal): string {
       return signal.estimate === "close" ? "warm" : "cool";
     case "gesture":
       return signal.energy > 0.4 ? "orange" : "blue";
+    default:
+      return "blue";
   }
 }
 

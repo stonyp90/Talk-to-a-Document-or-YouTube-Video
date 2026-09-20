@@ -2,8 +2,9 @@ import { buildContextWindow } from "./context";
 import { SPOKEN_DELIVERY_GUIDANCE, type Delivery } from "./speech";
 
 export const MAX_PDF_BYTES = 25 * 1024 * 1024;
+export const MAX_FILE_BYTES = 100 * 1024 * 1024;
 
-export type SourceKind = "pdf" | "youtube";
+export type SourceKind = "pdf" | "youtube" | "text";
 
 export type IngestedSource = {
   kind: SourceKind;
@@ -45,6 +46,42 @@ export function validatePdf(file: {
     throw new InputValidationError(
       "PDF files must be 25 MB or smaller.",
       "FILE_TOO_LARGE",
+    );
+  }
+}
+
+const ALLOWED_EXTENSIONS = new Set([
+  ".pdf",
+  ".txt",
+  ".md",
+  ".docx",
+  ".csv",
+  ".json",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".mp3",
+  ".wav",
+  ".mp4",
+]);
+
+export function validateFile(file: {
+  name: string;
+  type?: string | null;
+  size: number;
+}): void {
+  if (file.size > MAX_FILE_BYTES) {
+    throw new InputValidationError(
+      `File exceeds ${Math.round(MAX_FILE_BYTES / 1024 / 1024)}MB limit`,
+      "FILE_TOO_LARGE",
+    );
+  }
+
+  const ext = "." + file.name.split(".").pop()?.toLowerCase();
+  if (!ALLOWED_EXTENSIONS.has(ext)) {
+    throw new InputValidationError(
+      `Unsupported file type: ${ext}`,
+      "UNSUPPORTED_FORMAT",
     );
   }
 }

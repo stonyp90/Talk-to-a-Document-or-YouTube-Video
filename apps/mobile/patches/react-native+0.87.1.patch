@@ -1,0 +1,14 @@
+diff --git a/node_modules/react-native/rn-get-polyfills.js b/node_modules/react-native/rn-get-polyfills.js
+new file mode 100644
+index 0000000..89731a4
+--- /dev/null
++++ b/node_modules/react-native/rn-get-polyfills.js
+@@ -0,0 +1,8 @@
++/**
++ * Stub for rn-get-polyfills. React Native 0.87 removed this file, but
++ * @expo/metro-config still tries to require it. This stub returns an empty
++ * object to satisfy the require.
++ */
++module.exports = function getPolyfills() {
++  return [];
++};

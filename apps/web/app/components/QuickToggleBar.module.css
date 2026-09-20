@@ -40,5 +40,6 @@
 @media (prefers-reduced-motion: reduce) {
   .toggleButton {
     transition: none;
+    transform: none;
   }
 }

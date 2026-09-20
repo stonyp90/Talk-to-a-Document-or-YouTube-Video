@@ -1,4 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
+"use client";
+
+import { useState, useCallback, useRef, useEffect } from 'react';
 import styles from './QuickToggleBar.module.css';
 
 interface QuickToggleBarProps {
@@ -18,6 +20,14 @@ export function QuickToggleBar({ voiceActive, cameraActive, onToggleVoice, onTog
     setDebouncing(true);
     timeoutRef.current = setTimeout(() => setDebouncing(false), 300);
   }, [debouncing]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className={styles.toggleBar} role="toolbar" aria-label="Quick toggles">

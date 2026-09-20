@@ -267,9 +267,11 @@ A `FeedbackBus` port — a typed event emitter. Voice errors, motion failures, u
 ### Non-Verbal Feedback
 
 User can give feedback without words:
-- Head shake (motion detected) on error toast → dismiss it
-- Nod (motion detected) on suggestion chip → execute it
+- Head shake (large-amplitude horizontal oscillation detected via motion energy pattern) on error toast → dismiss it
+- Nod (large-amplitude vertical oscillation) on suggestion chip → execute it
 - Both map to same `FeedbackBus` events as taps/voice
+
+Note: head shake/nod detection uses the existing frame-differencing pipeline. It requires intentional, large-amplitude head movement (not subtle nods). Detection thresholds are tuned during implementation. If the motion system cannot reliably distinguish these patterns from regular movement, this feature degrades gracefully to tap/voice-only dismissal.
 
 ### Accessibility
 
@@ -315,7 +317,7 @@ Card-style sections following brand modal pattern:
 
 1. **General** — Language, Theme, Assistant name
 2. **Voice & Audio** — Voice output toggle, Voice speed, Custom triggers
-3. **Camera & Motion** — Video overlay toggle, Motion detection toggle, Hand preference (L/R)
+3. **Camera & Motion** — Camera master toggle (controls both motion detection and video preview), Video preview opacity sub-toggle (10-30%), Hand preference (L/R)
 4. **Keyboard** — Enable keyboard input toggle (off by default)
 5. **Non-Verbal Tracking** — Tracking toggle, View session log
 6. **Files** — Default upload folder, Supported formats info

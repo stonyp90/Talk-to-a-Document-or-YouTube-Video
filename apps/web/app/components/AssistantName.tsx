@@ -39,6 +39,7 @@ export function AssistantName({
             key={name}
             type="button"
             className="assistant-name-preset"
+            data-active={value === name ? "true" : undefined}
             onClick={() => {
               setDraft(name);
               onChange(name);

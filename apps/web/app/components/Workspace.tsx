@@ -2,7 +2,6 @@
 
 import {
   ChangeEvent,
-  type ComponentProps,
   FormEvent,
   useCallback,
   useEffect,
@@ -20,7 +19,7 @@ import styles from "./Workspace.module.css";
 import { AppPreferences, TopNav } from "./TopNav";
 import { Markdown } from "./Markdown";
 import type { VoiceActionId } from "./VoiceActions";
-import { SenseControls, type SenseActivity } from "./SenseControls";
+import { type SenseActivity } from "./SenseControls";
 import { DeviceConnect } from "./DeviceConnect";
 import { defaultPhrases } from "@/packages/core/src/domain/voiceCommands";
 import { VoiceLending } from "./VoiceLending";
@@ -62,6 +61,8 @@ import {
 } from "@/packages/core/src/domain/voiceControls";
 import { InteractionFeedback } from "./InteractionFeedback";
 import { ConversationStream } from "./ConversationStream";
+import { LivingLogo } from "./LivingLogo";
+import { LogoOnboarding } from "./LogoOnboarding";
 
 type SourceTab = "pdf" | "youtube";
 
@@ -263,6 +264,12 @@ export default function Workspace() {
   const { speed: voiceSpeed, setSpeed: setVoiceSpeed } = useVoiceSpeed();
   const [mood, setMood] = useState<CallerMood>("calm");
   const [feedbackMessageId, setFeedbackMessageId] = useState<string | null>(null);
+  const [replayOnboarding, setReplayOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingSeen, setOnboardingSeen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("ursly-onboarding-seen") === "true";
+  });
   const micSupported = useSyncExternalStore(
     NO_CHANGE,
     readMicrophoneSupport,
@@ -525,6 +532,45 @@ export default function Workspace() {
       );
     }
   }, [state.messages, streamingId, pendingAnswers]);
+
+  useEffect(() => {
+    if (onboardingSeen && !replayOnboarding) return;
+    if (state.messages.length > 0) return;
+    const steps = 4;
+    let cancelled = false;
+    let currentStep = 0;
+    function tick() {
+      if (cancelled) return;
+      if (currentStep > steps) {
+        localStorage.setItem("ursly-onboarding-seen", "true");
+        setOnboardingSeen(true);
+        setReplayOnboarding(false);
+        return;
+      }
+      setOnboardingStep(currentStep);
+      const delay =
+        currentStep === 0 ? 1800 : currentStep >= steps ? 4000 : 3200;
+      currentStep++;
+      setTimeout(tick, delay);
+    }
+    tick();
+    return () => {
+      cancelled = true;
+    };
+  }, [onboardingSeen, replayOnboarding, state.messages.length]);
+
+  const onboardingToasts = useMemo(() => {
+    if (onboardingStep === 0) return null;
+    const messages = [
+      t("The logo breath with you."),
+      t("Color is emotion. Size is depth."),
+      t("Pulse means it is listening."),
+      t("Tap the logo to add a source."),
+    ];
+    const visible = messages.slice(0, Math.min(onboardingStep, messages.length));
+    const fading = onboardingStep > messages.length;
+    return visible.map((msg, i) => ({ msg, fading }));
+  }, [onboardingStep, t]);
 
   const invalidateVoice = useCallback(() => {
     voiceVersion.current++;
@@ -1258,29 +1304,6 @@ export default function Workspace() {
     t("What should I remember?"),
   ];
 
-  // Both input adapters stay mounted around the same source and conversation.
-  const motionProps: ComponentProps<typeof SenseControls>["motion"] = {
-    prompts: suggestions,
-    canAsk: Boolean(source),
-    onAsk: (spoken) => {
-      setQuestion("");
-      void askQuestion(spoken);
-    },
-    onAction: handleVoiceAction,
-    fileBrowserOpen,
-    onFileAction: (fileAction) => setVoiceActionNotice(`File: ${fileAction}`),
-    onGazeUpdate: setGazePosition,
-  };
-  const voiceProps: ComponentProps<typeof SenseControls>["voice"] = {
-    onAction: handleVoiceAction,
-    onDictate: (spoken) => {
-      setQuestion("");
-      void askQuestion(spoken);
-    },
-    onDraft: setQuestion,
-    canStartVoice: Boolean(source),
-    voiceBusy: sessionLive,
-  };
   const visualActivity =
     busy || pendingAnswers > 0 || senseActivity.connecting
       ? "thinking"
@@ -1306,13 +1329,12 @@ export default function Workspace() {
       <a className="skip-link" href="#workspace">
         {t("Skip to workspace")}
       </a>
-      <TopNav page="app" mode={entryMode} onModeChange={switchEntryMode} />
 
       <main
         className={styles.workspace}
         id="workspace"
         tabIndex={-1}
-        aria-label={t("Sense to Action")}
+        aria-label="Ursly"
         data-entry-mode={entryMode}
         data-activity={visualActivity}
         data-mood={mood}
@@ -1399,33 +1421,33 @@ export default function Workspace() {
           {state.messages.length === 0 && (
             <div className={styles.origin}>
               <div
-                className={styles.senseOrb}
+                className={styles.livingLogoWrap}
                 data-activity={visualActivity}
-                aria-hidden="true"
               >
-                <span className={styles.orbit} />
-                <span className={styles.orbit} />
-                <span className={styles.orbit} />
-                <span className={styles.senseHalo} />
-                <span className={styles.orbCore}>
-                  <Icon name="voice" />
+                <LivingLogo
+                  activity={visualActivity}
+                  mood={mood}
+                  conversationDepth={state.messages.length}
+                  onClick={() => setSourcePickerOpen(true)}
+                />
+              </div>
+              <div className={styles.wordmark}>
+                {"ursly".split("").map((letter, i) => (
+                  <span
+                    key={i}
+                    className={styles.wordmarkLetter}
+                    style={{ animationDelay: `${0.3 + i * 0.08}s` }}
+                  >
+                    {letter}
+                  </span>
+                ))}
+                <span
+                  className={styles.wordmarkDot}
+                  style={{ animationDelay: "0.7s" }}
+                >
+                  .
                 </span>
               </div>
-              <h1>
-                {source
-                  ? t("What are you curious about?")
-                  : t("Sense to Action")}
-              </h1>
-              {!source && !busy && (
-                <button
-                  type="button"
-                  className={styles.addSource}
-                  onClick={() => setSourcePickerOpen(true)}
-                >
-                  <Icon name="download" />
-                  {t("Add a source")}
-                </button>
-              )}
               {source && (
                 <div className={styles.suggestions}>
                   {suggestions.map((prompt) => (
@@ -1546,30 +1568,18 @@ export default function Workspace() {
           <div
             className={styles.dock}
             role="group"
-            aria-label={t("Sense controls")}
+            aria-label={t("Controls")}
           >
-            {account !== null && (
-              <SenseControls
-                voice={voiceProps}
-                motion={motionProps}
-                onActivityChange={setSenseActivity}
-                onStop={stopVoice}
-              />
-            )}
             <button
               type="button"
-              className={styles.settingsButton}
+              className={styles.menuButton}
               aria-label={t("Workspace settings")}
               title={t("Workspace settings")}
               aria-haspopup="dialog"
               aria-expanded={settingsOpen}
               onClick={() => setSettingsOpen(true)}
             >
-              <span className={styles.orbitControl} aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
+              menu
             </button>
           </div>
         </div>
@@ -1707,26 +1717,44 @@ export default function Workspace() {
         )}
         <WorkspaceDialog
           open={settingsOpen}
-          title={t("Workspace settings")}
+          title={t("Settings")}
           closeLabel={t("Close settings")}
           onClose={() => setSettingsOpen(false)}
         >
-          <AssistantName
-            key={assistantName}
-            value={assistantName}
-            onChange={setAssistantName}
-          />
-          <AppPreferences />
-          <div id="sense-command-settings" />
+          <div className={styles.settingsSection}>
+            <h3 className={styles.sectionLabel}>
+              <Icon name="brain" />
+              {t("Identity")}
+            </h3>
+            <AssistantName
+              key={assistantName}
+              value={assistantName}
+              onChange={setAssistantName}
+            />
+          </div>
+
+          <div className={styles.settingsSection}>
+            <h3 className={styles.sectionLabel}>
+              <Icon name="eye" />
+              {t("Preferences")}
+            </h3>
+            <AppPreferences />
+          </div>
+
           {source && (
-            <div
-              className={styles.audioSettings}
-              aria-label={t("Conversation audio")}
-            >
-              {source && (
+            <div className={styles.settingsSection}>
+              <h3 className={styles.sectionLabel}>
+                <Icon name="voice" />
+                {t("Voice & Audio")}
+              </h3>
+              <div
+                className={styles.audioSettings}
+                aria-label={t("Conversation audio")}
+              >
                 <button
                   type="button"
                   className={styles.liveVoice}
+                  data-live={sessionLive ? "true" : undefined}
                   disabled={!sessionLive && !micSupported}
                   onClick={() =>
                     sessionLive ? stopVoice() : void startVoice()
@@ -1735,48 +1763,83 @@ export default function Workspace() {
                   <Icon name="voice" />
                   {sessionLive ? t("Stop Voice Chat") : t("Start Voice Chat")}
                 </button>
+                {sessionLive && state.status === "connected" && (
+                  <button
+                    type="button"
+                    className={styles.liveVoice}
+                    onClick={toggleMute}
+                    aria-pressed={state.muted}
+                  >
+                    {state.muted ? t("Unmute") : t("Mute")}
+                  </button>
+                )}
+              </div>
+              {settingsOpen && (error || state.error || sessionLive) && (
+                <div className={styles.feedback} aria-live="polite">
+                  {(error || state.error) && (
+                    <p className="error" role="alert">
+                      {error || state.error}
+                    </p>
+                  )}
+                  {sessionLive && (
+                    <p role="status">
+                      {state.status === "connected"
+                        ? activityText[activity]
+                        : statusText[state.status]}
+                    </p>
+                  )}
+                </div>
               )}
-              {sessionLive && state.status === "connected" && (
-                <button
-                  type="button"
-                  className={styles.liveVoice}
-                  onClick={toggleMute}
-                  aria-pressed={state.muted}
-                >
-                  {state.muted ? t("Unmute") : t("Mute")}
-                </button>
-              )}
+              <VoiceLending embedded active={settingsOpen} />
             </div>
           )}
-          {settingsOpen && (error || state.error || sessionLive) && (
-            <div className={styles.feedback} aria-live="polite">
-              {(error || state.error) && (
-                <p className="error" role="alert">
-                  {error || state.error}
-                </p>
-              )}
-              {sessionLive && (
-                <p role="status">
-                  {state.status === "connected"
-                    ? activityText[activity]
-                    : statusText[state.status]}
-                </p>
-              )}
-            </div>
-          )}
-          <VoiceLending embedded active={settingsOpen} />
-          <DeviceConnect />
-          {context?.truncated && (
-            <p className="hint">
-              {t("Only part of this source fits in the conversation context.")}
-            </p>
-          )}
+
+          <div className={styles.settingsSection}>
+            <h3 className={styles.sectionLabel}>
+              <Icon name="external" />
+              {t("Devices")}
+            </h3>
+            <DeviceConnect />
+          </div>
+
+          <div className={styles.settingsSection}>
+            <h3 className={styles.sectionLabel}>
+              <Icon name="play" />
+              {t("Session")}
+            </h3>
+            <button
+              type="button"
+              className={styles.replayIntro}
+              onClick={() => {
+                setSettingsOpen(false);
+                setOnboardingStep(0);
+                setReplayOnboarding(true);
+              }}
+            >
+              <Icon name="play" />
+              {t("Replay intro")}
+            </button>
+            {context?.truncated && (
+              <p className="hint">
+                {t("Only part of this source fits in the conversation context.")}
+              </p>
+            )}
+            <a className={styles.backToStory} href={`/${language}`}>
+              {t("Back to the story")}
+            </a>
+          </div>
+
           {account && (
             <div className={styles.account}>
-              <span>{t("Signed in as {email}", { email: account })}</span>
+              <div className={styles.accountAvatar}>
+                {account.charAt(0).toUpperCase()}
+              </div>
+              <div className={styles.accountInfo}>
+                <div className={styles.accountEmail}>{account}</div>
+                <div className={styles.accountLabel}>{t("Signed in")}</div>
+              </div>
               <button
                 type="button"
-                className="secondary"
                 onClick={() => {
                   setSettingsOpen(false);
                   setAccount(null);
@@ -1788,6 +1851,19 @@ export default function Workspace() {
             </div>
           )}
         </WorkspaceDialog>
+        {onboardingToasts && (
+          <div className={styles.onboardingToasts} aria-live="polite">
+            {onboardingToasts.map((item, i) => (
+              <div
+                key={i}
+                className={`${styles.onboardingToast}${item.fading ? ` ${styles.fadeOut}` : ""}`}
+                style={{ animationDelay: `${i * 0.12}s` }}
+              >
+                {item.msg}
+              </div>
+            ))}
+          </div>
+        )}
       </main>
       <ImmersiveFileBrowser
         open={fileBrowserOpen}
@@ -1800,6 +1876,10 @@ export default function Workspace() {
           setFileBrowserOpen(false);
         }}
         gaze={gazePosition}
+      />
+      <LogoOnboarding
+        replay={replayOnboarding}
+        onReplayDone={() => setReplayOnboarding(false)}
       />
     </div>
   );

@@ -8,14 +8,14 @@ import { isLanguage, type Language } from "../../i18n/languages";
 
 const copy: Record<Language, { title: string; description: string }> = {
   en: {
-    title: "Sense to Action",
+    title: "Ursly",
     description:
-      "Add a PDF or a captioned YouTube video, then ask about it by voice or keyboard.",
+      "The interface to everything. Talk to any document or video.",
   },
   fr: {
-    title: "Sense to Action",
+    title: "Ursly",
     description:
-      "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis posez vos questions à la voix ou au clavier.",
+      "L'interface de tout. Parlez à n'importe quel document ou vidéo.",
   },
 };
 

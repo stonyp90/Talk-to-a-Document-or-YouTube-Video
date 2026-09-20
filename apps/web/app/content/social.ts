@@ -10,7 +10,10 @@ import type { BrandIconName } from "../components/BrandIcon";
  * the matching icon on.
  */
 export type SocialProfile = {
-  id: Extract<BrandIconName, "github" | "x" | "linkedin" | "youtube">;
+  id: Extract<
+    BrandIconName,
+    "github" | "x" | "linkedin" | "youtube" | "facebook"
+  >;
   label: string;
   url: string;
 };
@@ -40,6 +43,11 @@ const optional: Array<{
     id: "youtube",
     label: "YouTube",
     url: configured(process.env.NEXT_PUBLIC_SOCIAL_YOUTUBE_URL),
+  },
+  {
+    id: "facebook",
+    label: "Facebook",
+    url: configured(process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK_URL),
   },
 ];
 

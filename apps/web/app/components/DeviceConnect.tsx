@@ -5,6 +5,12 @@ import { Icon } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { useHydrated } from "./useHydrated";
 
+type ConnectedDevice = {
+  id: string;
+  name: string;
+  kind: "bluetooth" | "internet";
+};
+
 type BluetoothDevice = {
   name?: string;
   gatt?: { connect: () => Promise<unknown> };
@@ -23,13 +29,25 @@ export function DeviceConnect() {
   const { t } = useLanguage();
   const hydrated = useHydrated();
   const [endpoint, setEndpoint] = useState("");
-  const [device, setDevice] = useState("");
+  const [devices, setDevices] = useState<ConnectedDevice[]>([]);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const bluetoothAvailable =
     hydrated &&
     typeof navigator !== "undefined" &&
     Boolean((navigator as BluetoothNavigator).bluetooth);
+
+  function addDevice(name: string, kind: "bluetooth" | "internet") {
+    setDevices((current) => {
+      if (current.some((device) => device.name === name && device.kind === kind))
+        return current;
+      return [...current, { id: `${kind}-${Date.now()}`, name, kind }];
+    });
+  }
+
+  function removeDevice(id: string) {
+    setDevices((current) => current.filter((device) => device.id !== id));
+  }
 
   async function connectBluetooth() {
     const bluetooth = (navigator as BluetoothNavigator).bluetooth;
@@ -41,7 +59,8 @@ export function DeviceConnect() {
         acceptAllDevices: true,
       });
       await selected.gatt?.connect();
-      setDevice(selected.name || t("Bluetooth device"));
+      const name = selected.name || t("Bluetooth device");
+      addDevice(name, "bluetooth");
       setStatus(t("Bluetooth device connected."));
     } catch (error) {
       if (error instanceof DOMException && error.name === "NotFoundError") {
@@ -73,8 +92,9 @@ export function DeviceConnect() {
         signal: AbortSignal.timeout(8000),
       });
       if (!response.ok) throw new Error();
-      setDevice(url.hostname);
+      addDevice(url.hostname, "internet");
       setStatus(t("Internet device connected."));
+      setEndpoint("");
     } catch {
       setStatus(
         t(
@@ -90,9 +110,35 @@ export function DeviceConnect() {
     <details className="device-connect">
       <summary>
         <Icon name="external" /> {t("Connect a device")}
-        <span>{t("Bluetooth or internet")}</span>
+        <span>
+          {t("Bluetooth or internet")}
+          {devices.length > 0 && ` · ${devices.length}`}
+        </span>
       </summary>
       <div className="device-connect-body">
+        {devices.length > 0 && (
+          <div className="device-list">
+            {devices.map((device) => (
+              <div key={device.id} className="device-list-item">
+                <div className="device-list-info">
+                  <span className="device-list-dot" data-kind={device.kind} />
+                  <span className="device-list-name">{device.name}</span>
+                  <span className="device-list-kind">
+                    {device.kind === "bluetooth" ? t("Bluetooth") : t("Internet")}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="device-list-remove"
+                  onClick={() => removeDevice(device.id)}
+                  aria-label={t("Disconnect {name}", { name: device.name })}
+                >
+                  <Icon name="close" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <p className="hint">
           {t(
             "Connect a nearby device over Bluetooth, or enter the secure address of a device on your network. Ursly only checks the endpoint you choose.",
@@ -127,13 +173,7 @@ export function DeviceConnect() {
             </div>
           </form>
         </div>
-        {device && (
-          <p className="device-connect-status" role="status">
-            <span className="status" data-state="ready" />
-            {device} · {status}
-          </p>
-        )}
-        {!device && status && (
+        {status && (
           <p className="device-connect-status" role="status">
             {status}
           </p>

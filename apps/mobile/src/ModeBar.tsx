@@ -1,10 +1,5 @@
 import React, { useEffect } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  type LayoutChangeEvent,
-} from "react-native";
+import { StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -13,7 +8,7 @@ import Animated, {
 import { select } from "./haptics";
 import type { TranslationKey } from "./i18n";
 import { MODES, type EntryMode, type ModeId } from "./modes";
-import { palette as c, SourceIcon, Touch, Wave } from "./design";
+import { palette as c, BrainIcon, KeyboardIcon, Touch, Wave } from "./design";
 
 type Props = {
   mode: EntryMode;
@@ -24,9 +19,14 @@ type Props = {
 };
 
 function Glyph({ id, color }: { id: ModeId; color: string }) {
-  if (id === "voice") return <Wave motion={false} color={color} />;
-  if (id === "text") return <SourceIcon kind="pdf" color={color} />;
-  return <Text style={[s.glyph, { color }]}>✦</Text>;
+  if (id === "human")
+    return (
+      <View style={s.wave}>
+        <Wave motion={false} color={color} />
+      </View>
+    );
+  if (id === "text") return <KeyboardIcon color={color} />;
+  return <BrainIcon color={color} />;
 }
 
 function ModeItem({
@@ -50,7 +50,9 @@ function ModeItem({
     // eslint-disable-next-line react-hooks/immutability -- reanimated shared values are mutated via .value
     checkedValue.value = motion
       ? withSpring(checked ? 1 : 0, { damping: 15, stiffness: 200 })
-      : checked ? 1 : 0;
+      : checked
+        ? 1
+        : 0;
   }, [checked, motion, checkedValue]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -58,7 +60,9 @@ function ModeItem({
     transform: [
       {
         scale:
-          checkedValue.value === 1 && motion ? withSpring(1, { damping: 15 }) : 0.94 + 0.06 * checkedValue.value,
+          checkedValue.value === 1 && motion
+            ? withSpring(1, { damping: 15 })
+            : 0.94 + 0.06 * checkedValue.value,
       },
     ],
   }));
@@ -68,6 +72,8 @@ function ModeItem({
       label={t(item.label)}
       motion={motion}
       selected={checked}
+      disabled={!item.available}
+      contentStyle={s.itemContent}
       accessibilityRole="radio"
       onPress={() => {
         select();
@@ -81,21 +87,18 @@ function ModeItem({
       />
       <View style={s.itemInner}>
         <Glyph id={item.id} color={color} />
-        <Text style={[s.label, checked && s.labelSelected]}>
-          {t(item.short)}
-        </Text>
-        {item.detail && <Text style={s.detail}>{t(item.detail)}</Text>}
+        <View style={s.itemText}>
+          <Text style={[s.label, checked && s.labelSelected]} numberOfLines={1}>
+            {t(item.short)}
+          </Text>
+          {item.detail && <Text style={s.detail}>{t(item.detail)}</Text>}
+        </View>
       </View>
     </Touch>
   );
 }
 
-/**
- * The sticky control menu at the bottom of every screen, the phone-sized
- * twin of the website's top menu: one mode is always selected, and the beta
- * stays visible so people learn what is coming without being able to pick
- * something that does not work yet.
- */
+/** The same compact input preferences as the web header. */
 export function ModeBar({ mode, motion, t, onChoose, onLayout }: Props) {
   return (
     <View
@@ -106,7 +109,7 @@ export function ModeBar({ mode, motion, t, onChoose, onLayout }: Props) {
     >
       {MODES.map((item) => {
         const checked = item.id === mode;
-        const color = checked ? c.ink : c.muted;
+        const color = checked ? c.accent : c.muted;
         return (
           <ModeItem
             key={item.id}
@@ -127,51 +130,37 @@ const s = StyleSheet.create({
   bar: {
     flexDirection: "row",
     alignItems: "stretch",
-    gap: 8,
-    minHeight: 80,
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: c.line,
+    gap: 3,
+    minHeight: 52,
+    marginHorizontal: 14,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: c.line,
+    borderRadius: 15,
     backgroundColor: c.white,
-    shadowColor: c.ink,
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -5 },
-    elevation: 12,
   },
-  item: {
-    flex: 1,
-    minHeight: 62,
-    borderRadius: 18,
-  },
-  itemSelected: {
-    backgroundColor: c.lavender,
-  },
+  item: { flex: 1, minWidth: 0, minHeight: 44, borderRadius: 12 },
+  itemContent: { padding: 4, borderRadius: 12 },
+  itemSelected: { backgroundColor: c.peach, borderRadius: 11 },
   itemInner: {
-    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-    gap: 4,
+    gap: 5,
   },
-  glyph: { fontSize: 18, lineHeight: 22 },
-  label: {
-    color: c.muted,
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  labelSelected: {
-    color: c.ink,
-    fontWeight: "800",
-  },
+  itemText: { alignItems: "flex-start", gap: 1, flexShrink: 1 },
+  wave: { width: 20, alignItems: "center", transform: [{ scale: 0.65 }] },
+  label: { color: c.muted, fontSize: 11, fontWeight: "600" },
+  labelSelected: { color: c.accent, fontWeight: "800" },
   detail: {
-    color: c.accent,
-    fontSize: 9,
+    color: c.muted,
+    backgroundColor: c.lavender,
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    fontSize: 7,
     fontWeight: "800",
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
     textTransform: "uppercase",
   },
 });

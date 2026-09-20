@@ -1,0 +1,27 @@
+name: Tech Radar
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run tech radar scan
+        run: node scripts/tech-radar/scan.mjs > /tmp/tech-radar-report.md
+      - name: Create GitHub issue with findings
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          gh issue create \
+            --title "Tech Radar: Audio/VAD advances — $DATE" \
+            --label "tech-radar,enhancement" \
+            --body-file /tmp/tech-radar-report.md

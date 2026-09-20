@@ -1,5 +1,6 @@
 import type { IngestedSource } from "../domain/ingestion";
 import type { Account, UsageWindow } from "../domain/account";
+import type { VoicePreferences } from "../domain/voiceControls";
 
 export type PdfMetadata = { name: string; type?: string | null; size: number };
 export interface PdfTextPort {
@@ -44,7 +45,10 @@ export type RealtimeSession = {
   instructions: string;
 };
 export interface ConversationPort {
-  createRealtimeSession(source: IngestedSource): Promise<RealtimeSession>;
+  createRealtimeSession(
+    source: IngestedSource,
+    preferences?: VoicePreferences,
+  ): Promise<RealtimeSession>;
   createRealtimeCallAnswer(
     sdp: string,
     source: IngestedSource,

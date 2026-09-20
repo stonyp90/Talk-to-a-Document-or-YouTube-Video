@@ -1,0 +1,6 @@
+.embedded:global(.voice-consent-toast) {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  margin: var(--space-lg) 0 0;
+}

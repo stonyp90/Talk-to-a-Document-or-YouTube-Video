@@ -56,18 +56,14 @@ export function registerProcessChecks(step: Step, h: Helpers) {
     await expect(
       section(p).getByRole("heading", { name: copy.mission.heading }),
     ).toBeVisible();
-    // The mission used to point at a workspace on the same page. It now
-    // crosses to the application, so assert the shape of the route rather
-    // than a fragment that no longer exists here.
-    await expect(
-      section(p).getByRole("link", { name: copy.mission.primary }),
-    ).toHaveAttribute("href", /^\/(en|fr)\/app$/);
+    await expect(section(p)).toContainText(copy.mission.body);
   });
   step("the mission call to action opens the app", async function () {
     const p = await h.page(this);
-    // Stronger than the old href string: the link is followed and the
-    // application is proven to be on the other side of it.
-    await section(p).getByRole("link", { name: copy.mission.primary }).click();
+    // The invitation that closes the story is the new way in — a big, easy
+    // button that says "Open the app" and carries the reader to the tool.
+    const invitation = p.locator(".invitation");
+    await invitation.getByRole("link", { name: "Open the app" }).click();
     expect(new URL(p.url()).pathname).toMatch(/^\/(en|fr)\/app$/);
     await expect(p.locator("#workspace")).toBeVisible();
   });

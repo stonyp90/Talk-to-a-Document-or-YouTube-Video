@@ -13,43 +13,43 @@ type Card = { icon: IconName; title: string; body: string };
 const CARDS: readonly Card[] = [
   {
     icon: "eye",
-    title: "A human stays in the loop.",
-    body: "Every action Ursly takes is one you asked for, can see and can undo. When it is unsure, it asks instead of guessing.",
+    title: "You stay in charge.",
+    body: "Every action Ursly takes is one you asked for, can see, and can undo. When it is unsure, it asks instead of guessing.",
   },
   {
     icon: "voice",
-    title: "A voice model that learns your voice, with your permission.",
-    body: "Ursly is built to tune itself to your accent, your pace and the words you actually use, so it understands you a little better each time. Your recordings stay yours: nothing is kept without your say, and everything can be deleted in one tap.",
+    title: "It learns you.",
+    body: "Ursly tunes itself to your accent, your pace and the words you actually use. Your recordings stay yours — nothing kept without your say, everything deleted in one tap.",
   },
   {
     icon: "motion",
-    title: "Voice first. Movement works too. Keyboard still here.",
-    body: "Voice to action is how you use Ursly today. Motion to action works today too, in beta: start the camera and drive the page with five movements. It reads movement, not fingers, and nothing is recorded or sent. It is built for VR and AR headsets, and it runs in a browser now. The keyboard is the old way in: it still does everything, we keep it and support it, and no one is left out. It is simply no longer where you start.",
+    title: "Speak. Move. Look. Type if you want.",
+    body: "Voice, gesture, gaze and motion are the way in. The keyboard still works — nobody is left out — but it is no longer where you start.",
   },
   {
     icon: "external",
-    title: "A simple site today. Every surface tomorrow.",
-    body: "Talking to a document is the first surface. The same platform is designed to drive connected objects, 3D objects and interfaces that do not exist yet, without changing how you ask.",
+    title: "One intention. Every surface.",
+    body: "A document is the first surface. The same platform drives connected objects, 3D spaces and interfaces that do not exist yet, without changing how you ask.",
   },
   {
     icon: "eye",
-    title: "A spatial interface, built responsibly.",
-    body: "As AR, VR and 3D screens become useful, Ursly can carry the same source-grounded conversation into the room around you. Connected devices should respond only to an explicit request, and brain-computer interfaces remain research—not a promise.",
+    title: "Built for everyone.",
+    body: "No setup. No learning curve. Speak or move and Ursly understands. The Web 3.0 experience should be accessible to everyone, not only to people who enjoy keyboards.",
   },
 ];
 
 const ROADMAP = [
   {
     stage: "Today",
-    text: "Talk to a PDF or a captioned YouTube video. Say “upload”, “summarize” or “next” to drive the page. Or start the camera and drive it with five movements, in beta. The keyboard still does all of it, for whoever wants it.",
+    text: "Talk to a document or a video. Speak, gesture, or move to navigate. The keyboard still works for whoever wants it.",
   },
   {
     stage: "Next",
-    text: "Voice profiles that adapt to each speaker, with consent and one-tap deletion. Motion to action on VR and AR headsets.",
+    text: "Voice profiles that adapt to each speaker. Motion to action on VR and AR headsets. Gaze as a way in.",
   },
   {
     stage: "Later",
-    text: "Connected objects, 3D spaces and other surfaces. Whole industries, not only websites—with permission at every boundary.",
+    text: "Connected objects, 3D spaces and new surfaces. Whole industries, not only websites — with permission at every boundary.",
   },
 ] as const;
 
@@ -76,12 +76,10 @@ export function PlatformSection({
     >
       <div className="platform-heading">
         <span className="eyebrow">{t("Platform")}</span>
-        <h2 id="platform-heading">
-          {t("Not a new website. A new way to use one.")}
-        </h2>
+        <h2 id="platform-heading">{t("Less computer. More human.")}</h2>
         <p className="platform-lede">
           {t(
-            "Ursly sits between what you mean and what the connected world does. You speak; you move; you can still type. The same source-grounded intelligence can travel from a browser into spatial 3D interfaces and, one day, new ways of communicating with machines—always with you in charge of what happens next.",
+            "You express your intention. Ursly acts. Speak, gesture, look, move — the interface adapts to you, not the other way around.",
           )}
         </p>
       </div>
@@ -123,9 +121,7 @@ export function PlatformSection({
         ))}
       </ol>
       <p className="roadmap-note">
-        {t(
-          "No dates. We publish what ships, and we revise this as we learn. Not on the list: replacing your keyboard, or acting without asking.",
-        )}
+        {t("No dates. We publish what ships, and we revise this as we learn.")}
       </p>
 
       <div className="platform-proof">
@@ -149,11 +145,7 @@ export function PlatformSection({
         </button>
       </div>
 
-      <p className="platform-closing">
-        {t(
-          "Less scrolling. More understanding. On every surface that comes next.",
-        )}
-      </p>
+      <p className="platform-closing">{t("Ursly is the human interface.")}</p>
     </section>
   );
 }

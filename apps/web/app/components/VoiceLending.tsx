@@ -11,6 +11,7 @@ import {
   type VoiceConsent,
 } from "@/packages/core/src/domain/voiceConsent";
 import { Icon } from "./Icon";
+import styles from "./VoiceLending.module.css";
 import { useLanguage } from "../i18n/LanguageProvider";
 
 /**
@@ -91,8 +92,14 @@ function browserVoiceCapture(): VoiceCapture {
  */
 export function VoiceLending({
   capture = browserVoiceCapture,
+  embedded = false,
+  active = true,
 }: {
   capture?: () => VoiceCapture;
+  /** Keep consent inside a containing native modal instead of the body portal. */
+  embedded?: boolean;
+  /** Closing settings stops pending capture while preserving an approved sample. */
+  active?: boolean;
 }) {
   const { t } = useLanguage();
   const headingId = useId();
@@ -100,13 +107,24 @@ export function VoiceLending({
   const toastBodyId = useId();
   const toastCountId = useId();
   const [consent, setConsent] = useState<VoiceConsent>(PRESET_VOICE);
+  const [wasActive, setWasActive] = useState(active);
   const [notice, setNotice] = useState("");
   const recorder = useRef<VoiceCapture | null>(null);
+  const captureEpoch = useRef(0);
+  const activeCapture = useRef(active);
   // The approved recording itself. It is held here, in this browser, and the
   // delete control below is the only thing that lets go of it.
   const sample = useRef<Blob | null>(null);
   const toast = useRef<HTMLDivElement | null>(null);
   const listening = isDecisionPending(consent);
+
+  // Reset the pending decision with the visibility change, before effects run.
+  // A kept sample is unaffected by the domain's decline transition.
+  if (wasActive !== active) {
+    setWasActive(active);
+    if (!active)
+      setConsent((current) => decideVoiceConsent(current, { type: "decline" }));
+  }
 
   useEffect(() => {
     if (!listening) return;
@@ -131,36 +149,54 @@ export function VoiceLending({
     if (listening) toast.current?.focus();
   }, [listening]);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    activeCapture.current = active;
+    if (!active) {
+      captureEpoch.current += 1;
       recorder.current?.abandon();
       recorder.current = null;
-    },
-    [],
-  );
+    }
+    return () => {
+      activeCapture.current = false;
+      captureEpoch.current += 1;
+      recorder.current?.abandon();
+      recorder.current = null;
+    };
+  }, [active]);
 
   const lend = useCallback(async () => {
+    if (!activeCapture.current) return;
+    const epoch = ++captureEpoch.current;
     setNotice("");
     const opened = capture();
     try {
       await opened.open();
     } catch {
+      if (!activeCapture.current || captureEpoch.current !== epoch) return;
       // The browser tells us nothing useful about a refusal, and guessing on
       // its behalf would put words in the speaker's mouth.
       setNotice(
-        "Ursly could not open the microphone. Check the microphone permission in your browser and try again.",
+        embedded
+          ? "The microphone could not be opened. Check your browser permission and try again."
+          : "Ursly could not open the microphone. Check the microphone permission in your browser and try again.",
       );
+      return;
+    }
+    if (!activeCapture.current || captureEpoch.current !== epoch) {
+      opened.abandon();
       return;
     }
     recorder.current?.abandon();
     recorder.current = opened;
     sample.current = null;
     setConsent((current) => decideVoiceConsent(current, { type: "lend" }));
-  }, [capture]);
+  }, [capture, embedded]);
 
   const approve = useCallback(async () => {
-    if (!canApprove(consent)) return;
+    if (!activeCapture.current || !canApprove(consent)) return;
+    const epoch = captureEpoch.current;
     const captured = await recorder.current?.close();
+    if (!activeCapture.current || captureEpoch.current !== epoch) return;
     recorder.current = null;
     // A counter that ran for twelve seconds is not proof that twelve seconds
     // of audio exist. Saying a recording was kept when none came back would be
@@ -168,7 +204,9 @@ export function VoiceLending({
     if (!captured) {
       sample.current = null;
       setNotice(
-        "The microphone handed back no audio, so nothing was kept. Lend your voice again to try once more.",
+        embedded
+          ? "No audio was captured. Nothing was kept. Record a new sample to try again."
+          : "The microphone handed back no audio, so nothing was kept. Lend your voice again to try once more.",
       );
       setConsent((current) => decideVoiceConsent(current, { type: "decline" }));
       return;
@@ -178,9 +216,10 @@ export function VoiceLending({
     setConsent((current) =>
       decideVoiceConsent(current, { type: "approve", sampleId: "lent-voice" }),
     );
-  }, [consent]);
+  }, [consent, embedded]);
 
   const decline = useCallback(() => {
+    captureEpoch.current += 1;
     recorder.current?.abandon();
     recorder.current = null;
     sample.current = null;
@@ -190,12 +229,77 @@ export function VoiceLending({
 
   const forget = useCallback(() => {
     sample.current = null;
-    setNotice("Voice sample deleted. Ursly answers in its preset voice again.");
+    setNotice(
+      embedded
+        ? "Voice sample deleted. Answers still use the preset voice."
+        : "Voice sample deleted. Ursly answers in its preset voice again.",
+    );
     setConsent((current) => decideVoiceConsent(current, { type: "forget" }));
-  }, []);
+  }, [embedded]);
 
   const seconds = consent.stage === "preset" ? 0 : consent.seconds;
   const enough = canApprove(consent);
+
+  const consentToast = (
+    <div
+      className={`voice-consent-toast${embedded ? ` ${styles.embedded}` : ""}`}
+      role="alertdialog"
+      ref={toast}
+      tabIndex={-1}
+      aria-labelledby={toastTitleId}
+      aria-describedby={`${toastBodyId} ${toastCountId}`}
+      onKeyDown={(event) => {
+        // Escape is the one key people press to make something go away.
+        // Here it can only mean the safe thing, never the keeping one.
+        if (event.key === "Escape") {
+          event.preventDefault();
+          decline();
+        }
+      }}
+    >
+      <p className="voice-consent-title" id={toastTitleId}>
+        <span className="voice-consent-dot" aria-hidden="true" />
+        {t(embedded ? "Recording your voice" : "Ursly is recording your voice")}
+      </p>
+      <p id={toastBodyId}>
+        {t(
+          embedded
+            ? "This recording stays in this browser and is kept only if you approve it. It is not uploaded or used to change the response voice."
+            : "Ursly keeps this recording only if you approve it, so it can learn your voice. It has not been sent anywhere.",
+        )}
+      </p>
+      {/* Counted in the unit rather than the word: at one second, every
+                plural rule in every language we ship would be wrong. */}
+      <p className="voice-consent-count" id={toastCountId}>
+        {enough
+          ? t("Recorded so far: {seconds} s. That is enough to keep.", {
+              seconds,
+            })
+          : t(
+              embedded
+                ? "Recorded so far: {seconds} s. Keep talking for at least {minimum} s."
+                : "Recorded so far: {seconds} s. Keep talking — Ursly needs at least {minimum} s.",
+              { seconds, minimum: MINIMUM_SAMPLE_SECONDS },
+            )}
+      </p>
+      <div className="voice-consent-actions">
+        {/* A sample still too short leaves this button in the tab order
+                  rather than out of it: an action nobody can reach is an
+                  action nobody can be told the reason for. */}
+        <button
+          type="button"
+          className="primary"
+          aria-disabled={enough ? undefined : true}
+          onClick={approve}
+        >
+          {t("Keep the recording")}
+        </button>
+        <button type="button" className="secondary" onClick={decline}>
+          {t("Discard it")}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <section
@@ -204,13 +308,17 @@ export function VoiceLending({
       aria-labelledby={headingId}
       data-listening={listening}
     >
-      <h3 id={headingId}>{t("How Ursly answers")}</h3>
+      <h3 id={headingId}>
+        {t(embedded ? "Response voice" : "How Ursly answers")}
+      </h3>
 
       {consent.stage === "kept" ? (
         <div className="voice-lending-sample">
           <p>
             {t(
-              "Ursly kept {seconds} seconds of your voice, in this browser and for as long as this page is open. Nothing was sent anywhere, and Ursly still answers in its preset voice: lending it a voice for real is a separate, deliberate step.",
+              embedded
+                ? "Kept {seconds} seconds in this browser while this page is open. Nothing was uploaded. Answers still use the preset voice."
+                : "Ursly kept {seconds} seconds of your voice, in this browser and for as long as this page is open. Nothing was sent anywhere, and Ursly still answers in its preset voice: lending it a voice for real is a separate, deliberate step.",
               { seconds: consent.seconds },
             )}
           </p>
@@ -222,16 +330,20 @@ export function VoiceLending({
         <>
           <p>
             {t(
-              "Ursly answers in a preset voice, and that asks nothing of you. You can lend it yours instead.",
+              embedded
+                ? "Answers use a preset voice. A local sample does not change it."
+                : "Ursly answers in a preset voice, and that asks nothing of you. You can lend it yours instead.",
             )}
           </p>
           <button type="button" className="primary" onClick={lend}>
             <Icon name="voice" />
-            {t("Lend Ursly your voice")}
+            {t(embedded ? "Record a voice sample" : "Lend Ursly your voice")}
           </button>
           <p className="hint">
             {t(
-              "Ursly starts recording only after you press this, and keeps the recording only if you approve it.",
+              embedded
+                ? "Recording starts when you press Record. You choose whether to keep it."
+                : "Ursly starts recording only after you press this, and keeps the recording only if you approve it.",
             )}
           </p>
         </>
@@ -243,71 +355,9 @@ export function VoiceLending({
         </p>
       )}
 
-      {/*
-        The toast is rendered into the body rather than here. Every card on
-        this page animates in, and an ancestor that has been transformed —
-        even by an identity matrix once the animation settles — becomes the
-        containing block for anything fixed inside it. The toast would be
-        pinned to the bottom of a card and would scroll away with it.
-      */}
-      {listening &&
-        createPortal(
-          <div
-            className="voice-consent-toast"
-            role="alertdialog"
-            ref={toast}
-            tabIndex={-1}
-            aria-labelledby={toastTitleId}
-            aria-describedby={`${toastBodyId} ${toastCountId}`}
-            onKeyDown={(event) => {
-              // Escape is the one key people press to make something go away.
-              // Here it can only mean the safe thing, never the keeping one.
-              if (event.key === "Escape") {
-                event.preventDefault();
-                decline();
-              }
-            }}
-          >
-            <p className="voice-consent-title" id={toastTitleId}>
-              <span className="voice-consent-dot" aria-hidden="true" />
-              {t("Ursly is recording your voice")}
-            </p>
-            <p id={toastBodyId}>
-              {t(
-                "Ursly keeps this recording only if you approve it, so it can learn your voice. It has not been sent anywhere.",
-              )}
-            </p>
-            {/* Counted in the unit rather than the word: at one second, every
-                plural rule in every language we ship would be wrong. */}
-            <p className="voice-consent-count" id={toastCountId}>
-              {enough
-                ? t("Recorded so far: {seconds} s. That is enough to keep.", {
-                    seconds,
-                  })
-                : t(
-                    "Recorded so far: {seconds} s. Keep talking — Ursly needs at least {minimum} s.",
-                    { seconds, minimum: MINIMUM_SAMPLE_SECONDS },
-                  )}
-            </p>
-            <div className="voice-consent-actions">
-              {/* A sample still too short leaves this button in the tab order
-                  rather than out of it: an action nobody can reach is an
-                  action nobody can be told the reason for. */}
-              <button
-                type="button"
-                className="primary"
-                aria-disabled={enough ? undefined : true}
-                onClick={approve}
-              >
-                {t("Keep the recording")}
-              </button>
-              <button type="button" className="secondary" onClick={decline}>
-                {t("Discard it")}
-              </button>
-            </div>
-          </div>,
-          document.body,
-        )}
+      {active &&
+        listening &&
+        (embedded ? consentToast : createPortal(consentToast, document.body))}
     </section>
   );
 }

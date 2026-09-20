@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MotionActions } from "./MotionActions";
 import { LanguageProvider } from "../i18n/LanguageProvider";
@@ -205,5 +211,73 @@ describe("driving the application with a hand", () => {
       /stop/i,
     ])
       expect(screen.getByText(meaning)).toBeInTheDocument();
+  });
+});
+
+describe("motion in the shared action dock", () => {
+  it("can cancel a pending camera request without reopening on a late ready event", async () => {
+    const camera = stubCamera();
+    let ready: (() => void) | undefined;
+    const stop = vi.fn();
+    camera.create = (options) => ({
+      start: () =>
+        new Promise<void>((resolve) => {
+          ready = () => {
+            options.onEvent({ type: "ready" });
+            resolve();
+          };
+        }),
+      stop,
+    });
+    draw({ presentation: "dock" }, camera);
+    start();
+    fireEvent.click(screen.getByRole("button", { name: "Stop motion" }));
+    await act(async () => ready?.());
+    expect(stop).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: /start motion/i })).toBeEnabled();
+    expect(screen.getByLabelText("Motion preview")).not.toBeVisible();
+  });
+
+  it("leaves the camera off and the preview hidden until requested", () => {
+    const camera = stubCamera();
+    const create = vi.spyOn(camera, "create");
+    draw({ presentation: "dock" }, camera);
+    expect(create).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: /start motion/i }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.queryByText(/nothing is recorded or sent/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /full screen/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Motion preview")).not.toBeVisible();
+  });
+
+  it("opens a preview on start, drives questions, and closes it on stop", async () => {
+    const { camera, onAsk } = draw({ presentation: "dock" });
+    start();
+    expect(await screen.findByLabelText("Motion preview")).toBeVisible();
+    camera.gesture("right");
+    camera.gesture("hold");
+    expect(onAsk).toHaveBeenCalledWith(PROMPTS[1]);
+    fireEvent.click(screen.getByRole("button", { name: "Stop motion" }));
+    expect(screen.queryByLabelText("Motion preview")).not.toBeVisible();
+    expect(screen.getByRole("button", { name: /start motion/i })).toBeEnabled();
+    expect(camera.stopped).toBe(1);
+  });
+
+  it("keeps a camera error visible when the preview closes", async () => {
+    const { camera } = draw({ presentation: "dock" });
+    start();
+    camera.send({
+      type: "error",
+      code: "DENIED",
+      message:
+        "The camera was not allowed. Allow it in your browser, then start motion again.",
+    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(/not allowed/i);
+    expect(screen.queryByLabelText("Motion preview")).not.toBeVisible();
   });
 });

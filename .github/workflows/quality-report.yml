@@ -1,0 +1,53 @@
+name: Quality Report
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  report:
+    name: Generate quality report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate quality report
+        run: node scripts/quality/report.mjs
+        continue-on-error: true
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report-${{ github.sha }}
+          path: .qoder/reports/
+          retention-days: 30
+
+      - name: Commit report to branch
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "quality-bot"
+          git config user.email "quality-bot@ursly.io"
+          git add .qoder/reports/
+          git diff --cached --quiet || git commit -m "chore: quality report $(date +%Y%m%dT%H%M%S)"
+          git push

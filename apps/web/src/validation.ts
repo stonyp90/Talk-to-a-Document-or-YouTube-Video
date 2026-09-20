@@ -1,6 +1,10 @@
 import { z } from "zod/v4";
 import { MAX_QUESTION_CHARACTERS } from "@/packages/core/src/application/conversation";
 import { MAX_VIDEO_QUERY_CHARACTERS } from "@/packages/core/src/application/videoSearch";
+import {
+  MAX_ASSISTANT_NAME_CHARACTERS,
+  VOICE_SPEED_RANGE,
+} from "@/packages/core/src/domain/voiceControls";
 
 /**
  * Request and response shapes for the HTTP API. These schemas validate every
@@ -25,6 +29,12 @@ export const sourceReferenceSchema = z
   .object({
     sourceId: z.uuid().optional(),
     source: sourceSchema.optional(),
+    speed: z
+      .number()
+      .min(VOICE_SPEED_RANGE.minimum)
+      .max(VOICE_SPEED_RANGE.maximum)
+      .optional(),
+    assistantName: z.string().max(MAX_ASSISTANT_NAME_CHARACTERS).optional(),
   })
   .refine((value) => Boolean(value.sourceId || value.source), {
     message: "A sourceId or a source is required.",

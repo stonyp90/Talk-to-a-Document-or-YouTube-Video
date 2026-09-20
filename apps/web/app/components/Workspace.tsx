@@ -2,6 +2,7 @@
 
 import {
   ChangeEvent,
+  type ComponentProps,
   FormEvent,
   useCallback,
   useEffect,
@@ -14,11 +15,12 @@ import {
 import { Icon } from "./Icon";
 import type { EntryMode } from "./ModeSwitcher";
 import { SignInGate } from "./SignInGate";
-import { SiteFooter } from "./SiteFooter";
-import { TopNav } from "./TopNav";
+import { WorkspaceDialog } from "./WorkspaceDialog";
+import styles from "./Workspace.module.css";
+import { AppPreferences, TopNav } from "./TopNav";
 import { Markdown } from "./Markdown";
-import { VoiceActions, type VoiceActionId } from "./VoiceActions";
-import { MotionActions } from "./MotionActions";
+import type { VoiceActionId } from "./VoiceActions";
+import { SenseControls, type SenseActivity } from "./SenseControls";
 import { DeviceConnect } from "./DeviceConnect";
 import { defaultPhrases } from "@/packages/core/src/domain/voiceCommands";
 import { VoiceLending } from "./VoiceLending";
@@ -52,6 +54,14 @@ import { YouTubePlayer } from "./YouTubePlayer";
 import ImmersiveFileBrowser from "./ImmersiveFileBrowser";
 import { createMemoryFileSystem } from "@/packages/adapters/src/fileSystem";
 import type { FileNode } from "@/packages/core/src/domain/fileSystem";
+import { AssistantName } from "./AssistantName";
+import { useVoiceSpeed } from "@/apps/web/src/lib/useVoiceSpeed";
+import {
+  DEFAULT_ASSISTANT_NAME,
+  type CallerMood,
+} from "@/packages/core/src/domain/voiceControls";
+import { InteractionFeedback } from "./InteractionFeedback";
+import { ConversationStream } from "./ConversationStream";
 
 type SourceTab = "pdf" | "youtube";
 
@@ -174,9 +184,9 @@ const MODE_STORAGE_KEY = "ursly-mode-v1";
 function readSavedMode(): EntryMode {
   try {
     const saved = localStorage.getItem(MODE_STORAGE_KEY);
-    return saved === "text" || saved === "motion" ? saved : "voice";
+    return saved === "text" ? "text" : "human";
   } catch {
-    return "voice";
+    return "human";
   }
 }
 
@@ -191,12 +201,12 @@ export default function Workspace() {
   /** The wording this language listens for, so a notice never quotes another. */
   const spokenPhrase = (action: VoiceActionId) =>
     defaultPhrases(language)[action][0] ?? "";
-  // The chosen mode is remembered per browser. The server snapshot is voice,
+  // The chosen input preference is remembered per browser. The server snapshot is human,
   // so hydration has nothing to reconcile; a choice made here wins over it.
   const savedMode = useSyncExternalStore(
     subscribeToStorage,
     readSavedMode,
-    () => "voice" as EntryMode,
+    () => "human" as EntryMode,
   );
   const [chosenMode, setChosenMode] = useState<EntryMode | null>(null);
   const entryMode: EntryMode = chosenMode ?? savedMode;
@@ -212,7 +222,14 @@ export default function Workspace() {
   const [pendingAnswers, setPendingAnswers] = useState(0);
   const [providerMode, setProviderMode] = useState<string>("");
   const [activity, setActivity] = useState<VoiceActivity>("idle");
-  const [sourcePickerOpen, setSourcePickerOpen] = useState(true);
+  const [senseActivity, setSenseActivity] = useState<SenseActivity>({
+    listening: false,
+    motion: false,
+    connecting: false,
+  });
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
+  const [sourceFocus, setSourceFocus] = useState<SourceTab | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [voiceActionNotice, setVoiceActionNotice] = useState("");
   /** The live channel's own state, separate from the spoken session's. */
@@ -228,13 +245,24 @@ export default function Workspace() {
   // at a reader who is already signed in. The workspace itself stays on the
   // page throughout: the gate stands over it rather than replacing it.
   const [account, setAccount] = useState<string | null | undefined>(undefined);
-  const [videoQuery, setVideoQuery] = useState("");
   const [videoChoices, setVideoChoices] = useState<VideoResult[]>([]);
   const [searchingVideos, setSearchingVideos] = useState(false);
   const [videoId, setVideoId] = useState<string | undefined>(undefined);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
-  const fileSystemRef = useRef(createMemoryFileSystem());
-  const [gazePosition, setGazePosition] = useState<{ x: number; y: number } | null>(null);
+  const [fileSystem] = useState(createMemoryFileSystem);
+  const [gazePosition, setGazePosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [assistantName, setAssistantName] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_ASSISTANT_NAME;
+    return (
+      localStorage.getItem("ursly-assistant-name") ?? DEFAULT_ASSISTANT_NAME
+    );
+  });
+  const { speed: voiceSpeed, setSpeed: setVoiceSpeed } = useVoiceSpeed();
+  const [mood, setMood] = useState<CallerMood>("calm");
+  const [feedbackMessageId, setFeedbackMessageId] = useState<string | null>(null);
   const micSupported = useSyncExternalStore(
     NO_CHANGE,
     readMicrophoneSupport,
@@ -297,6 +325,10 @@ export default function Workspace() {
       chatLog.current.scrollTop = chatLog.current.scrollHeight;
   }, [state.messages]);
 
+  useEffect(() => {
+    localStorage.setItem("ursly-assistant-name", assistantName);
+  }, [assistantName]);
+
   // A reader can choose a PDF before this page's script has run, and the
   // change event is lost because React was not listening yet: the picker
   // holds a file the page does not know about, and the way forward stays
@@ -305,19 +337,6 @@ export default function Workspace() {
     const chosen = fileInput.current?.files?.[0];
     if (chosen) setFile((current) => current ?? chosen);
   }, []);
-
-  // Escape key closes the source overlay dialog for keyboard accessibility.
-  useEffect(() => {
-    if (!sourcePickerOpen) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setSourcePickerOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [sourcePickerOpen]);
 
   useEffect(() => {
     let current = true;
@@ -444,7 +463,7 @@ export default function Workspace() {
   useEffect(() => {
     sourceRef.current = source;
     const url = chatSocketUrl();
-    if (!url || !source || entryMode !== "text") return;
+    if (!url || !source) return;
     const socket = new ChatSocket({
       url,
       reference: () => ({
@@ -460,7 +479,7 @@ export default function Workspace() {
       if (chat.current === socket) chat.current = null;
       setChannelStatus("idle");
     };
-  }, [source, entryMode]);
+  }, [source]);
 
   // The tab title carries the live voice state, visible from any other tab. The
   // page's own title is read once and kept: deriving it from whatever the title
@@ -490,6 +509,22 @@ export default function Workspace() {
     const timeout = window.setTimeout(() => setVoiceActionNotice(""), 4200);
     return () => window.clearTimeout(timeout);
   }, [voiceActionNotice]);
+
+  useEffect(() => {
+    const last = state.messages[state.messages.length - 1];
+    if (
+      last &&
+      last.role === "assistant" &&
+      last.text &&
+      last.status !== "partial" &&
+      !streamingId &&
+      pendingAnswers === 0
+    ) {
+      setFeedbackMessageId((current) =>
+        current === last.id ? current : last.id,
+      );
+    }
+  }, [state.messages, streamingId, pendingAnswers]);
 
   const invalidateVoice = useCallback(() => {
     voiceVersion.current++;
@@ -641,6 +676,7 @@ export default function Workspace() {
       if (!current()) return;
       setSource(envelope.source);
       setSourcePickerOpen(false);
+      setSourceFocus(null);
       sourceIdRef.current = envelope.sourceId;
       setContext(envelope.context);
       dispatch({ type: "CLEAR_ERROR" });
@@ -684,13 +720,15 @@ export default function Workspace() {
           "Voice session setup timed out. Check your connection and retry Start Voice Chat.",
         ),
         () =>
-          withSession((body) =>
-            requestJson<RealtimeCredential>("/api/realtime/session", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-              signal: controller.signal,
-            }),
+          withSession(
+            (body) =>
+              requestJson<RealtimeCredential>("/api/realtime/session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+                signal: controller.signal,
+              }),
+            { speed: voiceSpeed, assistantName },
           ),
       );
       if (!current()) return;
@@ -705,6 +743,14 @@ export default function Workspace() {
           if (event.type === "connected") dispatch({ type: "CONNECTED" });
           if (event.type === "reconnecting") dispatch({ type: "RECONNECTING" });
           if (event.type === "activity") setActivity(event.activity ?? "idle");
+          // The caller asked for these out loud; the settings follow.
+          if (event.control?.kind === "voice-speed")
+            setVoiceSpeed(event.control.speed);
+          if (event.control?.kind === "assistant-name")
+            setAssistantName(event.control.name);
+          if (event.control?.kind === "mood") setMood(event.control.mood);
+          if (event.type === "ended" || event.type === "error")
+            setMood("calm");
           if (event.type === "ended") {
             voiceActive.current = false;
             setActivity("idle");
@@ -811,7 +857,6 @@ export default function Workspace() {
   async function findVideo(query: string) {
     const controller = new AbortController();
     setSearchingVideos(true);
-    setVideoQuery(query);
     setVideoChoices([]);
     setError("");
     try {
@@ -832,16 +877,22 @@ export default function Workspace() {
       if (!best) {
         setVideoChoices([]);
         setVoiceActionNotice(
-          t("Nothing captioned found for \u201c{query}\u201d. Try other words.", {
-            query,
-          }),
+          t(
+            "Nothing captioned found for \u201c{query}\u201d. Try other words.",
+            {
+              query,
+            },
+          ),
         );
         return;
       }
       setTab("youtube");
       setUrl(best.url);
       setVideoChoices(rest);
-      setVoiceActionNotice(t("Opening \u201c{title}\u201d.", { title: best.title }));
+      setVoiceActionNotice(
+        t("Opening \u201c{title}\u201d.", { title: best.title }),
+      );
+      setSourcePickerOpen(true);
       await startIngest({ url: best.url });
     } catch (caught) {
       noteSignedOut(caught);
@@ -883,9 +934,7 @@ export default function Workspace() {
     const trimmed = text.trim();
     if (!trimmed) return;
     if (!source) {
-      setError(
-        t("Add a PDF or YouTube video first, then ask your question."),
-      );
+      setError(t("Add a PDF or YouTube video first, then ask your question."));
       setQuestion(trimmed);
       return;
     }
@@ -1067,12 +1116,8 @@ export default function Workspace() {
   function focusSourceControl(control: "youtube" | "upload") {
     setError("");
     setTab(control === "youtube" ? "youtube" : "pdf");
+    setSourceFocus(control === "youtube" ? "youtube" : "pdf");
     setSourcePickerOpen(true);
-    window.requestAnimationFrame(() => {
-      if (control === "youtube")
-        document.getElementById("youtube-url")?.focus();
-      else fileInput.current?.focus();
-    });
   }
 
   function switchEntryMode(mode: EntryMode) {
@@ -1083,19 +1128,6 @@ export default function Workspace() {
       /* The choice still holds for this visit. */
     }
     setError("");
-    setVoiceActionNotice(
-      mode === "voice"
-        ? t(
-            "Voice to action: the way in. Say a command, or use the controls as usual.",
-          )
-        : mode === "motion"
-          ? t(
-              "Motion to action: start the camera, then swipe to choose a question and wave to ask it.",
-            )
-          : t(
-              "Keyboard to action: the old way in, still complete. Everything works by typing and clicking.",
-            ),
-    );
   }
 
   function openUploadPicker() {
@@ -1126,9 +1158,12 @@ export default function Workspace() {
     if (action === "voice") {
       if (!source) {
         setVoiceActionNotice(
-          t("Add a PDF or YouTube source first, then say \u201c{phrase}\u201d again.", {
-            phrase: spokenPhrase("voice"),
-          }),
+          t(
+            "Add a PDF or YouTube source first, then say \u201c{phrase}\u201d again.",
+            {
+              phrase: spokenPhrase("voice"),
+            },
+          ),
         );
         return;
       }
@@ -1138,9 +1173,12 @@ export default function Workspace() {
     if (action === "summarize") {
       if (!source) {
         setVoiceActionNotice(
-          t("Add a PDF or YouTube source first, then say \u201c{phrase}\u201d again.", {
-            phrase: spokenPhrase("summarize"),
-          }),
+          t(
+            "Add a PDF or YouTube source first, then say \u201c{phrase}\u201d again.",
+            {
+              phrase: spokenPhrase("summarize"),
+            },
+          ),
         );
         return;
       }
@@ -1154,7 +1192,9 @@ export default function Workspace() {
     if (action === "ask") {
       const pending = question.trim();
       if (!pending) {
-        setVoiceActionNotice(t("Say your question first, then say \u201csend it\u201d."));
+        setVoiceActionNotice(
+          t("Say your question first, then say \u201csend it\u201d."),
+        );
         return;
       }
       setQuestion("");
@@ -1218,61 +1258,42 @@ export default function Workspace() {
     t("What should I remember?"),
   ];
 
-  /**
-   * One panel for the whole workspace. It serves both halves of the task —
-   * before a source it opens one, after a source it carries the question — and
-   * it sits above both cards so that finding a source never unmounts it and
-   * takes the microphone away in the middle of a sentence. Hiding it once a
-   * source arrived was the reason speaking stopped working exactly when it
-   * started to matter.
-   */
-  /**
-   * Driving with a hand. It sits where the spoken panel sits, uses the same
-   * action bus, and asks whichever question the reader has landed on, so a
-   * conversation can be held without a word or a keystroke.
-   * Both voice and motion are always mounted — the entry mode controls which
-   * is visually primary, but a reader can use either at any time.
-   */
-  const motionActions = (
-    <MotionActions
-      prompts={suggestions}
-      canAsk={Boolean(source)}
-      onAsk={(spoken) => {
-        setQuestion("");
-        void askQuestion(spoken);
-      }}
-      onAction={handleVoiceAction}
-      fileBrowserOpen={fileBrowserOpen}
-      onFileAction={(fileAction) => {
-        setVoiceActionNotice(`File: ${fileAction}`);
-      }}
-      onGazeUpdate={(position) => setGazePosition(position)}
-    />
-  );
-
-  const voiceActions = (
-    <VoiceActions
-      onAction={handleVoiceAction}
-      onDictate={(spoken) => {
-        setQuestion("");
-        void askQuestion(spoken);
-      }}
-      onDraft={setQuestion}
-      canStartVoice={Boolean(source)}
-      // Reading a source does not use the microphone, so listening continues
-      // through it; only a live voice session has to own the device alone.
-      voiceBusy={[
-        "preparing",
-        "connecting",
-        "connected",
-        "reconnecting",
-      ].includes(state.status)}
-      compact={Boolean(source)}
-    />
-  );
+  // Both input adapters stay mounted around the same source and conversation.
+  const motionProps: ComponentProps<typeof SenseControls>["motion"] = {
+    prompts: suggestions,
+    canAsk: Boolean(source),
+    onAsk: (spoken) => {
+      setQuestion("");
+      void askQuestion(spoken);
+    },
+    onAction: handleVoiceAction,
+    fileBrowserOpen,
+    onFileAction: (fileAction) => setVoiceActionNotice(`File: ${fileAction}`),
+    onGazeUpdate: setGazePosition,
+  };
+  const voiceProps: ComponentProps<typeof SenseControls>["voice"] = {
+    onAction: handleVoiceAction,
+    onDictate: (spoken) => {
+      setQuestion("");
+      void askQuestion(spoken);
+    },
+    onDraft: setQuestion,
+    canStartVoice: Boolean(source),
+    voiceBusy: sessionLive,
+  };
+  const visualActivity =
+    busy || pendingAnswers > 0 || senseActivity.connecting
+      ? "thinking"
+      : sessionLive && activity === "speaking"
+        ? "speaking"
+        : senseActivity.listening || sessionLive
+          ? "listening"
+          : senseActivity.motion
+            ? "motion"
+            : "idle";
 
   return (
-    <>
+    <div className={styles.experience}>
       <input
         ref={voicePickerInput}
         className="voice-picker-input"
@@ -1287,807 +1308,499 @@ export default function Workspace() {
       </a>
       <TopNav page="app" mode={entryMode} onModeChange={switchEntryMode} />
 
-      <main className="shell" data-mode={entryMode}>
-        <div className="container app-frame">
-          {!online && (
-            <p className="banner banner-offline" role="alert">
-              {t(
-                "You are offline. Ursly will reconnect when your network returns.",
-              )}
-            </p>
-          )}
+      <main
+        className={styles.workspace}
+        id="workspace"
+        tabIndex={-1}
+        aria-label={t("Sense to Action")}
+        data-entry-mode={entryMode}
+        data-activity={visualActivity}
+        data-mood={mood}
+        data-sensing={
+          senseActivity.listening || senseActivity.motion || sessionLive
+        }
+        onPointerMove={(event) => {
+          if (event.pointerType !== "mouse") return;
+          const bounds = event.currentTarget.getBoundingClientRect();
+          event.currentTarget.style.setProperty(
+            "--sense-offset-x",
+            `${((event.clientX - bounds.left) / bounds.width - 0.5) * 12}px`,
+          );
+          event.currentTarget.style.setProperty(
+            "--sense-offset-y",
+            `${((event.clientY - bounds.top) / bounds.height - 0.5) * 12}px`,
+          );
+        }}
+        onPointerLeave={(event) => {
+          event.currentTarget.style.setProperty("--sense-offset-x", "0px");
+          event.currentTarget.style.setProperty("--sense-offset-y", "0px");
+        }}
+      >
+        <div className={styles.ambient} aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className={styles.particles} aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+        {videoId && (
+          <YouTubePlayer videoId={videoId} className={styles.video} />
+        )}
 
-          <div className="immersive-header">
-            <h1>
-              {source ? (
-                <>
-                  {t("Exploring")} <span>{source.sourceName}</span>
-                </>
-              ) : (
-                <>
-                  {t("Your source.")} <span>{t("Your questions.")}</span>
-                </>
-              )}
-            </h1>
-            <p className="lede">
-              {entryMode === "voice"
-                ? t(
-                    "Speak to add a source, speak to ask a question. Everything is one conversation.",
-                  )
-                : entryMode === "motion"
-                  ? t(
-                      "Your hand is the way in. Swipe to choose, wave to ask. Everything is one flow.",
-                    )
-                  : t(
-                      "Add a source, ask a question — all in one space. Voice and motion are one tap away.",
-                    )}
-            </p>
-            {!source && (
-              <button
-                type="button"
-                className="immersive-source-toggle"
-                onClick={() => setSourcePickerOpen((open) => !open)}
-                aria-expanded={sourcePickerOpen}
-              >
-                <Icon name="download" /> {t("Add a source")}
-              </button>
-            )}
-            {source && (
-              <button
-                type="button"
-                className="immersive-source-toggle"
-                onClick={() => setSourcePickerOpen((open) => !open)}
-                aria-expanded={sourcePickerOpen}
-              >
-                <Icon name="document" /> {t("Change source")}
-              </button>
-            )}
+        {source && (
+          <div className={styles.statusBar}>
+            <button
+              type="button"
+              className={styles.sourceChip}
+              onClick={() => setSourcePickerOpen(true)}
+              aria-label={t("Change source")}
+              title={source.sourceName}
+            >
+              <Icon name={source.kind === "youtube" ? "video" : "document"} />
+              <span>{source.sourceName}</span>
+              <span aria-hidden="true">↗</span>
+            </button>
           </div>
+        )}
 
-          {voiceActionNotice && (
-            <div className="toast" role="status" aria-live="polite">
-              {voiceActionNotice}
-              <button
-                type="button"
-                className="toast-dismiss"
-                aria-label={t("Dismiss notification")}
-                onClick={() => setVoiceActionNotice("")}
+        {!online && (
+          <p className={styles.notice} role="alert">
+            {t(
+              "You are offline. Ursly will reconnect when your network returns.",
+            )}
+          </p>
+        )}
+        {voiceActionNotice && (
+          <div className={styles.notice} role="status" aria-live="polite">
+            {voiceActionNotice}
+            <button
+              type="button"
+              aria-label={t("Dismiss notification")}
+              onClick={() => setVoiceActionNotice("")}
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+        )}
+
+        <SignInGate
+          open={account === null}
+          onSignedIn={(email) => setAccount(email)}
+          storyHref={`/${language}`}
+        />
+
+        <div className={styles.stage}>
+          {state.messages.length === 0 && (
+            <div className={styles.origin}>
+              <div
+                className={styles.senseOrb}
+                data-activity={visualActivity}
+                aria-hidden="true"
               >
-                ×
-              </button>
+                <span className={styles.orbit} />
+                <span className={styles.orbit} />
+                <span className={styles.orbit} />
+                <span className={styles.senseHalo} />
+                <span className={styles.orbCore}>
+                  <Icon name="voice" />
+                </span>
+              </div>
+              <h1>
+                {source
+                  ? t("What are you curious about?")
+                  : t("Sense to Action")}
+              </h1>
+              {!source && !busy && (
+                <button
+                  type="button"
+                  className={styles.addSource}
+                  onClick={() => setSourcePickerOpen(true)}
+                >
+                  <Icon name="download" />
+                  {t("Add a source")}
+                </button>
+              )}
+              {source && (
+                <div className={styles.suggestions}>
+                  {suggestions.map((prompt) => (
+                    <button
+                      type="button"
+                      key={prompt}
+                      onClick={() => {
+                        setQuestion("");
+                        void askQuestion(prompt);
+                      }}
+                    >
+                      {prompt}
+                      <Icon name="arrow" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/*
-            The workspace spends money on every source and every answer, so it
-            opens for a signed-in reader only. The gate is the same one the API
-            applies; standing it over the workspace as a modal means a reader
-            sees what they are signing in for, and cannot reach any of it —
-            not by tabbing, not by Escape — before they have.
-          */}
-          <SignInGate
-            open={account === null}
-            onSignedIn={(email) => setAccount(email)}
-            storyHref={`/${language}`}
-          />
-
-          {account !== null && voiceActions}
-          {account !== null && motionActions}
-          {account !== null && <DeviceConnect />}
-
           <div
-            className="workspace immersive-workspace"
-            id="workspace"
-            tabIndex={-1}
+            className={styles.conversation}
+            data-empty={state.messages.length === 0}
           >
-            <div className="particle-field" aria-hidden="true" />
-
-            {/* The video plays as the immersive background when the source is YouTube. */}
-            {videoId && (
-              <YouTubePlayer
-                videoId={videoId}
-                className="immersive-video-background"
+            <ConversationStream
+              messages={state.messages}
+              streamingId={streamingId}
+              assistantName={assistantName}
+              onFeedback={(messageId) => {
+                if (sourceIdRef.current) setFeedbackMessageId(messageId);
+              }}
+            />
+            {feedbackMessageId && sourceIdRef.current && account !== null && (
+              <InteractionFeedback
+                key={feedbackMessageId}
+                sourceId={sourceIdRef.current}
+                onDismiss={() => setFeedbackMessageId(null)}
               />
             )}
+          </div>
+        </div>
 
-            {/* The source picker floats as an overlay — one space, not two steps. */}
-            {sourcePickerOpen && (
-              <div
-                className="source-overlay"
-                role="dialog"
-                aria-label={t("Add a source")}
-              >
-                <div className="source-overlay-inner card holo-panel">
-                  <div className="status-row">
-                    <h2 id="source-heading">
-                      {source ? t("Your source") : t("Add a source")}
-                    </h2>
-                    <span
-                      className="status"
-                      data-state={busy ? "preparing" : source ? "ready" : "idle"}
-                      aria-live="polite"
-                    >
-                      {busy
-                        ? t("Extracting")
-                        : source
-                          ? t("Source ready")
-                          : t("Ready")}
-                    </span>
-                    <button
-                      type="button"
-                      className="source-overlay-close"
-                      onClick={() => setSourcePickerOpen(false)}
-                      aria-label={t("Close source picker")}
-                    >
-                      ×
-                    </button>
-                  </div>
+        <div className={styles.feedback} aria-live="polite">
+          {(busy || searchingVideos) && (
+            <p role="status">
+              <span className="spinner" aria-hidden="true" />
+              {searchingVideos
+                ? t("Finding a video…")
+                : t("Reading your source…")}
+            </p>
+          )}
+          {pendingAnswers > 0 && !streamingId && (
+            <p role="status">
+              <span className="spinner" aria-hidden="true" />
+              {t("Finding an answer in your source…")}
+            </p>
+          )}
+          {!settingsOpen && !sourcePickerOpen && (error || state.error) && (
+            <p className="error" role="alert">
+              {error || state.error}
+            </p>
+          )}
+          {!settingsOpen && sessionLive && (
+            <p role="status">
+              {state.status === "connected"
+                ? activityText[activity]
+                : statusText[state.status]}
+            </p>
+          )}
+          {source && channelStatus === "reconnecting" && (
+            <p role="status">{t("Reopening the live channel…")}</p>
+          )}
+          {providerMode === "mock" && (
+            <p className={styles.demoNote} role="status">
+              {t("Demo simulation: answers are simulated.")}
+            </p>
+          )}
+        </div>
 
-                  {source && (
-                    <div className="source-ready">
-                      <Icon
-                        name={source.kind === "youtube" ? "video" : "document"}
-                      />
-                      <div>
-                        <strong>{source.sourceName}</strong>
-                        <span>
-                          {t("Ready · Your answers will use this source")}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="source-controls">
-                    <div
-                      className="tabs"
-                      data-tab={tab}
-                      role="tablist"
-                      aria-label={t("Source type")}
-                    >
-                      {(
-                        [
-                          { id: "pdf", label: "PDF document", icon: "document" },
-                          {
-                            id: "youtube",
-                            label: "YouTube video",
-                            icon: "video",
-                          },
-                        ] as const
-                      ).map(({ id, label, icon }) => (
-                        <button
-                          key={id}
-                          className={`tab ${tab === id ? "active" : ""}`}
-                          id={`tab-${id}`}
-                          disabled={busy}
-                          aria-controls="source-panel"
-                          tabIndex={tab === id ? 0 : -1}
-                          role="tab"
-                          aria-selected={tab === id}
-                          onKeyDown={(event) => {
-                            if (
-                              [
-                                "ArrowRight",
-                                "ArrowLeft",
-                                "Home",
-                                "End",
-                              ].includes(event.key)
-                            ) {
-                              event.preventDefault();
-                              const next = id === "pdf" ? "youtube" : "pdf";
-                              setTab(next);
-                              document.getElementById(`tab-${next}`)?.focus();
-                            }
-                          }}
-                          onClick={() => {
-                            setTab(id);
-                            setError("");
-                          }}
-                        >
-                          <Icon name={icon} /> {t(label)}
-                        </button>
-                      ))}
-                    </div>
-
-                    <form
-                      onSubmit={ingest}
-                      className="source-grid"
-                      id="source-panel"
-                      role="tabpanel"
-                      aria-labelledby={`tab-${tab}`}
-                      aria-busy={busy}
-                    >
-                      {tab === "pdf" ? (
-                        <label
-                          className="dropzone full"
-                          htmlFor="pdf-file"
-                          data-dragging={dragging}
-                          data-filled={Boolean(file)}
-                          onDragOver={(event) => {
-                            event.preventDefault();
-                            if (!busy) setDragging(true);
-                          }}
-                          onDragLeave={() => setDragging(false)}
-                          onDrop={(event) => {
-                            event.preventDefault();
-                            setDragging(false);
-                            if (busy) return;
-                            const dropped = event.dataTransfer.files?.[0];
-                            if (dropped) {
-                              setFile(dropped);
-                              setError("");
-                            }
-                          }}
-                        >
-                          <span className="upload-icon">
-                            <Icon name={file ? "document" : "download"} />
-                          </span>
-                          <strong>
-                            {file ? file.name : t("Drop a PDF here")}
-                          </strong>
-                          <div className="hint">
-                            {file
-                              ? t("{size} MB · Ready to continue", {
-                                  size: (file.size / 1024 / 1024).toFixed(1),
-                                })
-                              : t(
-                                  "or choose one from your device · up to 25 MB, text-based",
-                                )}
-                          </div>
-                          <span
-                            className="secondary dropzone-button"
-                            aria-hidden="true"
-                          >
-                            {file
-                              ? t("Choose another PDF")
-                              : t("Choose a PDF")}
-                          </span>
-                          <input
-                            id="pdf-file"
-                            aria-label={t("PDF file")}
-                            ref={fileInput}
-                            type="file"
-                            accept="application/pdf,.pdf"
-                            onChange={onFile}
-                            disabled={busy}
-                          />
-                        </label>
-                      ) : (
-                        <div className="field full" key="youtube">
-                          <span className="upload-icon">
-                            <Icon name="video" />
-                          </span>
-                          <label htmlFor="youtube-url">{t("YouTube URL")}</label>
-                          <input
-                            id="youtube-url"
-                            value={url}
-                            onChange={(event) => setUrl(event.target.value)}
-                            placeholder="https://youtube.com/watch?v=..."
-                            inputMode="url"
-                            disabled={busy}
-                            aria-describedby="youtube-hint"
-                          />
-                          <p id="youtube-hint" className="hint">
-                            {t(
-                              "Say the artist or the title, or paste a link. Watch pages, Shorts, share links and embeds all work.",
-                            )}
-                          </p>
-                          {searchingVideos && (
-                            <p className="hint" role="status">
-                              <span className="spinner" aria-hidden="true" />{" "}
-                              {t("Searching for \u201c{query}\u201d\u2026", {
-                                query: videoQuery,
-                              })}
-                            </p>
-                          )}
-                          {videoChoices.length > 0 && (
-                            <div className="video-choices">
-                              <span className="video-choices-label">
-                                {t("Not the one? Also found")}
-                              </span>
-                              {videoChoices.map((choice) => (
-                                <button
-                                  type="button"
-                                  className="video-choice"
-                                  key={choice.videoId}
-                                  disabled={busy}
-                                  onClick={() => {
-                                    setUrl(choice.url);
-                                    setVideoChoices((current) =>
-                                      current.filter(
-                                        (item) =>
-                                          item.videoId !== choice.videoId,
-                                      ),
-                                    );
-                                    void startIngest({ url: choice.url });
-                                  }}
-                                >
-                                  <strong>{choice.title}</strong>
-                                  {choice.channel && (
-                                    <span>{choice.channel}</span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <div className="actions full">
-                        <button
-                          className="primary"
-                          disabled={!canIngest || busy}
-                          type="submit"
-                        >
-                          {busy ? (
-                            <span className="spinner" aria-hidden="true" />
-                          ) : (
-                            <Icon name="arrow" />
-                          )}
-                          {busy
-                            ? t("Reading your source…")
-                            : source
-                              ? t("Load new source")
-                              : t("Continue")}
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-
-                  {uploadProgress !== undefined && (
-                    <div className="progress" role="status">
-                      <div
-                        className="progress-track"
-                        role="progressbar"
-                        aria-label={t("Upload progress")}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={Math.round(uploadProgress * 100)}
-                      >
-                        <span
-                          style={{
-                            width: `${Math.round(uploadProgress * 100)}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="hint">
-                        {t("Uploading · {percent}%", {
-                          percent: Math.round(uploadProgress * 100),
-                        })}
-                      </span>
-                    </div>
-                  )}
-
-                  {!source && error && (
-                    <p className="error" role="alert">
-                      {error}
-                    </p>
-                  )}
-                  {!source && error && tab === "youtube" && (
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => {
-                        setTab("pdf");
-                        setError("");
-                        document.getElementById("tab-pdf")?.focus();
-                      }}
-                    >
-                      {t("Use a PDF instead")}
-                    </button>
-                  )}
-                  {busy && uploadProgress === undefined && (
-                    <p className="hint" role="status">
-                      {t(
-                        "Reading your source. This may take up to a minute.",
-                      )}
-                    </p>
-                  )}
-
-                  {source && (
-                    <details className="preview">
-                      <summary>
-                        {t("View source text · {count} characters", {
-                          count: source.characters.toLocaleString(),
-                        })}
-                      </summary>
-                      <div className="preview-text">{source.text}</div>
-                    </details>
-                  )}
-                  {context?.truncated && (
-                    <p className="hint context-note" role="status">
-                      {t(
-                        "This source is longer than one conversation can hold. The assistant reads {used} of {total} characters, taken from the opening and the ending. The full text stays available above.",
-                        {
-                          used: context.usedCharacters.toLocaleString(),
-                          total: context.totalCharacters.toLocaleString(),
-                        },
-                      )}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* The conversation unfolds in the same immersive space. */}
-            <div className="immersive-conversation" role="region" aria-labelledby="conversation-heading">
-              <h2 id="conversation-heading" className="sr-only" tabIndex={-1}>
-                {t("Conversation")}
-              </h2>
-
-              {sessionLive && state.status === "connected" && (
-                <a className="voice-learning" href="#voice-lending">
-                  <span className="voice-learning-dot" aria-hidden="true" />
-                  <span>
-                    <strong>{t("Answering in Ursly\u2019s preset voice")}</strong>
-                    <small>
-                      {t(
-                        "Talking here teaches Ursly nothing about your voice. Lending it yours is a separate, deliberate step.",
-                      )}
-                    </small>
-                  </span>
-                </a>
-              )}
-
-              {providerMode === "mock" && (
-                <p className="hint" role="status">
-                  {t(
-                    "Demo simulation: AI replies are simulated; microphone audio is not sent to AI. Use live mode for real answers and voice.",
-                  )}
-                </p>
-              )}
-
-              <div
-                className="voice-panel"
-                data-live={sessionLive}
-                data-empty={!source}
-              >
-                <div className="voice-controls actions">
-                  <button
-                    className="primary voice-start"
-                    hidden={!source}
-                    disabled={!source || sessionLive || !online}
-                    onClick={startVoice}
-                    type="button"
-                  >
-                    <Icon name="voice" /> {t("Start Voice Chat")}
-                  </button>
-                  <button
-                    className="secondary"
-                    hidden={state.status !== "connected"}
-                    disabled={state.status !== "connected"}
-                    onClick={toggleMute}
-                    aria-pressed={state.muted}
-                    type="button"
-                  >
-                    {state.muted
-                      ? t("Unmute microphone")
-                      : t("Mute microphone")}
-                  </button>
-                  <button
-                    className="danger"
-                    hidden={!sessionLive}
-                    disabled={!sessionLive}
-                    onClick={stopVoice}
-                    type="button"
-                  >
-                    {t("Stop")}
-                  </button>
-                </div>
-                <p className="hint voice-hint" aria-live="polite">
-                  {!micSupported
-                    ? t(
-                        "This browser will not share a microphone here, so voice is unavailable. Type your question below instead.",
-                      )
-                    : sessionLive
-                      ? state.status === "connected"
-                        ? state.muted
-                          ? t(
-                              "Microphone muted. Unmute to speak, or keep typing.",
-                            )
-                          : activityText[activity]
-                        : statusText[state.status]
-                      : source
-                        ? t(
-                            "Allow microphone access when prompted, then speak. You can mute or stop at any time, and typing always works.",
-                          )
-                        : t(
-                            "Voice chat opens as soon as your source is ready. Typing always works too.",
-                          )}
-                </p>
-              </div>
-
-              {entryMode === "voice" && <VoiceLending />}
-
-              <div className="chat-anchor">
-                <div
-                  className="chat"
-                  ref={chatLog}
-                  tabIndex={0}
-                  onScroll={(event) => {
-                    const log = event.currentTarget;
-                    const following =
-                      log.scrollHeight - log.scrollTop - log.clientHeight <
-                      FOLLOW_THRESHOLD_PX;
-                    followMessages.current = following;
-                    setAtLatest(following);
-                  }}
-                  role="log"
-                  aria-label={t("Conversation")}
-                  aria-live="polite"
+        <div className={styles.interaction}>
+          {source && (
+            <form className={styles.composer} onSubmit={sendText}>
+              <textarea
+                ref={questionInput}
+                className="field"
+                aria-label={t("Ask a question")}
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+                placeholder={t("Ask a question")}
+                rows={1}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    if (question.trim()) sendText(event);
+                  }
+                }}
+              />
+              {streamingId ? (
+                <button
+                  type="button"
+                  className="primary danger"
+                  onClick={stopAnswer}
                 >
-                  {state.messages.length === 0 ? (
-                    <div className="empty-chat" data-mode={entryMode}>
-                      <div
-                        className={`voice-orbit mode-orbit mode-orbit-${entryMode}`}
-                        data-activity={sessionLive ? activity : "off"}
-                        aria-hidden="true"
-                      >
-                        <span className="voice-orbit-ring" />
-                        <span className="voice-orbit-ring" />
-                        <Icon
-                          name={
-                            entryMode === "text"
-                              ? "document"
-                              : entryMode === "motion"
-                                ? "motion"
-                                : "voice"
-                          }
-                        />
-                      </div>
-                      <h3>
-                        {source
-                          ? t("What are you curious about?")
-                          : entryMode === "voice"
-                            ? t("Your voice is the shortcut.")
-                            : entryMode === "motion"
-                              ? t("Your hand is the shortcut.")
-                              : t("Good questions start here.")}
-                      </h3>
-                      <p className="hint">
-                        {source
-                          ? t(
-                              "Start voice chat and speak, type your question below, or choose an idea.",
-                            )
-                          : entryMode === "voice"
-                            ? t(
-                                "Bring a source in with a word, then ask out loud. Nothing starts without your word, and typing always works.",
-                              )
-                            : entryMode === "motion"
-                              ? t(
-                                  "Add a source, then start the camera and swipe to choose a question. Typing always works too.",
-                                )
-                              : t(
-                                  "Add a source, then explore the ideas inside it.",
-                                )}
-                      </p>
-                      {source && (
-                        <div className="suggestions">
-                          {suggestions.map((prompt) => (
-                            <button
-                              type="button"
-                              className="suggestion"
-                              key={prompt}
-                              onClick={() => {
-                                setQuestion(prompt);
-                                questionInput.current?.focus();
-                              }}
-                            >
-                              {prompt}
-                              <span aria-hidden="true">↗</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                  {t("Stop")}
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className="primary"
+                  disabled={!question.trim()}
+                  aria-label={t("Send")}
+                >
+                  <Icon name="arrow" />
+                </button>
+              )}
+            </form>
+          )}
+          <div
+            className={styles.dock}
+            role="group"
+            aria-label={t("Sense controls")}
+          >
+            {account !== null && (
+              <SenseControls
+                voice={voiceProps}
+                motion={motionProps}
+                onActivityChange={setSenseActivity}
+                onStop={stopVoice}
+              />
+            )}
+            <button
+              type="button"
+              className={styles.settingsButton}
+              aria-label={t("Workspace settings")}
+              title={t("Workspace settings")}
+              aria-haspopup="dialog"
+              aria-expanded={settingsOpen}
+              onClick={() => setSettingsOpen(true)}
+            >
+              <span className={styles.orbitControl} aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {sourcePickerOpen && (
+          <WorkspaceDialog
+            title={t("Add a source")}
+            closeLabel={t("Close source picker")}
+            initialFocusId={
+              sourceFocus === "youtube"
+                ? "youtube-url"
+                : sourceFocus === "pdf"
+                  ? "source-pdf-file"
+                  : undefined
+            }
+            onClose={() => {
+              setSourcePickerOpen(false);
+              setSourceFocus(null);
+            }}
+          >
+            <form className="source-grid" onSubmit={ingest}>
+              <div className="tabs" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  className={`tab${tab === "pdf" ? " active" : ""}`}
+                  aria-selected={tab === "pdf"}
+                  onClick={() => setTab("pdf")}
+                >
+                  <Icon name="document" /> {t("PDF file")}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  className={`tab${tab === "youtube" ? " active" : ""}`}
+                  aria-selected={tab === "youtube"}
+                  onClick={() => setTab("youtube")}
+                >
+                  <Icon name="video" /> {t("YouTube video")}
+                </button>
+              </div>
+              {tab === "pdf" ? (
+                <label
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setDragging(true);
+                  }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    setDragging(false);
+                    const dropped = event.dataTransfer.files[0];
+                    if (dropped) {
+                      setFile(dropped);
+                      setError("");
+                    }
+                  }}
+                  className="dropzone"
+                  data-dragging={dragging || undefined}
+                  data-filled={Boolean(file) || undefined}
+                >
+                  <span className="upload-icon" aria-hidden="true">
+                    <Icon name="download" />
+                  </span>
+                  <strong>
+                    {file ? file.name : t("Drop a PDF here or click to browse")}
+                  </strong>
+                  <input
+                    ref={fileInput}
+                    id="source-pdf-file"
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    aria-label={t("PDF file")}
+                    onChange={onFile}
+                  />
+                </label>
+              ) : (
+                <input
+                  id="youtube-url"
+                  className="field"
+                  type="url"
+                  placeholder="https://youtu.be/…"
+                  aria-label={t("YouTube URL")}
+                  value={url}
+                  onChange={(event) => setUrl(event.target.value)}
+                />
+              )}
+              {uploadProgress !== undefined && (
+                <progress
+                  aria-label={t("Uploading PDF")}
+                  value={uploadProgress}
+                  max={1}
+                />
+              )}
+              {error && (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              )}
+              <div className="actions">
+                <button
+                  className="primary"
+                  type="submit"
+                  disabled={!canIngest || busy}
+                >
+                  {busy ? (
+                    <>
+                      <span className="spinner" aria-hidden="true" />{" "}
+                      {t("Extracting")}
+                    </>
                   ) : (
-                    state.messages.map((message, index) => {
-                      const streaming = message.id === streamingId;
-                      const answered =
-                        message.role === "assistant" && Boolean(message.text);
-                      const last = index === state.messages.length - 1;
-                      return (
-                        <div
-                          key={message.id}
-                          className={`message ${message.role}`}
-                          data-streaming={streaming || undefined}
-                        >
-                          <span className="message-author">
-                            {message.role === "user"
-                              ? t("You")
-                              : message.role === "assistant"
-                                ? "Ursly"
-                                : t("Session update")}
-                          </span>
-                          {message.role === "assistant" && message.text ? (
-                            <span className="message-text rendered">
-                              <Markdown text={message.text} />
-                            </span>
-                          ) : (
-                            <span className="message-text">
-                              {message.text || (streaming ? "" : "…")}
-                            </span>
-                          )}
-                          {answered && !streaming && (
-                            <div className="message-actions">
-                              <button
-                                type="button"
-                                className="message-action"
-                                onClick={() =>
-                                  void copyMessage(message.id, message.text)
-                                }
-                                aria-label={t("Copy message")}
-                              >
-                                {copiedId === message.id
-                                  ? t("Copied")
-                                  : t("Copy")}
-                              </button>
-                              {last && lastAsked && !sessionLive && (
-                                <button
-                                  type="button"
-                                  className="message-action"
-                                  disabled={pendingAnswers > 0}
-                                  onClick={regenerate}
-                                  aria-label={t("Regenerate answer")}
-                                >
-                                  {t("Try again")}
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
+                    t("Continue")
                   )}
-                </div>
-                {!atLatest && state.messages.length > 0 && (
+                </button>
+              </div>
+            </form>
+            {videoChoices.length > 0 && (
+              <details className={styles.alternatives}>
+                <summary>{t("Other videos")}</summary>
+                {videoChoices.map((video) => (
                   <button
                     type="button"
-                    className="chat-jump"
+                    key={video.videoId}
                     onClick={() => {
-                      followMessages.current = true;
-                      setAtLatest(true);
-                      if (chatLog.current)
-                        chatLog.current.scrollTop =
-                          chatLog.current.scrollHeight;
+                      setUrl(video.url);
+                      void startIngest({ url: video.url });
                     }}
                   >
-                    {t("Jump to latest")} <span aria-hidden="true">↓</span>
+                    {video.title}
                   </button>
-                )}
-              </div>
-
-              {source && entryMode === "text" && channelStatus !== "idle" && (
-                <p className={`channel-state ${channelStatus}`} role="status">
-                  <span className="channel-dot" aria-hidden="true" />
-                  {channelStatus === "live"
-                    ? t(
-                        "Live channel open — answers arrive as they are written",
-                      )
-                    : channelStatus === "connecting"
-                      ? t("Opening the live channel…")
-                      : channelStatus === "reconnecting"
-                        ? t("Reopening the live channel…")
-                        : t(
-                            "The live channel is closed; answers still arrive.",
-                          )}
-                </p>
+                ))}
+              </details>
+            )}
+          </WorkspaceDialog>
+        )}
+        <WorkspaceDialog
+          open={settingsOpen}
+          title={t("Workspace settings")}
+          closeLabel={t("Close settings")}
+          onClose={() => setSettingsOpen(false)}
+        >
+          <AssistantName
+            key={assistantName}
+            value={assistantName}
+            onChange={setAssistantName}
+          />
+          <AppPreferences />
+          <div id="sense-command-settings" />
+          {source && (
+            <div
+              className={styles.audioSettings}
+              aria-label={t("Conversation audio")}
+            >
+              {source && (
+                <button
+                  type="button"
+                  className={styles.liveVoice}
+                  disabled={!sessionLive && !micSupported}
+                  onClick={() =>
+                    sessionLive ? stopVoice() : void startVoice()
+                  }
+                >
+                  <Icon name="voice" />
+                  {sessionLive ? t("Stop Voice Chat") : t("Start Voice Chat")}
+                </button>
               )}
-
-              {pendingAnswers > 0 && !streamingId && (
-                <p className="answer-pending" role="status">
-                  <span className="spinner" aria-hidden="true" />{" "}
-                  {t("Finding an answer in your source…")}
-                </p>
+              {sessionLive && state.status === "connected" && (
+                <button
+                  type="button"
+                  className={styles.liveVoice}
+                  onClick={toggleMute}
+                  aria-pressed={state.muted}
+                >
+                  {state.muted ? t("Unmute") : t("Mute")}
+                </button>
               )}
-              {source && (error || state.error) && (
+            </div>
+          )}
+          {settingsOpen && (error || state.error || sessionLive) && (
+            <div className={styles.feedback} aria-live="polite">
+              {(error || state.error) && (
                 <p className="error" role="alert">
                   {error || state.error}
                 </p>
               )}
-
-              <label className="question-label" htmlFor="question">
-                {state.status === "connected"
-                  ? t("Or type instead of speaking")
-                  : source
-                    ? t("Your question")
-                    : t("Your question (ready when your source is added)")}
-              </label>
-              <form className="composer" onSubmit={sendText}>
-                <textarea
-                  id="question"
-                  aria-label={t("Ask a question")}
-                  ref={questionInput}
-                  rows={1}
-                  value={question}
-                  onChange={(event) => setQuestion(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter" || event.shiftKey) return;
-                    if (event.nativeEvent.isComposing) return;
-                    event.preventDefault();
-                    event.currentTarget.form?.requestSubmit();
-                  }}
-                  placeholder={
-                    source
-                      ? t("Ask a question…")
-                      : t("Type what you want to understand…")
-                  }
-                  disabled={busy}
-                />
-                <div className="composer-buttons">
-                  {streamingId ? (
-                    <button
-                      className="secondary"
-                      type="button"
-                      onClick={stopAnswer}
-                    >
-                      {t("Stop")}
-                    </button>
-                  ) : (
-                    <button
-                      className="secondary"
-                      type="submit"
-                      disabled={
-                        !source || !question.trim() || pendingAnswers > 0
-                      }
-                    >
-                      {t("Send")} <Icon name="arrow" />
-                    </button>
-                  )}
-                </div>
-              </form>
-              <p className="hint composer-hint">
-                {t("Enter sends · Shift + Enter starts a new line")}
-              </p>
-              <p className="hint answer-note">
-                {source
-                  ? t(
-                      "Answers come from your source. Check important details in \u201cView source text\u201d.",
-                    )
-                  : t(
-                      "Add a PDF or YouTube source before sending so answers stay grounded.",
-                    )}
-              </p>
+              {sessionLive && (
+                <p role="status">
+                  {state.status === "connected"
+                    ? activityText[activity]
+                    : statusText[state.status]}
+                </p>
+              )}
             </div>
-          </div>
-
-          {/*
-            Who is signed in, and the way back out. A reader who cannot sign out
-            cannot hand the machine to anyone else.
-          */}
+          )}
+          <VoiceLending embedded active={settingsOpen} />
+          <DeviceConnect />
+          {context?.truncated && (
+            <p className="hint">
+              {t("Only part of this source fits in the conversation context.")}
+            </p>
+          )}
           {account && (
-            <p className="footer-account">
-              {t("Signed in as {email}", { email: account })}
+            <div className={styles.account}>
+              <span>{t("Signed in as {email}", { email: account })}</span>
               <button
                 type="button"
-                className="footer-signout"
+                className="secondary"
                 onClick={() => {
+                  setSettingsOpen(false);
                   setAccount(null);
-                  void signOut().catch(() => {
-                    // The cookie is gone either way; a failed call must not
-                    // leave the reader looking signed in when they are not.
-                  });
+                  void signOut().catch(() => {});
                 }}
               >
                 {t("Sign out")}
               </button>
-            </p>
+            </div>
           )}
-          <SiteFooter page="app" />
-        </div>
-
-        <ImmersiveFileBrowser
-          open={fileBrowserOpen}
-          fs={fileSystemRef.current}
-          rootId="root"
-          onClose={() => setFileBrowserOpen(false)}
-          onFileSelect={(node: FileNode) => {
-            if (node.kind === "file" && node.sourceId) {
-              setVoiceActionNotice(`Selected: ${node.name}`);
-            }
-            setFileBrowserOpen(false);
-          }}
-          gaze={gazePosition}
-        />
+        </WorkspaceDialog>
       </main>
-    </>
+      <ImmersiveFileBrowser
+        open={fileBrowserOpen}
+        fs={fileSystem}
+        rootId="root"
+        onClose={() => setFileBrowserOpen(false)}
+        onFileSelect={(node: FileNode) => {
+          if (node.kind === "file" && node.sourceId)
+            setVoiceActionNotice(`Selected: ${node.name}`);
+          setFileBrowserOpen(false);
+        }}
+        gaze={gazePosition}
+      />
+    </div>
   );
 }

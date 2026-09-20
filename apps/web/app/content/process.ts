@@ -69,8 +69,6 @@ export type ProcessCopy = {
     eyebrow: string;
     heading: string;
     body: string;
-    primary: string;
-    secondary: string;
   };
 };
 
@@ -237,8 +235,6 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       heading:
         "An interface between the internet you know and the one that is coming.",
       body: "Ursly is for people who would rather not spend their time learning how. Say what you want and tomorrow’s things get done, simply. We build it by voice because speaking is much faster than typing, and tomorrow a gesture will be faster still. Our job is to put that interface in front of everyone.",
-      primary: "Try it by voice",
-      secondary: "See how it’s made",
     },
   },
   fr: {
@@ -436,8 +432,6 @@ export const processCopy: Record<ProcessLocale, ProcessCopy> = {
       heading:
         "Une interface entre l’Internet que vous connaissez et celui qui s’en vient.",
       body: "Ursly est pour les gens qui préfèrent ne pas passer leur temps à apprendre comment faire. Dites ce que vous voulez et les choses de demain se font, simplement. Nous le bâtissons à la voix parce que parler est bien plus rapide que taper, et demain un geste sera plus rapide encore. Notre travail est de mettre cette interface devant tout le monde.",
-      primary: "Essayez-le à la voix",
-      secondary: "Voir comment c’est fait",
     },
   },
 };

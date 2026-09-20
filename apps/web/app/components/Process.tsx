@@ -21,12 +21,9 @@ import { resolveProcessCopy } from "../content/process";
  */
 export function Process({
   locale,
-  appHref,
   loop,
 }: {
   locale?: string;
-  /** Where the mission's way in leads. Injected so this knows no routes. */
-  appHref: string;
   loop: Loop;
 }) {
   const copy = resolveProcessCopy(locale);
@@ -86,17 +83,6 @@ export function Process({
           <h3>{copy.mission.heading}</h3>
           <p>{copy.mission.body}</p>
           <p className={styles.innerLoopNote}>{copy.innerLoop}</p>
-        </div>
-        <div className={styles.missionActions}>
-          <a className={`primary ${styles.missionAction}`} href={appHref}>
-            {copy.mission.primary}
-          </a>
-          <a
-            className={`secondary ${styles.missionAction}`}
-            href="#applications"
-          >
-            {copy.mission.secondary}
-          </a>
         </div>
       </div>
     </div>

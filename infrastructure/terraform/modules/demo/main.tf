@@ -66,6 +66,19 @@ locals {
     { "ANY /" = "api", "ANY /{proxy+}" = "api", "GET /transcript/{videoId}" = "transcript" },
     { for route in local.paid_routes : route => "api" }
   )
+  # Canary deployment: a second set of Lambda functions running a different
+  # image tag, behind weighted aliases. When canary_image_tag is empty, no
+  # canary resources are created and the alias routes 100 % to the stable
+  # function — the existing direct-deploy behaviour, unchanged.
+  # Keys carry a -canary suffix so log groups and IAM roles do not collide
+  # with the stable set; role names get the same suffix for the same reason.
+  canary_functions = var.canary_image_tag != "" ? {
+    for name, fn in local.functions : "${name}-canary" => merge(fn, {
+      base_name = name
+      role      = "${fn.role}-canary"
+    })
+  } : {}
+  canary_weight = var.canary_weight / 100
   environments = {
     api = merge({
       PORT                      = "3000", HOSTNAME = "0.0.0.0", PROVIDER_MODE = "live"
@@ -187,7 +200,10 @@ resource "aws_s3_bucket_cors_configuration" "uploads" {
   }
 }
 resource "aws_cloudwatch_log_group" "runtime" {
-  for_each          = local.functions
+  # Canary functions share the log group set: one group per function name,
+  # stable and canary side by side. When canary is disabled the merge adds
+  # nothing and the result is identical to today's per-function iteration.
+  for_each          = merge(local.functions, local.canary_functions)
   name              = "/aws/lambda/${local.name}-${each.key}"
   retention_in_days = 7
   lifecycle { prevent_destroy = true }
@@ -244,11 +260,15 @@ resource "aws_lambda_function" "runtime" {
   }
   depends_on = [aws_iam_role_policy.runtime, aws_cloudwatch_log_group.runtime]
 }
+
 resource "aws_apigatewayv2_integration" "lambda" {
   for_each               = local.http_functions
   api_id                 = aws_apigatewayv2_api.http.id
   integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.runtime[each.key].invoke_arn
+  # Route through the alias so traffic can be split between stable and canary
+  # versions. The alias always exists for HTTP functions; when canary is not
+  # active it forwards 100 % to the stable version, same as a direct reference.
+  integration_uri        = aws_lambda_alias.routing[each.key].invoke_arn
   payload_format_version = "2.0"
   timeout_milliseconds   = 29000
 }
@@ -281,6 +301,108 @@ resource "aws_lambda_permission" "gateway" {
   statement_id   = "AllowHttpApi"
   action         = "lambda:InvokeFunction"
   function_name  = aws_lambda_function.runtime[each.key].function_name
+  qualifier      = aws_lambda_alias.routing[each.key].name
+  principal      = "apigateway.amazonaws.com"
+  source_arn     = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+  source_account = var.account_id
+}
+# --- Canary deployment resources -------------------------------------------
+# Only created when canary_image_tag is set. Each canary function mirrors its
+# stable counterpart but runs the canary image. A Lambda alias per HTTP
+# function splits traffic between the stable version and the canary version.
+# The chat function is excluded: it serves long-lived WebSocket connections,
+# where mid-connection version switching would break the protocol.
+resource "aws_iam_role" "canary" {
+  for_each             = local.canary_functions
+  name                 = each.value.role
+  permissions_boundary = local.boundary
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [{ Effect = "Allow", Principal = { Service = "lambda.amazonaws.com" }, Action = "sts:AssumeRole" }]
+  })
+}
+resource "aws_iam_role_policy" "canary" {
+  for_each = local.canary_functions
+  name     = "runtime"
+  role     = aws_iam_role.canary[each.key].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = concat(
+      [{ Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = ["${aws_cloudwatch_log_group.runtime[each.key].arn}:*"] }],
+      each.value.base_name == "api" ? [
+        { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = ["${aws_s3_bucket.uploads.arn}/uploads/*"] },
+        { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn, var.auth_pepper_secret_arn] }
+      ] : [],
+      contains(local.conversation_functions, each.value.base_name) ? [
+        { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"], Resource = ["${aws_s3_bucket.uploads.arn}/sessions/*"] }
+      ] : [],
+      each.value.base_name == "chat" ? [
+        { Effect = "Allow", Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"], Resource = [var.openai_secret_arn] },
+        { Effect = "Allow", Action = ["execute-api:ManageConnections"], Resource = ["arn:aws:execute-api:${var.region}:${var.account_id}:${aws_apigatewayv2_api.socket.id}/*"] }
+      ] : [],
+      each.value.base_name == "api" ? local.ses_statements : []
+    )
+  })
+}
+resource "aws_lambda_function" "canary" {
+  for_each                       = local.canary_functions
+  function_name                  = "${local.name}-${each.key}"
+  package_type                   = "Image"
+  image_uri                      = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${local.name}-${each.value.base_name}:${var.canary_image_tag}"
+  role                           = aws_iam_role.canary[each.key].arn
+  architectures                  = ["x86_64"]
+  memory_size                    = each.value.memory
+  timeout                        = each.value.timeout
+  reserved_concurrent_executions = each.value.concurrency
+  environment {
+    variables = local.environments[each.value.base_name]
+  }
+  depends_on = [aws_iam_role_policy.canary, aws_cloudwatch_log_group.runtime]
+}
+# Publish a version for each canary function so the alias has a concrete
+# target. The version is immutable once published; a new image tag creates a
+# new function configuration, which triggers a new version on the next apply.
+resource "aws_lambda_function_version" "canary" {
+  for_each       = local.canary_functions
+  function_name  = aws_lambda_function.canary[each.key].function_name
+  depends_on     = [aws_iam_role_policy.canary]
+}
+# Stable versions for the HTTP functions: the alias always points here for the
+# non-canary share of traffic. Only HTTP functions need versions and aliases;
+# the chat function serves WebSocket connections where mid-stream version
+# switching would break the protocol.
+resource "aws_lambda_function_version" "stable" {
+  for_each      = local.http_functions
+  function_name = aws_lambda_function.runtime[each.key].function_name
+}
+# The weighted alias: routes canary_weight percent of invocations to the
+# canary version and the rest to the stable version. When canary is not
+# active (no canary image or weight 0), routing_config is empty and the
+# alias sends 100 % to the stable version — functionally identical to
+# invoking the function directly.
+resource "aws_lambda_alias" "routing" {
+  for_each     = local.http_functions
+  name         = "deploy"
+  function_name = aws_lambda_function.runtime[each.key].function_name
+  function_version = aws_lambda_function_version.stable[each.key].version
+  dynamic "routing_config" {
+    for_each = local.canary_functions != {} ? [1] : []
+    content {
+      additional_version_weights = {
+        # The canary version key carries the -canary suffix that matches the
+        # canary_functions map; the stable key (each.key) does not.
+        (aws_lambda_function_version.canary["${each.key}-canary"].version) = local.canary_weight
+      }
+    }
+  }
+}
+# API Gateway needs permission to invoke the alias (which fronts the function)
+# for stable invocations, and the canary alias for canary invocations.
+resource "aws_lambda_permission" "canary_gateway" {
+  for_each       = local.canary_functions
+  statement_id   = "AllowHttpApiCanary"
+  action         = "lambda:InvokeFunction"
+  function_name  = "${aws_lambda_function.canary[each.key].function_name}:${aws_lambda_alias.routing[each.value.base_name].name}"
   principal      = "apigateway.amazonaws.com"
   source_arn     = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
   source_account = var.account_id
@@ -334,3 +456,10 @@ output "public_url" { value = aws_apigatewayv2_api.http.api_endpoint }
 output "socket_url" { value = aws_apigatewayv2_stage.socket.invoke_url }
 output "socket_api_id" { value = aws_apigatewayv2_api.socket.id }
 output "upload_bucket" { value = aws_s3_bucket.uploads.id }
+# Canary outputs: the alias names let operators verify routing in the AWS
+# console; the weight confirms what Terraform last applied. All are empty/zero
+# when canary is not active, so callers can test for canary presence.
+output "canary_alias_names" {
+  value = { for k, a in aws_lambda_alias.routing : k => a.name }
+}
+output "canary_weight" { value = var.canary_weight }

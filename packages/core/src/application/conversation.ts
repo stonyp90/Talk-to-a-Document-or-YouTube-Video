@@ -27,9 +27,9 @@ export function createConversation(
   };
 
   return {
-    async createRealtimeSession(source) {
+    async createRealtimeSession(source, preferences) {
       guard(source);
-      return provider.createRealtimeSession(source);
+      return provider.createRealtimeSession(source, preferences);
     },
     async createRealtimeCallAnswer(sdp, source) {
       guard(source);

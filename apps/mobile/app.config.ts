@@ -96,7 +96,7 @@ if (cloudBuild) {
 
 const config = {
   expo: {
-    name: "Ursly",
+    name: "Sense to Action",
     slug: "talk-to-a-source",
     scheme: "talktosource",
     version: release.name,
@@ -122,7 +122,7 @@ const config = {
     },
     android: {
       package: "com.talktosource.demo",
-      softwareKeyboardLayoutMode: "pan",
+      softwareKeyboardLayoutMode: "resize",
       versionCode: release.build,
       permissions: ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS"],
       usesCleartextTraffic: LOCAL_CLEARTEXT,
@@ -136,6 +136,24 @@ const config = {
       withLocalCleartext,
       "expo-asset",
       "expo-document-picker",
+      [
+        "expo-camera",
+        {
+          cameraPermission:
+            "Use your camera during the Sense to Action experience.",
+          microphonePermission:
+            "Use your microphone to ask questions about your source.",
+          recordAudioAndroid: false,
+          barcodeScannerEnabled: false,
+        },
+      ],
+      [
+        "expo-sensors",
+        {
+          motionPermission:
+            "Use device movement to navigate the Sense to Action experience.",
+        },
+      ],
       "expo-dev-client",
       "expo-speech-recognition",
       "@config-plugins/react-native-webrtc",

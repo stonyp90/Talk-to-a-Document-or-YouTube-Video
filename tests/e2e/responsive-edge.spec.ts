@@ -28,7 +28,7 @@ test("long source names and unbroken chat text stay inside a mobile viewport", a
   await page.goto(APP_PATH);
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://youtu.be/dQw4w9WgXcQ");
-  await page.getByRole("button", { name: "Continue to questions" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(
     page.getByLabel("Ask a question", { exact: true }),
   ).toBeEnabled();
@@ -83,12 +83,7 @@ for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(LANDING_PATH);
     await expect(page.locator("#workspace")).toHaveCount(0);
-    for (const id of [
-      "platform",
-      "how-we-build",
-      "how-it-works",
-      "applications",
-    ]) {
+    for (const id of ["how-we-build", "how-it-works"]) {
       await page.locator(`#${id}`).scrollIntoViewIfNeeded();
       await expect(page.locator(`#${id}`)).toBeVisible();
       expect(
@@ -112,7 +107,9 @@ test("the hamburger menu opens and its links are reachable on a mobile viewport"
   await trigger.click();
   const panel = page.locator("#mobile-navigation");
   await expect(panel).toBeVisible();
-  for (const name of [/How it works/i, /Get the app/i]) {
+  // The guide and the loop are the whole story now, and the way into the
+  // application is the one link that must survive every change to the page.
+  for (const name of [/How we build/i, /How it works/i, /Open the app/i]) {
     const link = panel.getByRole("link", { name });
     await expect(link).toBeVisible();
   }

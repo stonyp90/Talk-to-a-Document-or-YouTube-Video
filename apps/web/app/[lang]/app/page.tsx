@@ -8,12 +8,12 @@ import { isLanguage, type Language } from "../../i18n/languages";
 
 const copy: Record<Language, { title: string; description: string }> = {
   en: {
-    title: "The app",
+    title: "Sense to Action",
     description:
       "Add a PDF or a captioned YouTube video, then ask about it by voice or keyboard.",
   },
   fr: {
-    title: "L’application",
+    title: "Sense to Action",
     description:
       "Ajoutez un PDF ou une vidéo YouTube sous-titrée, puis posez vos questions à la voix ou au clavier.",
   },
@@ -33,7 +33,7 @@ export async function generateMetadata({
   const language: Language = isLanguage(lang) ? lang : "en";
   const text = copy[language];
   return {
-    title: text.title,
+    title: { absolute: text.title },
     description: text.description,
     alternates: {
       canonical: `/${language}/app`,

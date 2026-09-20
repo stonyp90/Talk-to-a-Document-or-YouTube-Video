@@ -12,6 +12,7 @@ import type { Dictionary } from "./translate";
  */
 export const IDENTICAL_IN_BOTH: readonly string[] = [
   "YouTube",
+  "Sense to Action",
   "Conversation",
   "Applications",
   "Guide",
@@ -26,6 +27,60 @@ export const IDENTICAL_IN_BOTH: readonly string[] = [
  * française: téléverser, clavier, objets connectés, version bêta.
  */
 export const french: Dictionary = {
+  "Response voice": "Voix de réponse",
+  "Voice speed": "Vitesse de la voix",
+  "Record a voice sample": "Enregistrer un échantillon vocal",
+  "Recording your voice": "Enregistrement de votre voix",
+  "The microphone could not be opened. Check your browser permission and try again.":
+    "Le microphone n’a pas pu démarrer. Vérifiez l’autorisation dans votre navigateur et réessayez.",
+  "No audio was captured. Nothing was kept. Record a new sample to try again.":
+    "Aucun son n’a été capté ni conservé. Enregistrez un nouvel échantillon pour réessayer.",
+  "Voice sample deleted. Answers still use the preset voice.":
+    "Échantillon vocal supprimé. Les réponses utilisent toujours la voix prédéfinie.",
+  "This recording stays in this browser and is kept only if you approve it. It is not uploaded or used to change the response voice.":
+    "Cet enregistrement reste dans ce navigateur et n’est conservé qu’avec votre accord. Il n’est ni téléversé ni utilisé pour modifier la voix de réponse.",
+  "Recorded so far: {seconds} s. Keep talking for at least {minimum} s.":
+    "Durée enregistrée : {seconds} s. Continuez à parler pendant au moins {minimum} s.",
+  "Kept {seconds} seconds in this browser while this page is open. Nothing was uploaded. Answers still use the preset voice.":
+    "{seconds} secondes conservées dans ce navigateur tant que cette page reste ouverte. Rien n’a été téléversé. Les réponses utilisent toujours la voix prédéfinie.",
+  "Answers use a preset voice. A local sample does not change it.":
+    "Les réponses utilisent une voix prédéfinie. Un échantillon local ne la modifie pas.",
+  "Recording starts when you press Record. You choose whether to keep it.":
+    "L’enregistrement commence quand vous appuyez sur Enregistrer. Vous décidez de le conserver ou non.",
+  "Start experience": "Démarrer l’expérience",
+  "Stop experience": "Arrêter l’expérience",
+  "Microphone access was denied. Allow it in your browser, then restart the experience.":
+    "L’accès au microphone a été refusé. Autorisez-le dans votre navigateur, puis redémarrez l’expérience.",
+  "The microphone dropped out. Restart the experience to reconnect.":
+    "Le microphone s’est déconnecté. Redémarrez l’expérience pour le reconnecter.",
+  "Camera access was denied. Allow it in your browser, then restart the experience.":
+    "L’accès à la caméra a été refusé. Autorisez-le dans votre navigateur, puis redémarrez l’expérience.",
+  "Saved “{phrase}”. Say it during the experience.":
+    "« {phrase} » a été enregistré. Dites-le pendant l’expérience.",
+  "Sense to Action": "Sense to Action",
+  Sense: "Sens",
+  "Sense to Action home": "Accueil Sense to Action",
+  "Sense controls": "Commandes Sense",
+  "Conversation audio": "Audio de la conversation",
+  Mute: "Couper le micro",
+  Unmute: "Réactiver le micro",
+  "Human sense to action": "Les sens humains vers l’action",
+  "Human sense": "Sens humains",
+  "Human sense controls": "Commandes par les sens humains",
+  "Workspace settings": "Réglages de l’espace",
+  "Close settings": "Fermer les réglages",
+  "Uploading PDF": "Téléversement du PDF",
+  "Other videos": "Autres vidéos",
+  "Only part of this source fits in the conversation context.":
+    "Seule une partie de cette source tient dans le contexte de la conversation.",
+  "Motion preview": "Aperçu du mouvement",
+  "This browser does not recognise speech. You can still type or add a source.":
+    "Ce navigateur ne reconnaît pas la parole. Vous pouvez toujours écrire ou ajouter une source.",
+  "Demo simulation: answers are simulated.":
+    "Démonstration : les réponses sont simulées.",
+  "Finding a video…": "Recherche d’une vidéo…",
+  "Stop Voice Chat": "Arrêter la conversation vocale",
+
   "Connecting…": "Connexion…",
   "Getting the microphone ready. You can cancel at any time.":
     "Préparation du microphone. Vous pouvez annuler à tout moment.",
@@ -130,6 +185,43 @@ export const french: Dictionary = {
 
   // Introduction
   Welcome: "Bienvenue",
+  "The human interface": "L’interface humaine",
+  "Ursly is a new way to interact with the digital world. Speak, gesture, look, move — the interface adapts to you.":
+    "Ursly est une nouvelle façon d’interagir avec le numérique. Parlez, gestuez, regardez, bougez — l’interface s’adapte à vous.",
+  "Make the keyboard": "Rendez le clavier",
+  "obsolete.": "obsolète.",
+  "Ursly makes the keyboard obsolete.": "Ursly rend le clavier obsolète.",
+  "The interface adapts to the human.": "L’interface s’adapte à l’humain.",
+  "Speak.": "Parlez.",
+  "The interface understands.": "L’interface comprend.",
+  "Bring a document or a video. Express your intention by voice, gesture, or gaze. Ursly acts.":
+    "Apportez un document ou une vidéo. Exprimez votre intention par la voix, le geste ou le regard. Ursly agit.",
+  "On the web: bring a source, then speak or gesture.":
+    "Sur le web : apportez une source, puis parlez ou gestuez.",
+  "No menus. No buttons. Just your intention.":
+    "Pas de menus. Pas de boutons. Juste votre intention.",
+  "On iPhone": "Sur iPhone",
+  "Native on iPhone.": "Natif sur iPhone.",
+  "Voice by default.": "La voix par défaut.",
+  "The same Ursly as a native iOS app. Voice first, gesture next, the keyboard one tap away if you want it.":
+    "Le même Ursly en application native iOS. La voix d’abord, le geste ensuite, le clavier à un geste si vous le souhaitez.",
+  "The same Ursly, native on iPhone.": "Le même Ursly, natif sur iPhone.",
+  "Voice first. Gesture next. Keyboard if you want.":
+    "La voix d’abord. Le geste ensuite. Le clavier si vous voulez.",
+  "On Android": "Sur Android",
+  "Native on Android.": "Natif sur Android.",
+  "Same human interface.": "Même interface humaine.",
+  "The native Android app carries the same source, the same intention, the same understanding.":
+    "L’application native Android porte la même source, la même intention, la même compréhension.",
+  "Same intention. Same understanding. In your pocket.":
+    "Même intention. Même compréhension. Dans votre poche.",
+  "The modes": "Les modes",
+  "Voice. Gesture.": "Voix. Geste.",
+  "Gaze. Motion.": "Regard. Mouvement.",
+  "Four ways to express your intention. Brain is a research beta. English or French in one tap. Answers grounded in your source.":
+    "Quatre façons d’exprimer votre intention. Brain est une bêta de recherche. Anglais ou français en un geste. Des réponses ancrées dans votre source.",
+  "Voice, gesture, gaze, and motion: four ways to mean the same thing.":
+    "Voix, geste, regard et mouvement : quatre façons de dire la même chose.",
   "What Ursly is": "Ce qu’est Ursly",
   "A source.": "Une source.",
   "A conversation.": "Une conversation.",
@@ -148,16 +240,10 @@ export const french: Dictionary = {
     "Sur le web : ajoutez un PDF ou une vidéo sous-titrée, puis demandez.",
   "Every answer stays grounded in what you brought.":
     "Chaque réponse reste ancrée dans ce que vous avez apporté.",
-  "On iPhone": "Sur iPhone",
-  "Native on iPhone.": "Natif sur iPhone.",
-  "Voice by default.": "La voix par défaut.",
   "The same Ursly as a native iOS app: voice to action by default, the keyboard one tap away.":
     "Le même Ursly en application iOS native : la voix par défaut, le clavier à un geste.",
-  "The same Ursly, native on iPhone.": "Le même Ursly, natif sur iPhone.",
   "Voice to action by default, keyboard one tap away.":
     "La voix par défaut, le clavier à un geste.",
-  "On Android": "Sur Android",
-  "Native on Android.": "Natif sur Android.",
   "Same three modes.": "Les trois mêmes modes.",
   "The native Android app carries the same source, the same question and the same understanding.":
     "L’application Android native emporte la même source, la même question et la même compréhension.",
@@ -721,6 +807,12 @@ export const french: Dictionary = {
   "iOS Simulator build": "Version pour le simulateur iOS",
   "All builds and instructions": "Toutes les versions et les instructions",
   "Release notes": "Notes de version",
+  // The footer, section by section
+  Product: "Produit",
+  Resources: "Ressources",
+  "Source code": "Code source",
+  Checksums: "Sommes de contrôle",
+  "For AI readers": "Pour les lecteurs IA",
   "Ask your question out loud, or say a command. It sends when you pause.":
     "Posez votre question à voix haute, ou dites une commande. L’envoi se fait quand vous marquez une pause.",
   "Say “upload”, or say “YouTube” and the artist or title you want.":
@@ -800,4 +892,48 @@ export const french: Dictionary = {
   "Copy message": "Copier le message",
   "Regenerate answer": "Régénérer la réponse",
   "Realtime error": "Erreur en temps réel",
+
+  // Workspace and ImmersiveStage
+  "Speak. Move. Look. The interface understands and acts. One experience, all channels live.":
+    "Parlez. Bougez. Regardez. L'interface comprend et agit. Une seule expérience, tous les canaux en direct.",
+  "Say: \u201cUpload a PDF\u201d or \u201cYouTube [title]\u201d":
+    "Dites : \u00ab Téléversez un PDF \u00bb ou \u00ab YouTube [titre] \u00bb",
+  "Your voice, your hand, your gaze \u2014 all are the way in. No forms, no typing.":
+    "Votre voix, votre main, votre regard \u2014 tous sont la porte d'entrée. Pas de formulaires, pas de clavier.",
+  "Drop a PDF here or click to browse":
+    "Déposez un PDF ici ou cliquez pour parcourir",
+  "Speak. Move. Look. The interface listens.":
+    "Parlez. Bougez. Regardez. L'interface écoute.",
+  "Speak, swipe, or gaze to ask. All channels are live.":
+    "Parlez, balayez ou regardez pour demander. Tous les canaux sont en direct.",
+  "Bring a source with your voice or your hand, then ask out loud. The interface understands and acts.":
+    "Apportez une source avec votre voix ou votre main, puis demandez à voix haute. L'interface comprend et agit.",
+  "Camera on": "Caméra allumée",
+  "Camera off": "Caméra éteinte",
+  "Talk to a document or a video.": "Conversez avec un document ou une vidéo.",
+  "Your files": "Vos fichiers",
+  "Enable voice": "Activer la voix",
+  "Gesture control": "Contrôle gestuel",
+  "Gaze tracking": "Suivi du regard",
+  "End-to-end encrypted": "Chiffré de bout en bout",
+  Play: "Lire",
+  "Give your assistant a name": "Donnez un nom à votre assistant",
+  "Custom name": "Nom personnalisé",
+  Save: "Enregistrer",
+  Reset: "Réinitialiser",
+
+  // Interaction feedback
+  Helpful: "Utile",
+  "Partially helpful": "Partiellement utile",
+  "Not helpful": "Pas utile",
+  "Was this helpful?": "Cela vous a-t-il été utile?",
+  "Rate this answer": "Évaluer cette réponse",
+  "Any details to share?": "Des détails à partager?",
+  Optional: "Facultatif",
+  "Feedback comment": "Commentaire",
+  Skip: "Passer",
+  Sending: "Envoi en cours",
+  "Thank you for your feedback.": "Merci pour votre avis.",
+  "Dismiss feedback": "Masquer l'évaluation",
+  "Rating options": "Options d'évaluation",
 };

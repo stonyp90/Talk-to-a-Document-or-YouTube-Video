@@ -1,29 +1,58 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "../i18n/LanguageProvider";
 import { dictionaryFor } from "../i18n/dictionaries";
 
 // ---- hoisted mock references ------------------------------------------------
-// vi.mock factories are hoisted above imports, so the mock functions must be
-// created in a hoisted block for the tests to share references.
 const mocks = vi.hoisted(() => {
   const requestJson = vi.fn();
   const uploadWithProgress = vi.fn();
   const readSession = vi.fn();
   const signOut = vi.fn();
   const streamAnswer = vi.fn();
-  return { requestJson, uploadWithProgress, readSession, signOut, streamAnswer };
+  return {
+    requestJson,
+    uploadWithProgress,
+    readSession,
+    signOut,
+    streamAnswer,
+  };
 });
 
 // ---- module mocks -----------------------------------------------------------
-// Heavy components that reach for browser APIs (camera, speech, Bluetooth,
-// WebRTC) are replaced with plain elements so the workspace can be tested in
-// isolation from the devices it orchestrates.
 vi.mock("./VoiceActions", () => ({
   VoiceActions: (props: { canStartVoice: boolean }) => (
-    <div data-testid="voice-actions" data-can-voice={String(props.canStartVoice)} />
+    <div
+      data-testid="voice-actions"
+      data-can-voice={String(props.canStartVoice)}
+    />
+  ),
+}));
+vi.mock("./SenseControls", () => ({
+  SenseControls: (props: {
+    voice: { canStartVoice: boolean };
+    motion: { canAsk: boolean };
+  }) => (
+    <div>
+      <div
+        data-testid="voice-actions"
+        data-can-voice={String(props.voice.canStartVoice)}
+      />
+      <div
+        data-testid="motion-actions"
+        data-can-ask={String(props.motion.canAsk)}
+      />
+      <button>Start experience</button>
+    </div>
   ),
 }));
 vi.mock("./MotionActions", () => ({
@@ -38,8 +67,19 @@ vi.mock("./VoiceLending", () => ({
   VoiceLending: () => <div data-testid="voice-lending" />,
 }));
 vi.mock("./TopNav", () => ({
-  TopNav: (props: { mode: string }) => (
-    <nav data-testid="top-nav" data-mode={props.mode} />
+  AppPreferences: () => <div data-testid="app-preferences" />,
+  TopNav: (props: {
+    mode: string;
+    onModeChange: (mode: "human" | "text") => void;
+  }) => (
+    <nav data-testid="top-nav" data-mode={props.mode}>
+      <button onClick={() => props.onModeChange("text")}>
+        Keyboard to action
+      </button>
+      <button onClick={() => props.onModeChange("human")}>
+        Sense to Action
+      </button>
+    </nav>
   ),
 }));
 vi.mock("./SiteFooter", () => ({
@@ -85,231 +125,122 @@ function mount() {
 
 afterEach(cleanup);
 
-/**
- * The workspace is the whole application shell: source ingestion, conversation,
- * voice and motion controls, and the sign-in gate. Each test below opens one
- * window into it, checking one behaviour without reaching for implementation
- * details such as the reducer or the ref layout.
- */
 describe("Workspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    // A signed-in reader: the gate stands open, the workspace is reachable.
     mocks.readSession.mockResolvedValue({ email: "reader@example.com" });
-    // Every API call fails by default: the session request inside the
-    // component fails gracefully, and no ingestion is started.
     mocks.requestJson.mockRejectedValue(new Error("no server"));
     mocks.uploadWithProgress.mockRejectedValue(new Error("no server"));
   });
 
-  describe("rendering", () => {
-    it("renders without crashing and shows the main heading", async () => {
+  describe("one immersive workspace", () => {
+    it("offers one source entry point without the repeated sections or marketing footer", async () => {
       mount();
       expect(
-        await screen.findByText("Your source.", { exact: false }),
+        await screen.findByRole("heading", { name: "Sense to Action" }),
       ).toBeInTheDocument();
-    });
-
-    it("shows the source overlay with its heading", async () => {
-      mount();
       expect(
-        await screen.findByRole("heading", { name: /^Add a source$/ }),
-      ).toBeInTheDocument();
-    });
-
-    it("shows the conversation area with its heading", async () => {
-      mount();
+        screen.getAllByRole("button", { name: "Add a source" }),
+      ).toHaveLength(1);
+      expect(screen.queryByTestId("site-footer")).not.toBeInTheDocument();
       expect(
-        await screen.findByRole("heading", { name: "Conversation" }),
-      ).toBeInTheDocument();
-    });
-
-    it("renders the skip link for keyboard readers", async () => {
-      mount();
+        screen.queryByText("Your source.", { exact: false }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Bring your source")).not.toBeInTheDocument();
       expect(
-        await screen.findByText("Skip to workspace"),
-      ).toHaveAttribute("href", "#workspace");
-    });
-  });
-
-  describe("source ingestion", () => {
-    it("shows the PDF dropzone on the PDF tab", async () => {
-      mount();
-      expect(await screen.findByText("Drop a PDF here")).toBeInTheDocument();
-    });
-
-    it("shows a file input that accepts PDF files", async () => {
-      mount();
-      const input = await screen.findByLabelText("PDF file");
-      expect(input).toHaveAttribute("accept", "application/pdf,.pdf");
-    });
-
-    it("switches to the YouTube tab and shows the URL input", async () => {
-      mount();
-      const youtubeTab = await screen.findByRole("tab", {
-        name: "YouTube video",
-      });
-      youtubeTab.click();
-      expect(
-        await screen.findByLabelText("YouTube URL"),
-      ).toBeInTheDocument();
-    });
-
-    it("renders the video background when a YouTube source is loaded", async () => {
-      // Mock a successful health check and ingestion response.
-      mocks.requestJson.mockImplementation(async (url: string) => {
-        if (url === "/api/health") {
-          return { mode: "mock" };
-        }
-        if (url === "/api/ingest") {
-          return {
-            source: {
-              kind: "youtube",
-              sourceName: "Test Video",
-              text: "Test content",
-              characters: 12,
-            },
-            sourceId: "test-source-id",
-            context: {
-              usedCharacters: 12,
-              totalCharacters: 12,
-              truncated: false,
-            },
-          };
-        }
-        throw new Error("Unexpected request");
-      });
-
-      mount();
-      const youtubeTab = await screen.findByRole("tab", {
-        name: "YouTube video",
-      });
-      youtubeTab.click();
-
-      const urlInput = await screen.findByLabelText("YouTube URL");
-      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-        window.HTMLInputElement.prototype,
-        "value",
-      )?.set;
-      nativeInputValueSetter?.call(
-        urlInput,
-        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        screen.queryByText("Speak. Move. Look. The interface listens."),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText("Skip to workspace")).toHaveAttribute(
+        "href",
+        "#workspace",
       );
-      urlInput.dispatchEvent(new Event("input", { bubbles: true }));
-
-      const button = await screen.findByRole("button", {
-        name: /^Continue$/i,
-      });
-      button.click();
-
-      // The video background should render with the extracted video ID.
-      await waitFor(() => {
-        const videoBg = document.querySelector(".immersive-video-background");
-        expect(videoBg).toBeInTheDocument();
-        const iframe = videoBg?.querySelector("iframe");
-        expect(iframe).toBeInTheDocument();
-        expect(iframe?.src).toContain("dQw4w9WgXcQ");
-      });
     });
 
-    it("disables the continue button until a source is provided", async () => {
-      mount();
-      const button = await screen.findByRole("button", {
-        name: /^Continue$/i,
-      });
-      expect(button).toBeDisabled();
-    });
-  });
-
-  describe("empty state", () => {
-    it("tells the reader to add a source before asking", async () => {
-      mount();
-      expect(
-        await screen.findByText(
-          /Add a PDF or YouTube source before sending so answers stay grounded/,
-        ),
-      ).toBeInTheDocument();
-    });
-
-    it("shows the immersive header lede for the default voice mode", async () => {
-      mount();
-      expect(
-        await screen.findByText(
-          /Speak to add a source, speak to ask a question/,
-        ),
-      ).toBeInTheDocument();
-    });
-
-    it("shows the empty-chat heading for the default voice mode", async () => {
-      mount();
-      expect(
-        await screen.findByText("Your voice is the shortcut."),
-      ).toBeInTheDocument();
-    });
-
-    it("disables the send button when no source is loaded", async () => {
-      mount();
-      const send = await screen.findByRole("button", { name: /Send/i });
-      expect(send).toBeDisabled();
-    });
-  });
-
-  describe("mode switching", () => {
-    it("renders the top nav in voice mode by default", async () => {
-      mount();
-      const nav = await screen.findByTestId("top-nav");
-      expect(nav).toHaveAttribute("data-mode", "voice");
-    });
-
-    it("includes the voice chat button in the page (hidden until a source)", async () => {
-      mount();
-      const button = await screen.findByText(/Start Voice Chat/);
-      expect(button.closest("button")).toHaveAttribute("hidden");
-    });
-
-    it("renders both voice and motion action controls", async () => {
-      mount();
-      expect(await screen.findByTestId("voice-actions")).toBeInTheDocument();
-      expect(await screen.findByTestId("motion-actions")).toBeInTheDocument();
-    });
-
-    it("tells the voice actions whether a source is loaded", async () => {
+    it("keeps both input channels mounted while switching keyboard preference", async () => {
       mount();
       const voice = await screen.findByTestId("voice-actions");
-      // No source has been loaded yet, so voice should not be available.
-      expect(voice).toHaveAttribute("data-can-voice", "false");
-    });
-  });
-
-  describe("conversation display", () => {
-    it("shows the question input labelled for when no source is loaded", async () => {
-      mount();
-      const textarea = await screen.findByRole("textbox", {
-        name: "Ask a question",
-      });
-      expect(textarea).toBeInTheDocument();
-      expect(textarea).toHaveAttribute(
-        "placeholder",
-        "Type what you want to understand…",
+      const motion = screen.getByTestId("motion-actions");
+      fireEvent.click(
+        screen.getByRole("button", { name: "Keyboard to action" }),
       );
+      expect(screen.getByTestId("top-nav")).toHaveAttribute(
+        "data-mode",
+        "text",
+      );
+      expect(screen.getByTestId("voice-actions")).toBe(voice);
+      expect(screen.getByTestId("motion-actions")).toBe(motion);
+      expect(voice).toHaveAttribute("data-can-voice", "false");
+      expect(motion).toHaveAttribute("data-can-ask", "false");
     });
 
-    it("tells the reader when the browser cannot share a microphone", async () => {
+    it.each(["voice", "motion"])(
+      "migrates a saved %s preference to human sense",
+      async (mode) => {
+        localStorage.setItem("ursly-mode-v1", mode);
+        mount();
+        expect(await screen.findByTestId("top-nav")).toHaveAttribute(
+          "data-mode",
+          "human",
+        );
+      },
+    );
+
+    it("opens source selection in place and returns to the same input controls", async () => {
       mount();
-      // jsdom does not implement navigator.mediaDevices.getUserMedia, so the
-      // workspace warns that voice is unavailable and typing is the fallback.
+      const voice = await screen.findByTestId("voice-actions");
+      fireEvent.click(screen.getByRole("button", { name: "Add a source" }));
+      const picker = screen.getByRole("dialog", { name: "Add a source" });
       expect(
-        await screen.findByText(
-          /This browser will not share a microphone here/,
-        ),
+        within(picker).getByRole("tab", { name: "PDF file" }),
       ).toBeInTheDocument();
+      expect(
+        within(picker).getByRole("tab", { name: "YouTube video" }),
+      ).toBeInTheDocument();
+      fireEvent.click(
+        within(picker).getByRole("button", { name: "Close source picker" }),
+      );
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByTestId("voice-actions")).toBe(voice);
+    });
+
+    it("reveals voice, device and account settings only when requested", async () => {
+      mount();
+      await screen.findByTestId("voice-actions");
+      expect(screen.getByTestId("voice-lending")).not.toBeVisible();
+      expect(screen.getByTestId("device-connect")).not.toBeVisible();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Workspace settings" }),
+      );
+      const settings = screen.getByRole("dialog", {
+        name: "Workspace settings",
+      });
+      expect(within(settings).getByTestId("voice-lending")).toBeInTheDocument();
+      expect(
+        within(settings).getByTestId("device-connect"),
+      ).toBeInTheDocument();
+      expect(
+        within(settings).getByRole("button", { name: "Sign out" }),
+      ).toBeInTheDocument();
+      const voiceSettings = within(settings).getByTestId("voice-lending");
+      fireEvent.click(
+        within(settings).getByRole("button", { name: "Close settings" }),
+      );
+      expect(
+        screen.queryByRole("dialog", { name: "Workspace settings" }),
+      ).not.toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Workspace settings" }),
+      );
+      expect(screen.getByTestId("voice-lending")).toBe(voiceSettings);
     });
   });
 
   describe("error states", () => {
     it("shows the offline banner when the network is gone", async () => {
-      const onlineSpy = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+      const onlineSpy = vi
+        .spyOn(navigator, "onLine", "get")
+        .mockReturnValue(false);
       mount();
       expect(
         await screen.findByText(/You are offline/, { exact: false }),
@@ -317,51 +248,40 @@ describe("Workspace", () => {
       onlineSpy.mockRestore();
     });
 
-    it("shows the source status as Ready when no source is loaded", async () => {
+    it("moves generic errors into settings even before a source is loaded", async () => {
       mount();
-      const statuses = await screen.findAllByText("Ready");
-      expect(statuses.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it("shows the add-source toggle in the immersive header", async () => {
-      mount();
-      expect(
-        await screen.findByRole("button", { name: /Add a source/i }),
-      ).toBeInTheDocument();
-    });
-  });
-
-  describe("loading states", () => {
-    it("shows the extracting status while ingestion is in progress", async () => {
-      // A health response that never resolves keeps the component in the busy
-      // state long enough to observe the loading indicator.
-      mocks.requestJson.mockImplementation(
-        () => new Promise(() => {}),
+      await screen.findByTestId("voice-actions");
+      fireEvent.click(screen.getByRole("button", { name: "Add a source" }));
+      fireEvent.click(screen.getByRole("tab", { name: "YouTube video" }));
+      fireEvent.change(screen.getByLabelText("YouTube URL"), {
+        target: { value: "https://youtu.be/fixture" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+      await screen.findByRole("alert");
+      fireEvent.click(
+        screen.getByRole("button", { name: "Close source picker" }),
       );
+      fireEvent.click(
+        screen.getByRole("button", { name: "Workspace settings" }),
+      );
+      const settings = screen.getByRole("dialog", {
+        name: "Workspace settings",
+      });
+      expect(within(settings).getByRole("alert")).toHaveTextContent(
+        "no server",
+      );
+      expect(screen.getAllByRole("alert", { hidden: true })).toHaveLength(1);
+      expect(
+        screen.queryByRole("button", { name: "Start Voice Chat" }),
+      ).toBeNull();
+    });
+
+    it("shows errors in the immersive source prompt", async () => {
       mount();
-      // Choose a file to enable the continue button.
-      const file = new File(["content"], "test.pdf", {
-        type: "application/pdf",
+      const prompt = await screen.findByRole("button", {
+        name: "Add a source",
       });
-      const input = (await screen.findByLabelText(
-        "PDF file",
-      )) as HTMLInputElement;
-      // Simulate a file selection through the change event.
-      Object.defineProperty(input, "files", {
-        value: [file],
-        writable: false,
-      });
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-
-      const button = await screen.findByRole("button", {
-        name: /^Continue$/i,
-      });
-      button.click();
-
-      // The status label switches to "Extracting" while the upload runs.
-      await waitFor(() => {
-        expect(screen.getByText("Extracting")).toBeInTheDocument();
-      });
+      expect(prompt).toBeInTheDocument();
     });
   });
 

@@ -42,7 +42,7 @@ declare global {
 }
 
 const conversation = (page: Page) =>
-  page.getByRole("region", { name: "2. Ask a question" });
+  page.getByRole("region", { name: "Conversation" });
 const channelState = (page: Page) => page.locator(".channel-state");
 const thread = (page: Page) => conversation(page).locator(".message");
 const answers = (page: Page) =>
@@ -69,7 +69,7 @@ async function addSource(page: Page) {
   );
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://youtu.be/live-channel");
-  await page.getByRole("button", { name: "Continue to questions" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.locator(".source-ready")).toBeVisible();
 }
 

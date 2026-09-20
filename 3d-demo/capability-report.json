@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "profile": "qoder-glb-safe",
+  "status": "complete",
+  "capabilities": [
+    {
+      "id": "artifact.glb.create",
+      "status": "implemented",
+      "evidence": [
+        "revision:1"
+      ]
+    },
+    {
+      "id": "transaction.dry-run",
+      "status": "implemented",
+      "evidence": [
+        "lifecycle:createModelBundle"
+      ]
+    },
+    {
+      "id": "transaction.expected-state",
+      "status": "implemented",
+      "evidence": [
+        "state:sha256:33552a3b6493ae41900e670e6af6613a2a928996ef57032483efdd426786ca9c"
+      ]
+    },
+    {
+      "id": "project.sidecar",
+      "status": "implemented",
+      "evidence": [
+        "revision:1"
+      ]
+    },
+    {
+      "id": "validation.khronos",
+      "status": "implemented",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    },
+    {
+      "id": "validation.spatial-envelope",
+      "status": "implemented",
+      "evidence": [
+        "preflight:world-bounds"
+      ]
+    },
+    {
+      "id": "geometry.primitive.cylinder",
+      "status": "implemented",
+      "evidence": [
+        "feature:ground.feature",
+        "feature:logo.base.feature"
+      ]
+    },
+    {
+      "id": "geometry.axis",
+      "status": "implemented",
+      "evidence": [
+        "feature:ground.feature:y",
+        "feature:ground.ring.0.feature:y",
+        "feature:ground.ring.1.feature:y",
+        "feature:ground.ring.2.feature:y",
+        "feature:logo.base.feature:y",
+        "feature:wave.ring.0.feature:y",
+        "feature:wave.ring.1.feature:y"
+      ]
+    },
+    {
+      "id": "geometry.primitive.hollow-cylinder",
+      "status": "implemented",
+      "evidence": [
+        "feature:ground.ring.0.feature",
+        "feature:ground.ring.1.feature",
+        "feature:ground.ring.2.feature",
+        "feature:wave.ring.0.feature",
+        "feature:wave.ring.1.feature"
+      ]
+    },
+    {
+      "id": "geometry.primitive.box",
+      "status": "implemented",
+      "evidence": [
+        "feature:logo.bar.0.feature",
+        "feature:logo.bar.1.feature",
+        "feature:logo.bar.2.feature",
+        "feature:logo.bar.3.feature",
+        "feature:logo.bar.4.feature",
+        "feature:doc.line.0.feature",
+        "feature:doc.line.1.feature",
+        "feature:doc.line.2.feature",
+        "feature:doc.line.3.feature",
+        "feature:doc.line.4.feature"
+      ]
+    },
+    {
+      "id": "node.hierarchy.create",
+      "status": "implemented",
+      "evidence": [
+        "occurrence:logo.bar.0",
+        "occurrence:logo.bar.1",
+        "occurrence:logo.bar.2",
+        "occurrence:logo.bar.3",
+        "occurrence:logo.bar.4",
+        "occurrence:doc.line.0",
+        "occurrence:doc.line.1",
+        "occurrence:doc.line.2",
+        "occurrence:doc.line.3",
+        "occurrence:doc.line.4"
+      ]
+    },
+    {
+      "id": "geometry.primitive.beveled-box",
+      "status": "implemented",
+      "evidence": [
+        "feature:document.feature"
+      ]
+    },
+    {
+      "id": "geometry.primitive.sphere",
+      "status": "implemented",
+      "evidence": [
+        "feature:answer.0.feature",
+        "feature:answer.1.feature",
+        "feature:answer.2.feature"
+      ]
+    },
+    {
+      "id": "animation.trs.create",
+      "status": "implemented",
+      "evidence": [
+        "track:anim.eq.pulse.bar0",
+        "track:anim.eq.pulse.bar1",
+        "track:anim.eq.pulse.bar2",
+        "track:anim.eq.pulse.bar3",
+        "track:anim.eq.pulse.bar4",
+        "track:anim.doc.flow.translate",
+        "track:anim.answer.rise.a0",
+        "track:anim.answer.rise.a1",
+        "track:anim.answer.rise.a2",
+        "track:anim.wave.radiate.r0",
+        "track:anim.wave.radiate.r1",
+        "track:anim.ground.ripple.r0",
+        "track:anim.ground.ripple.r1",
+        "track:anim.ground.ripple.r2"
+      ]
+    },
+    {
+      "id": "animation.trs.edit",
+      "status": "implemented",
+      "evidence": [
+        "stable-track:anim.eq.pulse.bar0",
+        "stable-track:anim.eq.pulse.bar1",
+        "stable-track:anim.eq.pulse.bar2",
+        "stable-track:anim.eq.pulse.bar3",
+        "stable-track:anim.eq.pulse.bar4",
+        "stable-track:anim.doc.flow.translate",
+        "stable-track:anim.answer.rise.a0",
+        "stable-track:anim.answer.rise.a1",
+        "stable-track:anim.answer.rise.a2",
+        "stable-track:anim.wave.radiate.r0",
+        "stable-track:anim.wave.radiate.r1",
+        "stable-track:anim.ground.ripple.r0",
+        "stable-track:anim.ground.ripple.r1",
+        "stable-track:anim.ground.ripple.r2"
+      ]
+    },
+    {
+      "id": "geometry.edit",
+      "status": "unsupported",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    },
+    {
+      "id": "animation.edit",
+      "status": "unsupported",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    },
+    {
+      "id": "texture.import",
+      "status": "unsupported",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    }
+  ]
+}

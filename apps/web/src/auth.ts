@@ -221,6 +221,15 @@ export async function requireAccount(
 }
 
 /**
+ * The plan an account is on. Billing is not open yet, so every account reads as
+ * free. The structure is ready for a paid subscription lookup to replace the
+ * default without touching any caller.
+ */
+export function getAccountPlan(_accountId: string): "free" | "paid" {
+  return "free";
+}
+
+/**
  * Authentication and the spend cap in one call, in that order: an anonymous
  * caller is refused before any ledger is touched.
  *

@@ -1,40 +1,83 @@
-appId: com.talktosource.demo
+appId: '${typeof APP_ID === "undefined" ? "com.talktosource.demo" : APP_ID}'
 ---
-# Interface checks only. A passing flow does not validate the production backend.
+# UI-only parity; preserves app data and never requests hardware permissions.
 - launchApp:
-    clearState: true
-- assertVisible: "Import a PDF"
-- assertVisible: "Voice to action"
+    permissions: {}
+- assertVisible: "Sense to Action"
+- assertVisible: "Sense"
 - assertVisible: "Keyboard to action"
-- assertVisible: "Motion to action"
-- tapOn: "Motion to action"
-- assertVisible: "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today."
-- tapOn: "Keyboard to action"
-- assertVisible: "Keyboard to action: everything works by typing and clicking."
-- tapOn: "Voice to action"
-- tapOn: "About Ursly and language"
-- assertVisible: "App language"
-- tapOn: "Français"
-- assertVisible: "Langue de l’application"
-- tapOn: "Fermer"
-- assertVisible: "Importer un PDF"
-- tapOn: "À propos d’Ursly"
-- tapOn: "English"
-- tapOn: "Close"
-- tapOn: "Try a sample text"
-- assertVisible: "The power of small breaks"
-- tapOn: "The source"
-- assertVisible: "It all starts here."
-- tapOn: "About Ursly and language"
-- tapOn: "Français"
-- tapOn: "Fermer"
-- assertVisible: "Tout commence ici."
-- assertVisible: "The power of small breaks"
-- tapOn: "Conversation"
-- assertVisible: "Démarrer la conversation vocale"
-- tapOn: "Retour aux sources"
-- assertVisible: "Reprendre la conversation"
-- tapOn: "À propos d’Ursly"
-- tapOn: "English"
-- tapOn: "Close"
-- assertVisible: "Resume conversation"
+- assertVisible: "Brain to action"
+- assertVisible: "Start experience"
+- assertVisible: "Workspace settings"
+- assertNotVisible: "Voice to action"
+- assertNotVisible: "Motion to action"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Add a source"
+- assertVisible: "Import a PDF"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "YouTube"
+- assertVisible: "YouTube link"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Close source picker"
+    index: 1
+- assertVisible: "Start experience"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Workspace settings"
+- scrollUntilVisible:
+    element: "Try a sample text"
+    direction: DOWN
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Try a sample text"
+- assertVisible: ".*The power of small breaks.*"
+- assertVisible: ".*Ask a question.*"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Keyboard to action"
+- assertVisible: ".*The power of small breaks.*"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Sense"
+- assertVisible: ".*The power of small breaks.*"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Workspace settings"
+- scrollUntilVisible:
+    element: "Français"
+    direction: DOWN
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Français"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Fermer les réglages"
+    index: 1
+- assertVisible: ".*The power of small breaks.*"
+- assertVisible: ".*Poser une question.*"
+- assertVisible: "Démarrer l’expérience"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Réglages de l’espace"
+- scrollUntilVisible:
+    element: "English"
+    direction: DOWN
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "English"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Close settings"
+    index: 1
+- assertVisible: "Start experience"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Change source"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "The source"
+- assertVisible: ".*The power of small breaks.*"
+- assertVisible: ".*Focus grows in the moments.*"

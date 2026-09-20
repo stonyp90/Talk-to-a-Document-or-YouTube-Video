@@ -1,7 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type Ref,
+} from "react";
 import { Icon } from "./Icon";
+import { SenseFeedback } from "./SenseFeedback";
+import styles from "./SenseControls.module.css";
+import type {
+  SenseChannelActivity,
+  SenseChannelControl,
+} from "./senseControlTypes";
+import { MOTION_LEGEND } from "../content/motion-legend";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { useHydrated } from "./useHydrated";
 import type { VoiceActionId } from "./VoiceActions";
@@ -29,6 +43,11 @@ import type { MotionGestureId } from "@/packages/core/src/domain/motionGestures"
 export type MotionActionsProps = {
   /** The questions a reader can pick between without saying a word. */
   prompts: readonly string[];
+  /** Compact controls for the shared immersive action dock. */
+  presentation?: "panel" | "dock" | "merged";
+  controlRef?: Ref<SenseChannelControl>;
+  feedbackTarget?: HTMLElement | null;
+  onActivityChange?: (activity: SenseChannelActivity) => void;
   /** Sends the chosen question. */
   onAsk: (prompt: string) => void;
   /** The same action bus the spoken commands use. */
@@ -43,30 +62,21 @@ export type MotionActionsProps = {
   /** Whether the file browser overlay is currently open. */
   fileBrowserOpen?: boolean;
   /** Actions available while the file browser is open. */
-  onFileAction?: (action: "navigateUp" | "next" | "prev" | "openSelected") => void;
+  onFileAction?: (
+    action: "navigateUp" | "next" | "prev" | "openSelected",
+  ) => void;
   /** Reports the current gaze/face position in normalised coordinates. */
   onGazeUpdate?: (position: { x: number; y: number } | null) => void;
 };
 
-/** What each movement does, in the order the legend lists them. */
-export const MOTION_LEGEND: ReadonlyArray<{
-  gesture: MotionGestureId;
-  label: string;
-  meaning: string;
-}> = [
-  {
-    gesture: "right",
-    label: "Swipe right",
-    meaning: "Next question",
-  },
-  { gesture: "left", label: "Swipe left", meaning: "Previous question" },
-  { gesture: "hold", label: "Wave in place", meaning: "Ask it" },
-  { gesture: "up", label: "Swipe up", meaning: "Summarize the source" },
-  { gesture: "down", label: "Swipe down", meaning: "Stop" },
-];
+export { MOTION_LEGEND } from "../content/motion-legend";
 
 export function MotionActions({
   prompts,
+  presentation = "panel",
+  controlRef,
+  feedbackTarget,
+  onActivityChange,
   onAsk,
   onAction,
   canAsk,
@@ -76,10 +86,13 @@ export function MotionActions({
   onGazeUpdate,
 }: MotionActionsProps) {
   const { t } = useLanguage();
+  const dock = presentation !== "panel";
+  const merged = presentation === "merged";
   const hydrated = useHydrated();
   const video = useRef<HTMLVideoElement>(null);
   const camera = useRef<{ start(): Promise<void>; stop(): void } | null>(null);
   const handle = useRef<(event: MotionCameraEvent) => void>(() => {});
+  const cameraSession = useRef(0);
   const [watching, setWatching] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
@@ -88,7 +101,6 @@ export function MotionActions({
   const [at, setAt] = useState<{ x: number; y: number } | undefined>();
   const [chosen, setChosen] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
-  const [showOverlays, setShowOverlays] = useState(true);
   const [lastActionTrigger, setLastActionTrigger] = useState<{
     gesture: string;
     action: string;
@@ -113,19 +125,31 @@ export function MotionActions({
         switch (gesture) {
           case "right":
             onFileAction("next");
-            setLastActionTrigger({ gesture: "SWIPE RIGHT ↦", action: "Next file" });
+            setLastActionTrigger({
+              gesture: "SWIPE RIGHT",
+              action: "Next file",
+            });
             return;
           case "left":
             onFileAction("prev");
-            setLastActionTrigger({ gesture: "SWIPE LEFT ↤", action: "Previous file" });
+            setLastActionTrigger({
+              gesture: "SWIPE LEFT",
+              action: "Previous file",
+            });
             return;
           case "hold":
             onFileAction("openSelected");
-            setLastActionTrigger({ gesture: "HAND WAVE ✋", action: "Open selected file" });
+            setLastActionTrigger({
+              gesture: "HAND WAVE",
+              action: "Open selected file",
+            });
             return;
           case "up":
             onFileAction("navigateUp");
-            setLastActionTrigger({ gesture: "SWIPE UP ↥", action: "Navigate up" });
+            setLastActionTrigger({
+              gesture: "SWIPE UP",
+              action: "Navigate up",
+            });
             return;
         }
       }
@@ -140,8 +164,10 @@ export function MotionActions({
         const targetPrompt = prompts[next] ?? "";
         announce(targetPrompt);
         setLastActionTrigger({
-          gesture: gesture === "right" ? "SWIPE RIGHT ↦" : "SWIPE LEFT ↤",
-          action: targetPrompt || (gesture === "right" ? "Next Question" : "Previous Question"),
+          gesture: gesture === "right" ? "SWIPE RIGHT" : "SWIPE LEFT",
+          action:
+            targetPrompt ||
+            (gesture === "right" ? "Next Question" : "Previous Question"),
         });
         return;
       }
@@ -153,7 +179,7 @@ export function MotionActions({
         }
         announce(t("Asking: {question}", { question: asking }));
         setLastActionTrigger({
-          gesture: "HAND WAVE ✋",
+          gesture: "HAND WAVE",
           action: t("Asking: {question}", { question: asking }),
         });
         onAsk(asking);
@@ -166,7 +192,7 @@ export function MotionActions({
         }
         announce(t("Summarizing the key ideas."));
         setLastActionTrigger({
-          gesture: "SWIPE UP ↥",
+          gesture: "SWIPE UP",
           action: t("Summarizing the key ideas."),
         });
         onAction("summarize");
@@ -174,12 +200,21 @@ export function MotionActions({
       }
       announce(t("Stopped."));
       setLastActionTrigger({
-        gesture: "SWIPE DOWN ↧",
+        gesture: "SWIPE DOWN",
         action: t("Stopped."),
       });
       onAction("stop");
     },
-    [announce, canAsk, onAction, onAsk, prompts, t, fileBrowserOpen, onFileAction],
+    [
+      announce,
+      canAsk,
+      onAction,
+      onAsk,
+      prompts,
+      t,
+      fileBrowserOpen,
+      onFileAction,
+    ],
   );
 
   // Read through a ref, so a new question or a language change never restarts
@@ -202,6 +237,8 @@ export function MotionActions({
       return;
     }
     if (event.type === "ended") {
+      setStarting(false);
+      setFullscreen(false);
       setWatching(false);
       setEnergy(0);
       setAt(undefined);
@@ -210,7 +247,14 @@ export function MotionActions({
     }
     setStarting(false);
     setWatching(false);
-    setError(t(event.message));
+    setFullscreen(false);
+    setError(
+      t(
+        merged && event.code === "DENIED"
+          ? "Camera access was denied. Allow it in your browser, then restart the experience."
+          : event.message,
+      ),
+    );
   };
 
   useEffect(() => {
@@ -219,6 +263,7 @@ export function MotionActions({
 
   useEffect(
     () => () => {
+      cameraSession.current += 1;
       camera.current?.stop();
       camera.current = null;
     },
@@ -228,8 +273,12 @@ export function MotionActions({
   async function start() {
     if (!video.current || watching || starting) return;
     setError("");
+    setNotice("");
     setStarting(true);
-    const onEvent = (event: MotionCameraEvent) => handle.current(event);
+    const session = ++cameraSession.current;
+    const onEvent = (event: MotionCameraEvent) => {
+      if (cameraSession.current === session) handle.current(event);
+    };
     const created = createCamera
       ? createCamera({ video: video.current, onEvent })
       : new MotionCamera({ video: video.current, onEvent });
@@ -237,6 +286,7 @@ export function MotionActions({
     try {
       await created.start();
     } catch {
+      if (cameraSession.current !== session) return;
       // Camera adapters are allowed to reject as well as report an event.
       // Keep the panel usable instead of leaving the start button disabled.
       camera.current = null;
@@ -249,9 +299,127 @@ export function MotionActions({
   }
 
   function stop() {
+    cameraSession.current += 1;
     camera.current?.stop();
     camera.current = null;
+    setStarting(false);
+    setWatching(false);
+    setFullscreen(false);
+    setEnergy(0);
+    setAt(undefined);
+    onGazeUpdate?.(null);
     announce(t("Camera off."));
+  }
+
+  function requestStart() {
+    if (supported) void start();
+    else
+      setError(
+        t(
+          "This browser will not share a camera here. Motion needs a secure connection; voice and typing still work.",
+        ),
+      );
+  }
+
+  useImperativeHandle(controlRef, () => ({ start: requestStart, stop }));
+
+  useEffect(() => {
+    onActivityChange?.({ active: watching, connecting: starting });
+  }, [watching, starting, onActivityChange]);
+
+  if (dock) {
+    const active = watching || starting;
+    return (
+      <section className={styles.motion} aria-label={t("Motion")}>
+        {!merged && (
+          <button
+            type="button"
+            className={styles.control}
+            aria-label={active ? t("Stop motion") : t("Start motion")}
+            aria-pressed={active}
+            onClick={() => (active ? stop() : requestStart())}
+          >
+            <Icon name="motion" />
+            <span>{active ? t("Stop motion") : t("Motion")}</span>
+          </button>
+        )}
+        <div
+          className={styles.motionPreview}
+          data-fullscreen={fullscreen || undefined}
+          data-merged={merged || undefined}
+          aria-label={t("Motion preview")}
+          hidden={!active}
+        >
+          <div className={styles.previewToolbar}>
+            <span role="status">
+              {starting ? t("Starting the camera…") : t("Camera on")}
+            </span>
+            {!merged && (
+              <button
+                type="button"
+                className={styles.previewButton}
+                onClick={() => setFullscreen((value) => !value)}
+                aria-label={
+                  fullscreen ? t("Exit full screen") : t("Full screen")
+                }
+              >
+                <Icon name={fullscreen ? "close" : "external"} />
+              </button>
+            )}
+          </div>
+          <div className={styles.cameraFrame}>
+            <video
+              ref={video}
+              className={styles.cameraVideo}
+              muted
+              playsInline
+              aria-hidden="true"
+            />
+            {watching && at && (
+              <span
+                className={styles.motionPoint}
+                aria-hidden="true"
+                style={{ left: `${at.x * 100}%`, top: `${at.y * 100}%` }}
+              />
+            )}
+            <span
+              className={styles.energy}
+              aria-hidden="true"
+              style={{ transform: `scaleX(${Math.min(1, energy * 4)})` }}
+            />
+          </div>
+          <div className={styles.previewGuide}>
+            <strong>{prompt}</strong>
+            {!merged && (
+              <>
+                <ul className={styles.gestureGuide}>
+                  {MOTION_LEGEND.map((entry) => (
+                    <li key={entry.gesture}>
+                      <span>{t(entry.label)}</span>
+                      <span>{t(entry.meaning)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className={styles.status} role="status">
+                  {notice}
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+        {error && (
+          <SenseFeedback target={merged ? feedbackTarget : undefined}>
+            <p
+              className={styles.error}
+              data-merged={merged || undefined}
+              role="alert"
+            >
+              {error}
+            </p>
+          </SenseFeedback>
+        )}
+      </section>
+    );
   }
 
   if (!supported)
@@ -280,32 +448,12 @@ export function MotionActions({
           <Icon name="close" />
         </button>
       )}
-      {/* Video Conference Room Header */}
-      <div className="motion-conference-header">
-        <div className="motion-conf-title-col">
-          <span className="motion-conf-badge">
-            <span className="motion-conf-dot" data-active={watching || undefined} />
-            {watching ? t("LIVE VISION ROOM") : t("VISION ROOM (IDLE)")}
-          </span>
-          <h4 className="motion-conf-title">{t("Motion & Video Conference Hub")}</h4>
-        </div>
-        <div className="motion-conf-meta">
-          <span className="motion-conf-pill">
-            {watching ? `${Math.round(energy * 100)}% ${t("motion energy")}` : t("Standby")}
-          </span>
-          <span className="motion-conf-pill">
-            {watching ? t("Gesture detection") : t("Privacy Protected")}
-          </span>
-        </div>
-      </div>
 
       <div
         className="motion-stage"
         data-watching={watching || undefined}
         data-expanded={fullscreen || undefined}
       >
-        {/* Mirrored, so a reader sees themselves the way a mirror shows them
-            and a movement to their right is a movement to the right here. */}
         <video
           ref={video}
           className="motion-preview"
@@ -314,9 +462,16 @@ export function MotionActions({
           aria-hidden="true"
         />
 
-        {watching && showOverlays && (
+        <span className="motion-status" aria-live="polite">
+          <span
+            className="motion-status-dot"
+            data-active={watching || undefined}
+          />
+          {watching ? t("Camera on") : t("Camera off")}
+        </span>
+
+        {watching && (
           <>
-            {/* Eye Tracking Overlays */}
             <div className="motion-face-box" aria-hidden="true">
               <div className="motion-eye-marker left">
                 <span className="motion-reticle-cross" />
@@ -331,7 +486,6 @@ export function MotionActions({
               <span className="motion-gaze-vector" />
             </div>
 
-            {/* Hand Tracking Overlays */}
             <span
               className="motion-marker"
               aria-hidden="true"
@@ -359,18 +513,6 @@ export function MotionActions({
               aria-hidden="true"
               style={{ transform: `scaleX(${Math.min(1, energy * 4)})` }}
             />
-
-            {/* Live Movement Action Trigger HUD */}
-            {lastActionTrigger && (
-              <div className="motion-hud-action-card" role="status" aria-live="polite">
-                <span className="motion-hud-gesture-badge">
-                  {lastActionTrigger.gesture}
-                </span>
-                <span className="motion-hud-action-name">
-                  {lastActionTrigger.action}
-                </span>
-              </div>
-            )}
           </>
         )}
 
@@ -379,6 +521,33 @@ export function MotionActions({
             {t("The camera is off. Nothing is recorded or sent.")}
           </p>
         )}
+
+        <div className="motion-choice" aria-live="off">
+          <span className="motion-choice-label">{t("Chosen question")}</span>
+          <strong className="motion-choice-prompt">{prompt}</strong>
+        </div>
+
+        <ul className="motion-legend">
+          {MOTION_LEGEND.map((entry) => (
+            <li
+              key={entry.gesture}
+              className={`motion-legend-${entry.gesture}`}
+            >
+              <span aria-hidden="true" className="motion-legend-arrow" />
+              <span className="motion-legend-label">{t(entry.label)}</span>
+              <span className="motion-legend-meaning">{t(entry.meaning)}</span>
+            </li>
+          ))}
+        </ul>
+
+        <p className="motion-notice" role="status">
+          {lastActionTrigger && (
+            <span className="motion-notice-gesture">
+              {lastActionTrigger.gesture}
+            </span>
+          )}
+          {notice}
+        </p>
       </div>
 
       <div className="motion-controls">
@@ -402,39 +571,10 @@ export function MotionActions({
           onClick={() => setFullscreen((prev) => !prev)}
           title={fullscreen ? t("Exit full screen") : t("Full screen")}
         >
-          {fullscreen ? " " + t("Exit Full Screen") : "⤢ " + t("Full Screen")}
+          {fullscreen ? t("Exit Full Screen") : t("Full Screen")}
         </button>
-
-        {watching && (
-          <button
-            type="button"
-            className="ghost motion-toolbar-btn"
-            onClick={() => setShowOverlays((prev) => !prev)}
-            title={showOverlays ? t("Hide overlays") : t("Show overlays")}
-          >
-            {showOverlays ? "👁️ " + t("HUD: On") : "👁️‍🗨️ " + t("HUD: Off")}
-          </button>
-        )}
       </div>
 
-      <div className="motion-choice" aria-live="off">
-        <span className="motion-choice-label">{t("Chosen question")}</span>
-        <strong className="motion-choice-prompt">{prompt}</strong>
-      </div>
-
-      <ul className="motion-legend">
-        {MOTION_LEGEND.map((entry) => (
-          <li key={entry.gesture} className={`motion-legend-${entry.gesture}`}>
-            <span aria-hidden="true" className="motion-legend-arrow" />
-            <span className="motion-legend-label">{t(entry.label)}</span>
-            <span className="motion-legend-meaning">{t(entry.meaning)}</span>
-          </li>
-        ))}
-      </ul>
-
-      <p className="motion-notice" role="status">
-        {notice}
-      </p>
       {error && (
         <p className="error" role="alert">
           {error}

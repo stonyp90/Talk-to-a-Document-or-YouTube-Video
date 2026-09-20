@@ -4,67 +4,47 @@ import { type KeyboardEvent } from "react";
 import { Icon, type IconName } from "./Icon";
 import { useLanguage } from "../i18n/LanguageProvider";
 
-/** The ways a person can drive Ursly, in the order they are offered. */
-export type EntryMode = "voice" | "text" | "motion";
-type ModeId = EntryMode;
+/** Voice and motion remain accepted for previously saved preferences. */
+export type EntryMode = "human" | "text" | "voice" | "motion";
+type ModeId = "human" | "text";
 
 type Mode = {
   id: ModeId;
   label: string;
   /** What fits on a phone; the full label stays the accessible name. */
   short: string;
-  detail: string;
   icon: IconName;
-  /** The previous generation of input: kept and supported, no longer the door. */
-  legacy?: boolean;
+  detail?: string;
 };
 
-/**
- * Read left to right, this is the argument: you speak today, you will move
- * tomorrow, and the keyboard is what the internet used to ask of you. The
- * order is the message, so it is fixed here and nowhere else.
- */
+/** Human senses share one experience; keyboard input is always available. */
 const MODES: readonly Mode[] = [
   {
-    id: "voice",
-    label: "Voice to action",
-    short: "Voice",
-    detail: "",
+    id: "human",
+    label: "Sense",
+    short: "Sense",
     icon: "voice",
-  },
-  {
-    id: "motion",
-    label: "Motion to action",
-    short: "Motion",
-    detail: "Beta",
-    icon: "motion",
   },
   {
     id: "text",
     label: "Keyboard to action",
     short: "Keyboard",
+    icon: "keyboard",
     detail: "Legacy",
-    icon: "document",
-    legacy: true,
   },
 ];
 
 const BRAIN_MODE = {
   label: "Brain to action",
   short: "Brain",
-  detail: "Beta",
   icon: "brain" as IconName,
+  detail: "Beta",
 };
 
 /** The modes in the order they are drawn, which is the order the keys walk. */
 const SELECTABLE = MODES.map((mode) => mode.id);
 
-/**
- * A segmented control with radio semantics: one mode is always selected and the
- * arrow keys move between them. Motion is marked beta because it reads a hand
- * from a camera rather than a model, which is enough for five movements and
- * honest about being no more than that.
- */
+/** A shared input preference with radio semantics and keyboard navigation. */
 export function ModeSwitcher({
   mode,
   onChange,
@@ -73,8 +53,9 @@ export function ModeSwitcher({
   onChange: (mode: EntryMode) => void;
 }) {
   const { t } = useLanguage();
+  const selectedMode: ModeId = mode === "text" ? "text" : "human";
 
-  function move(from: EntryMode, step: 1 | -1) {
+  function move(from: ModeId, step: 1 | -1) {
     const index = SELECTABLE.indexOf(from);
     const next =
       SELECTABLE[(index + step + SELECTABLE.length) % SELECTABLE.length];
@@ -83,13 +64,12 @@ export function ModeSwitcher({
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>, current: ModeId) {
-    const origin: EntryMode = current;
     if (["ArrowRight", "ArrowDown"].includes(event.key)) {
       event.preventDefault();
-      move(origin, 1);
+      move(current, 1);
     } else if (["ArrowLeft", "ArrowUp"].includes(event.key)) {
       event.preventDefault();
-      move(origin, -1);
+      move(current, -1);
     } else if (event.key === "Home") {
       event.preventDefault();
       onChange(SELECTABLE[0]);
@@ -105,14 +85,14 @@ export function ModeSwitcher({
   return (
     <div className="modes" role="radiogroup" aria-label={t("Control mode")}>
       {MODES.map((item) => {
-        const checked = item.id === mode;
+        const checked = item.id === selectedMode;
         return (
           <button
             key={item.id}
             id={`mode-${item.id}`}
             type="button"
             role="radio"
-            className={`mode mode-${item.id}${item.legacy ? " mode-legacy" : ""}`}
+            className={`mode mode-${item.id}`}
             aria-checked={checked}
             aria-label={t(item.label)}
             tabIndex={checked ? 0 : -1}

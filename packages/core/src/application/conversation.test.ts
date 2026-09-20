@@ -23,7 +23,7 @@ it("accepts a source larger than one model context and windows it", async () => 
   const { app, provider } = fixture();
   const long = { ...source, text: "x".repeat(600000) };
   await app.createRealtimeSession(long);
-  expect(provider.createRealtimeSession).toHaveBeenCalledWith(long);
+  expect(provider.createRealtimeSession).toHaveBeenCalledWith(long, undefined);
 });
 it("rejects an empty source regardless of the inbound adapter", async () => {
   const { app, provider } = fixture();

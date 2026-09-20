@@ -30,19 +30,13 @@ Feature: Welcome each visitor once, then keep the way in one tap away
     Then the page language is French
     And the introduction video is the French version
 
-  Scenario: Keep the control modes in a fixed top menu while scrolling
+  Scenario: Keep all input controls together in one viewport
     When I open the application
-    Then the top menu stays fixed while I scroll
-    And the control modes read voice first, motion next and keyboard last
-    And voice to action is the selected control mode
-    And motion to action is a beta that can be selected
-    And keyboard to action is marked legacy and can still be selected
-
-  Scenario: Reach the platform section from the top menu
-    When I open the landing page
-    And I choose Platform in the top menu
-    Then the platform section explains voice, movement and the keyboard as the old way
-    And the platform section explains connected objects, 3D objects and voice adaptation
+    Then the application stays in one viewport below the fixed menu
+    And the control modes combine human senses and keyboard input
+    And Sense is the selected control mode
+    And keyboard to action remains available alongside voice and motion
+    And keyboard has a Legacy tag and brain has a Beta tag
 
   Scenario: Open the story on how we build, before anything else
     When I open the landing page
@@ -62,6 +56,6 @@ Feature: Welcome each visitor once, then keep the way in one tap away
     Then the control modes are named in French
     And switching language keeps me in the application
 
-  Scenario: Ask a first question in three actions with the keyboard
+  Scenario: Ask a first question through the contextual source picker
     When I open the application
-    Then I can add a source and ask a question with at most three actions
+    Then I can add a source and ask a question with at most four actions

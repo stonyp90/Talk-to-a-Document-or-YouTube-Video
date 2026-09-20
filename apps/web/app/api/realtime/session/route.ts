@@ -28,7 +28,10 @@ export async function POST(request: Request) {
       );
 
     const session = await resolveSession(parsed.data);
-    const realtime = await createRealtimeSession(session.source);
+    const realtime = await createRealtimeSession(session.source, {
+      speed: parsed.data.speed,
+      assistantName: parsed.data.assistantName,
+    });
     // The instructions are already inside the ephemeral credential; echoing the
     // whole source back to the browser would only waste bandwidth.
     const { instructions: _instructions, ...credential } = realtime;

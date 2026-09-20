@@ -24,26 +24,26 @@ export type IntroChapter = {
 export const INTRO_CHAPTERS: readonly IntroChapter[] = [
   {
     id: "what",
-    title: "What Ursly is",
-    headline: ["A source.", "A conversation."],
+    title: "The human interface",
+    headline: ["Make the keyboard", "obsolete."],
     summary:
-      "Ursly turns a document or a video into a conversation you lead by voice, by keyboard, and soon by movement.",
+      "Ursly is a new way to interact with the digital world. Speak, gesture, look, move — the interface adapts to you.",
     seconds: 6,
     captions: [
-      "Ursly turns a document or a video into a conversation.",
-      "Voice first. Keyboard always. Motion next.",
+      "Ursly makes the keyboard obsolete.",
+      "The interface adapts to the human.",
     ],
   },
   {
     id: "web",
     title: "On the web",
-    headline: ["Bring a source.", "Then ask."],
+    headline: ["Speak.", "The interface understands."],
     summary:
-      "Add a PDF or a captioned YouTube video in the browser, ask in your own words and get an answer grounded in the source.",
+      "Bring a document or a video. Express your intention by voice, gesture, or gaze. Ursly acts.",
     seconds: 10,
     captions: [
-      "On the web: add a PDF or a captioned video, then ask.",
-      "Every answer stays grounded in what you brought.",
+      "On the web: bring a source, then speak or gesture.",
+      "No menus. No buttons. Just your intention.",
     ],
   },
   {
@@ -51,34 +51,34 @@ export const INTRO_CHAPTERS: readonly IntroChapter[] = [
     title: "On iPhone",
     headline: ["Native on iPhone.", "Voice by default."],
     summary:
-      "The same Ursly as a native iOS app: voice to action by default, the keyboard one tap away.",
+      "The same Ursly as a native iOS app. Voice first, gesture next, the keyboard one tap away if you want it.",
     seconds: 8,
     captions: [
       "The same Ursly, native on iPhone.",
-      "Voice to action by default, keyboard one tap away.",
+      "Voice first. Gesture next. Keyboard if you want.",
     ],
   },
   {
     id: "android",
     title: "On Android",
-    headline: ["Native on Android.", "Same three modes."],
+    headline: ["Native on Android.", "Same human interface."],
     summary:
-      "The native Android app carries the same source, the same question and the same understanding.",
+      "The native Android app carries the same source, the same intention, the same understanding.",
     seconds: 8,
     captions: [
       "And native on Android.",
-      "Source, question, understanding, in your pocket.",
+      "Same intention. Same understanding. In your pocket.",
     ],
   },
   {
     id: "features",
-    title: "The features",
-    headline: ["Three modes.", "Two languages."],
+    title: "The modes",
+    headline: ["Voice. Gesture.", "Gaze. Motion."],
     summary:
-      "Voice, keyboard and motion in beta; Brain is a research beta; English or French in one tap; answers you can check against the source text.",
+      "Four ways to express your intention. Brain is a research beta. English or French in one tap. Answers grounded in your source.",
     seconds: 8,
     captions: [
-      "Voice, keyboard, and motion in beta: three ways to do the same thing.",
+      "Voice, gesture, gaze, and motion: four ways to mean the same thing.",
       "Brain is a research beta. English or French in one tap.",
     ],
   },

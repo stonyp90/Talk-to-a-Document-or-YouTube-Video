@@ -146,17 +146,67 @@ describe("Process design tokens", () => {
    * resolves to nothing and simply never plays. Nothing reports it.
    */
   it("declares every animation it plays", () => {
-    const stylesheet = read("./Process.module.css");
-    const declared = new Set(
-      Array.from(
-        bare(stylesheet).matchAll(/@keyframes\s+([A-Za-z_-][\w-]*)/g),
-        (m) => m[1],
-      ),
+    for (const sheet of MODULES) {
+      const stylesheet = read(sheet);
+      const declared = new Set(
+        Array.from(
+          bare(stylesheet).matchAll(/@keyframes\s+([A-Za-z_-][\w-]*)/g),
+          (m) => m[1],
+        ),
+      );
+      const missing = animationNames(stylesheet).filter(
+        (name) => !declared.has(name),
+      );
+      expect(missing, sheet).toEqual([]);
+    }
+  });
+
+  /**
+   * A `@keyframes` block holds keyframe selectors and nothing else. Nesting one
+   * inside another is a parse error, so the inner name is never declared and
+   * every rule that plays it silently does nothing.
+   */
+  it("never nests one keyframes block inside another", () => {
+    const stylesheet = bare(read("./LoopDiagram.module.css"));
+    const nested: string[] = [];
+    for (const start of Array.from(
+      stylesheet.matchAll(/@keyframes\s+([\w-]+)\s*\{/g),
+    )) {
+      let depth = 1;
+      let index = start.index + start[0].length;
+      for (; index < stylesheet.length; index += 1) {
+        if (stylesheet[index] === "{") depth += 1;
+        else if (stylesheet[index] === "}" && (depth -= 1) === 0) break;
+      }
+      const body = stylesheet.slice(start.index + start[0].length, index);
+      for (const inner of body.matchAll(/@keyframes\s+([\w-]+)/g))
+        nested.push(`${start[1]} > ${inner[1]}`);
+    }
+    expect(nested).toEqual([]);
+  });
+
+  /**
+   * The diagram is drawn to a fixed aspect and the box around it cannot scroll,
+   * so a height cap that hides what hangs below it simply amputates the bottom
+   * of the orbit. The room the loop has is taken from its width instead.
+   */
+  it("leaves the whole orbit inside the box it is drawn in", () => {
+    const stylesheet = read("./LoopDiagram.module.css");
+    const viewport = rules(stylesheet).find((rule) =>
+      rule.selectors.includes(".diagramViewport"),
     );
-    const missing = animationNames(stylesheet).filter(
-      (name) => !declared.has(name),
-    );
-    expect(missing).toEqual([]);
+    expect(viewport?.body).not.toMatch(/max-height/);
+    expect(viewport?.body).not.toMatch(/overflow\s*:\s*hidden/);
+    /**
+     * A band may release the fixed cap so the ring reclaims the labels' room,
+     * but not the room the viewport has to stand in: a landscape phone is wide
+     * and barely 360px tall, and an uncapped ring there stands a screen and a
+     * half high.
+     */
+    for (const band of bands(stylesheet)) {
+      const cap = measureOf(band.body, ".diagramViewport");
+      if (cap !== undefined) expect(cap, `at ${band.width}px`).toContain("vh");
+    }
   });
 
   /** The page promises that decorative motion settles. */

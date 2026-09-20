@@ -8,29 +8,53 @@ import type {
   CredentialPort,
   RealtimeSession,
 } from "../../core/src/application/ports";
+import {
+  VOICE_CONTROL_TOOLS,
+  clampVoiceSpeed,
+  voiceControlGuidance,
+  type VoicePreferences,
+} from "@/packages/core/src/domain/voiceControls";
 import { realtimeAudioConfig } from "./realtimeAudio";
 
 export function createConversationAdapter(
   credentials: CredentialPort,
   contextBudget?: number,
 ): ConversationPort {
-  function realtimeSessionConfig(source: IngestedSource) {
+  function realtimeSessionConfig(
+    source: IngestedSource,
+    preferences: VoicePreferences = {},
+  ) {
+    const audio = realtimeAudioConfig(process.env);
+    const { speed } = preferences;
+    if (speed !== undefined && Number.isFinite(speed))
+      audio.output.speed = clampVoiceSpeed(speed);
     return {
       type: "realtime",
       model: process.env.OPENAI_REALTIME_MODEL ?? "gpt-realtime",
       output_modalities: ["audio"],
       // Provider-side voice activity detection is what lets the caller cut in
       // mid-answer; the client stops its own captions on the same event.
-      audio: realtimeAudioConfig(process.env),
-      instructions: buildContextInstructions(source, contextBudget, "voice"),
+      audio,
+      // The caller steers the assistant by asking; these are the calls it may
+      // answer with. The browser carries them out.
+      tools: VOICE_CONTROL_TOOLS.map((tool) => ({ type: "function", ...tool })),
+      tool_choice: "auto",
+      instructions: buildContextInstructions(
+        source,
+        contextBudget,
+        "voice",
+        undefined,
+        voiceControlGuidance(preferences.assistantName),
+      ),
     };
   }
 
   async function createRealtimeSession(
     source: IngestedSource,
+    preferences?: VoicePreferences,
   ): Promise<RealtimeSession> {
     const mode = process.env.PROVIDER_MODE ?? "mock";
-    const config = realtimeSessionConfig(source);
+    const config = realtimeSessionConfig(source, preferences);
     if (mode === "mock") {
       return {
         mode: "mock",

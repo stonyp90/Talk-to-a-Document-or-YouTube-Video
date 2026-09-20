@@ -31,6 +31,7 @@ import { registerFileBrowserChecks } from "./fileBrowser";
 import { APP_PATH } from "../routes";
 import { registerDiscoverabilityChecks } from "./discoverability";
 import { registerVoiceConsentChecks } from "./voice-consent";
+import { registerHumanSenseChecks } from "./human-sense";
 
 setDefaultTimeout(120_000);
 const baseURL = process.env.BDD_BASE_URL ?? "http://localhost:3000";
@@ -980,6 +981,7 @@ registerMotionChecks(step);
 registerPricingChecks(step, { page });
 registerDiscoverabilityChecks(step);
 registerVoiceConsentChecks(step);
+registerHumanSenseChecks(step, { page, baseURL });
 registerFileBrowserChecks(step);
 const stopDiscussion = registerDiscussionChecks(step);
 

@@ -1,8 +1,13 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { describe, expect, it, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, renderHook, act } from "@testing-library/react";
 import { useGazeDwell } from "./GazeDwell";
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe("useGazeDwell", () => {
   it("returns no progress when gaze is absent", () => {
@@ -58,7 +63,6 @@ describe("useGazeDwell", () => {
       vi.advanceTimersByTime(600);
     });
     expect(onDwell).toHaveBeenCalledWith(0);
-    vi.useRealTimers();
   });
 
   it("resets progress when gaze moves to different item", () => {
@@ -73,7 +77,11 @@ describe("useGazeDwell", () => {
           dwellMs: 500,
           onDwell,
         }),
-      { initialProps: { gaze: { x: 0.17, y: 0.17 } as { x: number; y: number } | null } },
+      {
+        initialProps: {
+          gaze: { x: 0.17, y: 0.17 } as { x: number; y: number } | null,
+        },
+      },
     );
     act(() => {
       vi.advanceTimersByTime(300);
@@ -83,6 +91,5 @@ describe("useGazeDwell", () => {
       vi.advanceTimersByTime(100);
     });
     expect(onDwell).not.toHaveBeenCalled();
-    vi.useRealTimers();
   });
 });

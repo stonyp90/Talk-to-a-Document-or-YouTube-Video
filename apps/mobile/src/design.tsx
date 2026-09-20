@@ -4,7 +4,6 @@ import {
   Animated,
   AppState,
   Easing,
-  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -16,7 +15,7 @@ import {
 } from "react-native";
 
 export const palette = {
-  paper: "#F8F5EF",
+  paper: "#FAFAFA",
   ink: "#292735",
   muted: "#716C78",
   // Keep native surfaces on the same tokens as the web's light theme.
@@ -24,11 +23,7 @@ export const palette = {
   accent: "#A84332",
   stepLabel: "#A9513A",
   peach: "#FBE2D6",
-  lavender: "#EEE9E1",
-  softLavender: "#E7E1DB",
-  lilac: "#B8AA99",
   warmLilac: "#C8B6A3",
-  lime: "#D8EEAE",
   olive: "#677C4A",
   oliveDark: "#4D5E39",
   oliveMid: "#5D713E",
@@ -41,8 +36,6 @@ export const palette = {
   error: "#A23F3F",
   errorBg: "#FCE8E3",
   softMuted: "#9B9294",
-  orbitRing: "#514B59",
-  orbitRingInner: "#77717B",
   revealBg: "#FDFBF7",
   sheetBg: "#F2EEE8",
   stepNumber: "#765B48",
@@ -87,6 +80,27 @@ export const palette = {
   glassBorder: "rgba(255,255,255,0.15)",
   glassText: "#FFFDF9",
 };
+
+export const BRAND = {
+  principles: {
+    outlined: "Controls use borders only. No filled backgrounds on buttons or interactive elements.",
+    fullScreen: "Stages occupy the full viewport. Content breathes against edges, not inside cards.",
+    honest: "Indicators reflect real state. No decorative dots, pulses, or badges without data behind them.",
+    noEmoji: "No emoji in UI copy. Use icons from the design system or text labels.",
+  },
+  activeState: {
+    border: "accent",
+    background: "transparent",
+    text: "accent",
+    borderWidth: 2,
+  },
+  inactiveState: {
+    border: "line",
+    background: "white",
+    text: "ink",
+    borderWidth: 1,
+  },
+} as const;
 
 export const spacing = {
   "3xs": 2,
@@ -141,6 +155,7 @@ export function Touch({
   selected,
   accessibilityRole,
   accessibilityDisabled,
+  contentStyle,
 }: {
   children: React.ReactNode;
   onPress: () => void;
@@ -148,6 +163,7 @@ export function Touch({
   disabled?: boolean;
   motion: boolean;
   style?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
   selected?: boolean;
   accessibilityRole?: AccessibilityRole;
   // Announced as unavailable while still accepting a press, so the control can
@@ -175,7 +191,11 @@ export function Touch({
         accessibilityLabel={label}
         accessibilityState={{
           disabled: disabled || !!accessibilityDisabled,
-          ...(selected === undefined ? {} : { selected }),
+          ...(selected === undefined
+            ? {}
+            : accessibilityRole === "radio"
+              ? { checked: selected }
+              : { selected }),
         }}
         disabled={disabled}
         onPress={onPress}
@@ -183,6 +203,7 @@ export function Touch({
         onPressOut={() => animate(1)}
         style={({ pressed }) => [
           d.touch,
+          contentStyle,
           pressed && !motion && { opacity: 0.72 },
         ]}
       >
@@ -308,21 +329,104 @@ export function Wave({
   );
 }
 
-export function Brand({ small = false }: { small?: boolean }) {
+const BAR_HEIGHTS = [14, 40, 30, 40, 22];
+const BAR_DELAYS = [0, 150, 300, 100, 250];
+
+function AnimatedBar({
+  index,
+  size,
+}: {
+  index: number;
+  size: number;
+}) {
+  const scale = React.useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.delay(BAR_DELAYS[index]!),
+        Animated.timing(scale, {
+          toValue: 0.4,
+          duration: 600,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [index, scale]);
+
+  const barWidth = Math.max(3, size * 0.1);
+  const gap = Math.max(2, size * 0.06);
+  const maxH = size * 0.8;
+  const h = (BAR_HEIGHTS[index]! / 40) * maxH;
+
   return (
-    <View accessible accessibilityLabel="Ursly" style={d.brand}>
-      <Image
-        alt=""
-        source={require("../assets/brand-mark.png")}
+    <Animated.View
+      style={{
+        width: barWidth,
+        height: h,
+        borderRadius: barWidth / 2,
+        backgroundColor: palette.coral,
+        transform: [{ scaleY: scale }],
+        marginHorizontal: gap / 2,
+      }}
+    />
+  );
+}
+
+export function Brand({ small = false }: { small?: boolean }) {
+  const markSize = small ? 27 : 35;
+  return (
+    <View accessible accessibilityLabel="Action" style={d.brand}>
+      <View
         accessible={false}
-        style={[
-          d.brandMark,
-          small && { width: 27, height: 27, borderRadius: 9 },
-        ]}
-      />
-      <Text style={[d.wordmark, small && { fontSize: 27 }]}>
-        ursly<Text style={{ color: palette.coral }}>.</Text>
+        style={[d.brandMark, { width: markSize, height: markSize }]}
+      >
+        {BAR_HEIGHTS.map((_, i) => (
+          <AnimatedBar key={i} index={i} size={markSize} />
+        ))}
+      </View>
+      <Text style={[d.wordmark, small && d.wordmarkSmall]} numberOfLines={1}>
+        Action
       </Text>
+    </View>
+  );
+}
+
+export function KeyboardIcon({ color = palette.ink }: { color?: string }) {
+  return (
+    <View accessible={false} style={[d.keyboard, { borderColor: color }]}>
+      {[0, 1].map((row) => (
+        <View key={row} style={d.keyRow}>
+          {[0, 1, 2, 3].map((key) => (
+            <View key={key} style={[d.key, { backgroundColor: color }]} />
+          ))}
+        </View>
+      ))}
+      <View style={[d.spaceKey, { backgroundColor: color }]} />
+    </View>
+  );
+}
+
+export function BrainIcon({ color = palette.ink }: { color?: string }) {
+  return (
+    <View accessible={false} style={d.brain}>
+      {[0, 1].map((side) => (
+        <View key={side} style={[d.brainHalf, { borderColor: color }]}>
+          <View style={[d.brainFold, { borderColor: color }]} />
+          <View
+            style={[d.brainFold, d.brainFoldRight, { borderColor: color }]}
+          />
+        </View>
+      ))}
     </View>
   );
 }
@@ -403,40 +507,28 @@ export function Orbit({ motion }: { motion: boolean }) {
       importantForAccessibility="no-hide-descendants"
       style={d.orbit}
     >
-      <View style={d.orbitRing} />
-      <View
-        style={[
-          d.orbitRing,
-          { width: 142, height: 142, borderColor: palette.orbitRingInner },
-        ]}
-      />
       <Animated.View
-        style={[
-          d.orbitCore,
-          {
-            transform: [
-              {
-                translateY: float.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-4, 4],
-                }),
-              },
-              { rotate: "-12deg" },
-            ],
-          },
-        ]}
+        style={{
+          transform: [
+            {
+              translateY: float.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-4, 4],
+              }),
+            },
+            { rotate: "-12deg" },
+          ],
+        }}
       >
         <Wave motion={motion} large />
       </Animated.View>
-      <View style={d.orbitDot} />
-      <Text style={d.spark}>✦</Text>
     </View>
   );
 }
 
 const d = StyleSheet.create({
   touch: {
-    flexGrow: 1,
+    flexGrow: 0,
     justifyContent: "center",
     alignItems: "center",
     minHeight: 44,
@@ -454,17 +546,46 @@ const d = StyleSheet.create({
   brandMark: {
     width: 35,
     height: 35,
-    backgroundColor: palette.coral,
-    borderRadius: 12,
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
   },
   wordmark: {
-    fontSize: 35,
-    letterSpacing: -1.7,
+    fontSize: 26,
+    letterSpacing: -0.9,
     fontWeight: "800",
     color: palette.ink,
   },
+  wordmarkSmall: { fontSize: 20, letterSpacing: -0.7 },
+  keyboard: {
+    width: 20,
+    height: 15,
+    borderWidth: 1.5,
+    borderRadius: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+  },
+  keyRow: { flexDirection: "row", gap: 2 },
+  key: { width: 2, height: 2, borderRadius: 0.5 },
+  spaceKey: { width: 10, height: 1.5, borderRadius: 1 },
+  brain: {
+    flexDirection: "row",
+    width: 19,
+    height: 20,
+    gap: 1,
+    alignItems: "center",
+  },
+  brainHalf: {
+    width: 9,
+    height: 17,
+    borderWidth: 1.5,
+    borderRadius: 5,
+    justifyContent: "space-around",
+    paddingVertical: 3,
+  },
+  brainFold: { width: 4, height: 4, borderWidth: 1, borderRadius: 2 },
+  brainFoldRight: { alignSelf: "flex-end" },
   document: {
     width: 23,
     height: 29,
@@ -503,37 +624,5 @@ const d = StyleSheet.create({
     height: 164,
     alignItems: "center",
     justifyContent: "center",
-  },
-  orbitRing: {
-    position: "absolute",
-    width: 164,
-    height: 164,
-    borderWidth: 1,
-    borderColor: palette.orbitRing,
-    borderRadius: 100,
-  },
-  orbitCore: {
-    width: 112,
-    height: 112,
-    backgroundColor: palette.coral,
-    borderRadius: 43,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  orbitDot: {
-    width: 18,
-    height: 18,
-    backgroundColor: palette.lime,
-    borderRadius: 9,
-    position: "absolute",
-    top: 11,
-    right: 20,
-  },
-  spark: {
-    color: palette.lavender,
-    fontSize: 27,
-    position: "absolute",
-    bottom: 0,
-    left: 9,
   },
 });

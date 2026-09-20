@@ -1,0 +1,2138 @@
+{
+  "schema": "modeling.program",
+  "schemaVersion": 1,
+  "kind": "model.create",
+  "intent": "ursly sdlc: circular learning loop with 9 stages, mission at center",
+  "units": {
+    "length": "m",
+    "angle": "rad",
+    "time": "s"
+  },
+  "coordinateSystem": {
+    "handedness": "right",
+    "upAxis": "y",
+    "forwardAxis": "z"
+  },
+  "spatialEnvelope": {
+    "min": [
+      -0.2,
+      -0.01,
+      -0.2
+    ],
+    "max": [
+      0.2,
+      0.05,
+      0.2
+    ],
+    "tolerance": 0.02
+  },
+  "requires": [
+    "modeling.feature.axis",
+    "modeling.feature.box",
+    "modeling.feature.cylinder",
+    "modeling.feature.hollow-cylinder",
+    "modeling.feature.sphere",
+    "modeling.motion.trs",
+    "modeling.scene",
+    "modeling.spatial-envelope"
+  ],
+  "parameters": [],
+  "operations": [
+    {
+      "op": "appearance.define",
+      "opKey": "paper",
+      "key": "paper",
+      "baseColor": "#F8F5EF",
+      "metallic": 0,
+      "roughness": 0.9,
+      "emissive": "#000000"
+    },
+    {
+      "op": "appearance.define",
+      "opKey": "ink",
+      "key": "ink",
+      "baseColor": "#292735",
+      "metallic": 0.1,
+      "roughness": 0.5,
+      "emissive": "#000000"
+    },
+    {
+      "op": "appearance.define",
+      "opKey": "coral",
+      "key": "coral",
+      "baseColor": "#F27561",
+      "metallic": 0.3,
+      "roughness": 0.3,
+      "emissive": "#662010"
+    },
+    {
+      "op": "appearance.define",
+      "opKey": "coral.bright",
+      "key": "coral.bright",
+      "baseColor": "#F27561",
+      "metallic": 0.5,
+      "roughness": 0.2,
+      "emissive": "#993020"
+    },
+    {
+      "op": "appearance.define",
+      "opKey": "hairline",
+      "key": "hairline",
+      "baseColor": "#E5E0D8",
+      "metallic": 0,
+      "roughness": 0.8,
+      "emissive": "#000000"
+    },
+    {
+      "op": "feature.define",
+      "opKey": "ground.feature",
+      "key": "ground.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.2,
+        "height": 0.002,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "ground.component",
+      "key": "ground.component",
+      "feature": "ground.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "ground",
+      "key": "ground",
+      "name": "Ground",
+      "component": "ground.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "mission.base.feature",
+      "key": "mission.base.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.06,
+        "height": 0.008,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "mission.base.component",
+      "key": "mission.base.component",
+      "feature": "mission.base.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "mission.base",
+      "key": "mission.base",
+      "name": "MissionBase",
+      "component": "mission.base.component",
+      "transform": {
+        "translation": [
+          0,
+          0.005,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "mission.text.0.feature",
+      "key": "mission.text.0.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.04,
+          0.003,
+          0.002
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "mission.text.0.component",
+      "key": "mission.text.0.component",
+      "feature": "mission.text.0.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "mission.text.0",
+      "key": "mission.text.0",
+      "name": "MissionText0",
+      "parent": "mission.base",
+      "component": "mission.text.0.component",
+      "transform": {
+        "translation": [
+          0,
+          0.006,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "mission.text.1.feature",
+      "key": "mission.text.1.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.05,
+          0.003,
+          0.002
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "mission.text.1.component",
+      "key": "mission.text.1.component",
+      "feature": "mission.text.1.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "mission.text.1",
+      "key": "mission.text.1",
+      "name": "MissionText1",
+      "parent": "mission.base",
+      "component": "mission.text.1.component",
+      "transform": {
+        "translation": [
+          0,
+          0.002,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "mission.text.2.feature",
+      "key": "mission.text.2.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.045,
+          0.003,
+          0.002
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "mission.text.2.component",
+      "key": "mission.text.2.component",
+      "feature": "mission.text.2.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "mission.text.2",
+      "key": "mission.text.2",
+      "name": "MissionText2",
+      "parent": "mission.base",
+      "component": "mission.text.2.component",
+      "transform": {
+        "translation": [
+          0,
+          -0.002,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "path.ring.feature",
+      "key": "path.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.15,
+        "innerRadius": 0.148,
+        "height": 0.001,
+        "radialSegments": 64,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "path.ring.component",
+      "key": "path.ring.component",
+      "feature": "path.ring.feature",
+      "appearance": "hairline"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "path.ring",
+      "key": "path.ring",
+      "name": "PathRing",
+      "component": "path.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0.003,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.plan.feature",
+      "key": "stage.plan.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.018,
+        "height": 0.012,
+        "radialSegments": 16,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.plan.component",
+      "key": "stage.plan.component",
+      "feature": "stage.plan.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.plan",
+      "key": "stage.plan",
+      "name": "StagePlan",
+      "component": "stage.plan.component",
+      "transform": {
+        "translation": [
+          0,
+          0.008,
+          -0.15
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.plan.icon.feature",
+      "key": "stage.plan.icon.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.008,
+        "widthSegments": 8,
+        "heightSegments": 6
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.plan.icon.component",
+      "key": "stage.plan.icon.component",
+      "feature": "stage.plan.icon.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.plan.icon",
+      "key": "stage.plan.icon",
+      "name": "PlanIcon",
+      "parent": "stage.plan",
+      "component": "stage.plan.icon.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.design.feature",
+      "key": "stage.design.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.018,
+        "height": 0.012,
+        "radialSegments": 16,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.design.component",
+      "key": "stage.design.component",
+      "feature": "stage.design.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.design",
+      "key": "stage.design",
+      "name": "StageDesign",
+      "component": "stage.design.component",
+      "transform": {
+        "translation": [
+          0.096,
+          0.008,
+          -0.115
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.design.icon.feature",
+      "key": "stage.design.icon.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.012,
+          0.004,
+          0.012
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.design.icon.component",
+      "key": "stage.design.icon.component",
+      "feature": "stage.design.icon.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.design.icon",
+      "key": "stage.design.icon",
+      "name": "DesignIcon",
+      "parent": "stage.design",
+      "component": "stage.design.icon.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.build.feature",
+      "key": "stage.build.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.018,
+        "height": 0.012,
+        "radialSegments": 16,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.build.component",
+      "key": "stage.build.component",
+      "feature": "stage.build.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.build",
+      "key": "stage.build",
+      "name": "StageBuild",
+      "component": "stage.build.component",
+      "transform": {
+        "translation": [
+          0.148,
+          0.008,
+          -0.026
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.build.icon.feature",
+      "key": "stage.build.icon.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.014,
+          0.003,
+          0.01
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.build.icon.component",
+      "key": "stage.build.icon.component",
+      "feature": "stage.build.icon.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.build.icon",
+      "key": "stage.build.icon",
+      "name": "BuildIcon",
+      "parent": "stage.build",
+      "component": "stage.build.icon.component",
+      "transform": {
+        "translation": [
+          0,
+          0.008,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.integrate.feature",
+      "key": "stage.integrate.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.018,
+        "height": 0.012,
+        "radialSegments": 16,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.integrate.component",
+      "key": "stage.integrate.component",
+      "feature": "stage.integrate.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.integrate",
+      "key": "stage.integrate",
+      "name": "StageIntegrate",
+      "component": "stage.integrate.component",
+      "transform": {
+        "translation": [
+          0.13,
+          0.008,
+          0.075
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.integrate.icon.feature",
+      "key": "stage.integrate.icon.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.007,
+        "widthSegments": 8,
+        "heightSegments": 6
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.integrate.icon.component",
+      "key": "stage.integrate.icon.component",
+      "feature": "stage.integrate.icon.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.integrate.icon",
+      "key": "stage.integrate.icon",
+      "name": "IntegrateIcon",
+      "parent": "stage.integrate",
+      "component": "stage.integrate.icon.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.validate.feature",
+      "key": "stage.validate.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.018,
+        "height": 0.012,
+        "radialSegments": 16,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.validate.component",
+      "key": "stage.validate.component",
+      "feature": "stage.validate.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.validate",
+      "key": "stage.validate",
+      "name": "StageValidate",
+      "component": "stage.validate.component",
+      "transform": {
+        "translation": [
+          0.051,
+          0.008,
+          0.141
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.validate.icon.feature",
+      "key": "stage.validate.icon.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.01,
+          0.012,
+          0.003
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.validate.icon.component",
+      "key": "stage.validate.icon.component",
+      "feature": "stage.validate.icon.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.validate.icon",
+      "key": "stage.validate.icon",
+      "name": "ValidateIcon",
+      "parent": "stage.validate",
+      "component": "stage.validate.icon.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.release.feature",
+      "key": "stage.release.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.018,
+        "height": 0.012,
+        "radialSegments": 16,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.release.component",
+      "key": "stage.release.component",
+      "feature": "stage.release.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.release",
+      "key": "stage.release",
+      "name": "StageRelease",
+      "component": "stage.release.component",
+      "transform": {
+        "translation": [
+          -0.051,
+          0.008,
+          0.141
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.release.icon.feature",
+      "key": "stage.release.icon.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.008,
+        "innerRadius": 0.005,
+        "height": 0.004,
+        "radialSegments": 12,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.release.icon.component",
+      "key": "stage.release.icon.component",
+      "feature": "stage.release.icon.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.release.icon",
+      "key": "stage.release.icon",
+      "name": "ReleaseIcon",
+      "parent": "stage.release",
+      "component": "stage.release.icon.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.operate.feature",
+      "key": "stage.operate.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.018,
+        "height": 0.012,
+        "radialSegments": 16,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.operate.component",
+      "key": "stage.operate.component",
+      "feature": "stage.operate.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.operate",
+      "key": "stage.operate",
+      "name": "StageOperate",
+      "component": "stage.operate.component",
+      "transform": {
+        "translation": [
+          -0.13,
+          0.008,
+          0.075
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.operate.icon.feature",
+      "key": "stage.operate.icon.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.004,
+          0.012,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.operate.icon.component",
+      "key": "stage.operate.icon.component",
+      "feature": "stage.operate.icon.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.operate.icon",
+      "key": "stage.operate.icon",
+      "name": "OperateIcon",
+      "parent": "stage.operate",
+      "component": "stage.operate.icon.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.measure.feature",
+      "key": "stage.measure.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.018,
+        "height": 0.012,
+        "radialSegments": 16,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.measure.component",
+      "key": "stage.measure.component",
+      "feature": "stage.measure.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.measure",
+      "key": "stage.measure",
+      "name": "StageMeasure",
+      "component": "stage.measure.component",
+      "transform": {
+        "translation": [
+          -0.148,
+          0.008,
+          -0.026
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.measure.icon.feature",
+      "key": "stage.measure.icon.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.012,
+          0.008,
+          0.006
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.measure.icon.component",
+      "key": "stage.measure.icon.component",
+      "feature": "stage.measure.icon.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.measure.icon",
+      "key": "stage.measure.icon",
+      "name": "MeasureIcon",
+      "parent": "stage.measure",
+      "component": "stage.measure.icon.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.listen.feature",
+      "key": "stage.listen.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.018,
+        "height": 0.012,
+        "radialSegments": 16,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.listen.component",
+      "key": "stage.listen.component",
+      "feature": "stage.listen.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.listen",
+      "key": "stage.listen",
+      "name": "StageListen",
+      "component": "stage.listen.component",
+      "transform": {
+        "translation": [
+          -0.096,
+          0.008,
+          -0.115
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "stage.listen.icon.feature",
+      "key": "stage.listen.icon.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.01,
+          0.01,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "stage.listen.icon.component",
+      "key": "stage.listen.icon.component",
+      "feature": "stage.listen.icon.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "stage.listen.icon",
+      "key": "stage.listen.icon",
+      "name": "ListenIcon",
+      "parent": "stage.listen",
+      "component": "stage.listen.icon.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "active.indicator.feature",
+      "key": "active.indicator.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.01,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "active.indicator.component",
+      "key": "active.indicator.component",
+      "feature": "active.indicator.feature",
+      "appearance": "coral.bright"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "active.indicator",
+      "key": "active.indicator",
+      "name": "ActiveIndicator",
+      "component": "active.indicator.component",
+      "transform": {
+        "translation": [
+          0,
+          0.025,
+          -0.15
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "arrow.0.feature",
+      "key": "arrow.0.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.008,
+          0.002,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "arrow.0.component",
+      "key": "arrow.0.component",
+      "feature": "arrow.0.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "arrow.0",
+      "key": "arrow.0",
+      "name": "Arrow0",
+      "component": "arrow.0.component",
+      "transform": {
+        "translation": [
+          0.05,
+          0.004,
+          -0.14
+        ],
+        "rotationRad": [
+          0,
+          0.7,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "arrow.1.feature",
+      "key": "arrow.1.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.008,
+          0.002,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "arrow.1.component",
+      "key": "arrow.1.component",
+      "feature": "arrow.1.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "arrow.1",
+      "key": "arrow.1",
+      "name": "Arrow1",
+      "component": "arrow.1.component",
+      "transform": {
+        "translation": [
+          0.128,
+          0.004,
+          -0.074
+        ],
+        "rotationRad": [
+          0,
+          1.4,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "arrow.2.feature",
+      "key": "arrow.2.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.008,
+          0.002,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "arrow.2.component",
+      "key": "arrow.2.component",
+      "feature": "arrow.2.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "arrow.2",
+      "key": "arrow.2",
+      "name": "Arrow2",
+      "component": "arrow.2.component",
+      "transform": {
+        "translation": [
+          0.142,
+          0.004,
+          0.025
+        ],
+        "rotationRad": [
+          0,
+          2.1,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "arrow.3.feature",
+      "key": "arrow.3.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.008,
+          0.002,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "arrow.3.component",
+      "key": "arrow.3.component",
+      "feature": "arrow.3.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "arrow.3",
+      "key": "arrow.3",
+      "name": "Arrow3",
+      "component": "arrow.3.component",
+      "transform": {
+        "translation": [
+          0.094,
+          0.004,
+          0.116
+        ],
+        "rotationRad": [
+          0,
+          2.8,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "arrow.4.feature",
+      "key": "arrow.4.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.008,
+          0.002,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "arrow.4.component",
+      "key": "arrow.4.component",
+      "feature": "arrow.4.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "arrow.4",
+      "key": "arrow.4",
+      "name": "Arrow4",
+      "component": "arrow.4.component",
+      "transform": {
+        "translation": [
+          0,
+          0.004,
+          0.148
+        ],
+        "rotationRad": [
+          0,
+          3.5,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "arrow.5.feature",
+      "key": "arrow.5.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.008,
+          0.002,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "arrow.5.component",
+      "key": "arrow.5.component",
+      "feature": "arrow.5.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "arrow.5",
+      "key": "arrow.5",
+      "name": "Arrow5",
+      "component": "arrow.5.component",
+      "transform": {
+        "translation": [
+          -0.094,
+          0.004,
+          0.116
+        ],
+        "rotationRad": [
+          0,
+          -2.8,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "arrow.6.feature",
+      "key": "arrow.6.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.008,
+          0.002,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "arrow.6.component",
+      "key": "arrow.6.component",
+      "feature": "arrow.6.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "arrow.6",
+      "key": "arrow.6",
+      "name": "Arrow6",
+      "component": "arrow.6.component",
+      "transform": {
+        "translation": [
+          -0.142,
+          0.004,
+          0.025
+        ],
+        "rotationRad": [
+          0,
+          -2.1,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "arrow.7.feature",
+      "key": "arrow.7.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.008,
+          0.002,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "arrow.7.component",
+      "key": "arrow.7.component",
+      "feature": "arrow.7.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "arrow.7",
+      "key": "arrow.7",
+      "name": "Arrow7",
+      "component": "arrow.7.component",
+      "transform": {
+        "translation": [
+          -0.128,
+          0.004,
+          -0.074
+        ],
+        "rotationRad": [
+          0,
+          -1.4,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "arrow.8.feature",
+      "key": "arrow.8.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.008,
+          0.002,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "arrow.8.component",
+      "key": "arrow.8.component",
+      "feature": "arrow.8.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "arrow.8",
+      "key": "arrow.8",
+      "name": "Arrow8",
+      "component": "arrow.8.component",
+      "transform": {
+        "translation": [
+          -0.05,
+          0.004,
+          -0.14
+        ],
+        "rotationRad": [
+          0,
+          -0.7,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "motion.clip.define",
+      "opKey": "anim.cycle",
+      "key": "anim.cycle",
+      "name": "LearningLoopCycle"
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.cycle.indicator",
+      "key": "anim.cycle.indicator",
+      "clip": "anim.cycle",
+      "target": "active.indicator",
+      "path": "translation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            0,
+            0.025,
+            -0.15
+          ]
+        },
+        {
+          "time": 1,
+          "value": [
+            0.096,
+            0.025,
+            -0.115
+          ]
+        },
+        {
+          "time": 2,
+          "value": [
+            0.148,
+            0.025,
+            -0.026
+          ]
+        },
+        {
+          "time": 3,
+          "value": [
+            0.13,
+            0.025,
+            0.075
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            0.051,
+            0.025,
+            0.141
+          ]
+        },
+        {
+          "time": 5,
+          "value": [
+            -0.051,
+            0.025,
+            0.141
+          ]
+        },
+        {
+          "time": 6,
+          "value": [
+            -0.13,
+            0.025,
+            0.075
+          ]
+        },
+        {
+          "time": 7,
+          "value": [
+            -0.148,
+            0.025,
+            -0.026
+          ]
+        },
+        {
+          "time": 8,
+          "value": [
+            -0.096,
+            0.025,
+            -0.115
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            0,
+            0.025,
+            -0.15
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.clip.define",
+      "opKey": "anim.stage.pulse",
+      "key": "anim.stage.pulse",
+      "name": "StagePulse"
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.stage.pulse.plan",
+      "key": "anim.stage.pulse.plan",
+      "clip": "anim.stage.pulse",
+      "target": "stage.plan",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1.3,
+            1.3,
+            1.3
+          ]
+        },
+        {
+          "time": 1,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.stage.pulse.design",
+      "key": "anim.stage.pulse.design",
+      "clip": "anim.stage.pulse",
+      "target": "stage.design",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 1,
+          "value": [
+            1.3,
+            1.3,
+            1.3
+          ]
+        },
+        {
+          "time": 2,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.stage.pulse.build",
+      "key": "anim.stage.pulse.build",
+      "clip": "anim.stage.pulse",
+      "target": "stage.build",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 2,
+          "value": [
+            1.3,
+            1.3,
+            1.3
+          ]
+        },
+        {
+          "time": 3,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.stage.pulse.integrate",
+      "key": "anim.stage.pulse.integrate",
+      "clip": "anim.stage.pulse",
+      "target": "stage.integrate",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 3,
+          "value": [
+            1.3,
+            1.3,
+            1.3
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.stage.pulse.validate",
+      "key": "anim.stage.pulse.validate",
+      "clip": "anim.stage.pulse",
+      "target": "stage.validate",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            1.3,
+            1.3,
+            1.3
+          ]
+        },
+        {
+          "time": 5,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.stage.pulse.release",
+      "key": "anim.stage.pulse.release",
+      "clip": "anim.stage.pulse",
+      "target": "stage.release",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 5,
+          "value": [
+            1.3,
+            1.3,
+            1.3
+          ]
+        },
+        {
+          "time": 6,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.stage.pulse.operate",
+      "key": "anim.stage.pulse.operate",
+      "clip": "anim.stage.pulse",
+      "target": "stage.operate",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 6,
+          "value": [
+            1.3,
+            1.3,
+            1.3
+          ]
+        },
+        {
+          "time": 7,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.stage.pulse.measure",
+      "key": "anim.stage.pulse.measure",
+      "clip": "anim.stage.pulse",
+      "target": "stage.measure",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 7,
+          "value": [
+            1.3,
+            1.3,
+            1.3
+          ]
+        },
+        {
+          "time": 8,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.stage.pulse.listen",
+      "key": "anim.stage.pulse.listen",
+      "clip": "anim.stage.pulse",
+      "target": "stage.listen",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 8,
+          "value": [
+            1.3,
+            1.3,
+            1.3
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.clip.define",
+      "opKey": "anim.mission.pulse",
+      "key": "anim.mission.pulse",
+      "name": "MissionPulse"
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.mission.pulse.base",
+      "key": "anim.mission.pulse.base",
+      "clip": "anim.mission.pulse",
+      "target": "mission.base",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 2,
+          "value": [
+            1.05,
+            1,
+            1.05
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.clip.define",
+      "opKey": "anim.path.rotate",
+      "key": "anim.path.rotate",
+      "name": "PathRotate"
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.path.rotate.ring",
+      "key": "anim.path.rotate.ring",
+      "clip": "anim.path.rotate",
+      "target": "path.ring",
+      "path": "rotation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            0,
+            6.283,
+            0
+          ]
+        }
+      ]
+    }
+  ],
+  "budget": {
+    "maxBytes": 2097152,
+    "maxNodes": 80,
+    "maxVertices": 15000,
+    "maxTriangles": 15000,
+    "maxAnimations": 8,
+    "maxAnimationTracks": 24,
+    "maxKeyframes": 120,
+    "maxAnimationDurationSeconds": 12,
+    "maxOperations": 128,
+    "maxGeneratedInstances": 64
+  }
+}

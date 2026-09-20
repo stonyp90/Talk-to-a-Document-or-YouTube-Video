@@ -3,6 +3,7 @@ import { expect, type Page } from "@playwright/test";
 import type { Step, World } from "./steps";
 import { fixturePdf } from "./fixtures";
 import { french } from "../../apps/web/app/i18n/fr";
+import { STORY_SECTIONS } from "../../apps/web/app/content/story";
 
 type Helpers = {
   page: (w: World) => Promise<Page>;
@@ -33,13 +34,8 @@ function openTheApp(p: Page) {
   return p.getByRole("link", { name: "Open the app" }).first();
 }
 
-/** The story, in the order it is meant to be read: the build loop leads. */
-const STORY_IDS = [
-  "how-we-build",
-  "platform",
-  "how-it-works",
-  "applications",
-] as const;
+/** The story, in the order it is meant to be read — sourced from the page. */
+const STORY_IDS = STORY_SECTIONS.map((section) => section.id);
 
 /** The sections as the page actually stacks them, top to bottom. */
 function storyOrder(p: Page) {
@@ -123,7 +119,9 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     const p = await h.page(this);
     await expect(intro(p)).toHaveCount(0);
     await expect(p.locator("#workspace")).toBeVisible();
-    await expect(p.getByLabel("PDF file")).toBeVisible();
+    await expect(
+      p.getByRole("button", { name: "Add a source", exact: true }),
+    ).toBeVisible();
   });
   step("I have already seen the introduction", function () {
     // Every page starts as a returning visitor unless a step asks otherwise.
@@ -159,7 +157,7 @@ export function registerEntryChecks(step: Step, h: Helpers) {
       nav(p).getByRole("radiogroup", { name: french["Control mode"] }),
     ).toBeVisible();
     await expect(
-      nav(p).getByRole("radio", { name: french["Voice to action"] }),
+      nav(p).getByRole("radio", { name: french["Sense"] }),
     ).toHaveAttribute("aria-checked", "true");
   });
   step("the introduction video is the French version", async function () {
@@ -181,7 +179,9 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     await p.waitForTimeout(150);
     assert.ok((await p.evaluate(() => window.scrollY)) > 0, "page scrolled");
     assert.ok(
-      (await bar.evaluate((el) => Math.round(el.getBoundingClientRect().top))) <= 8,
+      (await bar.evaluate((el) =>
+        Math.round(el.getBoundingClientRect().top),
+      )) <= 8,
       "menu remains pinned to the top edge",
     );
     assert.ok(
@@ -192,7 +192,34 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     );
   });
   step(
-    "the control modes read voice first, motion next and keyboard last",
+    "the application stays in one viewport below the fixed menu",
+    async function () {
+      const p = await h.page(this);
+      const bar = nav(p);
+      await expect(bar).toBeVisible();
+      await expect(p.locator("#workspace")).toBeVisible();
+      assert.equal(
+        await bar.evaluate((el) => getComputedStyle(el).position),
+        "fixed",
+      );
+      const top = await bar.evaluate((el) => el.getBoundingClientRect().top);
+      await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      assert.equal(await p.evaluate(() => window.scrollY), 0);
+      assert.equal(
+        await bar.evaluate((el) => el.getBoundingClientRect().top),
+        top,
+      );
+      assert.ok(
+        await p.evaluate(
+          () =>
+            document.documentElement.scrollWidth <= innerWidth &&
+            document.documentElement.scrollHeight <= innerHeight,
+        ),
+      );
+    },
+  );
+  step(
+    "the control modes combine human senses and keyboard input",
     async function () {
       const p = await h.page(this);
       assert.deepEqual(
@@ -201,44 +228,52 @@ export function registerEntryChecks(step: Step, h: Helpers) {
           .evaluateAll((items) =>
             items.map((item) => item.getAttribute("aria-label")),
           ),
-        ["Voice to action", "Motion to action", "Keyboard to action"],
+        ["Sense", "Keyboard to action"],
       );
     },
   );
-
-  step("voice to action is the selected control mode", async function () {
+  step("Sense is the selected control mode", async function () {
     await expect(
-      modes(await h.page(this)).getByRole("radio", { name: "Voice to action" }),
+      modes(await h.page(this)).getByRole("radio", {
+        name: "Sense",
+      }),
     ).toHaveAttribute("aria-checked", "true");
   });
   step(
-    "keyboard to action is marked legacy and can still be selected",
+    "keyboard to action remains available alongside voice and motion",
     async function () {
       const p = await h.page(this);
       const keyboard = modes(p).getByRole("radio", {
         name: "Keyboard to action",
       });
-      await expect(keyboard).toContainText("Legacy");
-      await expect(keyboard).not.toHaveAttribute("aria-disabled", "true");
       await keyboard.click();
       await expect(keyboard).toHaveAttribute("aria-checked", "true");
+      await expect(keyboard).toBeFocused();
       await expect(
-        modes(p).getByRole("radio", { name: "Voice to action" }),
-      ).toHaveAttribute("aria-checked", "false");
+        p.getByRole("button", { name: "Start experience", exact: true }),
+      ).toBeVisible();
     },
   );
-  step("motion to action is a beta that can be selected", async function () {
+  step("keyboard has a Legacy tag and brain has a Beta tag", async function () {
     const p = await h.page(this);
-    const motion = modes(p).getByRole("radio", { name: /Motion to action/ });
-    await expect(motion).toBeVisible();
-    await expect(motion).toContainText("Beta");
-    await expect(motion).not.toHaveAttribute("aria-disabled", "true");
-    await motion.click();
-    // Reaching for the beta now moves the selection onto it.
-    await expect(motion).toHaveAttribute("aria-checked", "true");
     await expect(
-      modes(p).getByRole("radio", { name: "Voice to action" }),
-    ).toHaveAttribute("aria-checked", "false");
+      modes(p)
+        .getByRole("radio", { name: "Keyboard to action" })
+        .getByText("Legacy", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      modes(p)
+        .getByRole("button", { name: "Brain to action" })
+        .getByText("Beta", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      modes(p)
+        .getByRole("radio", { name: "Sense", exact: true })
+        .getByText(/^(Beta|Legacy)$/),
+    ).toHaveCount(0);
+    await expect(
+      modes(p).getByRole("button", { name: "Brain to action" }),
+    ).toHaveAttribute("aria-disabled", "true");
   });
   step("how we build is the first section of the story", async function () {
     const p = await h.page(this);
@@ -249,10 +284,10 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     const build = await p
       .locator("#how-we-build")
       .evaluate((el) => el.getBoundingClientRect().top);
-    const platform = await p
-      .locator("#platform")
+    const guide = await p
+      .locator("#how-it-works")
       .evaluate((el) => el.getBoundingClientRect().top);
-    assert.ok(build < platform, "the build loop is read before the platform");
+    assert.ok(build < guide, "the build loop is read before the guide");
   });
   step(
     "every part of the story offers a way into the application",
@@ -260,13 +295,12 @@ export function registerEntryChecks(step: Step, h: Helpers) {
       const p = await h.page(this);
       // The first screen answers to both of the first two names — it is the
       // hero and it is how we build — so that pair is one element checked
-      // twice, and the day they part again both are already covered.
+      // twice. The guide holds no button of its own because the invitation
+      // follows it immediately; a page of repeated buttons is the deck
+      // problem this page was trimmed for.
       for (const selector of [
         ".nav",
         ".landing-hero",
-        "#how-we-build",
-        "#platform",
-        "#how-it-works",
         ".invitation",
         ".footer",
       ])
@@ -282,10 +316,6 @@ export function registerEntryChecks(step: Step, h: Helpers) {
         assert.equal(href, `/${lang}/app`);
     },
   );
-  step("I choose Platform in the top menu", async function () {
-    const p = await h.page(this);
-    await nav(p).getByRole("link", { name: "Platform" }).click();
-  });
   step("the application is one tap from the landing page", async function () {
     const p = await h.page(this);
     // Exactly one: the promise is a hop, not a hunt.
@@ -294,7 +324,9 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     await cta.click();
     assert.match(new URL(p.url()).pathname, /^\/(en|fr)\/app$/);
     await expect(p.locator("#workspace")).toBeVisible();
-    await expect(p.getByLabel("PDF file")).toBeVisible();
+    await expect(
+      p.getByRole("button", { name: "Add a source", exact: true }),
+    ).toBeVisible();
   });
   step(
     "the landing page tells the story without the workspace",
@@ -313,11 +345,14 @@ export function registerEntryChecks(step: Step, h: Helpers) {
   );
   step("I return to the story from the application", async function () {
     const p = await h.page(this);
-    const back = nav(p).getByRole("link", { name: "Back to the story" });
+    await p.getByRole("button", { name: "Workspace settings" }).click();
+    const back = p
+      .getByRole("dialog", { name: "Workspace settings" })
+      .getByRole("link", { name: "Back to the story" });
     await expect(back).toBeVisible();
     await back.click();
     assert.match(new URL(p.url()).pathname, /^\/(en|fr)$/);
-    await expect(p.locator("#platform")).toHaveCount(1);
+    await expect(p.locator(`#${STORY_IDS[0]}`)).toHaveCount(1);
     await expect(p.locator("#workspace")).toHaveCount(0);
   });
   step("switching language keeps me in the application", async function () {
@@ -325,7 +360,13 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     const before = new URL(p.url()).pathname;
     const current = await p.locator("html").getAttribute("lang");
     const other = current === "fr" ? "English" : "Français";
-    await nav(p).getByRole("link", { name: other }).click();
+    await p
+      .getByRole("button", { name: /Workspace settings|Réglages de l’espace/ })
+      .click();
+    await p
+      .getByRole("dialog", { name: /Workspace settings|Réglages de l’espace/ })
+      .getByRole("link", { name: other })
+      .click();
     await expect(p.locator("html")).toHaveAttribute(
       "lang",
       current === "fr" ? "en" : "fr",
@@ -336,59 +377,34 @@ export function registerEntryChecks(step: Step, h: Helpers) {
     await expect(p.locator("#workspace")).toBeVisible();
   });
   step(
-    "the platform section explains voice, movement and the keyboard as the old way",
-    async function () {
-      const p = await h.page(this);
-      const section = p.locator("#platform");
-      await expect(section).toBeVisible();
-      await expect(section).toBeInViewport();
-      for (const word of [
-        /voice/i,
-        /movement/i,
-        /keyboard/i,
-        /VR and AR headsets/i,
-        /old way/i,
-      ])
-        await expect(section).toContainText(word);
-    },
-  );
-  step(
-    "the platform section explains connected objects, 3D objects and voice adaptation",
-    async function () {
-      const section = (await h.page(this)).locator("#platform");
-      for (const phrase of [
-        /connected objects/i,
-        /3D/,
-        /your voice/i,
-        /human/i,
-      ])
-        await expect(section).toContainText(phrase);
-    },
-  );
-  step(
-    "I can add a source and ask a question with at most three actions",
+    "I can add a source and ask a question with at most four actions",
     async function () {
       const p = await h.page(this);
       let actions = 0;
-      // 1. Choose the file: the picker is already on screen, no click before it.
+      // 1. Open the source picker inside the shared experience.
+      await p
+        .getByRole("button", { name: "Add a source", exact: true })
+        .click();
+      actions++;
+      // 2. Choose a file.
       await expect(p.getByLabel("PDF file")).toBeVisible();
       await p.getByLabel("PDF file").setInputFiles({
-        name: "three-actions.pdf",
+        name: "source-actions.pdf",
         mimeType: "application/pdf",
-        buffer: fixturePdf(["Three actions to an answer."]),
+        buffer: fixturePdf(["A source and a question in one experience."]),
       });
       actions++;
-      // 2. Continue.
-      await p.getByRole("button", { name: "Continue to questions" }).click();
+      // 3. Continue.
+      await p.getByRole("button", { name: "Continue" }).click();
       actions++;
-      // 3. Ask.
+      // 4. Ask.
       const question = p.getByLabel("Ask a question", { exact: true });
       await expect(question).toBeFocused();
       await question.fill("What is this about?");
       await p.getByRole("button", { name: "Send", exact: true }).click();
       actions++;
       await expect(p.locator(".message.assistant").last()).toBeVisible();
-      assert.ok(actions <= 3, `${actions} actions`);
+      assert.ok(actions <= 4, `${actions} actions`);
     },
   );
 }

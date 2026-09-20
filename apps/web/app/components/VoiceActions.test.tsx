@@ -76,7 +76,12 @@ type Spies = {
 };
 
 function show(
-  options: { language?: "en" | "fr"; canStartVoice?: boolean } = {},
+  options: {
+    language?: "en" | "fr";
+    canStartVoice?: boolean;
+    presentation?: "panel" | "dock";
+    start?: boolean;
+  } = {},
 ): Spies {
   const spies: Spies = {
     onAction: vi.fn(),
@@ -92,10 +97,12 @@ function show(
         {...spies}
         canStartVoice={options.canStartVoice ?? true}
         voiceBusy={false}
+        presentation={options.presentation}
       />
     </LanguageProvider>,
   );
-  fireEvent.click(screen.getByRole("button", { name: /Speak|Parler/ }));
+  if (options.start !== false)
+    fireEvent.click(screen.getByRole("button", { name: /Speak|Parler/ }));
   return spies;
 }
 
@@ -216,5 +223,47 @@ describe("speaking a question", () => {
     expect(screen.getByText("back")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Stop listening" }));
     expect(screen.queryByText("back")).not.toBeInTheDocument();
+  });
+});
+
+describe("voice in the shared action dock", () => {
+  it("waits for a press and keeps idle instructions out of the experience", () => {
+    const start = vi.spyOn(FakeRecognition.prototype, "start");
+    show({ presentation: "dock", start: false });
+    expect(start).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Speak" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.queryByText("Voice to action")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Voice command examples"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Customize commands")).toBeInTheDocument();
+  });
+
+  it("starts and stops listening from the same dock control", () => {
+    show({ presentation: "dock", start: false });
+    fireEvent.click(screen.getByRole("button", { name: "Speak" }));
+    expect(
+      screen.getByRole("button", { name: "Stop listening" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Stop listening" }));
+    expect(screen.getByRole("button", { name: "Speak" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("keeps permission errors visible next to the dock", () => {
+    show({ presentation: "dock" });
+    act(() =>
+      FakeRecognition.instances
+        .at(-1)
+        ?.onerror?.({ error: "not-allowed" } as unknown as Event),
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Voice needs microphone access",
+    );
   });
 });

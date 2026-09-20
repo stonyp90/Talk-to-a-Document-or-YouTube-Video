@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, type Ref } from "react";
 import {
   Animated,
   Dimensions,
@@ -17,6 +17,8 @@ import type { FaceReading } from "@talk/core/domain/faceTracking";
 import { createBodyReader } from "@talk/core/domain/bodyTracking";
 import type { BodyReading, BodyGestureId } from "@talk/core/domain/bodyTracking";
 import { palette as c, serif } from "./design";
+import { SenseMotionInput } from "./SenseMotionInput";
+import type { NativeSenseChannelControl, NativeSenseChannelActivity } from "./senseSession";
 import {
   createSimulatedFaceDetector,
   DEFAULT_FACE_TRACKING_CONFIG,
@@ -35,6 +37,9 @@ import type { FileNavAction } from "../../../packages/core/src/domain/fileNaviga
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export type MotionCameraViewProps = {
+  presentation?: "panel" | "merged";
+  controlRef?: Ref<NativeSenseChannelControl>;
+  onActivityChange?: (activity: NativeSenseChannelActivity) => void;
   prompts: readonly string[];
   canAsk: boolean;
   fileBrowserOpen?: boolean;
@@ -107,7 +112,11 @@ function SettingSlider({
   );
 }
 
-export function MotionCameraView({
+export function MotionCameraView(props: MotionCameraViewProps) {
+  return props.presentation === "merged" ? <SenseMotionInput {...props} /> : <MotionCameraPanel {...props} />;
+}
+
+function MotionCameraPanel({
   prompts,
   canAsk,
   fileBrowserOpen = false,

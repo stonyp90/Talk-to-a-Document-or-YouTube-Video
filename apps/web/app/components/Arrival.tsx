@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useEffect, type RefObject } from "react";
+import { type RefObject } from "react";
 import { Icon } from "./Icon";
-import { Galaxy3D } from "./Galaxy3D";
 import { LoopDiagram } from "./LoopDiagram";
 import { Process } from "./Process";
 import { VoiceMark } from "./VoiceMark";
-import { useHydrated } from "./useHydrated";
 import { useLanguage } from "../i18n/LanguageProvider";
 import type { Loop } from "./useLoopWalk";
-import { INTRO_DURATION_SECONDS } from "../content/intro-video";
 
 /**
  * The first screen: where the film lets go and the page takes over.
@@ -31,34 +28,16 @@ export function Arrival({
   language,
   appHref,
   loop,
-  onReplayIntro,
   heroCta,
 }: {
   language: string;
   /** Where every way in leads. Injected so this screen knows no routes. */
   appHref: string;
   loop: Loop;
-  onReplayIntro: () => void;
   /** Where focus lands when the introduction hands the page over. */
   heroCta?: RefObject<HTMLAnchorElement | null>;
 }) {
   const { t } = useLanguage();
-  const hydrated = useHydrated();
-  const [use3D, setUse3D] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const canvas = document.createElement("canvas");
-      const supported = !!(
-        window.WebGLRenderingContext &&
-        (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
-      );
-      setUse3D(supported);
-    } catch {
-      setUse3D(false);
-    }
-  }, []);
 
   return (
     <section
@@ -68,27 +47,18 @@ export function Arrival({
     >
       <div className="arrival-copy">
         <VoiceMark className="arrival-wave" />
-        <span className="eyebrow">{t("Internet 3.0")}</span>
+        <span className="eyebrow">{t("The human interface")}</span>
         <h1 id="hero-heading">
-          {t("A new way to build software.")}{" "}
-          <span>{t("For tomorrow’s internet.")}</span>
+          {t("The interface adapts to you.")}{" "}
+          <span>{t("Not the other way around.")}</span>
         </h1>
         <p className="arrival-claim">
-          {t("Not a new website. A new way to use one.")}
+          {t("Less keyboard. Less friction. Less computer between you and your intention.")}
         </p>
         <div className="hero-actions">
-          <a ref={heroCta} className="primary" href={appHref}>
+          <a ref={heroCta} className="primary hero-cta" href={appHref}>
             <Icon name="arrow" /> {t("Open the app")}
           </a>
-          <button
-            type="button"
-            className="secondary"
-            onClick={onReplayIntro}
-            disabled={!hydrated}
-          >
-            <Icon name="play" /> {t("Watch the intro")} ·{" "}
-            {INTRO_DURATION_SECONDS} s
-          </button>
         </div>
       </div>
 
@@ -98,14 +68,10 @@ export function Arrival({
         <span className="eyebrow arrival-loop-label">
           {t("The software development lifecycle")}
         </span>
-        {use3D ? (
-          <Galaxy3D width={300} height={300} />
-        ) : (
-          <LoopDiagram locale={language} loop={loop} />
-        )}
+        <LoopDiagram locale={language} loop={loop} />
       </div>
 
-      <Process locale={language} appHref={appHref} loop={loop} />
+      <Process locale={language} loop={loop} />
     </section>
   );
 }

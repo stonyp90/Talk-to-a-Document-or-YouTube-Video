@@ -1,5 +1,6 @@
 export type IconName =
   | "document"
+  | "keyboard"
   | "video"
   | "arrow"
   | "voice"
@@ -17,6 +18,10 @@ export type IconName =
 const PATHS: Record<IconName, string[]> = {
   document: [
     "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M14 2v6h6M8 13h8M8 17h5",
+  ],
+  keyboard: [
+    "M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z",
+    "M6 9h1m3 0h1m3 0h1m3 0h1M6 12h1m3 0h1m3 0h1m3 0h1M6 15h1m3 0h7",
   ],
   video: [
     "M8 7l9 5-9 5V7Z",

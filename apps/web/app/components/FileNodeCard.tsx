@@ -45,7 +45,7 @@ export default function FileNodeCard({
   gazeProgress = 0,
   onSelect,
   onOpen,
-}: FileNodeCardProps): JSX.Element {
+}: FileNodeCardProps) {
   const classes = [
     "fs-card",
     "holo-panel",

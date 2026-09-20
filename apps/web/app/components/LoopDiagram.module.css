@@ -6,6 +6,9 @@
   justify-items: center;
   min-width: 0;
 }
+.paused * {
+  animation-play-state: paused !important;
+}
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -25,14 +28,16 @@
   overflow: visible;
 }
 .diagramViewport {
+  /* The ring is drawn to a fixed aspect, so the room it has to stand in is what
+     limits its width. Capping the height and hiding what hung below it left the
+     bottom of the orbit amputated on a short window, with nothing to scroll it
+     back into view. */
   width: 100%;
-  max-width: 560px;
-  max-height: min(70vh, 620px);
-  overflow: hidden;
-  overscroll-behavior: contain;
+  max-width: min(560px, calc(70vh * 600 / 580));
+  margin-inline: auto;
+  overflow: visible;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  scrollbar-width: thin;
 }
 .ring {
   fill: none;
@@ -102,7 +107,6 @@
   fill: var(--accent-wash-soft);
   stroke: var(--accent-border-wash);
   stroke-width: 1;
-  animation: brand-halo 2200ms var(--ease-in-out) infinite;
   transform-box: fill-box;
   transform-origin: center;
 }
@@ -110,7 +114,6 @@
   fill: var(--accent);
   transform-box: fill-box;
   transform-origin: center;
-  animation: brand-bar 1200ms var(--ease-in-out) infinite;
 }
 .brandBar:nth-of-type(2) {
   animation-delay: 0ms;
@@ -404,19 +407,19 @@
     opacity: 0;
     transform: translateY(10px) scale(0.98);
   }
-  @keyframes explorer-step-in {
-    from {
-      opacity: 0;
-      transform: translateX(-8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
   to {
     opacity: 1;
     transform: none;
+  }
+}
+@keyframes explorer-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 @keyframes hover-detail-in {
@@ -494,6 +497,13 @@
     display: none;
   }
 
+  /* The two controls beside the loop are the only actions on the first screen.
+     A single-class rule in this module outranks the bar-wide thumb floor, so
+     the floor is restated here rather than inherited. */
+  .toggle {
+    min-height: 44px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .subcycleOrbit,
     .subcycleDot,
@@ -515,7 +525,11 @@
     max-width: none;
   }
   .diagramViewport {
-    max-width: none;
+    /* The phone releases the fixed cap so the ring can take back the labels'
+       room, but the height still limits it: a landscape phone is wide and barely
+       360px tall, and an uncapped ring there stands one and a half screens
+       high, so the reader scrolls past a diagram they cannot see at once. */
+    max-width: calc(70vh * 600 / 580);
   }
   .explorer {
     padding: var(--space-lg);
@@ -544,6 +558,9 @@
   }
   .target {
     position: static;
+    display: grid;
+    gap: var(--space-sm);
+    justify-items: center;
     width: auto;
     max-width: 34ch;
     height: auto;
@@ -552,6 +569,24 @@
     clip-path: none;
     white-space: normal;
     text-align: center;
+  }
+  /* The ring draws these three as three voices: a tracked label, a statement
+     in the display face, a note beneath it. Read as one sentence at one size
+     the mission says nothing, so the copy keeps the roles it has in the
+     picture. */
+  .targetStatement {
+    color: var(--ink);
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .targetNote {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
   }
 }
 @media (max-width: 520px) {

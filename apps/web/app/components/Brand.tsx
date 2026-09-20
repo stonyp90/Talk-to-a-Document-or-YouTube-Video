@@ -17,7 +17,12 @@ export function Brand({
   href,
   label,
   wrap,
+  name = "ursly",
+  showDot = true,
 }: {
+  /** Product wordmark; the shared wave mark stays intact. */
+  name?: string;
+  showDot?: boolean;
   /** Where the name leads, when it leads anywhere. */
   href?: string;
   /** Announced name for the link. Ignored when the name is not a link. */
@@ -27,16 +32,21 @@ export function Brand({
 }) {
   const content = (
     <>
-      {/* A vector stays crisp at every screen density. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <svg
         className="brand-mark"
-        src="/brand/ursly-mark.svg"
+        viewBox="15 20 70 60"
         width="34"
         height="34"
-        alt=""
-      />
-      ursly<span className="brand-dot">.</span>
+        aria-hidden="true"
+      >
+        <rect className="brand-bar brand-bar-1" x="27" y="43" width="6" height="14" rx="3" />
+        <rect className="brand-bar brand-bar-2" x="37" y="30" width="6" height="40" rx="3" />
+        <rect className="brand-bar brand-bar-3" x="47" y="35" width="6" height="30" rx="3" />
+        <rect className="brand-bar brand-bar-4" x="57" y="30" width="6" height="40" rx="3" />
+        <rect className="brand-bar brand-bar-5" x="67" y="39" width="6" height="22" rx="3" />
+      </svg>
+      {name}
+      {showDot && <span className="brand-dot">.</span>}
     </>
   );
   if (wrap) return <>{wrap(content)}</>;

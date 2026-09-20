@@ -96,6 +96,10 @@ x-app-environment: &app-environment
   INTRO_VIDEO_YOUTUBE_ID_EN: ${INTRO_VIDEO_YOUTUBE_ID_EN:-}
   INTRO_VIDEO_YOUTUBE_ID_FR: ${INTRO_VIDEO_YOUTUBE_ID_FR:-}
 
+# Published ports default to loopback. BIND_ADDR=0.0.0.0 opens them to the LAN,
+# which is how a phone or tablet reaches the stack — but the local stack
+# authenticates nobody (see AUTH_MODE above), so every endpoint then belongs to
+# the whole network. Set it for a test, unset it when the test is over.
 services:
   # Next.js owns both the frontend and API routes; there is no unused second API.
   web:
@@ -119,7 +123,7 @@ services:
     environment:
       <<: *app-environment
       PORT: 3000
-    ports: ["127.0.0.1:${WEB_PORT:-3000}:3000"]
+    ports: ["${BIND_ADDR:-127.0.0.1}:${WEB_PORT:-3000}:3000"]
     depends_on:
       object-store-init: { condition: service_completed_successfully }
       transcript: { condition: service_healthy }
@@ -145,7 +149,7 @@ services:
       WATCHPACK_POLLING: "true"
       # The channel already runs as its own published container here.
       DEV_CHANNEL: "off"
-    ports: ["127.0.0.1:${WEB_PORT:-3000}:3000"]
+    ports: ["${BIND_ADDR:-127.0.0.1}:${WEB_PORT:-3000}:3000"]
     volumes:
       - .:/app
       - dev-node-modules:/app/node_modules
@@ -191,7 +195,7 @@ services:
     environment:
       <<: *app-environment
       CHAT_PORT: 3020
-    ports: ["127.0.0.1:${CHAT_PORT:-3020}:3020"]
+    ports: ["${BIND_ADDR:-127.0.0.1}:${CHAT_PORT:-3020}:3020"]
     healthcheck:
       test:
         [
@@ -213,8 +217,8 @@ services:
       MINIO_API_CORS_ALLOW_ORIGIN: ${APP_ORIGIN:-http://localhost:3000},http://127.0.0.1:${WEB_PORT:-3000}
     ports:
       [
-        "127.0.0.1:${OBJECT_STORE_PORT:-9002}:9000",
-        "127.0.0.1:${OBJECT_STORE_CONSOLE_PORT:-9003}:9001",
+        "${BIND_ADDR:-127.0.0.1}:${OBJECT_STORE_PORT:-9002}:9000",
+        "${BIND_ADDR:-127.0.0.1}:${OBJECT_STORE_CONSOLE_PORT:-9003}:9001",
       ]
     volumes: [minio-data:/data]
     healthcheck:
@@ -241,7 +245,7 @@ services:
       UPSTREAM_TIMEOUT_SECONDS: 10
       # Set only when YouTube blocks this network; see the README.
       TRANSCRIPT_PROXY_URL: ${TRANSCRIPT_PROXY_URL:-}
-    ports: ["127.0.0.1:${TRANSCRIPT_PORT:-3010}:3010"]
+    ports: ["${BIND_ADDR:-127.0.0.1}:${TRANSCRIPT_PORT:-3010}:3010"]
     healthcheck:
       test:
         [

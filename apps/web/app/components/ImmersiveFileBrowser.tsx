@@ -5,6 +5,7 @@ import type { FileNode, FileSystemPort } from "@/packages/core/src/domain/fileSy
 import {
   createFileNavigator,
   type FileNavState,
+  type FileNavAction,
 } from "@/packages/core/src/domain/fileNavigation";
 import FileNodeCard from "./FileNodeCard";
 import { useGazeDwell } from "./GazeDwell";
@@ -18,6 +19,7 @@ type ImmersiveFileBrowserProps = {
   gaze?: { x: number; y: number } | null;
   columns?: number;
   dwellMs?: number;
+  motionGesture?: FileNavAction | null;
 };
 
 export default function ImmersiveFileBrowser({
@@ -29,6 +31,7 @@ export default function ImmersiveFileBrowser({
   gaze = null,
   columns = 4,
   dwellMs = 1200,
+  motionGesture = null,
 }: ImmersiveFileBrowserProps) {
   const navigatorRef = useRef<ReturnType<typeof createFileNavigator> | null>(
     null,
@@ -45,6 +48,16 @@ export default function ImmersiveFileBrowser({
       navigatorRef.current = null;
     };
   }, [open, fs, rootId]);
+
+  useEffect(() => {
+    if (!motionGesture || !navigatorRef.current) return;
+    const nav = navigatorRef.current;
+    const intent = nav.dispatch(motionGesture);
+    if (intent?.type === "selectFile") {
+      onFileSelect(intent.node);
+    }
+    nav.subscribe(() => setNavState({ ...nav.snapshot() }));
+  }, [motionGesture, onFileSelect]);
 
   const items = navState?.isSearchMode
     ? navState.searchResults

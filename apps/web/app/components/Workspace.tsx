@@ -50,7 +50,6 @@ import {
 import { streamAnswer } from "@/apps/web/src/lib/streamAnswer";
 import { readSession, signOut } from "@/apps/web/src/lib/account";
 import { YouTubePlayer } from "./YouTubePlayer";
-import ImmersiveFileBrowser from "./ImmersiveFileBrowser";
 import { createMemoryFileSystem } from "@/packages/adapters/src/fileSystem";
 import type { FileNode } from "@/packages/core/src/domain/fileSystem";
 import { AssistantName } from "./AssistantName";
@@ -65,6 +64,14 @@ import { LivingLogo } from "./LivingLogo";
 import { LogoOnboarding } from "./LogoOnboarding";
 import { FeedbackOverlay } from "./FeedbackOverlay";
 import { QuickToggleBar } from "./QuickToggleBar";
+import { KeyboardComposer } from "./KeyboardComposer";
+import { SuggestionStrip } from "./SuggestionStrip";
+import {
+  generateSuggestions,
+  type SuggestionContext,
+} from "@/packages/core/src/domain/actionSuggestions";
+import { GestureFileBrowser } from "./GestureFileBrowser";
+import type { MotionGestureId } from "@/packages/core/src/domain/motionGestures";
 
 type SourceTab = "pdf" | "youtube";
 
@@ -253,6 +260,10 @@ export default function Workspace() {
   const [videoId, setVideoId] = useState<string | undefined>(undefined);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
+  const [keyboardEnabled, setKeyboardEnabled] = useState(false);
+  const [lastInteraction, setLastInteraction] = useState(Date.now());
+  const [handPreference, setHandPreference] = useState<"left" | "right">("right");
+  const [motionGesture, setMotionGesture] = useState<MotionGestureId | null>(null);
   const [fileSystem] = useState(createMemoryFileSystem);
   const [gazePosition, setGazePosition] = useState<{
     x: number;
@@ -1318,8 +1329,23 @@ export default function Workspace() {
             ? "motion"
             : "idle";
 
+  const suggestionCtx: SuggestionContext = {
+    sourceType: source
+      ? source.kind === "youtube"
+        ? "youtube"
+        : "pdf"
+      : null,
+    conversationState: state.messages.length > 0 ? "active" : "idle",
+    lastAction: null,
+    idleMs: Date.now() - lastInteraction,
+  };
+  const dynamicSuggestions = generateSuggestions(suggestionCtx);
+
   return (
-    <div className={styles.experience}>
+    <div
+      className={styles.experience}
+      onPointerMove={() => setLastInteraction(Date.now())}
+    >
       <input
         ref={voicePickerInput}
         className="voice-picker-input"
@@ -1531,6 +1557,11 @@ export default function Workspace() {
         </div>
         <FeedbackOverlay />
 
+        <SuggestionStrip
+          suggestions={dynamicSuggestions}
+          onAction={(action) => handleVoiceAction(action)}
+        />
+
         <div className={styles.interaction}>
           {source && (
             <form className={styles.composer} onSubmit={sendText}>
@@ -1543,6 +1574,7 @@ export default function Workspace() {
                 placeholder={t("Ask a question")}
                 rows={1}
                 onKeyDown={(event) => {
+                  setLastInteraction(Date.now());
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
                     if (question.trim()) sendText(event);
@@ -1568,6 +1600,14 @@ export default function Workspace() {
                 </button>
               )}
             </form>
+          )}
+          {keyboardEnabled && source && (
+            <KeyboardComposer
+              onSend={(text) => void askQuestion(text)}
+              onCommand={(cmd) =>
+                handleVoiceAction(cmd.action as VoiceActionId, cmd.argument)
+              }
+            />
           )}
           <div
             className={styles.dock}
@@ -1877,16 +1917,18 @@ export default function Workspace() {
         }}
         onToggleCamera={() => setCameraActive((prev) => !prev)}
       />
-      <ImmersiveFileBrowser
+      <GestureFileBrowser
         open={fileBrowserOpen}
         fs={fileSystem}
         rootId="root"
+        handPreference={handPreference}
         onClose={() => setFileBrowserOpen(false)}
         onFileSelect={(node: FileNode) => {
           if (node.kind === "file" && node.sourceId)
             setVoiceActionNotice(`Selected: ${node.name}`);
           setFileBrowserOpen(false);
         }}
+        motionGesture={motionGesture}
         gaze={gazePosition}
       />
       <LogoOnboarding

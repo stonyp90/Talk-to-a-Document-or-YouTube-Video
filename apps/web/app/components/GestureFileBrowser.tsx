@@ -69,16 +69,15 @@ interface GestureFileBrowserProps {
   onClose: () => void;
   onFileSelect: (node: FileNode) => void;
   motionGesture?: MotionGestureId | null;
+  gaze?: { x: number; y: number } | null;
 }
 
 /**
  * Wraps ImmersiveFileBrowser with gesture-aware input.
  *
- * Gesture-to-navigation dispatch is not yet wired: ImmersiveFileBrowser
- * creates its own navigator internally and does not yet accept external
- * navigation actions. Task 22 (Integration) will connect the gesture
- * pipeline (mirrorGesture -> gestureToNavAction -> debounce) to the
- * browser's navigator via a shared ref or context.
+ * Converts motion gestures (MotionGestureId) to file navigation actions
+ * via gestureToNavAction and dispatches them through ImmersiveFileBrowser's
+ * motionGesture prop.
  */
 export function GestureFileBrowser({
   open,
@@ -87,12 +86,13 @@ export function GestureFileBrowser({
   handPreference,
   onClose,
   onFileSelect,
-  motionGesture: _motionGesture,
+  motionGesture,
+  gaze,
 }: GestureFileBrowserProps) {
-  // motionGesture is accepted but not yet dispatched. The gesture pipeline
-  // (mirror -> map -> debounce) is fully implemented as pure exported
-  // functions above. Task 22 will wire them to ImmersiveFileBrowser's
-  // navigator.
+  const navAction =
+    motionGesture != null
+      ? gestureToNavAction(motionGesture, handPreference)
+      : null;
 
   if (!open) return null;
 
@@ -104,6 +104,8 @@ export function GestureFileBrowser({
         rootId={rootId}
         onClose={onClose}
         onFileSelect={onFileSelect}
+        motionGesture={navAction}
+        gaze={gaze}
       />
     </div>
   );

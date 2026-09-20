@@ -6,9 +6,6 @@
   justify-items: center;
   min-width: 0;
 }
-.paused * {
-  animation-play-state: paused !important;
-}
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -28,16 +25,14 @@
   overflow: visible;
 }
 .diagramViewport {
-  /* The ring is drawn to a fixed aspect, so the room it has to stand in is what
-     limits its width. Capping the height and hiding what hung below it left the
-     bottom of the orbit amputated on a short window, with nothing to scroll it
-     back into view. */
   width: 100%;
-  max-width: min(560px, calc(70vh * 600 / 580));
-  margin-inline: auto;
-  overflow: visible;
+  max-width: 560px;
+  max-height: min(70vh, 620px);
+  overflow: hidden;
+  overscroll-behavior: contain;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
+  scrollbar-width: thin;
 }
 .ring {
   fill: none;
@@ -83,7 +78,7 @@
 }
 
 .disc {
-  fill: url(#disc-gradient);
+  fill: var(--surface);
   stroke: var(--line);
   stroke-width: 1;
 }
@@ -92,21 +87,14 @@
   stroke: var(--line);
   stroke-dasharray: 2 5;
 }
-.discGlow {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 0.6;
-  opacity: 0.18;
-}
 .brandMark {
   overflow: visible;
-  transform-box: view-box;
-  transform-origin: 300px 238px;
 }
 .brandMarkHalo {
   fill: var(--accent-wash-soft);
   stroke: var(--accent-border-wash);
   stroke-width: 1;
+  animation: brand-halo 2200ms var(--ease-in-out) both;
   transform-box: fill-box;
   transform-origin: center;
 }
@@ -114,21 +102,19 @@
   fill: var(--accent);
   transform-box: fill-box;
   transform-origin: center;
-}
-.brandBar:nth-of-type(2) {
-  animation-delay: 0ms;
+  animation: brand-bar 1200ms var(--ease-in-out) both;
 }
 .brandBar:nth-of-type(3) {
-  animation-delay: 150ms;
+  animation-delay: 120ms;
 }
 .brandBar:nth-of-type(4) {
-  animation-delay: 300ms;
+  animation-delay: 240ms;
 }
 .brandBar:nth-of-type(5) {
-  animation-delay: 450ms;
+  animation-delay: 360ms;
 }
 .brandBar:nth-of-type(6) {
-  animation-delay: 600ms;
+  animation-delay: 480ms;
 }
 @keyframes brand-bar {
   0%,
@@ -155,26 +141,22 @@
 .discEyebrow,
 .discNote {
   font-family: var(--mono);
-  font-size: 8.5px;
+  font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 .discEyebrow {
   fill: var(--muted);
-  opacity: 0.7;
 }
 .discNote {
-  font-size: 8px;
+  font-size: 8.5px;
   fill: var(--accent);
-  opacity: 0.85;
 }
 .discStatement {
   font-family: var(--display);
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 18px;
   fill: var(--ink);
-  letter-spacing: -0.01em;
 }
 .traveller,
 .satellite {
@@ -246,6 +228,49 @@
 }
 .satelliteDot {
   fill: var(--accent);
+}
+.subcycleOrbit {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: none;
+  pointer-events: none;
+}
+.subcycleTrack {
+  fill: none;
+  stroke: var(--accent-border);
+  stroke-width: 0.9;
+  stroke-dasharray: 2 3;
+}
+.subcycleDot {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 1;
+  animation: none;
+}
+.subcycleDot:nth-of-type(3) {
+  animation-delay: 320ms;
+}
+.subcycleDot:nth-of-type(4) {
+  animation-delay: 640ms;
+}
+.subcycleDot:nth-of-type(5) {
+  animation-delay: 960ms;
+}
+@keyframes subcycle-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes subcycle-beat {
+  0%,
+  100% {
+    fill: var(--surface);
+    transform: scale(1);
+  }
+  45% {
+    fill: var(--accent);
+    transform: scale(1.45);
+  }
 }
 .diagram[data-inner-loop="active"] .satelliteRing {
   stroke-width: 2;
@@ -407,19 +432,19 @@
     opacity: 0;
     transform: translateY(10px) scale(0.98);
   }
+  @keyframes explorer-step-in {
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
   to {
     opacity: 1;
     transform: none;
-  }
-}
-@keyframes explorer-step-in {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 @keyframes hover-detail-in {
@@ -497,13 +522,6 @@
     display: none;
   }
 
-  /* The two controls beside the loop are the only actions on the first screen.
-     A single-class rule in this module outranks the bar-wide thumb floor, so
-     the floor is restated here rather than inherited. */
-  .toggle {
-    min-height: 44px;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .subcycleOrbit,
     .subcycleDot,
@@ -525,11 +543,7 @@
     max-width: none;
   }
   .diagramViewport {
-    /* The phone releases the fixed cap so the ring can take back the labels'
-       room, but the height still limits it: a landscape phone is wide and barely
-       360px tall, and an uncapped ring there stands one and a half screens
-       high, so the reader scrolls past a diagram they cannot see at once. */
-    max-width: calc(70vh * 600 / 580);
+    max-width: none;
   }
   .explorer {
     padding: var(--space-lg);
@@ -550,7 +564,6 @@
     fill: none;
   }
   .discHalo,
-  .discGlow,
   .discEyebrow,
   .discStatement,
   .discNote {
@@ -558,9 +571,6 @@
   }
   .target {
     position: static;
-    display: grid;
-    gap: var(--space-sm);
-    justify-items: center;
     width: auto;
     max-width: 34ch;
     height: auto;
@@ -569,24 +579,6 @@
     clip-path: none;
     white-space: normal;
     text-align: center;
-  }
-  /* The ring draws these three as three voices: a tracked label, a statement
-     in the display face, a note beneath it. Read as one sentence at one size
-     the mission says nothing, so the copy keeps the roles it has in the
-     picture. */
-  .targetStatement {
-    color: var(--ink);
-    font-family: var(--display);
-    font-size: 26px;
-    font-weight: 600;
-    line-height: 1.15;
-    letter-spacing: -0.01em;
-    text-wrap: balance;
-  }
-  .targetNote {
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.5;
   }
 }
 @media (max-width: 520px) {

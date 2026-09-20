@@ -56,14 +56,18 @@ export function registerProcessChecks(step: Step, h: Helpers) {
     await expect(
       section(p).getByRole("heading", { name: copy.mission.heading }),
     ).toBeVisible();
-    await expect(section(p)).toContainText(copy.mission.body);
+    // The mission used to point at a workspace on the same page. It now
+    // crosses to the application, so assert the shape of the route rather
+    // than a fragment that no longer exists here.
+    await expect(
+      section(p).getByRole("link", { name: copy.mission.primary }),
+    ).toHaveAttribute("href", /^\/(en|fr)\/app$/);
   });
   step("the mission call to action opens the app", async function () {
     const p = await h.page(this);
-    // The invitation that closes the story is the new way in — a big, easy
-    // button that says "Open the app" and carries the reader to the tool.
-    const invitation = p.locator(".invitation");
-    await invitation.getByRole("link", { name: "Open the app" }).click();
+    // Stronger than the old href string: the link is followed and the
+    // application is proven to be on the other side of it.
+    await section(p).getByRole("link", { name: copy.mission.primary }).click();
     expect(new URL(p.url()).pathname).toMatch(/^\/(en|fr)\/app$/);
     await expect(p.locator("#workspace")).toBeVisible();
   });
@@ -113,7 +117,7 @@ export function registerProcessChecks(step: Step, h: Helpers) {
       // the page — named in the lede, drawn on the ring, then listed again a
       // screen below — and this is the step that stops the third telling
       // drifting back under the fold.
-      await p.setViewportSize({ width: 1440, height: 1000 });
+      await p.setViewportSize({ width: 1440, height: 1200 });
       await p.evaluate(() => window.scrollTo(0, 0));
       // Whole, not merely touching the bottom edge: a rail half off the
       // screen is a rail a reader has to go looking for.

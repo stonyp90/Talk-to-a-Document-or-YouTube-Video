@@ -9,7 +9,7 @@ import type { BrandIconName } from "../components/BrandIcon";
 const REPOSITORY =
   process.env.NEXT_PUBLIC_APP_REPOSITORY ??
   "https://github.com/stonyp90/Talk-to-a-Document-or-YouTube-Video";
-const TAG = process.env.NEXT_PUBLIC_APP_RELEASE_TAG ?? "v0.1.0-demo.2";
+const TAG = process.env.NEXT_PUBLIC_APP_RELEASE_TAG ?? "v0.1.0-demo.3";
 
 export const repositoryUrl = REPOSITORY;
 export const releaseNotesUrl = `${REPOSITORY}/releases/tag/${TAG}`;

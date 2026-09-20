@@ -432,3 +432,93 @@ After extraction, `Workspace.tsx` drops to ~400 lines of orchestration — compo
 - `document-upload.feature`
 - `feedback-ui.feature`
 - `language-commands.feature`
+
+---
+
+## Edge Cases
+
+### Quick Toggles + Video Overlay
+
+- **Camera permission denied**: quick toggle shows dimmed state, tooltip "Enable camera in browser settings". No crash, no repeated permission prompts.
+- **Camera in use by another app**: browser returns `NotAllowedError` or `NotReadableError`. Same handling as permission denied.
+- **Video toggle on but camera unavailable**: overlay shows a subtle "Camera unavailable" ghost state (outlined icon, no video feed). Toggle stays on — retry when camera becomes available.
+- **Rapid toggle clicks**: debounce at 300ms. Ignore toggles during the debounce window. Visual state updates immediately on first click.
+- **Multiple browser tabs with camera**: only one tab gets the camera stream. Other tabs detect `active` state change on the track and show "Camera in use by another tab".
+- **Camera returns black frames**: if 10 consecutive frames are all-black (brightness < 5/255 across entire grid), show "Camera may be covered" warning via FeedbackOverlay.
+- **Toggle off mid-gesture**: if camera toggles off while a gesture stroke is in progress, cancel the stroke silently. No partial gesture fires.
+- **Mobile camera**: use `facingMode: "user"` for front camera. If device has no front camera, fall back to rear. If no camera at all, same as permission denied.
+
+### Keyboard Fallback
+
+- **Unknown slash command**: `/unknown` shows inline red text "Unknown command" below composer for 2s, then clears. Composer keeps focus.
+- **Very long text input**: no hard limit, but show a character count warning at 10,000 chars. Truncate at 50,000 chars with a "Text truncated" feedback toast.
+- **Paste into composer**: accept pasted text. If pasted text starts with `/`, treat as slash command. Otherwise treat as message text.
+- **Special characters in slash command arguments**: `/search what is 2+2?` — everything after the first space is the argument. No escaping needed.
+- **Keyboard enabled, composer not focused**: composer is visible but not auto-focused. User taps or presses Tab to focus. Prevents unexpected keyboard popup on mobile.
+- **Language switch while typing**: if user switches language mid-type, the composer text stays. Slash command autocomplete updates to show descriptions in the new language.
+- **Mobile keyboard covers composer**: on viewports < 600px height with open virtual keyboard, scroll the composer into view. Use `visualViewport` API to detect keyboard open.
+- **Both voice and keyboard off**: show a centered outlined prompt: "Enable voice or keyboard to interact" with two action chips linking to the relevant settings toggles.
+- **Browser autofill**: set `autocomplete="off"` and `autocorrect="off"` on the composer input to prevent browser interference.
+
+### Non-Verbal Tracking
+
+- **No face/body detected**: if no blob exceeds minimum energy threshold for 5+ seconds, tracker emits a "no presence" event. Color overlay fades to neutral gray. Distance ring disappears.
+- **Multiple people in frame**: the system tracks the largest blob (closest person). Other movement contributes to ambient energy but doesn't trigger gestures. Session log notes "multiple presences detected" when applicable.
+- **Sudden lighting change**: if average frame brightness changes by > 50/255 between consecutive frames, treat as lighting change (not movement). Suppress gesture detection for 500ms after the change.
+- **Camera covered**: same as black frames detection in Section 1 edge cases. Additionally, non-verbal tracking pauses and shows "Camera covered" in the session log.
+- **Very fast movements exceeding frame rate**: if movement energy jumps from < 0.1 to > 0.6 in a single frame (50ms), cap the energy at 0.6 and log "movement exceeded detection range". Don't fire a gesture — it's ambiguous.
+- **Background movement (fan, pet)**: the existing energy bounds (min 0.02, max 0.6) already filter tiny and whole-frame changes. Add a temporal filter: if the same region of the 20x15 grid is active for > 10 seconds without pattern change, classify as "background" and exclude from tracking.
+- **Distance estimation fails**: if no face-sized blob is found, distance ring shows "unknown" state (dashed outline, no color). Don't guess.
+- **Color overlay reduces content readability**: if the color overlay opacity would make text hard to read (detected via contrast check), reduce overlay opacity to 5% regardless of setting. Content readability always wins.
+- **Session log grows large**: cap at 500 entries. When full, oldest entries are dropped. Show "Showing last 500 events" in the log header.
+- **Reduced motion preference**: color transitions use instant color swap instead of 600ms blend. No pulse animations. Distance ring appears/disappears without transition.
+
+### Document Upload + Gesture File Navigation
+
+- **File too large**: limit at 100MB per file. If exceeded, show error toast: "File too large (max 100MB)". Don't start ingestion.
+- **Unsupported file type from native layer**: show error toast: "Format not supported" with a list of supported formats. Don't add to virtual filesystem.
+- **Network error during URL ingestion**: retry once after 3s. If retry fails, show error toast with "Retry" action chip. Partial data is discarded.
+- **Corrupted / unreadable file**: ingestion adapter throws. FeedbackOverlay shows "File could not be read" with the file name. Don't add to virtual filesystem.
+- **Virtual filesystem localStorage full**: catch `QuotaExceededError`. Show error toast: "Storage full. Clear old files in settings." Don't crash. Offer to clear "Recent" folder.
+- **Accidental gesture during navigation**: if a gesture fires within 300ms of the previous gesture, ignore it (debounce). Prevents double-fire from a single swipe.
+- **Native file system access denied**: if File System Access API returns `SecurityError`, fall back to `<input type="file">` automatically. Show info toast: "Using standard file picker".
+- **Source switch while file browser is open**: close the file browser, cancel any in-progress ingestion. Show "Upload cancelled" if ingestion was active.
+- **Multiple simultaneous uploads**: queue them. Process one at a time. Show progress for each in a stacked toast list.
+- **File name with special characters**: sanitize for display (escape HTML entities). Store original name in virtual filesystem. Display truncated at 40 chars with ellipsis.
+- **Deep folder nesting**: cap at 10 levels. If user tries to create a folder beyond level 10, show warning: "Maximum folder depth reached".
+- **Gesture navigation during ingestion**: gestures still work for navigation. Ingestion runs in background. Progress toast stays visible.
+
+### Error Handling + User Feedback
+
+- **Multiple simultaneous errors**: show up to 3 toasts stacked vertically. If more than 3 errors queue, the 4th+ wait in the bus. When a toast dismisses, the next queued error appears.
+- **Error during dismissal animation**: if a new error arrives while a toast is animating out, cancel the dismiss animation, replace content with the new error, and restart the timer.
+- **Feedback bus overflow**: cap the bus queue at 20 events. If full, drop oldest non-visible events. Log dropped events to console.warn for debugging.
+- **User dismisses error but issue persists**: if the same error type fires again within 10s of dismissal, show it once more with a "This keeps happening" indicator. After 3 repeats, show a persistent toast with "Open settings" action.
+- **Success feedback but action actually failed**: the FeedbackBus only renders what subsystems emit. If a subsystem emits success but the action failed, that's a bug in the subsystem. Contract tests verify that adapters emit the correct event type for each outcome.
+- **Overlapping screen reader announcements**: use `aria-live="polite"` for info/success, `aria-live="assertive"` for errors only. Queue polite announcements — don't interrupt.
+- **Feedback during onboarding**: suppress non-critical feedback (info, success) during LogoOnboarding. Only errors break through. Prevents confusion for first-time users.
+
+### Language-Specific Voice Commands
+
+- **Language not in dictionary**: if speech is detected but the active language has no dictionary entries, fall back to English. Show correction feedback: "Switching to English commands".
+- **Code-switching mid-sentence (Franglais)**: the existing cross-language fuzzy matching already handles this. "Téléverse le file" matches "téléverse" (FR) + "file" (EN, 1 edit from "upload" → no, but "file" matches "open files" context). Shield rules prevent false positives.
+- **Very quiet speech**: if SpeechRecognition returns results with low confidence (< 0.5), show "I didn't catch that — speak louder" via Correction feedback. Don't fire a command.
+- **Background noise masks commands**: if speech recognition returns no results for 3 consecutive attempts after detecting voice activity, show "Hard to hear you" warning. Suggest moving closer or reducing noise.
+- **Multiple speakers simultaneously**: the existing voice profile system handles speaker identification. If no profile matches, use the first speaker's command and show "Multiple voices detected — using closest speaker".
+- **Shield rules fail (false positive)**: if a command fires but the user immediately says "no", "cancel", "stop" within 2s, undo the action and log the false positive. This is the existing cancel mechanism.
+- **Custom trigger conflicts with built-in command**: custom triggers take priority. If a custom trigger matches the same word as a built-in command, the custom trigger wins. Show a warning in settings when the conflict is created.
+- **Language changed while voice is active**: dictionary swaps immediately. In-flight speech recognition restarts with the new language code. Current utterance is cancelled (show "Language changed" info toast).
+- **Fuzzy match false positive**: if fuzzy match fires but the recognized word has edit distance 1 from multiple commands, don't fire any. Show "Did you mean X or Y?" with both options as suggestion chips.
+
+### Cross-Cutting Edge Cases
+
+- **Browser refresh**: all in-memory state lost. Session log, non-verbal events, feedback queue — all gone. Virtual filesystem persists in localStorage. Voice/motion toggles reset to defaults (voice on, camera on). Show "Session restored" info toast.
+- **Browser back button**: if user navigates away and comes back, the app re-initializes. Same as refresh.
+- **Network disconnect/reconnect**: conversation WebSocket drops. Show "Connection lost" error toast. Auto-reconnect with exponential backoff (1s, 2s, 4s, max 30s). On reconnect, show "Reconnected" success toast.
+- **Low memory / CPU throttling**: if `navigator.deviceMemory` < 4GB or `navigator.hardwareConcurrency` < 4, reduce frame processing rate from 50ms to 100ms. Show info toast: "Reduced motion processing for performance". Disable color overlay blending (use instant swap).
+- **Screen reader conflict**: when a screen reader is active (detected via `navigator.userAgent` or focus patterns), disable non-verbal feedback (head shake/nod). All interactions become screen-reader-compatible. Motion gestures still work but don't conflict with screen reader gestures.
+- **Very small screen (< 360px width)**: quick toggle bar moves to top-right. Suggestion strip becomes horizontal scroll. Settings cards stack vertically with full width. File browser grid reduces to 2 columns.
+- **Very large screen (> 2560px width)**: quick toggle bar stays at edge but scales up. Video overlay maintains aspect ratio. File browser grid expands to 6 columns. No content stretching.
+- **Multiple tabs of the app**: only one tab gets camera/microphone. Other tabs detect this via `navigator.mediaDevices` events and show "Active in another tab" with a "Take over" button that steals the media stream.
+- **Concurrent feature interactions**: voice command "upload" fires while a gesture is mid-stroke. Voice takes priority — gesture is cancelled. Feedback: "Upload" toast appears, gesture visual fades.
+- **Accessibility mode (prefers-reduced-motion)**: all animations use instant transitions. No pulse, no blend, no parallax. Color overlay uses instant swap. Gesture detection thresholds unchanged (motion is user-initiated, not decorative).

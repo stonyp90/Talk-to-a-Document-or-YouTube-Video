@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { palette as c, spacing } from "../design";
+import type { TranslationKey } from "../i18n";
 
 const PRESETS = ["Aria", "Nova", "Sage", "Echo"];
 const STORAGE_KEY = "ursly-assistant-name";
@@ -13,7 +14,7 @@ export function AssistantName({
 }: {
   value: string;
   onChange: (name: string) => void;
-  t: (key: string) => string;
+  t: (key: TranslationKey) => string;
 }) {
   const [draft, setDraft] = useState(value);
 
@@ -27,8 +28,8 @@ export function AssistantName({
 
   const reset = async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
-    setDraft("Sense to Action");
-    onChange("Sense to Action");
+    setDraft("ursly");
+    onChange("ursly");
   };
 
   const selectPreset = async (name: string) => {
@@ -85,7 +86,7 @@ export function AssistantName({
         >
           <Text style={styles.saveText}>{t("Save")}</Text>
         </Pressable>
-        {value !== "Sense to Action" && (
+        {value !== "ursly" && (
           <Pressable
             accessibilityRole="button"
             onPress={reset}

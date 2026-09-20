@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Animated, Easing, StyleSheet, View } from "react-native";
+import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
 import { palette as c, Wave } from "../design";
 
 export type SenseVisualActivity = "idle" | "listening" | "motion" | "thinking";
@@ -83,10 +83,12 @@ export function SenseOrb({
   motion,
   activity,
   compact = false,
+  onPress,
 }: {
   motion: boolean;
   activity: SenseVisualActivity;
   compact?: boolean;
+  onPress?: () => void;
 }) {
   const [rotation] = useState(() => new Animated.Value(0));
   const [pulse] = useState(() => new Animated.Value(0));
@@ -129,13 +131,11 @@ export function SenseOrb({
       breathing.stop();
     };
   }, [motion, activity, sensing, rotation, pulse]);
-  return (
+  const orb = (
     <View
-      pointerEvents="none"
       accessible={false}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={[s.orb, compact && s.orbCompact]}
     >
       <Animated.View
         style={[
@@ -211,6 +211,17 @@ export function SenseOrb({
         <Wave motion={motion} color={c.accent} />
       </Animated.View>
     </View>
+  );
+  if (!onPress) return orb;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Tap to add a source"
+      onPress={onPress}
+      style={[s.orb, compact && s.orbCompact]}
+    >
+      {orb}
+    </Pressable>
   );
 }
 

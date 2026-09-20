@@ -96,7 +96,7 @@ if (cloudBuild) {
 
 const config = {
   expo: {
-    name: "Sense to Action",
+    name: "Ursly",
     slug: "talk-to-a-source",
     scheme: "talktosource",
     version: release.name,
@@ -140,7 +140,7 @@ const config = {
         "expo-camera",
         {
           cameraPermission:
-            "Use your camera during the Sense to Action experience.",
+            "Use your camera during the Ursly experience.",
           microphonePermission:
             "Use your microphone to ask questions about your source.",
           recordAudioAndroid: false,
@@ -151,7 +151,7 @@ const config = {
         "expo-sensors",
         {
           motionPermission:
-            "Use device movement to navigate the Sense to Action experience.",
+            "Use device movement to navigate the Ursly experience.",
         },
       ],
       "expo-dev-client",

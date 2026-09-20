@@ -263,7 +263,7 @@ export function ClassicApp() {
     };
   }, []);
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
-  const [assistantName, setAssistantName] = useState("Sense to Action");
+  const [assistantName, setAssistantName] = useState("ursly");
 
   useEffect(() => {
     AsyncStorage.getItem("ursly-assistant-name").then((stored) => {
@@ -310,6 +310,15 @@ export function ClassicApp() {
   const [account, setAccount] = useState<{ email: string } | null>(null);
   const [signInOpen, setSignInOpen] = useState(false);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingSeen, setOnboardingSeen] = useState(() => {
+    let initial = false;
+    AsyncStorage.getItem("ursly-onboarding-seen").then((v) => {
+      if (v === "true") setOnboardingSeen(true);
+    }).catch(() => {});
+    return initial;
+  });
+  const [replayOnboarding, setReplayOnboarding] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const voice = useRef<NativeVoice | null>(null);
@@ -349,6 +358,43 @@ export function ClassicApp() {
       }),
     ]).start();
   }, [fadeAnim, slideAnim]);
+
+  useEffect(() => {
+    if (onboardingSeen && !replayOnboarding) return;
+    if (turns.length > 0) return;
+    const steps = 4;
+    let cancelled = false;
+    let currentStep = 0;
+    function tick() {
+      if (cancelled) return;
+      if (currentStep > steps) {
+        AsyncStorage.setItem("ursly-onboarding-seen", "true").catch(() => {});
+        setOnboardingSeen(true);
+        setReplayOnboarding(false);
+        return;
+      }
+      setOnboardingStep(currentStep);
+      const delay =
+        currentStep === 0 ? 1800 : currentStep >= steps ? 4000 : 3200;
+      currentStep++;
+      setTimeout(tick, delay);
+    }
+    tick();
+    return () => {
+      cancelled = true;
+    };
+  }, [onboardingSeen, replayOnboarding, turns.length]);
+
+  const onboardingToasts = useMemo(() => {
+    if (onboardingStep === 0) return null;
+    const messages = [
+      t("The logo breath with you."),
+      t("Color is emotion. Size is depth."),
+      t("Pulse means it is listening."),
+      t("Tap the logo to add a source."),
+    ];
+    return messages.slice(0, Math.min(onboardingStep, messages.length));
+  }, [onboardingStep, t]);
 
   const lastSpokenIndex = useRef<string>("");
   useEffect(() => {
@@ -857,39 +903,33 @@ export function ClassicApp() {
                     motion={motion}
                     activity={visualActivity}
                     compact={compact}
+                    onPress={() => setSheet("source")}
                   />
                 )}
-                <Text accessibilityRole="header" style={s.title}>
-                  {source ? t("What are you curious about?") : ""}
+                <Text accessibilityRole="header" style={s.wordmark}>
+                  ursly.
                 </Text>
                 {source ? (
-                  <View style={s.suggestions}>
-                    {suggestions.map((prompt) => (
-                      <Pressable
-                        key={prompt}
-                        accessibilityRole="button"
-                        accessibilityLabel={prompt}
-                        disabled={!!busy}
-                        onPress={() => void askPrompt(prompt)}
-                        style={s.suggestion}
-                      >
-                        <Text style={s.suggestionText}>{prompt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : (
-                  <Touch
-                    label={t("Add a source")}
-                    motion={motion}
-                    onPress={() => setSheet("source")}
-                    style={s.addSource}
-                  >
-                    <View style={s.buttonRow}>
-                      <Text style={s.secondary}>↓</Text>
-                      <Text style={s.buttonText}>{t("Add a source")}</Text>
+                  <>
+                    <Text accessibilityRole="header" style={s.title}>
+                      {t("What are you curious about?")}
+                    </Text>
+                    <View style={s.suggestions}>
+                      {suggestions.map((prompt) => (
+                        <Pressable
+                          key={prompt}
+                          accessibilityRole="button"
+                          accessibilityLabel={prompt}
+                          disabled={!!busy}
+                          onPress={() => void askPrompt(prompt)}
+                          style={s.suggestion}
+                        >
+                          <Text style={s.suggestionText}>{prompt}</Text>
+                        </Pressable>
+                      ))}
                     </View>
-                  </Touch>
-                )}
+                  </>
+                ) : null}
               </View>
             ) : null}
           </View>
@@ -936,42 +976,28 @@ export function ClassicApp() {
             </View>
           )}
           <View style={s.dock}>
-            <MobileSenseControls
-              language={language}
-              motion={motion}
-              t={t}
-              voiceBusy={active}
-              canStartVoice={!!source}
-              onAction={handleVoiceAction}
-              onNotice={showToast}
-              onDictate={(text) => void askPrompt(text)}
-              prompts={suggestions}
-              canAsk={!!source}
-              onAsk={(text) => void askPrompt(text)}
-              fileBrowserOpen={fileBrowserOpen}
-              onFileNav={handleFileNav}
-              onActivityChange={setSenseActivity}
-              onStop={stop}
-              commandSettingsOpen={commandSettingsOpen}
-              onCommandSettingsClose={() => {
-                setCommandSettingsOpen(false);
-                setSheet("about");
-              }}
-            />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t("Workspace settings")}
+              accessibilityLabel={t("Menu")}
               onPress={() => setSheet("about")}
-              style={s.settingsButton}
+              style={s.menuButton}
             >
-              <View accessible={false} style={s.orbitControl}>
-                <View style={[s.orbitLine, s.orbitLeft]} />
-                <View style={[s.orbitLine, s.orbitRight]} />
-                <View style={s.orbitCenter} />
-              </View>
+              <Text style={s.menuText}>{t("menu")}</Text>
             </Pressable>
           </View>
         </View>
+        {onboardingToasts && (
+          <View style={s.onboardingToasts} accessibilityLiveRegion="polite">
+            {onboardingToasts.map((msg, i) => (
+              <View
+                key={i}
+                style={s.onboardingToast}
+              >
+                <Text style={s.onboardingToastText}>{msg}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         <ToastLayer toasts={toasts} onDismiss={dismissToast} />
         {!!sheet && (
           <View style={s.modalRoot} accessibilityViewIsModal>
@@ -1338,6 +1364,20 @@ export function ClassicApp() {
                             {t("Try a sample text")}
                           </Text>
                         </Pressable>
+                        <View style={s.settingsDivider} />
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => {
+                            setSheet(null);
+                            setOnboardingStep(0);
+                            setReplayOnboarding(true);
+                          }}
+                          style={s.settingsRow}
+                        >
+                          <Text style={s.settingsRowTitle}>
+                            {t("Replay intro")}
+                          </Text>
+                        </Pressable>
                       </View>
                     </View>
 
@@ -1456,6 +1496,14 @@ const s = StyleSheet.create({
   sourceName: { flexShrink: 1, fontSize: 12, color: c.ink },
   stage: { flex: 1, minHeight: 0, justifyContent: "center" },
   origin: { alignItems: "center", justifyContent: "center", gap: 18 },
+  wordmark: {
+    textAlign: "center",
+    color: c.ink,
+    fontSize: 20,
+    fontWeight: "300",
+    letterSpacing: -0.5,
+    marginTop: -8,
+  },
   title: {
     textAlign: "center",
     color: c.ink,
@@ -1553,6 +1601,42 @@ const s = StyleSheet.create({
     borderColor: c.strongLine,
     borderRadius: 24,
     backgroundColor: c.white,
+  },
+  menuButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  menuText: {
+    color: c.ink,
+    fontSize: 14,
+    fontWeight: "400",
+    letterSpacing: 0.5,
+  },
+  onboardingToasts: {
+    position: "absolute",
+    bottom: 80,
+    left: 20,
+    right: 20,
+    alignItems: "center",
+    gap: 8,
+    zIndex: 100,
+  },
+  onboardingToast: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: c.ink,
+    opacity: 0.88,
+  },
+  onboardingToastText: {
+    color: c.paper,
+    fontSize: 13,
+    fontWeight: "400",
+    letterSpacing: 0.3,
+    textAlign: "center",
   },
   progress: {
     flexDirection: "row",

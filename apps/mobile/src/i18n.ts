@@ -490,6 +490,12 @@ export const french = {
   "Custom name": "Nom personnalisé",
   Save: "Enregistrer",
   Reset: "Réinitialiser",
+  "The logo breath with you.": "Le logo respire avec vous.",
+  "Color is emotion. Size is depth.": "La couleur est émotion. La taille est profondeur.",
+  "Pulse means it is listening.": "Le pouls signifie qu'il écoute.",
+  "Tap the logo to add a source.": "Touchez le logo pour ajouter une source.",
+  "Replay intro": "Rejouer l'intro",
+  menu: "menu",
 } as const;
 export type TranslationKey = keyof typeof french;
 export function translate(language: Language, key: TranslationKey): string {

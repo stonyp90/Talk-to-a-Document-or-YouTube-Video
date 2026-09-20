@@ -23,9 +23,7 @@
     "demo:check": "node scripts/demo/check.mjs",
     "dev:web": "npm run dev --workspace @talk/web --",
     "dev:chat": "tsx services/chat/src/main.ts",
-    "dev:slack": "tsx services/slack-bot/src/main.ts",
-    "build:chat": "node scripts/chat/build.mjs",
-    "tech-radar": "node scripts/tech-radar/scan.mjs"
+    "build:chat": "node scripts/chat/build.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.1131.0",
@@ -33,7 +31,6 @@
     "@aws-sdk/client-secrets-manager": "^3.1127.0",
     "@aws-sdk/s3-presigned-post": "^3.1127.0",
     "@napi-rs/canvas": "^1.0.8",
-    "@slack/bolt": "^5.1.0",
     "next": "^16.3.4",
     "openai": "7.10.0",
     "pdf-parse": "^2.4.5",
@@ -48,19 +45,18 @@
     "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
-    "@types/node": "26.4.1",
+    "@types/node": "26.5.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.28.2",
-    "eslint": "^9.39.5",
+    "eslint": "^10.10.0",
     "eslint-config-next": "^16.3.4",
     "jsdom": "30.0.1",
     "prettier": "3.9.6",
     "react-refresh": "^0.14.0",
     "tsx": "^4.23.13",
-    "typescript": "5.8.3",
-    "vite": "^7.3.6",
+    "typescript": "7.0.2",
     "vitest": "^5.0.0"
   }
 }

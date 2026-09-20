@@ -1299,6 +1299,10 @@ export default function Workspace() {
       setVoiceActionNotice("Search coming soon");
       return;
     }
+    if (action === "settings") {
+      setSettingsOpen(true);
+      return;
+    }
 
     invalidateVoice();
     uploadRequest.current?.abort();

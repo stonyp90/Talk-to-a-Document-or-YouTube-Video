@@ -1,3 +1,5 @@
+"use client";
+
 import { useFeedback } from "./useFeedback";
 import { FeedbackType } from "@talk/core/domain/feedbackBus";
 import styles from "./FeedbackOverlay.module.css";

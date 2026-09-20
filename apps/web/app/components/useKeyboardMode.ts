@@ -12,7 +12,7 @@ const SLASH_COMMANDS: Record<string, VoiceActionId> = {
   '/youtube': 'youtube',
   '/search': 'search',
   '/clear': 'stop',
-  '/settings': 'open',
+  '/settings': 'settings',
   '/files': 'open',
 };
 

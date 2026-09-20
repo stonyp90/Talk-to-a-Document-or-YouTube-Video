@@ -56,7 +56,6 @@ export default function ImmersiveFileBrowser({
     if (intent?.type === "selectFile") {
       onFileSelect(intent.node);
     }
-    nav.subscribe(() => setNavState({ ...nav.snapshot() }));
   }, [motionGesture, onFileSelect]);
 
   const items = navState?.isSearchMode

@@ -29,6 +29,7 @@
     "apps/web/**/*.tsx",
     "packages/**/*.ts",
     "services/chat/src/**/*.ts",
+    "services/slack-bot/src/**/*.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx"
   ],

@@ -4,12 +4,21 @@ import {
   FormEvent,
   useCallback,
   useEffect,
+  useImperativeHandle,
+  type Ref,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
+import { SenseFeedback } from "./SenseFeedback";
+import styles from "./SenseControls.module.css";
+import type {
+  SenseChannelActivity,
+  SenseChannelControl,
+} from "./senseControlTypes";
 import { useLanguage } from "../i18n/LanguageProvider";
 import {
   VOICE_ACTIONS,
@@ -30,6 +39,7 @@ import {
   SPEECH_DELIVERY,
   selectSpeechVoice,
 } from "@/apps/web/src/lib/speechVoice";
+import { useVoiceSpeed } from "@/apps/web/src/lib/useVoiceSpeed";
 import {
   createSpeechListener,
   speechRecognitionSupported,
@@ -53,7 +63,7 @@ const REPLY_GUARD_MS = 4000;
 /** Listening ends by itself after this much silence, for a forgotten tab. */
 const QUIET_LIMIT_MS = 120_000;
 
-type VoiceActionsProps = {
+export type VoiceActionsProps = {
   /** The argument carries whatever else was said, for an action that needs it. */
   onAction: (action: VoiceActionId, argument?: string) => void;
   /** A spoken question, ready to send. */
@@ -64,6 +74,11 @@ type VoiceActionsProps = {
   voiceBusy: boolean;
   /** The conversation phase shows a tighter panel than the source phase. */
   compact?: boolean;
+  /** Compact controls for the shared immersive action dock. */
+  presentation?: "panel" | "dock" | "merged";
+  controlRef?: Ref<SenseChannelControl>;
+  feedbackTarget?: HTMLElement | null;
+  onActivityChange?: (activity: SenseChannelActivity) => void;
 };
 
 const TRIGGER_STORAGE_NAME = "ursly-voice-triggers-v1";
@@ -79,6 +94,9 @@ function actionLabels(): Record<VoiceActionId, string> {
     back: "Go back or undo the last step",
     next: "Go forward to the next step",
     cancel: "Cancel the current action",
+    open: "Open the file browser",
+    select: "Select a file with gaze or gesture",
+    search: "Search for a file by name",
   };
 }
 
@@ -160,8 +178,22 @@ export function VoiceActions({
   canStartVoice,
   voiceBusy,
   compact = false,
+  presentation = "panel",
+  controlRef,
+  feedbackTarget,
+  onActivityChange,
 }: VoiceActionsProps) {
   const { language, t } = useLanguage();
+  const { speed: voiceSpeed } = useVoiceSpeed();
+  const dock = presentation !== "panel";
+  const merged = presentation === "merged";
+  // Workspace keeps this target mounted. The post-commit snapshot discovers it
+  // without causing an extra state update in an effect during hydration.
+  const settingsTarget = useSyncExternalStore(
+    () => () => {},
+    () => (merged ? document.getElementById("sense-command-settings") : null),
+    () => null,
+  );
   const labels = useMemo(() => actionLabels(), []);
   const replies = useMemo(() => actionReplies(), []);
   const serverTriggers = useMemo(() => defaultTriggers(language), [language]);
@@ -206,6 +238,8 @@ export function VoiceActions({
   const [draft, setDraft] = useState("");
   const [notice, setNotice] = useState("");
   const [problem, setProblem] = useState("");
+  const [editorProblem, setEditorProblem] = useState("");
+  const [editorNotice, setEditorNotice] = useState("");
 
   const listener = useRef<SpeechListener | null>(null);
   const draftRef = useRef("");
@@ -223,6 +257,7 @@ export function VoiceActions({
     voiceBusy,
     triggers,
     language,
+    voiceSpeed,
   });
   useEffect(() => {
     latest.current = {
@@ -233,6 +268,7 @@ export function VoiceActions({
       voiceBusy,
       triggers,
       language,
+      voiceSpeed,
     };
   });
 
@@ -277,7 +313,7 @@ export function VoiceActions({
       locale,
     );
     if (chosen) utterance.voice = chosen;
-    utterance.rate = SPEECH_DELIVERY.rate;
+    utterance.rate = latest.current.voiceSpeed;
     utterance.pitch = SPEECH_DELIVERY.pitch;
     utterance.volume = SPEECH_DELIVERY.volume;
     // The reply comes out of the speakers and straight back into the
@@ -311,6 +347,7 @@ export function VoiceActions({
 
   const stopListening = useCallback((message = "") => {
     listener.current?.stop();
+    setConnectingSpeech(false);
     if (settleTimer.current) clearTimeout(settleTimer.current);
     settleTimer.current = undefined;
     setHeard("");
@@ -430,20 +467,38 @@ export function VoiceActions({
 
   const handleError = useCallback(
     (reason: SpeechErrorReason) => {
+      setConnectingSpeech(false);
       setProblem(
         reason === "denied"
           ? t(
-              "Voice needs microphone access. Allow it in your browser, then press Speak again.",
+              merged
+                ? "Microphone access was denied. Allow it in your browser, then restart the experience."
+                : "Voice needs microphone access. Allow it in your browser, then press Speak again.",
             )
           : reason === "unavailable"
             ? t(
-                "This browser does not recognise speech. The buttons below do the same things.",
+                dock
+                  ? "This browser does not recognise speech. You can still type or add a source."
+                  : "This browser does not recognise speech. The buttons below do the same things.",
               )
-            : t("The microphone dropped out. Press Speak to pick it back up."),
+            : t(
+                merged
+                  ? "The microphone dropped out. Restart the experience to reconnect."
+                  : "The microphone dropped out. Press Speak to pick it back up.",
+              ),
       );
     },
-    [t],
+    [dock, merged, t],
   );
+
+  const reportListening = useCallback((value: boolean) => {
+    setListening(value);
+    setConnectingSpeech(false);
+  }, []);
+
+  useEffect(() => {
+    onActivityChange?.({ active: listening, connecting: connectingSpeech });
+  }, [listening, connectingSpeech, onActivityChange]);
 
   useEffect(() => {
     const instance = createSpeechListener({
@@ -452,7 +507,7 @@ export function VoiceActions({
       quietLimitMs: QUIET_LIMIT_MS,
       onPhrase: handlePhrase,
       onError: handleError,
-      onListeningChange: setListening,
+      onListeningChange: reportListening,
       onConnectingChange: setConnectingSpeech,
     });
     listener.current = instance;
@@ -493,24 +548,35 @@ export function VoiceActions({
   );
 
   function startListening() {
+    if (latest.current.voiceBusy) return;
     setProblem("");
     if (!supported) {
       handleError("unavailable");
       return;
     }
     setNotice("");
+    setConnectingSpeech(true);
     listener.current?.start();
   }
 
+  useImperativeHandle(controlRef, () => ({
+    start: startListening,
+    stop: () => stopListening(""),
+  }));
+
   function saveTrigger(event: FormEvent) {
     event.preventDefault();
+    const reportProblem = merged ? setEditorProblem : setProblem;
+    setEditorNotice("");
     const next = phrase.trim();
     if (!normalizeSpeech(next)) {
-      setProblem(t("Use at least one letter or number in the trigger phrase."));
+      reportProblem(
+        t("Use at least one letter or number in the trigger phrase."),
+      );
       return;
     }
     if (next.length > MAX_TRIGGER_LENGTH) {
-      setProblem(
+      reportProblem(
         t("Keep trigger phrases to {max} characters or fewer.", {
           max: MAX_TRIGGER_LENGTH,
         }),
@@ -524,11 +590,11 @@ export function VoiceActions({
           normalizeSpeech(trigger.phrase) === normalizeSpeech(next),
       )
     ) {
-      setProblem(t("“{phrase}” is already saved.", { phrase: next }));
+      reportProblem(t("“{phrase}” is already saved.", { phrase: next }));
       return;
     }
     if (!editingId && triggers.length >= MAX_SAVED_TRIGGERS) {
-      setProblem(
+      reportProblem(
         t("You can save up to {max} voice triggers.", {
           max: MAX_SAVED_TRIGGERS,
         }),
@@ -551,8 +617,15 @@ export function VoiceActions({
     );
     setPhrase("");
     setEditingId(null);
-    setProblem("");
-    setNotice(t("Saved “{phrase}”. Press Speak and say it.", { phrase: next }));
+    reportProblem("");
+    const confirmation = t(
+      merged
+        ? "Saved “{phrase}”. Say it during the experience."
+        : "Saved “{phrase}”. Press Speak and say it.",
+      { phrase: next },
+    );
+    if (merged) setEditorNotice(confirmation);
+    else setNotice(confirmation);
   }
 
   const examples = useMemo(() => {
@@ -575,228 +648,298 @@ export function VoiceActions({
       ? "Press Speak, then ask your question out loud. Say “summarize this”, or just talk."
       : "Press Speak, then say a command such as “upload” or “YouTube”.";
 
-  return (
-    <section
-      className="voice-commands"
-      data-speech-provider={speechProvider}
-      aria-labelledby="voice-actions-heading"
-      data-armed={listening}
-      data-compact={compact}
+  const commandSettings = (
+    <details
+      className={
+        merged
+          ? styles.settingsCustomize
+          : dock
+            ? styles.customize
+            : "voice-customize"
+      }
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <div className="voice-commands-row">
-        <button
-          type="button"
-          className="voice-mic"
-          disabled={voiceBusy}
-          aria-pressed={listening || connectingSpeech}
-          onClick={
-            listening || connectingSpeech
-              ? () => stopListening("")
-              : startListening
-          }
-        >
-          <span className="voice-mic-ring" aria-hidden="true" />
-          <Icon name="voice" />
-          <span className="voice-mic-label">
-            {connectingSpeech
-              ? t("Cancel")
-              : listening
-                ? t("Stop listening")
-                : t("Speak")}
-          </span>
-        </button>
-        <div className="voice-commands-status" role="status" aria-live="polite">
-          <strong id="voice-actions-heading">
-            {connectingSpeech
-              ? t("Connecting…")
-              : listening
-                ? t("Listening")
-                : t("Voice to action")}
-          </strong>
-          <span>
-            {connectingSpeech
-              ? t("Getting the microphone ready. You can cancel at any time.")
-              : notice || t(resting)}
-          </span>
-        </div>
-      </div>
-
-      {(draft || (listening && heard)) && (
-        <div className="voice-draft">
-          <span className="voice-draft-label">
-            {draft ? t("Your question") : t("Heard")}
-          </span>
-          <span className="voice-draft-text">
-            {draft || <em>{heard}</em>}
-            {draft && heard && !draft.endsWith(heard) ? (
-              <em> {heard}</em>
-            ) : null}
-          </span>
-          {draft && (
-            <div className="voice-draft-actions">
-              <button
-                type="button"
-                className="voice-example"
-                onClick={sendDraft}
-              >
-                {t("Send it")}
-              </button>
-              <button
-                type="button"
-                className="voice-example"
-                onClick={() => publishDraft("")}
-              >
-                {t("Clear")}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
+      <summary title={dock ? t("Customize commands") : undefined}>
+        {dock && !merged && <span aria-hidden="true">···</span>}
+        <span className={dock && !merged ? styles.srOnly : undefined}>
+          {t("Customize commands")}
+        </span>
+      </summary>
       <div
-        className="voice-example-row"
-        aria-label={t("Voice command examples")}
+        id="voice-trigger-builder"
+        className={
+          merged
+            ? "voice-trigger-builder"
+            : dock
+              ? styles.triggerBuilder
+              : "voice-trigger-builder"
+        }
       >
-        <span className="voice-example-say">{t("Say")}</span>
-        {examples.map((example) => (
-          <button
-            key={example.action}
-            type="button"
-            className="voice-example"
-            disabled={voiceBusy}
-            aria-label={`“${example.phrase}” — ${t(example.label)}`}
-            title={t(example.label)}
-            onClick={() => runAction(example.action)}
-          >
-            “{example.phrase}”
-          </button>
-        ))}
-      </div>
-
-      {problem && (
-        <p className="voice-error" role="alert">
-          {problem}
-        </p>
-      )}
-
-      <details
-        className="voice-customize"
-        open={open}
-        onToggle={(event) => setOpen(event.currentTarget.open)}
-      >
-        <summary>{t("Customize commands")}</summary>
-        <div id="voice-trigger-builder" className="voice-trigger-builder">
-          <div className="voice-trigger-builder-copy">
-            <h3>{t("Build a trigger")}</h3>
-            <p>
-              {t(
-                "The phrases stay on this device. Every action is configurable, and the built-in wordings keep working alongside yours.",
-              )}
-            </p>
-          </div>
-          <form className="voice-trigger-form" onSubmit={saveTrigger}>
-            <div className="voice-trigger-field">
-              <label htmlFor="voice-trigger-phrase">
-                {t("Trigger word or phrase")}
-              </label>
-              <input
-                id="voice-trigger-phrase"
-                value={phrase}
-                onChange={(event) => setPhrase(event.target.value)}
-                placeholder={t("e.g. upload")}
-                autoComplete="off"
-              />
-            </div>
-            <div className="voice-trigger-field">
-              <label htmlFor="voice-trigger-action">
-                {t("When I say it…")}
-              </label>
-              <select
-                id="voice-trigger-action"
-                value={action}
-                onChange={(event) =>
-                  setAction(event.target.value as VoiceActionId)
-                }
-              >
-                {VOICE_ACTIONS.map((id) => (
-                  <option key={id} value={id}>
-                    {t(labels[id])}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              className="primary"
-              type="submit"
-              disabled={!normalizeSpeech(phrase)}
-            >
-              {editingId ? t("Update trigger") : t("Save trigger")}
-            </button>
-          </form>
-
-          <div className="saved-trigger-list">
-            {triggers.length === 0 ? (
-              <p className="hint">
-                {t("No saved triggers. The built-in wordings still work.")}
-              </p>
-            ) : (
-              triggers.map((trigger) => (
-                <div className="saved-trigger" key={trigger.id}>
-                  <span className="saved-trigger-phrase">
-                    “{trigger.phrase}”
-                  </span>
-                  <span className="saved-trigger-action">
-                    {t(labels[trigger.action])}
-                  </span>
-                  <div className="saved-trigger-actions">
-                    <button
-                      type="button"
-                      className="saved-trigger-remove"
-                      aria-label={t("Edit trigger {phrase}", {
-                        phrase: trigger.phrase,
-                      })}
-                      onClick={() => {
-                        setPhrase(trigger.phrase);
-                        setAction(trigger.action);
-                        setEditingId(trigger.id);
-                        setOpen(true);
-                      }}
-                    >
-                      {t("Edit")}
-                    </button>
-                    <button
-                      type="button"
-                      className="saved-trigger-remove"
-                      aria-label={t("Remove trigger {phrase}", {
-                        phrase: trigger.phrase,
-                      })}
-                      onClick={() =>
-                        setTriggers((current) =>
-                          current.filter((item) => item.id !== trigger.id),
-                        )
-                      }
-                    >
-                      {t("Remove")}
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          {!supported && (
-            <p className="hint voice-support-note">
-              {t(
-                "Live speech recognition is not available in this browser. The example buttons still run every action.",
-              )}
-            </p>
-          )}
-          <p className="hint voice-support-note">
+        {merged && editorProblem && (
+          <p className="voice-error" role="alert">
+            {editorProblem}
+          </p>
+        )}
+        {merged && editorNotice && (
+          <p className="voice-notice" role="status">
+            {editorNotice}
+          </p>
+        )}
+        <div className="voice-trigger-builder-copy">
+          <h3>{t("Build a trigger")}</h3>
+          <p>
             {t(
-              "For uploads, your browser still asks you to confirm the local file; websites cannot read arbitrary files without that confirmation.",
+              "The phrases stay on this device. Every action is configurable, and the built-in wordings keep working alongside yours.",
             )}
           </p>
         </div>
-      </details>
+        <form className="voice-trigger-form" onSubmit={saveTrigger}>
+          <div className="voice-trigger-field">
+            <label htmlFor="voice-trigger-phrase">
+              {t("Trigger word or phrase")}
+            </label>
+            <input
+              id="voice-trigger-phrase"
+              value={phrase}
+              onChange={(event) => setPhrase(event.target.value)}
+              placeholder={t("e.g. upload")}
+              autoComplete="off"
+            />
+          </div>
+          <div className="voice-trigger-field">
+            <label htmlFor="voice-trigger-action">{t("When I say it…")}</label>
+            <select
+              id="voice-trigger-action"
+              value={action}
+              onChange={(event) =>
+                setAction(event.target.value as VoiceActionId)
+              }
+            >
+              {VOICE_ACTIONS.map((id) => (
+                <option key={id} value={id}>
+                  {t(labels[id])}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            className="primary"
+            type="submit"
+            disabled={!normalizeSpeech(phrase)}
+          >
+            {editingId ? t("Update trigger") : t("Save trigger")}
+          </button>
+        </form>
+
+        <div className="saved-trigger-list">
+          {triggers.length === 0 ? (
+            <p className="hint">
+              {t("No saved triggers. The built-in wordings still work.")}
+            </p>
+          ) : (
+            triggers.map((trigger) => (
+              <div className="saved-trigger" key={trigger.id}>
+                <span className="saved-trigger-phrase">“{trigger.phrase}”</span>
+                <span className="saved-trigger-action">
+                  {t(labels[trigger.action])}
+                </span>
+                <div className="saved-trigger-actions">
+                  <button
+                    type="button"
+                    className="saved-trigger-remove"
+                    aria-label={t("Edit trigger {phrase}", {
+                      phrase: trigger.phrase,
+                    })}
+                    onClick={() => {
+                      setPhrase(trigger.phrase);
+                      setAction(trigger.action);
+                      setEditingId(trigger.id);
+                      setOpen(true);
+                    }}
+                  >
+                    {t("Edit")}
+                  </button>
+                  <button
+                    type="button"
+                    className="saved-trigger-remove"
+                    aria-label={t("Remove trigger {phrase}", {
+                      phrase: trigger.phrase,
+                    })}
+                    onClick={() =>
+                      setTriggers((current) =>
+                        current.filter((item) => item.id !== trigger.id),
+                      )
+                    }
+                  >
+                    {t("Remove")}
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        {!supported && !dock && (
+          <p className="hint voice-support-note">
+            {t(
+              "Live speech recognition is not available in this browser. The example buttons still run every action.",
+            )}
+          </p>
+        )}
+        <p className="hint voice-support-note">
+          {t(
+            "For uploads, your browser still asks you to confirm the local file; websites cannot read arbitrary files without that confirmation.",
+          )}
+        </p>
+      </div>
+    </details>
+  );
+
+  return (
+    <section
+      className={dock ? styles.voice : "voice-commands"}
+      data-speech-provider={speechProvider}
+      aria-labelledby={dock ? undefined : "voice-actions-heading"}
+      aria-label={dock ? t("Speak") : undefined}
+      data-armed={listening}
+      data-compact={compact}
+    >
+      <div className={dock ? styles.controlRow : "voice-commands-row"}>
+        {!merged && (
+          <button
+            type="button"
+            className={dock ? styles.speak : "voice-mic"}
+            disabled={voiceBusy}
+            aria-pressed={listening || connectingSpeech}
+            onClick={
+              listening || connectingSpeech
+                ? () => stopListening("")
+                : startListening
+            }
+          >
+            {!dock && <span className="voice-mic-ring" aria-hidden="true" />}
+            <Icon name="voice" />
+            <span className="voice-mic-label">
+              {connectingSpeech
+                ? t("Cancel")
+                : listening
+                  ? t("Stop listening")
+                  : t("Speak")}
+            </span>
+          </button>
+        )}
+        {!dock && (
+          <div
+            className="voice-commands-status"
+            role="status"
+            aria-live="polite"
+          >
+            <strong id="voice-actions-heading">
+              {connectingSpeech
+                ? t("Connecting…")
+                : listening
+                  ? t("Listening")
+                  : t("Voice to action")}
+            </strong>
+            <span>
+              {connectingSpeech
+                ? t("Getting the microphone ready. You can cancel at any time.")
+                : notice || t(resting)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <SenseFeedback target={merged ? feedbackTarget : undefined}>
+        <div
+          className={dock ? styles.feedback : undefined}
+          data-merged={merged || undefined}
+          data-sense-channel="voice"
+          hidden={
+            dock &&
+            !(
+              connectingSpeech ||
+              (!merged && listening) ||
+              notice ||
+              draft ||
+              problem ||
+              (listening && heard)
+            )
+          }
+        >
+          {dock && (connectingSpeech || (!merged && listening) || notice) && (
+            <p className={styles.status} role="status">
+              {connectingSpeech ? t("Connecting…") : notice || t("Listening")}
+            </p>
+          )}
+
+          {(draft || (listening && heard)) && (
+            <div className="voice-draft">
+              <span className="voice-draft-label">
+                {draft ? t("Your question") : t("Heard")}
+              </span>
+              <span className="voice-draft-text">
+                {draft || <em>{heard}</em>}
+                {draft && heard && !draft.endsWith(heard) ? (
+                  <em> {heard}</em>
+                ) : null}
+              </span>
+              {draft && (
+                <div className="voice-draft-actions">
+                  <button
+                    type="button"
+                    className="voice-example"
+                    onClick={sendDraft}
+                  >
+                    {t("Send it")}
+                  </button>
+                  <button
+                    type="button"
+                    className="voice-example"
+                    onClick={() => publishDraft("")}
+                  >
+                    {t("Clear")}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!dock && (
+            <div
+              className="voice-example-row"
+              aria-label={t("Voice command examples")}
+            >
+              <span className="voice-example-say">{t("Say")}</span>
+              {examples.map((example) => (
+                <button
+                  key={example.action}
+                  type="button"
+                  className="voice-example"
+                  disabled={voiceBusy}
+                  aria-label={`“${example.phrase}” — ${t(example.label)}`}
+                  title={t(example.label)}
+                  onClick={() => runAction(example.action)}
+                >
+                  “{example.phrase}”
+                </button>
+              ))}
+            </div>
+          )}
+
+          {problem && (
+            <p className="voice-error" role="alert">
+              {problem}
+            </p>
+          )}
+        </div>
+      </SenseFeedback>
+
+      {merged
+        ? settingsTarget
+          ? createPortal(commandSettings, settingsTarget)
+          : null
+        : commandSettings}
     </section>
   );
 }

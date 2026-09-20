@@ -21,7 +21,6 @@ function FirstScreen() {
         language="en"
         appHref={appHref}
         loop={loop}
-        onReplayIntro={() => {}}
       />
     </LanguageProvider>
   );
@@ -92,10 +91,12 @@ describe("Arrival", () => {
       screen.getByTestId("loop-diagram"),
       screen.getByTestId("loop-caption"),
       screen.getByRole("list", { name: copy.controls.stepList }),
-      screen.getByRole("link", { name: copy.mission.primary }),
       screen.getByRole("link", { name: /Open the app/ }),
     ])
       expect(section).toContainElement(part);
+    // One way in on the first screen. A second button beside the loop would
+    // be a second door on the same page.
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 
   it("opens on the film's own wave, and never announces it", () => {

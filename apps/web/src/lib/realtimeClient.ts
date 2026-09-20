@@ -1,5 +1,9 @@
 import type { ConversationMessage } from "@/packages/core/src/domain/conversation";
 import type { IngestedSource } from "@/packages/core/src/domain/ingestion";
+import {
+  parseVoiceControl,
+  type VoiceControlAction,
+} from "@/packages/core/src/domain/voiceControls";
 
 /** Who currently holds the floor, so the interface can show the turn changing. */
 export type VoiceActivity = "idle" | "listening" | "speaking";
@@ -11,6 +15,7 @@ export type RealtimeEvent = {
     | "ended"
     | "error"
     | "activity"
+    | "control"
     | "message-started"
     | "message-delta"
     | "message-completed";
@@ -21,6 +26,8 @@ export type RealtimeEvent = {
   /** True when starting a fresh session is likely to succeed. */
   retryable?: boolean;
   activity?: VoiceActivity;
+  /** Something the caller asked the assistant to change about itself. */
+  control?: VoiceControlAction;
 };
 
 type EventHandler = (event: RealtimeEvent) => void;
@@ -50,6 +57,10 @@ export class RealtimeClient {
   private status?: string;
   private activity: VoiceActivity = "idle";
   private outputPlaying = false;
+  private voiceOutput = true;
+  /** Events held until the current response ends; the provider refuses them mid-response. */
+  private afterResponse: Record<string, unknown>[] = [];
+  private responding = false;
   private timers = new Set<ReturnType<typeof setTimeout>>();
   private recoveryTimer?: ReturnType<typeof setTimeout>;
   private playbackTimer?: ReturnType<typeof setTimeout>;
@@ -247,9 +258,29 @@ export class RealtimeClient {
     this.dataChannel.send(
       JSON.stringify({
         type: "response.create",
-        response: { output_modalities: ["audio"] },
+        response: { output_modalities: [this.modality()] },
       }),
     );
+  }
+
+  /** Silences or restores the spoken voice; answers keep arriving as text. */
+  setVoiceOutput(enabled: boolean): void {
+    this.voiceOutput = enabled;
+    if (this.output) this.output.muted = !enabled;
+    // Cutting the queued audio is what makes the silence immediate.
+    if (!enabled) this.send({ type: "output_audio_buffer.clear" });
+    this.betweenResponses({
+      type: "session.update",
+      session: { type: "realtime", output_modalities: [this.modality()] },
+    });
+  }
+
+  /** Applies to the turns that follow; the provider keeps a turn's pace once it has begun. */
+  setVoiceSpeed(speed: number): void {
+    this.betweenResponses({
+      type: "session.update",
+      session: { type: "realtime", audio: { output: { speed } } },
+    });
   }
 
   setMuted(muted: boolean): void {
@@ -264,8 +295,51 @@ export class RealtimeClient {
     this.onEvent({ type: "ended" });
   }
 
+  private modality(): "audio" | "text" {
+    return this.voiceOutput ? "audio" : "text";
+  }
+
+  private betweenResponses(event: Record<string, unknown>): void {
+    if (this.responding) this.afterResponse.push(event);
+    else this.send(event);
+  }
+
+  private send(event: Record<string, unknown>): void {
+    if (this.dataChannel?.readyState === "open")
+      this.dataChannel.send(JSON.stringify(event));
+  }
+
+  /**
+   * The model asks for a control by calling a tool. It is carried out here,
+   * then the model is told the outcome so it can carry on with the caller.
+   */
+  private handleControl(event: Record<string, unknown>): void {
+    if (typeof event.call_id !== "string") return;
+    const control = parseVoiceControl(
+      typeof event.name === "string" ? event.name : "",
+      typeof event.arguments === "string" ? event.arguments : "",
+    );
+    if (control?.kind === "voice-output") this.setVoiceOutput(control.enabled);
+    if (control?.kind === "voice-speed") this.setVoiceSpeed(control.speed);
+    if (control) this.onEvent({ type: "control", control });
+    this.betweenResponses({
+      type: "conversation.item.create",
+      item: {
+        type: "function_call_output",
+        call_id: event.call_id,
+        output: JSON.stringify(
+          control ? { ok: true, ...control } : { ok: false, error: "unknown" },
+        ),
+      },
+    });
+    this.betweenResponses({ type: "response.create" });
+  }
+
   private cleanup(): void {
     this.active = false;
+    this.voiceOutput = true;
+    this.responding = false;
+    this.afterResponse = [];
     ++this.generation;
     this.status = undefined;
     this.activity = "idle";
@@ -391,6 +465,8 @@ export class RealtimeClient {
 
   private handleServerEvent(event: Record<string, unknown>): void {
     const type = event.type;
+    if (type === "response.function_call_arguments.done")
+      this.handleControl(event);
     // Transcription completes independently of the answer. Reserve the spoken
     // question's place when its audio is committed, before the answer arrives.
     if (
@@ -445,7 +521,10 @@ export class RealtimeClient {
       this.setActivity("listening");
     }
     if (type === "input_audio_buffer.speech_stopped") this.setActivity("idle");
-    if (type === "response.created") this.setActivity("speaking");
+    if (type === "response.created") {
+      this.responding = true;
+      this.setActivity("speaking");
+    }
     if (type === "output_audio_buffer.started") {
       this.outputPlaying = true;
       this.setActivity("speaking");
@@ -460,6 +539,8 @@ export class RealtimeClient {
       if (this.activity !== "listening") this.setActivity("idle");
     }
     if (type === "response.done") {
+      this.responding = false;
+      for (const held of this.afterResponse.splice(0)) this.send(held);
       const response = event.response as
         { output?: { id?: string }[]; status?: string } | undefined;
       for (const item of response?.output ?? [])
@@ -470,10 +551,11 @@ export class RealtimeClient {
       if (response?.status === "failed")
         this.fail("Voice response failed. Start a new session.", true);
     }
-    if (
-      type === "error" ||
-      type === "conversation.item.input_audio_transcription.failed"
-    )
+    // The caption of a long turn can fail while the model still heard it; the
+    // conversation goes on without that caption rather than ending.
+    if (type === "conversation.item.input_audio_transcription.failed" && id)
+      this.completeMessage(id);
+    if (type === "error")
       this.fail(
         "Realtime processing failed. Start a new session or use text chat.",
         true,

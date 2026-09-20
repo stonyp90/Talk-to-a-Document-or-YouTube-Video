@@ -50,6 +50,7 @@ const track = { enabled: true, stop: vi.fn() };
 const stream = { getTracks: () => [track], getAudioTracks: () => [track] };
 const output = {
   autoplay: false,
+  muted: false,
   srcObject: null,
   play: vi.fn(async () => undefined),
   pause: vi.fn(),
@@ -498,5 +499,115 @@ describe("Realtime WebRTC client", () => {
     });
     expect(track.stop).toHaveBeenCalledOnce();
     expect(JSON.stringify(events.mock.calls)).not.toContain("ephemeral-secret");
+  });
+
+  describe("spoken controls", () => {
+    const sent = () =>
+      peer().channel.send.mock.calls.map(([raw]) => JSON.parse(raw as string));
+    const call = (name: string, args: object) =>
+      peer().channel.emit({
+        type: "response.function_call_arguments.done",
+        call_id: "call_1",
+        name,
+        arguments: JSON.stringify(args),
+      });
+
+    it("goes silent at once and keeps answering in writing", async () => {
+      await connected();
+      output.muted = false;
+      call("set_voice_output", { enabled: false });
+      expect(output.muted).toBe(true);
+      expect(events).toHaveBeenCalledWith({
+        type: "control",
+        control: { kind: "voice-output", enabled: false },
+      });
+      const types = sent().map((event) => event.type);
+      expect(types).toEqual([
+        "output_audio_buffer.clear",
+        "session.update",
+        "conversation.item.create",
+        "response.create",
+      ]);
+      expect(sent()[1].session.output_modalities).toEqual(["text"]);
+      expect(sent()[2].item).toMatchObject({
+        type: "function_call_output",
+        call_id: "call_1",
+      });
+      expect(sent()[3]).toEqual({ type: "response.create" });
+      peer().channel.send.mockClear();
+      client.sendText("And now?");
+      expect(sent().at(-1).response.output_modalities).toEqual(["text"]);
+    });
+
+    it("brings the voice back when asked", async () => {
+      await connected();
+      call("set_voice_output", { enabled: false });
+      peer().channel.send.mockClear();
+      call("set_voice_output", { enabled: true });
+      expect(output.muted).toBe(false);
+      expect(sent()[0].session.output_modalities).toEqual(["audio"]);
+    });
+
+    it("changes pace for the turns that follow", async () => {
+      await connected();
+      call("set_voice_speed", { speed: 10 });
+      expect(sent()[0]).toEqual({
+        type: "session.update",
+        session: { type: "realtime", audio: { output: { speed: 1.5 } } },
+      });
+      expect(events).toHaveBeenCalledWith({
+        type: "control",
+        control: { kind: "voice-speed", speed: 1.5 },
+      });
+    });
+
+    it("holds what the provider refuses mid-response until the response ends", async () => {
+      await connected();
+      peer().channel.emit({ type: "response.created" });
+      call("set_voice_speed", { speed: 1.3 });
+      expect(sent()).toEqual([]);
+      peer().channel.emit({ type: "response.done", response: { output: [] } });
+      expect(sent().map((event) => event.type)).toEqual([
+        "session.update",
+        "conversation.item.create",
+        "response.create",
+      ]);
+    });
+
+    it("keeps the conversation alive when a long turn cannot be captioned", async () => {
+      await connected();
+      peer().channel.emit({
+        type: "input_audio_buffer.committed",
+        item_id: "turn_1",
+      });
+      peer().channel.emit({
+        type: "conversation.item.input_audio_transcription.failed",
+        item_id: "turn_1",
+      });
+      expect(events).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "error" }),
+      );
+      expect(events).toHaveBeenCalledWith({
+        type: "message-completed",
+        id: "turn_1",
+      });
+      expect(track.stop).not.toHaveBeenCalled();
+    });
+
+    it("passes a new name to the interface", async () => {
+      await connected();
+      call("set_assistant_name", { name: "Nova" });
+      expect(events).toHaveBeenCalledWith({
+        type: "control",
+        control: { kind: "assistant-name", name: "Nova" },
+      });
+    });
+
+    it("tells the model when a call was not understood", async () => {
+      await connected();
+      call("format_disk", {});
+      expect(events).not.toHaveBeenCalled();
+      expect(sent()[0].item.output).toContain("unknown");
+    });
   });
 });

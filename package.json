@@ -23,7 +23,9 @@
     "demo:check": "node scripts/demo/check.mjs",
     "dev:web": "npm run dev --workspace @talk/web --",
     "dev:chat": "tsx services/chat/src/main.ts",
-    "build:chat": "node scripts/chat/build.mjs"
+    "dev:slack": "tsx services/slack-bot/src/main.ts",
+    "build:chat": "node scripts/chat/build.mjs",
+    "tech-radar": "node scripts/tech-radar/scan.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.1131.0",
@@ -31,6 +33,7 @@
     "@aws-sdk/client-secrets-manager": "^3.1127.0",
     "@aws-sdk/s3-presigned-post": "^3.1127.0",
     "@napi-rs/canvas": "^1.0.8",
+    "@slack/bolt": "^5.1.0",
     "next": "^16.3.4",
     "openai": "7.10.0",
     "pdf-parse": "^2.4.5",
@@ -57,6 +60,7 @@
     "react-refresh": "^0.14.0",
     "tsx": "^4.23.13",
     "typescript": "5.8.3",
+    "vite": "^7.3.6",
     "vitest": "^5.0.0"
   }
 }

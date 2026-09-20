@@ -156,3 +156,26 @@ variable "ses_from_address" {
     error_message = "Send only from a mailbox on the verified identity domain."
   }
 }
+
+# --- Canary deployment -----------------------------------------------------
+# Progressive rollout: a second Lambda image runs behind a weighted alias so
+# traffic can be shifted from the stable version to the canary in steps.
+# Leaving both at their defaults keeps the existing direct-deploy behaviour
+# exactly: no canary function is created, the alias routes 100 % to stable.
+variable "canary_weight" {
+  type    = number
+  default = 0
+  validation {
+    condition     = var.canary_weight >= 0 && var.canary_weight <= 100
+    error_message = "Canary weight must be between 0 (no traffic) and 100 (all traffic)."
+  }
+}
+
+variable "canary_image_tag" {
+  type    = string
+  default = ""
+  validation {
+    condition     = var.canary_image_tag == "" || can(regex("^[a-f0-9]{40}$", var.canary_image_tag))
+    error_message = "Use the full 40-character commit SHA for the canary image, or leave empty to disable canary."
+  }
+}

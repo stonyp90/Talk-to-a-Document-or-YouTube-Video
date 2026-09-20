@@ -5,11 +5,20 @@ import {
   translate,
   samples,
 } from "../i18n";
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
+  Animated,
   BackHandler,
+  useWindowDimensions,
   AppState,
+  Easing,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -21,8 +30,13 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import * as Speech from "expo-speech";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
+import { useCameraPermissions } from "expo-camera";
 import {
   ApiClient,
   apiOrigin,
@@ -34,21 +48,30 @@ import {
 } from "../client";
 import { deviceSessionStore } from "../session";
 import { MobileSignIn } from "../SignIn";
+import { AssistantName } from "../ui/AssistantName";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeVoice, VoiceStatus } from "../voice";
 import {
-  Brand,
   palette as c,
   Reveal,
   serif,
   SourceIcon,
   Touch,
   useMotion,
-  Wave,
 } from "../design";
-import { MobileVoiceActions } from "../VoiceActions";
+import {
+  MobileSenseControls,
+  SenseTestControls,
+  SENSE_TEST_MODE,
+  type NativeSenseActivity,
+} from "../SenseControls";
+import { SenseField, SenseOrb, type SenseVisualActivity } from "../ui/SenseOrb";
 import type { MobileVoiceActionId } from "../VoiceActions";
 import { chatSocketUrl, createChatClient } from "../chat";
+import { createTurnGate } from "../conversation/turnGate";
 import type { ChatClient } from "../../../../packages/core/src/application/chatClient";
+import { YouTubePlayer, extractVideoId } from "../ui/YouTubePlayer";
+import { ToastLayer, type ToastItem, type ToastState } from "../ui/ToastLayer";
 
 const origin = apiOrigin(Platform.OS, process.env.EXPO_PUBLIC_API_URL);
 /**
@@ -57,9 +80,6 @@ const origin = apiOrigin(Platform.OS, process.env.EXPO_PUBLIC_API_URL);
  * over the request path exactly as it did before.
  */
 const channel = chatSocketUrl(origin, process.env.EXPO_PUBLIC_CHAT_SOCKET_URL);
-import { ModeBar } from "../ModeBar";
-import { MobileOnboarding } from "../Onboarding";
-import { MotionCameraView } from "../MotionCameraView";
 import FileBrowserView from "../FileBrowserView";
 import { createMemoryFileSystem } from "../../../../packages/adapters/src/fileSystem";
 import type { FileNode } from "../../../../packages/core/src/domain/fileSystem";
@@ -67,15 +87,6 @@ import {
   createFileNavigator,
   type FileNavAction,
 } from "../../../../packages/core/src/domain/fileNavigation";
-import {
-  chooseMode,
-  DEFAULT_MODE,
-  MODE_STORAGE_KEY,
-  parseSavedMode,
-  type EntryMode,
-  type ModeId,
-} from "../modes";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const api = new ApiClient(
   origin,
@@ -113,14 +124,164 @@ function messageOf(error: string, t: (key: TranslationKey) => string) {
   );
 }
 
+function LyricLine({
+  turn,
+  active,
+  motion,
+}: {
+  turn: Turn;
+  active: boolean;
+  motion: boolean;
+}) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: active ? 1 : 0,
+      duration: motion ? 500 : 0,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [active, motion, anim]);
+
+  const opacity = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: turn.role === "user" ? [0.2, 0.4] : [0.25, 1],
+  });
+  const fontSize = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: turn.role === "user" ? [14, 15] : [15, 22],
+  });
+  const lineHeight = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: turn.role === "user" ? [20, 22] : [22, 32],
+  });
+  const letterSpacing = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -0.5],
+  });
+  const color = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [c.muted, turn.role === "user" ? c.softMuted : c.coral],
+  });
+  const translateX = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, turn.role === "user" ? -8 : 0],
+  });
+
+  return (
+    <Animated.View
+      style={{
+        opacity,
+        transform: [{ translateX }],
+        marginBottom: anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [14, turn.role === "user" ? 16 : 24],
+        }),
+      }}
+    >
+      <Animated.Text
+        selectable={active}
+        style={[
+          turn.role === "user" ? s.lyricsUserText : s.lyricsText,
+          {
+            fontSize,
+            lineHeight,
+            letterSpacing,
+            color,
+            fontWeight: active ? "600" : "400",
+          },
+        ]}
+      >
+        {turn.text}
+      </Animated.Text>
+    </Animated.View>
+  );
+}
+
+function LyricsView({
+  turns,
+  motion,
+}: {
+  turns: Turn[];
+  motion: boolean;
+}) {
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const contentRef = useRef<View>(null);
+
+  useEffect(() => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: motion });
+    }, 100);
+  }, [turns.length, motion]);
+
+  return (
+    <ScrollView
+      ref={scrollRef}
+      style={s.lyricsContainer}
+      contentContainerStyle={s.lyricsContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View ref={contentRef} onLayout={() => {
+        scrollRef.current?.scrollToEnd({ animated: motion });
+      }}>
+        {turns.map((turn, index) => (
+          <LyricLine
+            key={turn.id}
+            turn={turn}
+            active={index === turns.length - 1}
+            motion={motion}
+          />
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
 export function ClassicApp() {
   const motion = useMotion();
-  const [navHeight, setNavHeight] = useState(0);
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const [availableHeight, setAvailableHeight] = useState(height);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [commandSettingsOpen, setCommandSettingsOpen] = useState(false);
+  const [senseActivity, setSenseActivity] = useState<NativeSenseActivity>({
+    listening: false,
+    motion: false,
+    connecting: false,
+  });
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () =>
+      setKeyboardVisible(true),
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
-  const t = (key: TranslationKey) => translate(language, key);
-  const suggestions = (
-    ["Summarize the essentials", "Explain simply", "Key takeaways"] as const
-  ).map(t);
+  const [assistantName, setAssistantName] = useState("Sense to Action");
+
+  useEffect(() => {
+    AsyncStorage.getItem("ursly-assistant-name").then((stored) => {
+      if (stored) setAssistantName(stored);
+    });
+  }, []);
+
+  const t = useCallback(
+    (key: TranslationKey) => translate(language, key),
+    [language],
+  );
+  const suggestions = useMemo(
+    () =>
+      (
+        ["Summarize the essentials", "Explain simply", "Key takeaways"] as const
+      ).map(t),
+    [t],
+  );
   const statuses = {
     ended: t("At your own pace"),
     connecting: t("Connecting…"),
@@ -129,15 +290,17 @@ export function ClassicApp() {
     error: t("Connection interrupted"),
   };
   const sampleText = samples[language];
-  const [screen, setScreen] = useState<"home" | "conversation">("home");
-  const [tab, setTab] = useState<"chat" | "source">("chat");
-  const [sheet, setSheet] = useState<"youtube" | "about" | null>(null);
+  const [sheet, setSheet] = useState<"source" | "about" | "reading" | null>(
+    null,
+  );
+  const [sourceTab, setSourceTab] = useState<"pdf" | "youtube">("pdf");
   const [url, setUrl] = useState("");
   const [source, setSource] = useState<IngestedSource>();
-  const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState<"pdf" | "youtube" | "chat" | null>(null);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const toastId = useRef(0);
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [status, setStatus] = useState<VoiceStatus>("ended");
@@ -147,16 +310,16 @@ export function ClassicApp() {
   const [account, setAccount] = useState<{ email: string } | null>(null);
   const [signInOpen, setSignInOpen] = useState(false);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
-  // The way this person drives Ursly. Voice until they choose otherwise;
-  // the choice is remembered on the device, as the web remembers it per browser.
-  const [entryMode, setEntryMode] = useState<EntryMode>("voice");
-  useEffect(() => {
-    // Mode is preserved across toggles
-  }, []);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [cameraEnabled, setCameraEnabled] = useState(false);
   const voice = useRef<NativeVoice | null>(null);
   const chat = useRef<ChatClient | null>(null);
-  const fileSystemRef = useRef(createMemoryFileSystem());
-  const fileNavigatorRef = useRef<ReturnType<typeof createFileNavigator> | null>(null);
+  const [turnGate] = useState(createTurnGate);
+  const socketTurn = useRef<{ id: string; token: symbol } | null>(null);
+  const [fileSystem] = useState(createMemoryFileSystem);
+  const fileNavigatorRef = useRef<ReturnType<
+    typeof createFileNavigator
+  > | null>(null);
   /** What the channel calls this conversation, so a question is a short frame. */
   const sourceId = useRef<string | undefined>(undefined);
   const sourceRef = useRef<IngestedSource | undefined>(undefined);
@@ -166,6 +329,50 @@ export function ClassicApp() {
   const followTranscript = useRef(true);
   const composer = useRef<React.ComponentRef<typeof TextInput>>(null);
   const active = ["connecting", "connected", "reconnecting"].includes(status);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
+
+  const lastSpokenIndex = useRef<string>("");
+  useEffect(() => {
+    if (busy) return;
+    const lastAssistant = turns
+      .map((t, i) => ({ t, i }))
+      .reverse()
+      .find(({ t }) => t.role === "assistant");
+    if (!lastAssistant || !lastAssistant.t.text.trim()) return;
+    const key = `${lastAssistant.i}:${lastAssistant.t.text.length}`;
+    if (lastSpokenIndex.current === key) return;
+    lastSpokenIndex.current = key;
+    Speech.stop();
+    Speech.speak(lastAssistant.t.text, {
+      language: language === "fr" ? "fr-FR" : "en-US",
+      rate: 0.95,
+    });
+  }, [turns, busy, language]);
+
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
 
   // The sheet is no longer a native Modal, so it owns the Android back gesture.
   useEffect(() => {
@@ -181,15 +388,20 @@ export function ClassicApp() {
     return () => subscription.remove();
   }, [sheet, busy]);
 
-  function showToast(message: string) {
-    setToast(message);
+  function showToast(message: string, state: ToastState = "info") {
+    const id = String(++toastId.current);
+    setToasts((prev) => [...prev, { id, message, state }]);
   }
 
-  useEffect(() => {
-    if (!toast) return;
-    const timeout = setTimeout(() => setToast(""), 4200);
-    return () => clearTimeout(timeout);
-  }, [toast]);
+  function dismissToast(id: string) {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function updateToastState(id: string, state: ToastState) {
+    setToasts((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, state } : t)),
+    );
+  }
 
   useEffect(() => {
     const operationRef = operation;
@@ -209,11 +421,17 @@ export function ClassicApp() {
     void api
       .readSession()
       .then((session) => {
-        if (mounted) setAccount(session);
+        if (mounted) setAccount(session ?? (__DEV__ ? { email: "dev@example.com" } : null));
       })
-      .catch(() => {});
+      .catch(() => {
+        if (mounted && __DEV__) setAccount({ email: "dev@example.com" });
+      });
+    // In dev mode, skip sign-in entirely so the app loads straight to the workspace.
+    if (__DEV__) {
+      setAccount({ email: "dev@example.com" });
+    }
     const listener = AppState.addEventListener("change", (state) => {
-      if (state !== "active") {
+      if (state === "background") {
         voice.current?.stop();
         setMuted(false);
       }
@@ -263,7 +481,7 @@ export function ClassicApp() {
     setAccount(null);
     stop();
     setSheet(null);
-    showToast(t("You are signed out."));
+    showToast(t("You are signed out."), "success");
   }
   /**
    * Opens the live discussion for a source and keeps it for the whole
@@ -287,11 +505,18 @@ export function ClassicApp() {
           sourceId.current = event.sourceId;
           return;
         }
+        if (
+          "askId" in event &&
+          event.askId &&
+          event.askId !== socketTurn.current?.id
+        )
+          return;
         if (event.type === "started") {
           setTurns((previous) => [
             ...previous,
             { id: event.askId, role: "assistant", text: "" },
           ]);
+          showToast(t("Generating answer"), "pending");
           return;
         }
         if (event.type === "delta") {
@@ -305,6 +530,8 @@ export function ClassicApp() {
           return;
         }
         if (event.type === "completed") {
+          if (socketTurn.current) turnGate.finish(socketTurn.current.token);
+          socketTurn.current = null;
           sourceId.current = event.sourceId;
           setTurns((previous) =>
             previous.map((turn) =>
@@ -312,10 +539,12 @@ export function ClassicApp() {
             ),
           );
           setBusy((current) => (current === "chat" ? null : current));
-          showToast(t("Answer ready"));
+          showToast(t("Answer ready"), "success");
           return;
         }
         if (event.type === "failed") {
+          if (socketTurn.current) turnGate.finish(socketTurn.current.token);
+          socketTurn.current = null;
           setBusy((current) => (current === "chat" ? null : current));
           setError(event.message);
         }
@@ -327,18 +556,19 @@ export function ClassicApp() {
 
   function installSource(result: IngestedSource) {
     stop();
+    turnGate.reset();
+    socketTurn.current = null;
+    setBusy(null);
     sourceRef.current = result;
     openChannel();
     setSource(result);
     setTurns([]);
     setQuestion("");
     setUrl("");
-    setExpanded(false);
     setError("");
-    setTab("chat");
     setSheet(null);
-    setScreen("conversation");
-    showToast(t("Source ready"));
+    if (result.kind !== "youtube") setVideoUrl(null);
+    showToast(t("Source ready"), "success");
   }
   async function ingest(kind: "pdf" | "youtube") {
     if (busy) return;
@@ -348,6 +578,19 @@ export function ClassicApp() {
     setError("");
     stop();
     Keyboard.dismiss();
+    const toastRef = String(++toastId.current);
+    setToasts((prev) => [
+      ...prev,
+      {
+        id: toastRef,
+        message:
+          kind === "youtube"
+            ? t("Getting your source ready…")
+            : t("Getting your source ready…"),
+        state: "pending",
+        duration: 0,
+      },
+    ]);
     try {
       let result: IngestedSource;
       if (kind === "pdf") {
@@ -356,11 +599,24 @@ export function ClassicApp() {
           copyToCacheDirectory: true,
           multiple: false,
         });
-        if (selection.canceled) return;
+        if (selection.canceled) {
+          setToasts((prev) => prev.filter((t) => t.id !== toastRef));
+          return;
+        }
         result = await api.pdf(selection.assets[0]);
-      } else result = await api.youtube(url);
-      if (current === operation.current) installSource(result);
+      } else {
+        if (url.trim()) {
+          const vid = extractVideoId(url.trim());
+          if (vid) setVideoUrl(vid);
+        }
+        result = await api.youtube(url);
+      }
+      if (current === operation.current) {
+        setToasts((prev) => prev.filter((t) => t.id !== toastRef));
+        installSource(result);
+      }
     } catch (caught) {
+      setToasts((prev) => prev.filter((t) => t.id !== toastRef));
       if (current === operation.current) fail(caught);
     } finally {
       if (current === operation.current) setBusy(null);
@@ -369,20 +625,24 @@ export function ClassicApp() {
   async function askPrompt(text: string) {
     const submitted = text.trim();
     if (!source) {
-      showToast(t("Add a source first, then wave to ask."));
+      showToast(t("Add a source first, then wave to ask."), "info");
       return;
     }
     if (!submitted || busy) return;
     if (needsSignIn()) return;
+    const turn = turnGate.begin();
+    if (!turn) return;
     const current = operation.current;
     setBusy("chat");
     setError("");
     Keyboard.dismiss();
+    showToast(t("Question sent"), "pending");
 
     // The open channel is the fast path: a short frame on a connection that
     // already exists, and an answer that arrives as it is written.
     const askId = String(++sequence.current) + "a";
     if (chat.current?.ready) {
+      socketTurn.current = { id: askId, token: turn };
       setTurns((previous) => [
         ...previous,
         { id: askId + "u", role: "user", text: submitted },
@@ -396,6 +656,7 @@ export function ClassicApp() {
       setTurns((previous) =>
         previous.filter((turn) => turn.id !== askId + "u"),
       );
+      socketTurn.current = null;
     }
 
     try {
@@ -408,10 +669,11 @@ export function ClassicApp() {
         { id: id + "a", role: "assistant", text: answer },
       ]);
       setQuestion("");
-      showToast(t("Answer ready"));
+      showToast(t("Answer ready"), "success");
     } catch (caught) {
       if (current === operation.current) fail(caught);
     } finally {
+      turnGate.finish(turn);
       if (current === operation.current) setBusy(null);
     }
   }
@@ -452,10 +714,10 @@ export function ClassicApp() {
       setError(t("Add a source first, then say let’s talk again."));
       return;
     }
-    showToast(t("Voice action received"));
+    showToast(t("Voice action received"), "info");
     if (action === "open") {
       setFileBrowserOpen(true);
-      setToast("Opening files");
+      showToast("Opening files", "info");
       return;
     }
     if (action === "upload") {
@@ -464,49 +726,32 @@ export function ClassicApp() {
     }
     if (action === "youtube") {
       setError("");
-      setSheet("youtube");
+      setSourceTab("youtube");
+      setSheet("source");
       return;
     }
     if (action === "voice") {
-      setScreen("conversation");
-      setTab("chat");
       startVoice();
       return;
     }
     if (action === "summarize") {
-      setScreen("conversation");
-      setTab("chat");
-      setQuestion(t("Summarize the essentials"));
-      setTimeout(() => composer.current?.focus(), 0);
+      void askPrompt(t("Summarize the essentials"));
       return;
     }
     if (action === "back") {
-      stop();
-      if (sheet) {
-        setSheet(null);
-        return;
-      }
-      if (screen === "conversation") {
-        setScreen("home");
-        return;
-      }
-      setTab("chat");
+      setSheet(null);
+      setFileBrowserOpen(false);
       setError("");
       return;
     }
     if (action === "next") {
-      if (screen === "home") {
-        if (source) {
-          setScreen("conversation");
-          setTab("chat");
-        } else setSheet("youtube");
-        return;
-      }
-      setTab("chat");
-      setTimeout(() => composer.current?.focus(), 0);
+      if (!source) setSheet("source");
+      else composer.current?.focus();
       return;
     }
     operation.current++;
+    turnGate.reset();
+    socketTurn.current = null;
     stop();
     setBusy(null);
     setSheet(null);
@@ -515,18 +760,6 @@ export function ClassicApp() {
   }
   function handleFileNav(action: FileNavAction) {
     fileNavigatorRef.current?.dispatch(action);
-  }
-  function chooseEntryMode(id: ModeId) {
-    const next = chooseMode(entryMode, id);
-    if (next.mode !== entryMode) {
-      setEntryMode(next.mode);
-      setError("");
-      void AsyncStorage.setItem(MODE_STORAGE_KEY, next.mode).catch(
-        () => undefined,
-      );
-    }
-    showToast(t(next.notice));
-    Keyboard.dismiss();
   }
   function trySample() {
     operation.current++;
@@ -537,8 +770,19 @@ export function ClassicApp() {
       characters: sampleText.length,
     });
   }
+  const visualActivity: SenseVisualActivity =
+    busy || senseActivity.connecting
+      ? "thinking"
+      : senseActivity.listening || active
+        ? "listening"
+        : senseActivity.motion
+          ? "motion"
+          : "idle";
+  const compact = height < 700 || keyboardVisible || !!source;
+  const closeSheetLabel =
+    sheet === "about" ? t("Close settings") : t("Close source picker");
   const notice = error ? (
-    <Reveal motion={motion} style={s.error}>
+    <View style={s.notice} accessibilityLiveRegion="polite">
       <Text accessibilityRole="alert" style={s.errorText}>
         {messageOf(error, t)}
       </Text>
@@ -549,763 +793,589 @@ export function ClassicApp() {
       >
         <Text style={s.errorText}>×</Text>
       </Touch>
-    </Reveal>
+    </View>
   ) : null;
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaView style={s.screen} edges={["top", "left", "right", "bottom"]}>
       <StatusBar barStyle="dark-content" />
-      <SafeAreaView style={s.screen} edges={["top", "left", "right", "bottom"]}>
+      <Animated.View
+        style={[
+          s.screen,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
         <KeyboardAvoidingView
           style={s.screen}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "height" : undefined}
+          keyboardVerticalOffset={insets.top}
+          onLayout={(event) =>
+            setAvailableHeight(event.nativeEvent.layout.height)
+          }
         >
-          {screen === "home" ? (
-            <ScrollView
-              key="home"
-              style={s.homeScroll}
-              contentContainerStyle={s.homeContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={s.header}>
-                <Brand />
-                <Touch
-                  label={t("About Ursly and language")}
-                  onPress={() => setSheet("about")}
-                  motion={motion}
-                  style={s.infoButton}
-                >
-                  <Text style={s.tabLabel}>{language.toUpperCase()}</Text>
-                </Touch>
-              </View>
-              <Reveal motion={motion} style={s.workspaceHeading}>
-                <Text accessibilityRole="header" style={s.title}>
-                  {t("Less scrolling.")}{" "}
-                  <Text style={s.titleAccent}>{t("More understanding.")}</Text>
-                </Text>
-                <Text style={s.lede}>
-                  {entryMode === "voice"
-                    ? t(
-                        "Add a PDF or a captioned YouTube video, then talk to it. Say a command, speak your question, or type whenever you prefer.",
-                      )
-                    : t(
-                        "Add a PDF or a captioned YouTube video, then ask about it by typing. Voice stays one tap away.",
-                      )}
-                </Text>
-              </Reveal>
-              {entryMode === "voice" && !source && (
-                <MobileVoiceActions
-                  language={language}
-                  motion={motion}
-                  voiceBusy={!!busy || active}
-                  canStartVoice={!!source}
-                  t={t}
-                  onAction={handleVoiceAction}
-                  onNotice={showToast}
-                />
-              )}
-              <Reveal motion={motion} delay={70}>
-                <View style={s.sectionHeading}>
-                  <Text style={s.heading}>{t("Let’s explore")}</Text>
-                  <Text style={s.sectionNote}>{t("Your choice")}</Text>
-                </View>
-                <View style={s.importRow}>
-                  <Touch
-                    label={t("Import a PDF")}
-                    onPress={() => void ingest("pdf")}
-                    motion={motion}
-                    disabled={!!busy}
-                    style={[s.importCard, { backgroundColor: c.peach }]}
-                  >
-                    <View style={s.importInner}>
-                      <View style={s.rowBetween}>
-                        <View style={s.iconTile}>
-                          <SourceIcon kind="pdf" />
-                        </View>
-                        <Text style={s.diagonalArrow}>↗</Text>
-                      </View>
-                      <View>
-                        <Text style={s.importTitle}>{t("A document")}</Text>
-                        <Text style={s.importCaption}>
-                          {t("PDF · up to 25 MB")}
-                        </Text>
-                      </View>
-                    </View>
-                  </Touch>
-                  <Touch
-                    label={t("Add a YouTube video")}
-                    onPress={() => {
-                      setError("");
-                      setSheet("youtube");
-                    }}
-                    motion={motion}
-                    disabled={!!busy}
-                    style={[s.importCard, { backgroundColor: c.lavender }]}
-                  >
-                    <View style={s.importInner}>
-                      <View style={s.rowBetween}>
-                        <View style={s.iconTile}>
-                          <SourceIcon kind="youtube" />
-                        </View>
-                        <Text style={s.diagonalArrow}>↗</Text>
-                      </View>
-                      <View>
-                        <Text style={s.importTitle}>{t("A video")}</Text>
-                        <Text style={s.importCaption}>
-                          {t("Paste a YouTube link")}
-                        </Text>
-                      </View>
-                    </View>
-                  </Touch>
-                </View>
-              </Reveal>
-              {busy && (
-                <View style={s.loading} accessibilityLiveRegion="polite">
-                  <ActivityIndicator color={c.ink} />
-                  <Text style={s.body}>{t("Getting your source ready…")}</Text>
-                </View>
-              )}
-              {notice}
-              {source ? (
-                <Reveal motion={motion} delay={100}>
-                  <Touch
-                    label={t("Resume conversation")}
-                    onPress={() => setScreen("conversation")}
-                    motion={motion}
-                    disabled={!!busy}
-                    style={s.resume}
-                  >
-                    <View style={s.resumeInner}>
-                      <View style={s.resumeIcon}>
-                        <SourceIcon kind={source.kind} />
-                      </View>
-                      <View style={s.flex}>
-                        <Text style={s.eyebrow}>
-                          {t("PICK UP WHERE YOU LEFT OFF")}
-                        </Text>
-                        <Text numberOfLines={2} style={s.resumeTitle}>
-                          {source.sourceName}
-                        </Text>
-                      </View>
-                      <Text style={s.diagonalArrow}>→</Text>
-                    </View>
-                  </Touch>
-                </Reveal>
-              ) : (
-                <Reveal motion={motion} delay={140}>
-                  <Touch
-                    label={t("Try a sample text")}
-                    onPress={trySample}
-                    motion={motion}
-                    disabled={!!busy}
-                    style={s.sample}
-                  >
-                    <View style={s.resumeInner}>
-                      <View style={s.sampleStar}>
-                        <Text style={s.star}>✦</Text>
-                      </View>
-                      <View style={s.flex}>
-                        <Text style={s.sampleTitle}>
-                          {t("A little taste of Ursly")}
-                        </Text>
-                        <Text style={s.caption}>
-                          {t("Explore Ursly with a short read.")}
-                        </Text>
-                      </View>
-                      <Text style={s.diagonalArrow}>→</Text>
-                    </View>
-                  </Touch>
-                </Reveal>
-              )}
-              {mode === "mock" && (
-                <Text style={s.demoFootnote}>
-                  {t("Demo space · simulated answers and audio")}
-                </Text>
-              )}
-            </ScrollView>
-          ) : (
-            <>
-              <View style={s.workspaceHeader}>
-                <Touch
-                  label={t("Back to sources")}
-                  onPress={() => {
-                    stop();
-                    setScreen("home");
-                    Keyboard.dismiss();
-                  }}
-                  motion={motion}
-                  disabled={!!busy}
-                >
-                  <Text style={s.back}>
-                    ‹ <Text style={s.backLabel}>{t("Sources")}</Text>
-                  </Text>
-                </Touch>
-                <Brand small />
-                <Touch
-                  label={t("About Ursly and language")}
-                  onPress={() => setSheet("about")}
-                  motion={motion}
-                  style={{ width: 84 }}
-                >
-                  <Text style={s.tabLabel}>{language.toUpperCase()}</Text>
-                </Touch>
-              </View>
-              <View style={s.tabs}>
-                {(["chat", "source"] as const).map((value) => (
-                  <Touch
-                    key={value}
-                    label={
-                      value === "chat" ? t("Conversation") : t("The source")
-                    }
-                    onPress={() => {
-                      setTab(value);
-                      Keyboard.dismiss();
-                    }}
-                    selected={tab === value}
-                    motion={motion}
-                    style={[s.tab, tab === value && s.tabSelected]}
-                  >
-                    <Text
-                      style={[s.tabLabel, tab === value && { color: c.ink }]}
-                    >
-                      {value === "chat" ? t("Conversation") : t("The source")}
-                    </Text>
-                  </Touch>
-                ))}
-              </View>
-              {active && (
-                <View style={s.pinnedVoice}>
-                  <Text accessibilityLiveRegion="polite" style={s.statusText}>
-                    {muted ? t("Microphone muted") : statuses[status]}
-                  </Text>
-                  <View style={s.voiceButtons}>
-                    <Touch
-                      label={
-                        muted ? t("Unmute microphone") : t("Mute microphone")
-                      }
-                      motion={motion}
-                      onPress={() => {
-                        voice.current?.setMuted(!muted);
-                        setMuted(!muted);
-                      }}
-                      disabled={status !== "connected"}
-                      style={s.secondaryDark}
-                    >
-                      <Text style={s.buttonLight}>
-                        {muted ? t("Unmute") : t("Mute")}
-                      </Text>
-                    </Touch>
-                    <Touch
-                      label={t("Stop session")}
-                      motion={motion}
-                      onPress={stop}
-                      style={s.primary}
-                    >
-                      <Text style={s.buttonInk}>{t("■  End session")}</Text>
-                    </Touch>
-                  </View>
-                  <Touch
-                    label={t("Continue by typing")}
-                    motion={motion}
-                    onPress={() => {
-                      stop();
-                      composer.current?.focus();
-                    }}
-                  >
-                    <Text style={s.textLinkLight}>
-                      {t("Continue by typing")}
-                    </Text>
-                  </Touch>
-                </View>
-              )}
-              <ScrollView
-                key={tab}
-                ref={scroll}
-                contentContainerStyle={s.chatContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                scrollEventThrottle={32}
-                onScroll={({
-                  nativeEvent: {
-                    contentOffset,
-                    contentSize,
-                    layoutMeasurement,
-                  },
-                }) => {
-                  followTranscript.current =
-                    contentOffset.y + layoutMeasurement.height >=
-                    contentSize.height - 80;
-                }}
-                onContentSizeChange={() => {
-                  if (
-                    tab === "chat" &&
-                    turns.length &&
-                    followTranscript.current
-                  )
-                    scroll.current?.scrollToEnd({ animated: motion });
-                }}
+        <SenseField motion={motion} />
+        {videoUrl ? (
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <YouTubePlayer videoId={videoUrl} playing />
+          </View>
+        ) : null}
+        <View
+          style={s.workspace}
+          accessibilityElementsHidden={!!sheet || signInOpen}
+          importantForAccessibility={
+            sheet || signInOpen ? "no-hide-descendants" : "auto"
+          }
+        >
+          {source && (
+            <View style={s.statusBar}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("Change source")}
+                accessibilityValue={{ text: source.sourceName }}
+                onPress={() => setSheet("source")}
+                style={s.sourceChip}
               >
-                {source && (
-                  <Reveal motion={motion} style={s.sourceSummary}>
-                    <View style={s.sourceBadge}>
-                      <SourceIcon kind={source.kind} />
-                    </View>
-                    <View style={s.flex}>
-                      <Text style={s.eyebrow}>
-                        {source.kind === "youtube"
-                          ? t("YOUTUBE VIDEO")
-                          : t("YOUR DOCUMENT")}
-                      </Text>
-                      <Text
-                        style={s.sourceName}
-                        numberOfLines={tab === "chat" ? 2 : undefined}
-                      >
-                        {source.sourceName}
-                      </Text>
-                      <Text style={s.caption}>
-                        {source.characters.toLocaleString(
-                          language === "en" ? "en-CA" : "fr-CA",
-                        )}
-                        {language === "en"
-                          ? " characters · ready to explore"
-                          : " caractères · prêt à explorer"}
-                      </Text>
-                    </View>
-                  </Reveal>
-                )}
-                {tab === "source" ? (
-                  <Reveal motion={motion} delay={60} style={s.readingCard}>
-                    <Text style={s.readingTitle}>
-                      {t("It all starts here.")}
-                    </Text>
-                    <Text style={s.readingHint}>
-                      {t("Your source text, always close at hand.")}
-                    </Text>
-                    <Text selectable style={s.sourceText}>
-                      {expanded
-                        ? source?.text
-                        : (source?.text.slice(0, 600) ?? "") +
-                          ((source?.text.length ?? 0) > 600 ? "…" : "")}
-                    </Text>
-                    {(source?.text.length ?? 0) > 600 && (
-                      <Touch
-                        label={
-                          expanded ? t("Show less") : t("Read the full text")
-                        }
-                        motion={motion}
-                        onPress={() => setExpanded(!expanded)}
-                        style={s.outline}
-                      >
-                        <Text style={s.buttonInk}>
-                          {expanded
-                            ? t("Show less ↑")
-                            : t("Read the full text ↓")}
-                        </Text>
-                      </Touch>
-                    )}
-                    <Touch
-                      label={t("Ask about this source")}
-                      motion={motion}
-                      onPress={() => setTab("chat")}
-                      style={s.primary}
-                    >
-                      <Text style={s.buttonInk}>{t("Let’s talk →")}</Text>
-                    </Touch>
-                  </Reveal>
-                ) : (
-                  <>
-                    <Reveal motion={motion} delay={65} style={s.voiceCard}>
-                      <View style={s.rowBetween}>
-                        <View style={s.flex}>
-                          <Text style={s.voiceEyebrow}>
-                            {t("THE JOY OF UNDERSTANDING")}
-                          </Text>
-                          <Text style={s.voiceTitle}>
-                            {active
-                              ? t("Let’s talk it through.")
-                              : t("Think out loud.")}
-                          </Text>
-                        </View>
-                        <Wave
-                          motion={motion && active && !muted}
-                          color={c.coral}
-                          large
-                        />
-                      </View>
-                      <View style={s.statusRow}>
-                        <View
-                          style={[
-                            s.statusDot,
-                            {
-                              backgroundColor:
-                                status === "error"
-                                  ? c.coral
-                                  : active
-                                    ? c.lime
-                                    : c.lilac,
-                            },
-                          ]}
-                        />
-                        <Text
-                          accessibilityLiveRegion="polite"
-                          style={s.statusText}
-                        >
-                          {muted ? t("Microphone muted") : statuses[status]}
-                        </Text>
-                        {(status === "connecting" ||
-                          status === "reconnecting") && (
-                          <ActivityIndicator size="small" color={c.lime} />
-                        )}
-                      </View>
-                      {!active && (
-                        <Touch
-                          label={t("Start voice conversation")}
-                          motion={motion}
-                          onPress={startVoice}
-                          disabled={!!busy}
-                          style={s.primary}
-                        >
-                          <View style={s.buttonRow}>
-                            <Wave motion={false} />
-                            <Text style={s.buttonInk}>{t("Let’s talk")}</Text>
-                            <Text style={s.arrow}>↗</Text>
-                          </View>
-                        </Touch>
-                      )}
-                      {mode === "mock" && (
-                        <Text style={s.demoNotice}>
-                          {t("Demo mode · voice and answers are simulated.")}
-                        </Text>
-                      )}
-                    </Reveal>
-                    {notice}
-                    {!turns.length && (
-                      <Reveal
-                        motion={motion}
-                        delay={100}
-                        style={s.conversationEmpty}
-                      >
-                        <Text style={s.emptyTitle}>
-                          {t("The best question")}
-                          {"\n"}
-                          {t("is yours.")}
-                        </Text>
-                        <Text style={s.emptyCaption}>
-                          {t("A detail to clarify, an idea to explore…")}
-                        </Text>
-                        <View style={s.suggestions}>
-                          {suggestions.map((prompt, index) => (
-                            <Touch
-                              key={prompt}
-                              label={prompt}
-                              motion={motion}
-                              disabled={!!busy}
-                              onPress={() => {
-                                setQuestion(prompt);
-                                composer.current?.focus();
-                              }}
-                              style={s.suggestion}
-                            >
-                              <View style={s.suggestionInner}>
-                                <Text
-                                  style={[
-                                    s.suggestionSymbol,
-                                    {
-                                      color: ["#A9513A", "#6E5D4C", "#536C39"][
-                                        index
-                                      ],
-                                    },
-                                  ]}
-                                >
-                                  {["✦", "≈", "↗"][index]}
-                                </Text>
-                                <Text style={s.suggestionText}>{prompt}</Text>
-                                <Text style={s.suggestionArrow}>+</Text>
-                              </View>
-                            </Touch>
-                          ))}
-                        </View>
-                      </Reveal>
-                    )}
-                    {turns.map((turn) => (
-                      <Reveal
-                        key={turn.id}
-                        motion={motion}
-                        style={[
-                          s.message,
-                          turn.role === "user"
-                            ? s.userMessage
-                            : s.assistantMessage,
-                        ]}
-                      >
-                        <View style={s.messageHeader}>
-                          {turn.role === "assistant" && (
-                            <View style={s.miniBrand}>
-                              <Wave motion={false} color={c.coral} />
-                            </View>
-                          )}
-                          <Text style={s.messageRole}>
-                            {turn.role === "user" ? t("YOU") : "URSLY"}
-                          </Text>
-                        </View>
-                        <Text selectable style={s.messageText}>
-                          {turn.text}
-                        </Text>
-                      </Reveal>
-                    ))}
-                    {busy === "chat" && (
-                      <View style={s.loading} accessibilityLiveRegion="polite">
-                        <ActivityIndicator color={c.coral} />
-                        <Text style={s.caption}>
-                          {t("Ursly is preparing an answer…")}
-                        </Text>
-                      </View>
-                    )}
-                  </>
-                )}
-              </ScrollView>
-              {tab === "chat" && (
-                <View style={s.composerWrap}>
-                  <View style={s.composer}>
-                    <TextInput
-                      ref={composer}
-                      accessibilityLabel={t("Your question")}
-                      placeholder={t("What’s on your mind?")}
-                      placeholderTextColor={c.muted}
-                      value={question}
-                      onChangeText={setQuestion}
-                      multiline
-                      style={s.questionInput}
-                      editable={!busy}
-                    />
-                    <Touch
-                      label={t("Send question")}
-                      motion={motion}
-                      onPress={() => void ask()}
-                      disabled={!!busy || !question.trim()}
-                      style={s.send}
-                    >
-                      {busy === "chat" ? (
-                        <ActivityIndicator color={c.ink} />
-                      ) : (
-                        <Text style={s.sendArrow}>↑</Text>
-                      )}
-                    </Touch>
-                  </View>
-                  <Text style={s.composerHint}>
-                    {t("Grounded in your source. Explored through your eyes.")}
-                  </Text>
-                </View>
-              )}
-            </>
-          )}
-          <ModeBar
-            mode={entryMode}
-            motion={motion}
-            t={t}
-            onChoose={chooseEntryMode}
-            onLayout={(event) => setNavHeight(event.nativeEvent.layout.height)}
-          />
-          {toast && (
-            <View
-              pointerEvents="box-none"
-              style={[s.toastWrap, { bottom: navHeight + 12 }]}
-            >
-              <View
-                accessibilityRole="alert"
-                accessibilityLiveRegion="polite"
-                style={s.toast}
-              >
-                <Text style={s.toastText}>{toast}</Text>
-                <Touch
-                  label={t("Dismiss message")}
-                  motion={motion}
-                  onPress={() => setToast("")}
-                  style={s.toastClose}
-                >
-                  <Text style={s.toastCloseText}>×</Text>
-                </Touch>
-              </View>
+                <SourceIcon kind={source.kind} color={c.accent} />
+                <Text numberOfLines={1} style={s.sourceName}>
+                  {source.sourceName}
+                </Text>
+                <Text style={s.secondary}>↗</Text>
+              </Pressable>
             </View>
           )}
-        </KeyboardAvoidingView>
-        {sheet !== null && (
-          <KeyboardAvoidingView
-            style={s.modalRoot}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-          >
+          {!sheet && notice}
+          <View style={s.stage}>
+            {turns.length ? (
+              <LyricsView turns={turns} motion={motion} />
+            ) : !keyboardVisible ? (
+              <View style={s.origin}>
+                {!(source && height < 700) && (
+                  <SenseOrb
+                    motion={motion}
+                    activity={visualActivity}
+                    compact={compact}
+                  />
+                )}
+                <Text accessibilityRole="header" style={s.title}>
+                  {source ? t("What are you curious about?") : ""}
+                </Text>
+                {source ? (
+                  <View style={s.suggestions}>
+                    {suggestions.map((prompt) => (
+                      <Pressable
+                        key={prompt}
+                        accessibilityRole="button"
+                        accessibilityLabel={prompt}
+                        disabled={!!busy}
+                        onPress={() => void askPrompt(prompt)}
+                        style={s.suggestion}
+                      >
+                        <Text style={s.suggestionText}>{prompt}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : (
+                  <Touch
+                    label={t("Add a source")}
+                    motion={motion}
+                    onPress={() => setSheet("source")}
+                    style={s.addSource}
+                  >
+                    <View style={s.buttonRow}>
+                      <Text style={s.secondary}>↓</Text>
+                      <Text style={s.buttonText}>{t("Add a source")}</Text>
+                    </View>
+                  </Touch>
+                )}
+              </View>
+            ) : null}
+          </View>
+          {busy && (
+            <View style={s.progress} accessibilityLiveRegion="polite">
+              <ActivityIndicator color={c.accent} />
+              <Text style={s.caption}>
+                {busy === "chat"
+                  ? t("Thinking…")
+                  : t("Getting your source ready…")}
+              </Text>
+            </View>
+          )}
+          {mode === "mock" && source && (
+            <Text style={s.demo}>
+              {t("Demo mode · voice and answers are simulated.")}
+            </Text>
+          )}
+          {source && (
+            <View style={s.composer}>
+              <TextInput
+                ref={composer}
+                accessibilityLabel={t("Ask a question")}
+                placeholder={t("Ask a question")}
+                placeholderTextColor={c.muted}
+                style={s.questionInput}
+                value={question}
+                onChangeText={setQuestion}
+                editable={!busy}
+                multiline
+                returnKeyType="send"
+                blurOnSubmit={false}
+                onSubmitEditing={() => void ask()}
+              />
+              <Touch
+                label={t("Send")}
+                motion={motion}
+                disabled={!!busy || !question.trim()}
+                onPress={() => void ask()}
+                style={s.send}
+              >
+                <Text style={s.sendText}>↑</Text>
+              </Touch>
+            </View>
+          )}
+          <View style={s.dock}>
+            <MobileSenseControls
+              language={language}
+              motion={motion}
+              t={t}
+              voiceBusy={active}
+              canStartVoice={!!source}
+              onAction={handleVoiceAction}
+              onNotice={showToast}
+              onDictate={(text) => void askPrompt(text)}
+              prompts={suggestions}
+              canAsk={!!source}
+              onAsk={(text) => void askPrompt(text)}
+              fileBrowserOpen={fileBrowserOpen}
+              onFileNav={handleFileNav}
+              onActivityChange={setSenseActivity}
+              onStop={stop}
+              commandSettingsOpen={commandSettingsOpen}
+              onCommandSettingsClose={() => {
+                setCommandSettingsOpen(false);
+                setSheet("about");
+              }}
+            />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t("Close window")}
-              style={s.scrim}
-              disabled={!!busy}
+              accessibilityLabel={t("Workspace settings")}
+              onPress={() => setSheet("about")}
+              style={s.settingsButton}
+            >
+              <View accessible={false} style={s.orbitControl}>
+                <View style={[s.orbitLine, s.orbitLeft]} />
+                <View style={[s.orbitLine, s.orbitRight]} />
+                <View style={s.orbitCenter} />
+              </View>
+            </Pressable>
+          </View>
+        </View>
+        <ToastLayer toasts={toasts} onDismiss={dismissToast} />
+        {!!sheet && (
+          <View style={s.modalRoot} accessibilityViewIsModal>
+            <Pressable
+              accessibilityLabel={closeSheetLabel}
               onPress={() => setSheet(null)}
+              style={s.scrim}
             />
-            <SafeAreaView style={s.sheet} edges={["bottom"]}>
+            <Reveal
+              motion={motion}
+              style={[
+                s.sheet,
+                { maxHeight: Math.min(height * 0.82, availableHeight - 24) },
+              ]}
+            >
+              <View style={s.sheetHeader}>
+                <Text accessibilityRole="header" style={s.sheetTitle}>
+                  {sheet === "about"
+                    ? t("Workspace settings")
+                    : sheet === "reading"
+                      ? t("The source")
+                      : t("Add a source")}
+                </Text>
+                <Touch
+                  label={closeSheetLabel}
+                  motion={motion}
+                  onPress={() => setSheet(null)}
+                >
+                  <Text style={s.secondary}>×</Text>
+                </Touch>
+              </View>
               <ScrollView
-                style={{ flexShrink: 1 }}
-                contentContainerStyle={{ gap: 18, paddingBottom: 8 }}
                 keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
+                contentContainerStyle={s.sheetContent}
               >
-                <View style={s.sheetHandle} />
-                <View style={s.rowBetween}>
-                  <Text style={s.sheetTitle}>
-                    {sheet === "youtube"
-                      ? t("One video. New ideas.")
-                      : t("Hi there, we’re Ursly.")}
-                  </Text>
-                  <Touch
-                    label={t("Close")}
-                    onPress={() => setSheet(null)}
-                    motion={motion}
-                    disabled={!!busy}
-                  >
-                    <Text style={s.close}>×</Text>
-                  </Touch>
-                </View>
-                {sheet === "about" && (
-                  <View style={{ gap: 10 }}>
-                    <Text style={s.aboutTitle}>{t("Your account")}</Text>
-                    {account ? (
-                      <>
-                        <Text style={s.caption}>
-                          {t("Signed in as")} {account.email}
-                        </Text>
+                {sheet === "source" && (
+                  <>
+                    <View accessibilityRole="tablist" style={s.tabs}>
+                      {(["pdf", "youtube"] as const).map((kind) => (
                         <Touch
-                          label={t("Sign out")}
+                          key={kind}
+                          label={kind === "pdf" ? "PDF" : "YouTube"}
                           motion={motion}
-                          onPress={() => void signOut()}
-                          style={[s.tab, { backgroundColor: c.white }]}
+                          selected={sourceTab === kind}
+                          accessibilityRole="tab"
+                          onPress={() => setSourceTab(kind)}
+                          style={[s.tab, sourceTab === kind && s.selected]}
                         >
-                          <Text style={s.tabLabel}>{t("Sign out")}</Text>
-                        </Touch>
-                      </>
-                    ) : (
-                      <Touch
-                        label={t("Sign in to continue")}
-                        motion={motion}
-                        onPress={() => {
-                          setSheet(null);
-                          setSignInOpen(true);
-                        }}
-                        style={[s.tab, { backgroundColor: c.lavender }]}
-                      >
-                        <Text style={s.tabLabel}>{t("Sign in")}</Text>
-                      </Touch>
-                    )}
-                  </View>
-                )}
-                {sheet === "about" && (
-                  <View style={{ gap: 10 }}>
-                    <Text style={s.aboutTitle}>{t("App language")}</Text>
-                    <View style={{ flexDirection: "row", gap: 8 }}>
-                      {(["en", "fr"] as const).map((value) => (
-                        <Touch
-                          key={value}
-                          label={value === "en" ? "English" : "Français"}
-                          selected={language === value}
-                          motion={motion}
-                          onPress={() => setLanguage(value)}
-                          style={[
-                            s.tab,
-                            {
-                              backgroundColor:
-                                language === value ? c.lavender : c.white,
-                            },
-                          ]}
-                        >
-                          <Text style={s.tabLabel}>
-                            {value === "en" ? "English" : "Français"}
-                            {language === value ? " ✓" : ""}
+                          <Text style={s.buttonText}>
+                            {kind === "pdf" ? "PDF" : "YouTube"}
                           </Text>
                         </Touch>
                       ))}
                     </View>
-                  </View>
-                )}
-                {sheet === "youtube" ? (
-                  <>
-                    <Text style={s.sheetCaption}>
-                      {t("Paste a YouTube link with captions.")}
-                      {"\n"}
-                      {t("We’ll get the text. You bring the curiosity.")}
-                    </Text>
-                    <View style={s.urlRow}>
-                      <TextInput
-                        accessibilityLabel={t("YouTube link")}
-                        placeholder="https://youtube.com/watch?v=…"
-                        placeholderTextColor={c.muted}
-                        value={url}
-                        onChangeText={setUrl}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        keyboardType="url"
-                        returnKeyType="go"
-                        onSubmitEditing={() => {
-                          if (url.trim()) void ingest("youtube");
-                        }}
-                        style={[s.urlInput, { flex: 1 }]}
-                        editable={!busy}
-                      />
+                    {sourceTab === "pdf" ? (
                       <Touch
-                        label={t("Load video")}
+                        label={t("Import a PDF")}
                         motion={motion}
-                        onPress={() => void ingest("youtube")}
-                        disabled={!!busy || !url.trim()}
-                        style={s.send}
+                        disabled={!!busy}
+                        onPress={() => void ingest("pdf")}
+                        style={s.importButton}
                       >
-                        {busy === "youtube" ? (
-                          <ActivityIndicator color={c.ink} />
-                        ) : (
-                          <Text style={s.sendArrow}>↑</Text>
-                        )}
+                        <SourceIcon kind="pdf" color={c.accent} />
+                        <Text style={s.buttonText}>{t("Import a PDF")}</Text>
+                        <Text style={s.caption}>{t("PDF · up to 25 MB")}</Text>
                       </Touch>
-                    </View>
+                    ) : (
+                      <>
+                        <TextInput
+                          accessibilityLabel={t("YouTube link")}
+                          placeholder="https://youtube.com/watch?v=…"
+                          placeholderTextColor={c.muted}
+                          value={url}
+                          onChangeText={setUrl}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          keyboardType="url"
+                          returnKeyType="go"
+                          onSubmitEditing={() => {
+                            if (url.trim()) void ingest("youtube");
+                          }}
+                          style={s.urlInput}
+                          editable={!busy}
+                        />
+                        <Touch
+                          label={t("Load video")}
+                          motion={motion}
+                          onPress={() => void ingest("youtube")}
+                          disabled={!!busy || !url.trim()}
+                          style={s.addSource}
+                        >
+                          <Text style={s.buttonText}>{t("Load video")}</Text>
+                        </Touch>
+                      </>
+                    )}
+                    {busy && <ActivityIndicator color={c.accent} />}
                     {notice}
+                    {source && (
+                      <Touch
+                        label={t("The source")}
+                        motion={motion}
+                        onPress={() => setSheet("reading")}
+                        style={s.secondaryButton}
+                      >
+                        <Text style={s.secondary}>{t("The source")}</Text>
+                      </Touch>
+                    )}
                   </>
-                ) : (
+                )}
+                {sheet === "reading" && (
                   <>
-                    <Text style={s.sheetCaption}>
-                      {t(
-                        "Your documents and videos have something to say. Ursly helps you explore them, one question at a time.",
-                      )}
+                    <Text style={s.sheetTitle}>{source?.sourceName}</Text>
+                    <Text selectable style={s.messageText}>
+                      {source?.text}
                     </Text>
-                    <View style={s.aboutNote}>
-                      <Text style={s.aboutTitle}>
-                        {t("Your curiosity takes it from here.")}
-                      </Text>
-                      <Text style={s.body}>
-                        {t(
-                          "Add a source, read its text and chat by typing or speaking. Conversation history stays in the current session.",
-                        )}
-                      </Text>
+                  </>
+                )}
+                {sheet === "about" && (
+                  <>
+                    <AssistantName
+                      value={assistantName}
+                      onChange={setAssistantName}
+                      t={t}
+                    />
+
+                    <View style={s.settingsSection}>
+                      <Text style={s.settingsSectionTitle}>{t("Inputs")}</Text>
+                      <View style={s.settingsCard}>
+                        <View style={s.settingsRow}>
+                          <View style={s.settingsRowContent}>
+                            <Text style={s.settingsRowTitle}>
+                              {t("Motion tracking")}
+                            </Text>
+                            <Text style={s.settingsRowDescription}>
+                              {t("Camera tracks gestures to navigate.")}
+                            </Text>
+                          </View>
+                          <Pressable
+                            accessibilityRole="switch"
+                            accessibilityState={{ checked: cameraEnabled }}
+                            onPress={async () => {
+                              if (cameraEnabled) {
+                                setCameraEnabled(false);
+                                showToast(t("Camera disabled"), "info");
+                              } else {
+                                let permission = cameraPermission;
+                                if (!permission?.granted) {
+                                  permission = await requestCameraPermission();
+                                }
+                                if (permission?.granted) {
+                                  setCameraEnabled(true);
+                                  showToast(t("Camera enabled"), "success");
+                                } else {
+                                  showToast(t("Camera permission required"), "error");
+                                }
+                              }
+                            }}
+                            style={[
+                              s.toggle,
+                              cameraEnabled && s.toggleActive,
+                            ]}
+                          >
+                            <View
+                              style={[
+                                s.toggleThumb,
+                                cameraEnabled && s.toggleThumbActive,
+                              ]}
+                            />
+                          </Pressable>
+                        </View>
+                      </View>
                     </View>
-                    <Text style={s.caption}>
-                      {mode === "mock"
-                        ? t("This space uses demo answers, captions and audio.")
-                        : t(
-                            "Voice requires microphone access and a connected service.",
-                          )}
-                    </Text>
-                    <Text style={s.caption}>
-                      {t(
-                        "Animations follow your device’s accessibility preferences.",
-                      )}
-                    </Text>
+
+                    <View style={s.settingsSection}>
+                      <Text style={s.settingsSectionTitle}>
+                        {t("Commands")}
+                      </Text>
+                      <View style={s.settingsCard}>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => {
+                            setSheet(null);
+                            setCommandSettingsOpen(true);
+                          }}
+                          style={s.settingsRow}
+                        >
+                          <View style={s.settingsRowContent}>
+                            <Text style={s.settingsRowTitle}>
+                              {t("Customize commands")}
+                            </Text>
+                            <Text style={s.settingsRowDescription}>
+                              {t(
+                                "Customize voice triggers and gestures.",
+                              )}
+                            </Text>
+                          </View>
+                          <Text style={s.settingsChevron}>→</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    <View style={s.settingsSection}>
+                      <Text style={s.settingsSectionTitle}>
+                        {t("App language")}
+                      </Text>
+                      <View style={s.settingsCard}>
+                        <View style={s.languageRow}>
+                          {(["en", "fr"] as const).map((value) => (
+                            <Pressable
+                              key={value}
+                              accessibilityRole="radio"
+                              accessibilityState={{
+                                selected: language === value,
+                              }}
+                              onPress={() => {
+                                setLanguage(value);
+                                showToast(
+                                  value === "en"
+                                    ? t("Language set to English")
+                                    : t("Langue définie sur français"),
+                                  "info",
+                                );
+                              }}
+                              style={[
+                                s.languageOption,
+                                language === value && s.languageOptionActive,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  s.languageOptionText,
+                                  language === value &&
+                                    s.languageOptionTextActive,
+                                ]}
+                              >
+                                {value === "en" ? "English" : "Français"}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      </View>
+                    </View>
+
+                    {source && (
+                      <View style={s.settingsSection}>
+                        <Text style={s.settingsSectionTitle}>
+                          {t("Audio")}
+                        </Text>
+                        <View style={s.settingsCard}>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={() => {
+                              if (active) {
+                                stop();
+                                showToast(t("Session stopped"), "info");
+                              } else {
+                                startVoice();
+                                showToast(t("Voice session started"), "success");
+                              }
+                            }}
+                            disabled={!!busy}
+                            style={s.settingsRow}
+                          >
+                            <View style={s.settingsRowContent}>
+                              <Text style={s.settingsRowTitle}>
+                                {active
+                                  ? t("Stop session")
+                                  : t("Start voice conversation")}
+                              </Text>
+                              {active && (
+                                <Text style={s.settingsRowDescription}>
+                                  {muted
+                                    ? t("Microphone muted")
+                                    : statuses[status]}
+                                </Text>
+                              )}
+                            </View>
+                            {active && (
+                              <Pressable
+                                accessibilityRole="button"
+                                onPress={() => {
+                                  voice.current?.setMuted(!muted);
+                                  setMuted(!muted);
+                                  showToast(
+                                    !muted
+                                      ? t("Microphone muted")
+                                      : t("Microphone unmuted"),
+                                    "info",
+                                  );
+                                }}
+                                disabled={status !== "connected"}
+                                style={s.muteButton}
+                              >
+                                <Text style={s.muteButtonText}>
+                                  {muted ? t("Unmute") : t("Mute")}
+                                </Text>
+                              </Pressable>
+                            )}
+                          </Pressable>
+                        </View>
+                      </View>
+                    )}
+
+                    <View style={s.settingsSection}>
+                      <Text style={s.settingsSectionTitle}>
+                        {t("Your account")}
+                      </Text>
+                      <View style={s.settingsCard}>
+                        {account ? (
+                          <>
+                            <View style={s.settingsRow}>
+                              <View style={s.settingsRowContent}>
+                                <Text style={s.settingsRowTitle}>
+                                  {account.email}
+                                </Text>
+                                <Text style={s.settingsRowDescription}>
+                                  {t("Signed in as")}
+                                </Text>
+                              </View>
+                            </View>
+                            <View style={s.settingsDivider} />
+                            <Pressable
+                              accessibilityRole="button"
+                              onPress={() => {
+                                void signOut();
+                                showToast(t("Signed out"), "success");
+                              }}
+                              style={s.settingsRow}
+                            >
+                              <Text style={s.settingsRowTitle}>
+                                {t("Sign out")}
+                              </Text>
+                            </Pressable>
+                          </>
+                        ) : (
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={() => {
+                              setSheet(null);
+                              setSignInOpen(true);
+                            }}
+                            style={s.settingsRow}
+                          >
+                            <Text style={s.settingsRowTitle}>
+                              {t("Sign in")}
+                            </Text>
+                            <Text style={s.settingsRowDescription}>
+                              {t("Sign in to continue")}
+                            </Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+
+                    <View style={s.settingsSection}>
+                      <Text style={s.settingsSectionTitle}>{t("Demo")}</Text>
+                      <View style={s.settingsCard}>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={trySample}
+                          style={s.settingsRow}
+                        >
+                          <Text style={s.settingsRowTitle}>
+                            {t("Try a sample text")}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    {SENSE_TEST_MODE && (
+                      <View style={s.settingsSection}>
+                        <SenseTestControls t={t} />
+                      </View>
+                    )}
+
+                    {notice}
                   </>
                 )}
               </ScrollView>
-            </SafeAreaView>
-          </KeyboardAvoidingView>
+            </Reveal>
+          </View>
         )}
         {signInOpen && (
           <MobileSignIn
             motion={motion}
             t={t}
-            onRequestCode={(email) => api.requestSignInCode(email)}
+            onRequestCode={async (email) => {
+              // In dev mode, skip the actual email and auto-confirm
+              if (__DEV__) {
+                setAccount({ email: email.trim() || "test@example.com" });
+                setSignInOpen(false);
+                setError("");
+                return;
+              }
+              await api.requestSignInCode(email);
+            }}
             onConfirm={async (email, code) => {
+              // In dev mode, accept any code
+              if (__DEV__) {
+                setAccount({ email: email.trim() || "test@example.com" });
+                setSignInOpen(false);
+                setError("");
+                return;
+              }
               setAccount(await api.confirmSignInCode(email, code));
               setSignInOpen(false);
               setError("");
@@ -1313,435 +1383,316 @@ export function ClassicApp() {
             onClose={() => setSignInOpen(false)}
           />
         )}
-      </SafeAreaView>
+      </KeyboardAvoidingView>
+      </Animated.View>
       {fileBrowserOpen && (
         <FileBrowserView
-          fs={fileSystemRef.current}
+          fs={fileSystem}
           rootId="root"
           navigatorRef={fileNavigatorRef}
           onClose={() => setFileBrowserOpen(false)}
           onFileSelect={(node: FileNode) => {
-            setToast(`Selected: ${node.name}`);
+            showToast(node.name);
             setFileBrowserOpen(false);
           }}
         />
       )}
-      {entryMode === "motion" && (
-        <MotionCameraView
-          prompts={suggestions}
-          canAsk={Boolean(source)}
-          fileBrowserOpen={fileBrowserOpen}
-          onAsk={(questionText) => {
-            void askPrompt(questionText);
-          }}
-          onAction={(act) => handleVoiceAction(act)}
-          onFileNav={handleFileNav}
-          onClose={() => chooseEntryMode("voice")}
-          t={t}
-        />
-      )}
-      <MobileOnboarding
-        motion={motion}
-        language={language}
-        onLanguageChange={setLanguage}
-        t={t}
-      />
-    </SafeAreaProvider>
+    </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.paper },
-  homeScroll: { flex: 1 },
-  workspaceHeading: { gap: 8, paddingTop: 4 },
-  title: {
-    fontFamily: serif,
-    fontSize: 30,
-    lineHeight: 36,
-    letterSpacing: -0.6,
-    color: c.ink,
-  },
-  titleAccent: { color: c.accent },
-  lede: { fontSize: 14, lineHeight: 21, color: c.muted },
   flex: { flex: 1 },
-  homeContent: {
-    paddingHorizontal: 22,
-    paddingTop: 8,
-    paddingBottom: 25,
-    gap: 22,
-  },
-  header: {
+  workspace: { flex: 1, paddingHorizontal: 16, paddingBottom: 8 },
+  statusBar: {
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 1,
-  },
-  infoButton: {
-    borderRadius: 24,
-    backgroundColor: c.lavender,
-    width: 45,
-    height: 45,
-  },
-  rowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 12,
-  },
-  sectionHeading: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-    gap: 6,
-    marginBottom: 13,
-  },
-  heading: {
-    fontSize: 21,
-    fontWeight: "700",
-    letterSpacing: -0.6,
-    color: c.ink,
-  },
-  sectionNote: { fontSize: 11, color: c.muted },
-  importRow: { flexDirection: "row", gap: 12 },
-  importCard: { flex: 1, borderRadius: 23 },
-  importInner: { width: "100%", padding: 3, gap: 22 },
-  iconTile: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF70",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  diagonalArrow: { fontSize: 24, color: c.ink, fontWeight: "300" },
-  importTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: c.ink,
-    letterSpacing: -0.4,
-  },
-  importCaption: {
-    marginTop: 6,
-    color: "#615767",
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  sample: {
-    backgroundColor: c.white,
-    borderRadius: 21,
-    borderWidth: 1,
-    borderColor: c.line,
-  },
-  resumeInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    gap: 12,
-  },
-  sampleStar: {
-    width: 39,
-    height: 43,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 13,
-    backgroundColor: "#EDF0DF",
-  },
-  star: { fontSize: 27, color: "#677C4A" },
-  sampleTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: c.ink,
-    marginBottom: 4,
-  },
-  caption: { fontSize: 12, color: c.muted, lineHeight: 18 },
-  eyebrow: {
-    fontSize: 9,
-    letterSpacing: 1.3,
-    color: c.muted,
-    fontWeight: "700",
-  },
-  demoFootnote: {
-    textAlign: "center",
-    fontSize: 10,
-    color: c.muted,
-    marginTop: 0,
-  },
-  resume: { backgroundColor: c.lavender, borderRadius: 22 },
-  resumeIcon: {
-    width: 40,
-    height: 43,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  resumeTitle: { fontSize: 14, fontWeight: "600", color: c.ink, marginTop: 4 },
-  loading: {
-    paddingVertical: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: 10,
   },
-  body: { fontSize: 14, lineHeight: 22, color: c.muted },
-  toastWrap: {
-    position: "absolute",
-    left: 18,
-    right: 18,
-    zIndex: 20,
-    elevation: 20,
+  settingsButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  toast: {
-    minHeight: 48,
-    paddingLeft: 16,
-    paddingRight: 6,
-    borderRadius: 16,
-    backgroundColor: c.ink,
+  orbitControl: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  orbitLine: {
+    position: "absolute",
+    width: 22,
+    height: 22,
+    borderWidth: 1,
+    borderColor: c.accent,
+    borderRadius: 12,
+  },
+  orbitLeft: { transform: [{ rotate: "-35deg" }, { scaleX: 0.48 }] },
+  orbitRight: { transform: [{ rotate: "35deg" }, { scaleX: 0.48 }] },
+  orbitCenter: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: c.accent,
+  },
+  sourceChip: {
+    flexShrink: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    shadowColor: c.ink,
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-  },
-  toastText: { flex: 1, color: c.paper, fontSize: 12, lineHeight: 18 },
-  toastClose: { flexGrow: 0, width: 38, height: 38 },
-  toastCloseText: { color: c.paper, fontSize: 22, fontWeight: "300" },
-  error: {
-    paddingLeft: 15,
-    borderRadius: 16,
-    backgroundColor: c.errorBg,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  errorText: { flex: 1, fontSize: 13, lineHeight: 20, color: c.error },
-  workspaceHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingTop: 4,
-    paddingBottom: 8,
-  },
-  back: { color: c.ink, fontSize: 28 },
-  backLabel: { fontSize: 13, fontWeight: "600" },
-  tabs: {
-    alignSelf: "center",
-    backgroundColor: c.paper,
+    borderWidth: 1,
     borderColor: c.line,
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 4,
-    marginBottom: 10,
-    padding: 3,
-    width: "100%",
-  },
-  tab: { flex: 1, borderRadius: 10, minHeight: 34 },
-  tabSelected: { backgroundColor: c.white },
-  tabLabel: { color: c.muted, fontSize: 13, fontWeight: "600" },
-  chatContent: { padding: 22, gap: 18, paddingBottom: 28 },
-  sourceSummary: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 15,
-    borderRadius: 20,
-    backgroundColor: c.lavender,
-  },
-  sourceBadge: {
-    backgroundColor: "#F5F1EA",
-    width: 44,
-    height: 48,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sourceName: {
-    fontSize: 15,
-    lineHeight: 21,
-    fontWeight: "600",
-    color: c.ink,
-    marginVertical: 3,
-  },
-  pinnedVoice: {
-    backgroundColor: c.ink,
-    marginHorizontal: 22,
-    padding: 12,
-    gap: 6,
-    borderRadius: 20,
-  },
-  voiceCard: { backgroundColor: c.ink, borderRadius: 25, padding: 21, gap: 15 },
-  voiceEyebrow: {
-    color: "#C8BDB1",
-    fontSize: 8,
-    letterSpacing: 1.1,
-    fontWeight: "700",
-  },
-  voiceTitle: {
-    fontFamily: serif,
-    color: c.paper,
-    fontSize: 33,
-    letterSpacing: -0.8,
-    marginTop: 7,
-  },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  statusDot: { height: 6, width: 6, borderRadius: 4 },
-  statusText: { fontSize: 12, color: "#E1DAD2" },
-  voiceButtons: { flexDirection: "row", gap: 10 },
-  secondaryDark: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#6D6576",
+    backgroundColor: c.white,
     borderRadius: 16,
+    paddingHorizontal: 12,
+    minHeight: 44,
   },
-  primary: { backgroundColor: c.coral, borderRadius: 17, flexGrow: 1 },
+  sourceName: { flexShrink: 1, fontSize: 12, color: c.ink },
+  stage: { flex: 1, minHeight: 0, justifyContent: "center" },
+  origin: { alignItems: "center", justifyContent: "center", gap: 18 },
+  title: {
+    textAlign: "center",
+    color: c.ink,
+    fontSize: 27,
+    fontWeight: "400",
+    letterSpacing: -1,
+  },
+  addSource: {
+    alignSelf: "center",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: c.strongLine,
+    backgroundColor: c.white,
+    paddingHorizontal: 10,
+    minHeight: 48,
+  },
   buttonRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
   },
-  buttonInk: { color: c.ink, fontSize: 15, fontWeight: "700" },
-  buttonLight: { color: c.paper, fontSize: 14, fontWeight: "600" },
-  arrow: { fontSize: 23, color: c.ink, marginLeft: 6 },
-  textLinkLight: {
-    color: "#E1DAD2",
-    fontSize: 13,
-    textDecorationLine: "underline",
+  buttonText: { fontSize: 14, color: c.accent, fontWeight: "600" },
+  secondary: { fontSize: 18, color: c.ink },
+  suggestions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    justifyContent: "center",
   },
-  demoNotice: {
-    color: "#D1C5B9",
-    fontSize: 10,
-    lineHeight: 16,
+  suggestion: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.white,
+  },
+  suggestionText: { fontSize: 12, color: c.ink },
+  messages: { paddingVertical: 16, gap: 14 },
+  message: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.white,
+    padding: 16,
+    gap: 8,
+  },
+  userMessage: { backgroundColor: c.peach, marginLeft: 24 },
+  author: { color: c.muted, fontSize: 11, fontWeight: "600" },
+  messageText: { color: c.ink, fontSize: 15, lineHeight: 23 },
+  lyricsContainer: { flex: 1 },
+  lyricsContent: {
+    paddingVertical: 40,
+    justifyContent: "center",
+    minHeight: "100%",
+  },
+  lyricsText: {
+    fontFamily: serif,
     textAlign: "center",
   },
-  conversationEmpty: { paddingVertical: 8 },
-  emptyTitle: {
-    fontFamily: serif,
-    fontSize: 27,
-    color: c.ink,
-    lineHeight: 34,
-    letterSpacing: -0.5,
-  },
-  emptyCaption: { fontSize: 13, color: c.muted, marginTop: 8, lineHeight: 19 },
-  suggestions: { gap: 8, marginTop: 18 },
-  suggestion: {
-    backgroundColor: c.white,
-    borderWidth: 1,
-    borderColor: c.line,
-    borderRadius: 15,
-  },
-  suggestionInner: {
-    flexDirection: "row",
-    gap: 11,
-    alignItems: "center",
-    width: "100%",
-  },
-  suggestionSymbol: { fontSize: 23, width: 25, textAlign: "center" },
-  suggestionText: { flex: 1, fontSize: 13, color: c.ink },
-  suggestionArrow: { color: c.muted, fontSize: 18 },
-  message: { borderRadius: 21, padding: 18, gap: 10 },
-  userMessage: {
-    backgroundColor: c.lavender,
-    marginLeft: 26,
-    borderBottomRightRadius: 6,
-  },
-  assistantMessage: {
-    backgroundColor: c.white,
-    borderWidth: 1,
-    borderColor: c.line,
-    marginRight: 12,
-    borderBottomLeftRadius: 6,
-  },
-  messageHeader: { flexDirection: "row", gap: 7, alignItems: "center" },
-  messageRole: {
-    color: "#6E5D4C",
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-  },
-  miniBrand: { height: 18, width: 23, transform: [{ scale: 0.65 }] },
-  messageText: { color: c.ink, fontSize: 15, lineHeight: 24 },
-  composerWrap: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 5,
-    borderTopWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
+  lyricsUserText: {
+    textAlign: "center",
+    fontStyle: "italic",
   },
   composer: {
     flexDirection: "row",
     alignItems: "flex-end",
     borderWidth: 1,
-    borderColor: "#DCD3CB",
-    borderRadius: 23,
-    backgroundColor: c.white,
+    borderColor: c.strongLine,
+    borderRadius: 22,
     padding: 6,
+    backgroundColor: c.white,
+    marginBottom: 10,
   },
   questionInput: {
     flex: 1,
+    minHeight: 44,
+    maxHeight: 100,
+    padding: 10,
+    paddingTop: 12,
     color: c.ink,
     fontSize: 14,
-    padding: 11,
-    paddingTop: 13,
-    minHeight: 46,
-    maxHeight: 124,
   },
-  send: { backgroundColor: c.coral, borderRadius: 18, width: 46, height: 46 },
-  sendArrow: { fontSize: 25, color: c.ink, fontWeight: "500" },
-  composerHint: {
-    color: c.muted,
-    fontSize: 9,
-    textAlign: "center",
-    marginTop: 7,
-  },
-  readingCard: {
-    backgroundColor: c.white,
-    padding: 21,
+  send: { width: 44, height: 44, borderRadius: 16, backgroundColor: c.coral },
+  sendText: { fontSize: 24, color: c.ink },
+  dock: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
+    maxWidth: "100%",
+    padding: 6,
+    borderWidth: 1,
+    borderColor: c.strongLine,
     borderRadius: 24,
-    gap: 17,
+    backgroundColor: c.white,
   },
-  readingTitle: { fontFamily: serif, color: c.ink, fontSize: 27 },
-  readingHint: { color: c.muted, fontSize: 13, lineHeight: 20 },
-  sourceText: { color: c.ink, fontSize: 16, lineHeight: 28 },
-  outline: { borderWidth: 1, borderColor: c.line, borderRadius: 15 },
-  modalRoot: { ...StyleSheet.absoluteFill, justifyContent: "flex-end" },
+  progress: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 8,
+  },
+  caption: { color: c.muted, fontSize: 12, lineHeight: 18 },
+  demo: { color: c.muted, fontSize: 10, textAlign: "center", marginBottom: 6 },
+  notice: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 12,
+    backgroundColor: c.errorBg,
+    borderRadius: 16,
+  },
+  errorText: { flex: 1, color: c.error, fontSize: 13, lineHeight: 18 },
+  modalRoot: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: "flex-end",
+    zIndex: 50,
+  },
   scrim: { ...StyleSheet.absoluteFill, backgroundColor: c.scrim },
   sheet: {
-    padding: 24,
-    gap: 18,
-    backgroundColor: c.paper,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    maxHeight: "90%",
-  },
-  sheetHandle: {
-    alignSelf: "center",
-    backgroundColor: "#CFC7C0",
-    width: 34,
-    height: 4,
-    borderRadius: 3,
-  },
-  sheetTitle: { flex: 1, fontFamily: serif, fontSize: 26, color: c.ink },
-  close: { color: c.ink, fontSize: 26 },
-  sheetCaption: { color: c.muted, fontSize: 14, lineHeight: 22 },
-  urlRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  urlInput: {
     backgroundColor: c.white,
-    borderColor: "#C9C0B5",
+    borderRadius: 24,
+    margin: 12,
     borderWidth: 1,
-    borderRadius: 17,
-    padding: 17,
+    borderColor: c.line,
+    overflow: "hidden",
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingLeft: 20,
+    paddingRight: 8,
+    minHeight: 60,
+    gap: 8,
+  },
+  sheetTitle: { flexShrink: 1, color: c.ink, fontWeight: "600", fontSize: 19 },
+  sheetContent: { padding: 20, paddingTop: 0, gap: 20 },
+  tabs: {
+    flexDirection: "row",
+    padding: 4,
+    borderWidth: 1,
+    borderColor: c.line,
+    borderRadius: 16,
+  },
+  tab: { flex: 1, borderRadius: 12 },
+  selected: { backgroundColor: c.peach },
+  importButton: {
+    borderWidth: 1,
+    borderColor: c.strongLine,
+    borderStyle: "dashed",
+    borderRadius: 18,
+    paddingVertical: 20,
+    gap: 8,
+  },
+  urlInput: {
+    borderWidth: 1,
+    borderColor: c.inputBorder,
+    borderRadius: 14,
+    minHeight: 48,
+    padding: 12,
     fontSize: 14,
     color: c.ink,
-    minHeight: 54,
   },
-  aboutNote: {
-    backgroundColor: c.lavender,
-    padding: 18,
-    borderRadius: 20,
-    gap: 9,
+  secondaryButton: { borderWidth: 1, borderColor: c.line, borderRadius: 16 },
+  settingLabel: { color: c.ink, fontSize: 14, fontWeight: "600", marginTop: 4 },
+  settingsSection: { gap: 8 },
+  settingsSectionTitle: {
+    color: c.muted,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    paddingLeft: 4,
   },
-  aboutTitle: { color: c.ink, fontWeight: "700", fontSize: 17 },
+  settingsCard: {
+    backgroundColor: c.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: c.line,
+    overflow: "hidden",
+  },
+  settingsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 12,
+    minHeight: 56,
+  },
+  settingsRowContent: { flex: 1, gap: 2 },
+  settingsRowTitle: { color: c.ink, fontSize: 15, fontWeight: "500" },
+  settingsRowDescription: { color: c.muted, fontSize: 13, lineHeight: 18 },
+  settingsChevron: { color: c.muted, fontSize: 18 },
+  settingsDivider: { height: 1, backgroundColor: c.line, marginHorizontal: 16 },
+  toggle: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: c.line,
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  toggleActive: { backgroundColor: c.coral },
+  toggleThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: c.white,
+  },
+  toggleThumbActive: { alignSelf: "flex-end" },
+  languageRow: {
+    flexDirection: "row",
+    gap: 8,
+    padding: 12,
+  },
+  languageOption: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  languageOptionActive: {
+    backgroundColor: c.peach,
+    borderColor: c.coral,
+  },
+  languageOptionText: { color: c.ink, fontSize: 14, fontWeight: "500" },
+  languageOptionTextActive: { color: c.accent, fontWeight: "600" },
+  muteButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  muteButtonText: { color: c.accent, fontSize: 13, fontWeight: "600" },
 });

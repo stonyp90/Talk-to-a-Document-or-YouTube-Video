@@ -1,0 +1,20 @@
+{
+  "keywords": [
+    "voice activity detection",
+    "VAD",
+    "RNNoise",
+    "WebRTC VAD",
+    "speech enhancement",
+    "noise suppression",
+    "speaker diarization",
+    "real-time audio",
+    "audio denoising",
+    "speech recognition",
+    "Whisper",
+    "Conformer",
+    "audio super-resolution"
+  ],
+  "subreddits": ["MachineLearning", "speech", "audiodev", "webrtc"],
+  "maxResultsPerSource": 10,
+  "lookbackDays": 1
+}

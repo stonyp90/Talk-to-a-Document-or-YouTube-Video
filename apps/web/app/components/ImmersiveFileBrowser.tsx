@@ -29,7 +29,7 @@ export default function ImmersiveFileBrowser({
   gaze = null,
   columns = 4,
   dwellMs = 1200,
-}: ImmersiveFileBrowserProps): JSX.Element | null {
+}: ImmersiveFileBrowserProps) {
   const navigatorRef = useRef<ReturnType<typeof createFileNavigator> | null>(
     null,
   );

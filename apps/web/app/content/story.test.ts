@@ -6,10 +6,7 @@ describe("the story order", () => {
     expect(STORY_SECTIONS[0].id).toBe("how-we-build");
     expect(STORY_SECTIONS.map((section) => section.id)).toEqual([
       "how-we-build",
-      "platform",
-      "pricing",
       "how-it-works",
-      "applications",
     ]);
   });
 
@@ -21,8 +18,6 @@ describe("the story order", () => {
   it("carries the build loop into the menu, in the order of the page", () => {
     expect(MENU_SECTIONS.map((section) => section.id)).toEqual([
       "how-we-build",
-      "platform",
-      "pricing",
       "how-it-works",
     ]);
     for (const section of MENU_SECTIONS)

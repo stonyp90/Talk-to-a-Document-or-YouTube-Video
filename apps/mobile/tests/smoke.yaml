@@ -1,45 +1,147 @@
-appId: com.talktosource.demo
+appId: '${typeof APP_ID === "undefined" ? "com.talktosource.demo" : APP_ID}'
 ---
+# Dedicated QA app, EXPO_PUBLIC_SENSE_TEST_MODE=1, local sense-api.mjs only.
+# No clearState, real email, microphone, camera, or paid provider is used.
 - launchApp:
-    clearState: true
-- assertVisible: "Import a PDF"
-- assertVisible: "Voice to action"
-- assertVisible: "Keyboard to action"
-- assertVisible: "Motion to action"
-- tapOn: "Motion to action"
-- assertVisible: "Motion to action is not available yet. We are working on it. Voice and keyboard are ready today."
-- tapOn: "Keyboard to action"
-- assertVisible: "Keyboard to action: everything works by typing and clicking."
-- tapOn: "Voice to action"
-- tapOn: "About Ursly and language"
-- assertVisible: "App language"
-- tapOn: "Français"
-- assertVisible: "Langue de l’application"
-- tapOn: "Fermer"
-- assertVisible: "Importer un PDF"
-- tapOn: "À propos d’Ursly"
-- tapOn: "English"
-- tapOn: "Close"
-- tapOn: "Try a sample text"
-- assertVisible: "The power of small breaks"
-- tapOn: "The source"
-- assertVisible: "It all starts here."
-- tapOn: "Conversation"
-- tapOn: "Your question"
-- inputText: "What is this source about?"
-- hideKeyboard
-- tapOn: "Send question"
+    permissions: {}
+- assertVisible: "Sense to Action"
+- assertVisible: "Start experience"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Workspace settings"
+- assertVisible: "Simulated inputs"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Simulated voice command"
+- inputText: "youtube"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Send simulated voice"
+- assertVisible: "Simulated inputs"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Close settings"
+    index: 1
+- assertNotVisible: "YouTube link"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Start experience"
+- assertVisible: "Stop experience"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Workspace settings"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Simulated voice command"
+- inputText: "youtube"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Send simulated voice"
+- assertVisible: "YouTube link"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "YouTube link"
+- inputText: "https://youtu.be/dQw4w9WgXcQ"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Load video"
+- runFlow:
+    when:
+      visible: "Your email address"
+    commands:
+      - tapOn:
+          waitToSettleTimeoutMs: 1000
+          id: "signin-email"
+      - inputText: "sense-qa@example.test"
+      - scrollUntilVisible:
+          element: "Send me a code"
+          direction: DOWN
+      - tapOn:
+          waitToSettleTimeoutMs: 1000
+          text: "Send me a code"
+      - tapOn:
+          waitToSettleTimeoutMs: 1000
+          id: "signin-code"
+      - inputText: "123456"
+      - scrollUntilVisible:
+          element: "Sign in"
+          direction: DOWN
+      - tapOn:
+          waitToSettleTimeoutMs: 1000
+          text: "Sign in"
+      - tapOn:
+          waitToSettleTimeoutMs: 1000
+          text: "Load video"
 - extendedWaitUntil:
-    visible: "YOU"
-    timeout: 45000
-- scrollUntilVisible:
-    element: "Start voice conversation"
-    direction: UP
-- tapOn: "Start voice conversation"
+    visible: ".*Sense QA video.*"
+    timeout: 15000
+- assertVisible: "Stop experience"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Keyboard to action"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: ".*Ask a question.*"
+- inputText: "What helps attention?"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Send"
 - extendedWaitUntil:
-    visible: "Session active"
-    timeout: 45000
-- tapOn: "Mute microphone"
-- assertVisible: "Microphone muted"
-- tapOn: "Stop session"
-- assertVisible: "At your own pace"
+    visible: "Simulated answer: What helps attention.*"
+    timeout: 15000
+- assertVisible: ".*Sense QA video.*"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Workspace settings"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Tilt right"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Tilt forward"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Close settings"
+    index: 1
+- extendedWaitUntil:
+    visible: "Simulated answer: Explain simply.*"
+    timeout: 15000
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Workspace settings"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Simulated voice command"
+- inputText: "What improves focus?"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Send simulated voice"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Close settings"
+    index: 1
+- extendedWaitUntil:
+    visible: "Simulated answer: What improves focus.*"
+    timeout: 15000
+- assertVisible: "Stop experience"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Stop experience"
+- assertVisible: "Start experience"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Workspace settings"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Simulated voice command"
+- inputText: "youtube"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Send simulated voice"
+- assertVisible: "Simulated inputs"
+- tapOn:
+    waitToSettleTimeoutMs: 1000
+    text: "Close settings"
+    index: 1
+- assertNotVisible: "YouTube link"
+- assertVisible: ".*Sense QA video.*"

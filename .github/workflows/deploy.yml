@@ -36,6 +36,11 @@ jobs:
       TF_VAR_ses_identity_arn: ${{ vars.SES_IDENTITY_ARN }}
       TF_VAR_ses_configuration_set_name: ${{ vars.SES_CONFIGURATION_SET_NAME }}
       TF_VAR_ses_from_address: ${{ vars.SES_FROM_ADDRESS }}
+      # Canary progressive rollout: the canary image defaults to the same tag
+      # as the stable deploy (the tested commit). The weight starts at 0 in the
+      # initial apply; the canary steps below shift it progressively.
+      TF_VAR_canary_image_tag: ${{ github.event.workflow_run.head_sha }}
+      TF_VAR_canary_weight: "0"
       OPENAI_SECRET_ARN: ${{ vars.OPENAI_SECRET_ARN }}
       AUTH_PEPPER_SECRET_ARN: ${{ vars.AUTH_PEPPER_SECRET_ARN }}
       SES_IDENTITY_ARN: ${{ vars.SES_IDENTITY_ARN }}
@@ -123,3 +128,30 @@ jobs:
           SOCKET_URL="$(terraform -chdir=infrastructure/terraform/environments/demo output -raw socket_url)"
           case "$SOCKET_URL" in wss://*) ;; *) echo "No live discussion endpoint was deployed" >&2; exit 1 ;; esac
           node infrastructure/scripts/smoke.mjs "$PUBLIC_URL"
+      # --- Progressive canary rollout ----------------------------------------
+      # Shifts traffic from 0 % to 100 % in three stages (10 → 50 → 100),
+      # running smoke tests at each step. If any stage fails, the trap rolls
+      # the weight back to 0 before the job exits, so the next deploy starts
+      # from a clean slate. The canary image is the same commit as the stable
+      # deploy; the progressive rollout validates the infrastructure path.
+      - name: Progressive canary rollout
+        run: |
+          TF_DIR="infrastructure/terraform/environments/demo"
+          PUBLIC_URL="$(terraform -chdir=$TF_DIR output -raw public_url)"
+
+          rollback() {
+            echo "::error::Canary failed — rolling back to 0 % weight"
+            TF_VAR_canary_weight=0 terraform -chdir=$TF_DIR apply -input=false -lock-timeout=5m -auto-approve \
+              -var="canary_image_tag=$TF_VAR_canary_image_tag"
+          }
+          trap rollback ERR
+
+          for weight in 10 50 100; do
+            echo "=== Setting canary weight to ${weight} % ==="
+            TF_VAR_canary_weight=$weight terraform -chdir=$TF_DIR apply -input=false -lock-timeout=5m -auto-approve \
+              -var="canary_image_tag=$TF_VAR_canary_image_tag"
+            node infrastructure/scripts/canary-smoke.mjs "$PUBLIC_URL"
+          done
+
+          echo "Canary rollout complete — 100 % traffic on the new version"
+          trap - ERR

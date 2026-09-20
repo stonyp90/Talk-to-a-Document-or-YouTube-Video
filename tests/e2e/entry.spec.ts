@@ -1,6 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { APP_PATH, LANDING_PATH, appPath } from "../routes";
-import { MENU_SECTIONS } from "../../apps/web/app/content/story";
+import {
+  MENU_SECTIONS,
+  STORY_SECTIONS,
+} from "../../apps/web/app/content/story";
 
 const INTRO_KEY = "ursly-intro-v1";
 const intro = (page: Page) => page.getByRole("dialog", { name: /Ursly/ });
@@ -8,6 +11,26 @@ const nav = (page: Page) => page.getByRole("navigation", { name: "Primary" });
 const modes = (page: Page) =>
   nav(page).getByRole("radiogroup", { name: "Control mode" });
 const heroCta = (page: Page) => page.locator("#main .hero-actions a.primary");
+
+/** Application preferences share its one settings dialog; the story keeps its menu. */
+async function pickLanguage(page: Page, name: string) {
+  if (new URL(page.url()).pathname.endsWith("/app")) {
+    await page
+      .getByRole("button", { name: /Workspace settings|Réglages de l’espace/ })
+      .click();
+    await page
+      .getByRole("dialog", { name: /Workspace settings|Réglages de l’espace/ })
+      .getByRole("link", { name })
+      .click();
+    return;
+  }
+  const menu = page.getByRole("navigation", { name: /^(Primary|Principale)$/ });
+  const trigger = menu.getByRole("button", {
+    name: /Open menu|Ouvrir le menu/,
+  });
+  if (await trigger.isVisible()) await trigger.click();
+  await menu.getByRole("link", { name }).click();
+}
 
 test.describe("first visit", () => {
   test("plays the intro once, can be skipped, and is remembered", async ({
@@ -67,7 +90,9 @@ test.describe("first visit", () => {
     // One keystroke from there reaches the application.
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/(en|fr)\/app$/);
-    await expect(page.getByLabel("PDF file")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Add a source", exact: true }),
+    ).toBeVisible();
   });
 
   test("never interrupts the application with the introduction", async ({
@@ -76,7 +101,9 @@ test.describe("first visit", () => {
     // A first visit straight to /app is somebody's work, not an audience: a
     // modal video over it would be worse than missing the pitch.
     await page.goto(APP_PATH);
-    await expect(page.getByLabel("PDF file")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Add a source", exact: true }),
+    ).toBeVisible();
     await expect(intro(page)).toHaveCount(0);
     expect(
       await page.evaluate((key) => localStorage.getItem(key), INTRO_KEY),
@@ -136,8 +163,8 @@ test.describe("french visitor", () => {
     await expect(
       menu.getByRole("link", { name: "Ouvrir l’application" }),
     ).toBeVisible();
-    // Switching language is one tap and remembered by the root URL.
-    await menu.getByRole("link", { name: "English" }).click();
+    // Switching language is remembered by the root URL.
+    await pickLanguage(page, "English");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await page.goto(LANDING_PATH);
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
@@ -155,18 +182,62 @@ test.describe("french visitor", () => {
     await expect(
       menu.getByRole("radiogroup", { name: "Mode de contrôle" }),
     ).toBeVisible();
-    await menu.getByRole("link", { name: "English" }).click();
+    await pickLanguage(page, "English");
     await expect(page).toHaveURL(/\/en\/app$/);
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("#workspace")).toBeVisible();
-    await expect(page.getByLabel("PDF file")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Add a source", exact: true }),
+    ).toBeVisible();
     // And back again, from the English side.
-    await page
-      .getByRole("navigation", { name: "Primary" })
-      .getByRole("link", { name: "Français" })
-      .click();
+    await pickLanguage(page, "Français");
     await expect(page).toHaveURL(/\/fr\/app$/);
     await expect(page.locator("#workspace")).toBeVisible();
+  });
+});
+
+test.describe("arriving at a section of the story", () => {
+  /**
+   * A link into the middle of the story is a request to be shown that part.
+   * Two things used to defeat it, both of them the page behaving well on its
+   * own account: the introduction, which holds the page still while it runs,
+   * and the boundary the story streams in behind, which means the browser's
+   * own jump happens while the page is still a placeholder.
+   */
+  async function landedAt(page: Page, id: string) {
+    const section = page.locator(`#${id}`);
+    await expect(section).toBeInViewport();
+    const [top, barHeight] = await Promise.all([
+      section.evaluate((el) => el.getBoundingClientRect().top),
+      nav(page).evaluate((el) => el.getBoundingClientRect().height),
+    ]);
+    expect(top, id).toBeGreaterThanOrEqual(barHeight - 1);
+  }
+
+  test("on a first visit, with the film stood aside", async ({ page }) => {
+    await page.goto(`${LANDING_PATH}#how-it-works`);
+    await expect(intro(page)).toHaveCount(0);
+    // Nothing was marked seen on the reader's behalf: the film is still owed
+    // to them, and the menu hands it over whenever they want it.
+    expect(
+      await page.evaluate((key) => localStorage.getItem(key), INTRO_KEY),
+    ).toBe(null);
+    await landedAt(page, "how-it-works");
+    await nav(page).getByRole("button", { name: "Watch the intro" }).click();
+    await expect(intro(page)).toBeVisible();
+  });
+
+  test("on a later visit, from any of the sections the story has", async ({
+    page,
+  }) => {
+    await page.addInitScript(
+      (key) => localStorage.setItem(key, "seen"),
+      INTRO_KEY,
+    );
+    for (const section of STORY_SECTIONS) {
+      await page.goto(`${LANDING_PATH}#${section.id}`);
+      await landedAt(page, section.id);
+    }
   });
 });
 
@@ -193,19 +264,17 @@ test.describe("returning visitor", () => {
         (el) => el.getBoundingClientRect().height,
       );
       expect(height).toBeLessThanOrEqual(width <= 960 ? 112 : 72);
-      // The controls are the first thing under the menu, not a billboard. In
-      // voice mode the panel leads and the two cards follow it, so the budget
-      // is measured against whichever comes first — the numbers are unchanged.
-      const [panelTop, workspaceTop] = await Promise.all([
-        page
-          .locator(".voice-commands")
-          .evaluate((el) => el.getBoundingClientRect().top),
+      // Source, conversation and input controls share the viewport below the bar.
+      await expect(page.locator("#workspace")).toBeVisible();
+      const [barBottom, workspaceTop] = await Promise.all([
+        bar.evaluate((el) => el.getBoundingClientRect().bottom),
         page
           .locator("#workspace")
           .evaluate((el) => el.getBoundingClientRect().top),
       ]);
-      expect(panelTop).toBeLessThanOrEqual(width <= 960 ? 340 : 280);
-      expect(workspaceTop).toBeGreaterThan(panelTop);
+      expect(workspaceTop).toBeGreaterThanOrEqual(barBottom - 1);
+      for (const name of ["Sense", "Keyboard to action"])
+        await expect(modes(page).getByRole("radio", { name })).toBeInViewport();
       // Where there is room the bar floats a few pixels clear of the edge,
       // so what is asserted is that it does not move, not that it is flush.
       const restingTop = await bar.evaluate(
@@ -216,7 +285,10 @@ test.describe("returning visitor", () => {
       expect(await bar.evaluate((el) => el.getBoundingClientRect().top)).toBe(
         restingTop,
       );
-      expect(await bar.getAttribute("data-scrolled")).toBe("true");
+      expect(await page.evaluate(() => window.scrollY)).toBe(0);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollHeight),
+      ).toBeLessThanOrEqual(900);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(width);
@@ -273,47 +345,51 @@ test.describe("returning visitor", () => {
       page.locator(".source-card"),
     ])
       await expect(locator).toHaveCount(0);
-    // And it tells the story, in the order it was asked for: the loop that
-    // built this first, the product story after it.
-    const order = await page.evaluate(() =>
-      ["platform", "how-we-build", "pricing", "how-it-works", "applications"]
-        .map(
-          (id) =>
-            [
-              id,
-              document.getElementById(id)!.getBoundingClientRect().top,
-            ] as const,
-        )
-        .sort((a, b) => a[1] - b[1])
-        .map(([id]) => id),
+    // And it tells the story, in the order the story's own index writes it:
+    // the loop that built this first, then how to use it. The list is read
+    // from that index rather than repeated here, so a section can be moved or
+    // renamed without this journey agreeing to it twice.
+    const order = await page.evaluate(
+      (ids: string[]) => {
+        const placed = ids
+          .map(
+            (id) =>
+              [
+                id,
+                document.getElementById(id)?.getBoundingClientRect().top,
+              ] as const,
+          )
+          .filter(
+            (entry): entry is readonly [string, number] =>
+              entry[1] !== undefined,
+          )
+          .sort((a, b) => a[1] - b[1])
+          .map(([id]) => id);
+        return placed;
+      },
+      STORY_SECTIONS.map((section) => section.id),
     );
-    expect(order).toEqual([
-      "how-we-build",
-      "platform",
-      "pricing",
-      "how-it-works",
-      "applications",
-    ]);
+    expect(order).toEqual(STORY_SECTIONS.map((section) => section.id));
+    // The decks that were taken out of the story are gone, not hidden: a
+    // visitor came for two answers, not a stack of them.
+    for (const id of ["platform", "pricing", "applications"])
+      await expect(page.locator(`#${id}`), id).toHaveCount(0);
   });
 
   test("the way into the application repeats down the story", async ({
     page,
   }) => {
     await page.goto(LANDING_PATH);
-    // A reader who stops anywhere in the story has a way in within reach.
-    // The first screen answers to both of the first two names — it is the
-    // hero and it is how we build — so that pair is one element checked
-    // twice, and the day they part again both are already covered.
-    for (const selector of [
-      ".nav",
-      ".landing-hero",
-      "#how-we-build",
-      "#platform",
-      "#pricing",
-      "#how-it-works",
-      ".invitation",
-      ".footer",
-    ])
+    // A reader who stops anywhere has a way in within reach: the bar is fixed,
+    // the first screen opens with it, and the invitation closes the story. The
+    // guide holds no button of its own on purpose — the invitation is the next
+    // thing on screen, and a page of repeated buttons is the deck problem this
+    // page was trimmed for.
+    //
+    // The first screen answers to both of the first two names — it is the hero
+    // and it is how we build — so that pair is one element checked twice, and
+    // the day they part again both are already covered.
+    for (const selector of [".nav", ".landing-hero", ".invitation", ".footer"])
       expect(
         await page.locator(`${selector} a[href$="/app"]`).count(),
         selector,
@@ -330,16 +406,16 @@ test.describe("returning visitor", () => {
   }) => {
     await page.goto(APP_PATH);
     await expect(page.locator("#workspace")).toBeVisible();
-    await expect(page.getByLabel("PDF file")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Add a source", exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByLabel("Ask a question", { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Start experience", exact: true }),
     ).toBeVisible();
-    for (const id of [
-      "platform",
-      "how-we-build",
-      "how-it-works",
-      "applications",
-    ])
+    for (const id of STORY_SECTIONS.map((section) => section.id))
       await expect(page.locator(`#${id}`)).toHaveCount(0);
     // The skip link points at the workspace, which is this page's content.
     const skip = page.locator("a.skip-link");
@@ -361,41 +437,66 @@ test.describe("returning visitor", () => {
       await menu.getByRole("link", { name: into }).click();
       await expect(page).toHaveURL(new RegExp(`/${language}/app$`));
       await expect(page.locator("#workspace")).toBeVisible();
-      await menu.getByRole("link", { name: back }).click();
+      await expect(
+        menu.getByRole("button", { name: /Open menu|Ouvrir le menu/ }),
+      ).toHaveCount(0);
+      await page
+        .getByRole("button", {
+          name: /Workspace settings|Réglages de l’espace/,
+        })
+        .click();
+      await page
+        .getByRole("dialog", {
+          name: /Workspace settings|Réglages de l’espace/,
+        })
+        .getByRole("link", { name: back })
+        .click();
       await expect(page).toHaveURL(new RegExp(`/${language}$`));
-      await expect(page.locator("#platform")).toHaveCount(1);
+      await expect(
+        menu.getByRole("link", { name: into }).filter({ visible: true }),
+      ).toBeVisible();
       await expect(page.locator("#workspace")).toHaveCount(0);
     });
   }
 
-  test("mode switcher is a keyboard-operable radio group over all three modes", async ({
+  test("mode switcher keeps keyboard navigation within the shared experience", async ({
     page,
   }) => {
     await page.goto(APP_PATH);
-    const voice = modes(page).getByRole("radio", { name: "Voice to action" });
+    const human = modes(page).getByRole("radio", {
+      name: "Sense",
+    });
     const keyboard = modes(page).getByRole("radio", {
       name: "Keyboard to action",
     });
-    const motion = modes(page).getByRole("radio", { name: /Motion to action/ });
-    await expect(voice).toHaveAttribute("aria-checked", "true");
-    await expect(motion).not.toHaveAttribute("aria-disabled", "true");
-    await voice.focus();
-    // The beta sits in the middle of the row, so the keys land on it.
-    await page.keyboard.press("ArrowRight");
-    await expect(motion).toHaveAttribute("aria-checked", "true");
-    await expect(motion).toBeFocused();
+    await expect(human).toHaveAttribute("aria-checked", "true");
+    await expect(modes(page).getByRole("radio")).toHaveCount(2);
+    await expect(keyboard.getByText("Legacy", { exact: true })).toBeVisible();
+    await expect(
+      modes(page)
+        .getByRole("button", { name: "Brain to action" })
+        .getByText("Beta", { exact: true }),
+    ).toBeVisible();
+    await expect(human.getByText(/^(Beta|Legacy)$/)).toHaveCount(0);
+    await expect(
+      modes(page).getByRole("button", { name: "Brain to action" }),
+    ).toHaveAttribute("aria-disabled", "true");
+    await human.focus();
     await page.keyboard.press("ArrowRight");
     await expect(keyboard).toHaveAttribute("aria-checked", "true");
     await expect(keyboard).toBeFocused();
     await page.keyboard.press("ArrowRight");
-    await expect(voice).toHaveAttribute("aria-checked", "true");
-    await motion.click();
-    await expect(motion).toHaveAttribute("aria-checked", "true");
-    await expect(voice).toHaveAttribute("aria-checked", "false");
-    // Only the selected radio is in the tab sequence.
-    expect(await motion.getAttribute("tabindex")).toBe("0");
-    expect(await voice.getAttribute("tabindex")).toBe("-1");
+    await expect(human).toHaveAttribute("aria-checked", "true");
+    await expect(human).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(keyboard).toBeFocused();
+    await page.keyboard.press("Home");
+    await expect(human).toBeFocused();
+    expect(await human.getAttribute("tabindex")).toBe("0");
     expect(await keyboard.getAttribute("tabindex")).toBe("-1");
+    await expect(
+      page.getByRole("dialog", { name: "Add a source" }),
+    ).toHaveCount(0);
   });
 
   test("section links land below the fixed menu", async ({ page }) => {
@@ -417,21 +518,33 @@ test.describe("returning visitor", () => {
     }
   });
 
-  test("keyboard mode keeps the picker in place; voice mode adds one listening button", async ({
+  test("keyboard input keeps the shared experience available with source entry on demand", async ({
     page,
   }) => {
     await page.goto(APP_PATH);
-    await expect(page.getByLabel("PDF file")).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Speak", exact: true }),
-    ).toBeVisible();
     await modes(page)
       .getByRole("radio", { name: "Keyboard to action" })
       .click();
-    await expect(page.getByLabel("PDF file")).toBeVisible();
+    for (const name of ["Start experience", "Add a source"])
+      await expect(
+        page.getByRole("button", { name, exact: true }),
+      ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Speak", exact: true }),
+      page.getByRole("dialog", { name: "Add a source" }),
     ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Add a source", exact: true })
+      .click();
+    const source = page.getByRole("dialog", {
+      name: "Add a source",
+      exact: true,
+    });
+    await expect(source.getByLabel("PDF file")).toBeVisible();
+    await expect(
+      source.getByRole("tab", { name: "YouTube video" }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(source).toHaveCount(0);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(page.viewportSize()!.width);

@@ -10,9 +10,9 @@ test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000" });
 
 const pdfText = "The demo observatory studies Saturn and its rings.";
 const conversation = (page: Page) =>
-  page.getByRole("region", { name: "2. Ask a question" });
+  page.getByRole("region", { name: "Conversation" });
 const status = (page: Page) =>
-  page.getByRole("region", { name: "2. Ask a question" }).locator(".status");
+  page.getByRole("region", { name: "Conversation" }).locator(".status");
 
 async function uploadPdf(page: Page, text = pdfText) {
   if (await page.locator(".source-picker:not([open])").count())
@@ -28,7 +28,7 @@ async function uploadPdf(page: Page, text = pdfText) {
       response.url().endsWith("/api/uploads/extract") &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Continue to questions" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
   const response = await extracted;
   expect(response.ok(), await response.text()).toBeTruthy();
   await expect(page.locator(".preview-text")).toHaveText(text);
@@ -88,10 +88,10 @@ test.describe("source conversation journey", () => {
     const extraction = page.waitForResponse((r) =>
       r.url().endsWith("/api/uploads/extract"),
     );
-    await page.getByRole("button", { name: "Continue to questions" }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
     expect((await extraction).ok()).toBeFalsy();
     const alert = page
-      .getByRole("region", { name: "1. Add a source" })
+      .getByRole("dialog", { name: "Add a source" })
       .getByRole("alert");
     await expect(alert).toBeVisible();
     await expect(alert).not.toBeEmpty();
@@ -116,10 +116,10 @@ test.describe("source conversation journey", () => {
     const ingestion = page.waitForResponse((r) =>
       r.url().endsWith("/api/ingest"),
     );
-    await page.getByRole("button", { name: "Continue to questions" }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
     expect((await ingestion).status()).toBe(400);
     await expect(
-      page.getByRole("region", { name: "1. Add a source" }).getByRole("alert"),
+      page.getByRole("dialog", { name: "Add a source" }).getByRole("alert"),
     ).toContainText(/valid YouTube URL/i);
     await expect(
       page.getByRole("button", { name: "Start Voice Chat" }),
@@ -143,7 +143,7 @@ test.describe("source conversation journey", () => {
     const ingestion = page.waitForResponse((r) =>
       r.url().endsWith("/api/ingest"),
     );
-    await page.getByRole("button", { name: "Continue to questions" }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
     const response = await ingestion;
     expect(response.ok()).toBeTruthy();
     const { source } = await response.json();
@@ -305,7 +305,7 @@ test("keyboard source selection and a suggested question work with a second vide
   await expect(pdfTab).toBeFocused();
   await pdfTab.press("End");
   await page.getByLabel("YouTube URL").fill("https://youtu.be/jNQXAC9IVRw");
-  await page.getByRole("button", { name: "Continue to questions" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.locator(".preview-text")).not.toBeEmpty();
   await expect(conversation(page)).toContainText("jNQXAC9IVRw");
   await page.getByRole("button", { name: "Explain this simply" }).click();
@@ -352,7 +352,7 @@ test.describe("answers and the composer", () => {
     );
     await page.getByRole("tab", { name: "YouTube video" }).click();
     await page.getByLabel("YouTube URL").fill("https://youtu.be/composer");
-    await page.getByRole("button", { name: "Continue to questions" }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
     await expect(page.locator(".source-ready")).toBeVisible();
   }
 
@@ -493,23 +493,15 @@ test.describe("answers and the composer", () => {
     await expect(jump).toHaveCount(0);
   });
 
-  test("the top menu hands over the mobile builds and the release they came from", async ({
+  test("the footer hands over the mobile builds and the release they came from", async ({
     page,
   }) => {
     await page.goto(APP_PATH);
-    const menu = page.getByRole("navigation", { name: "Primary" });
-    const downloads = menu.getByRole("link", {
-      name: "Get the app",
-      exact: true,
-    });
-    await expect(downloads).toHaveAttribute("href", "/en#applications");
-    await expect(downloads).toHaveAttribute("data-open", "false");
-    await downloads.focus();
-    await expect(downloads).toHaveAttribute("data-open", "true");
-
-    const items = menu.locator(".nav-download-menu").getByRole("link");
-    const android = items.filter({ hasText: "Android APK" });
-    const ios = items.filter({ hasText: "iOS Simulator build" });
+    const builds = page.locator(".footer-builds");
+    await expect(builds.getByText("Get the app", { exact: true })).toBeVisible();
+    const android = builds.getByRole("link", { name: "Android APK" });
+    const ios = builds.getByRole("link", { name: "iOS Simulator build" });
+    const notes = builds.getByRole("link", { name: "Release notes" });
     await expect(android).toHaveAttribute(
       "href",
       /\/releases\/download\/[^/]+\/ursly-[^/]+-android\.apk$/,
@@ -518,13 +510,9 @@ test.describe("answers and the composer", () => {
       "href",
       /\/releases\/download\/[^/]+\/ursly-[^/]+-ios-simulator-arm64\.tar\.gz$/,
     );
-    await expect(
-      items.filter({ hasText: "All builds and instructions" }),
-    ).toHaveAttribute("href", "/en#applications");
 
     // Both builds and the notes name one release, so a reader never installs
     // an application the notes do not describe.
-    const notes = items.filter({ hasText: "Release notes" });
     const tag = ((await notes.getAttribute("href")) ?? "").split(
       "/releases/tag/",
     )[1];
@@ -534,21 +522,39 @@ test.describe("answers and the composer", () => {
         `/releases/download/${tag}/`,
       );
 
-    await page.keyboard.press("Escape");
-    await expect(downloads).toHaveAttribute("data-open", "false");
-    // At a width that shows the label, the same control names itself.
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await expect(
-      menu.getByRole("link", { name: "Get the app", exact: true }),
-    ).toBeVisible();
-    await downloads.hover();
-    // A painted link must receive the pointer: a flyout clipped by the
-    // floating bar can have a visible layout box and still be unreachable.
-    await android.hover();
-    await expect(android).toBeVisible();
-    await downloads.click();
-    await expect(page).toHaveURL(/\/en#applications$/);
-    await expect(page.locator("#applications")).toBeInViewport();
+    // A painted link must receive the pointer. The flyout this test used to
+    // drive could be clipped by the floating bar and still report a layout
+    // box, so the assertion is the one that caught it: whatever sits under the
+    // centre of the link has to be the link. Two overlays stand above the page
+    // and are not the link's fault — the opening, which holds the whole screen
+    // until the app is ready, and the indicator Next mounts in dev only — so
+    // the first is waited out and the second is not counted.
+    await expect(page.locator(".app-loader")).toHaveCount(0);
+    const named = [
+      ["Android APK", android],
+      ["iOS Simulator build", ios],
+      ["Release notes", notes],
+    ] as const;
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const [label, link] of named) {
+        await link.scrollIntoViewIfNeeded();
+        await expect(link, `${label} at ${width}px`).toBeVisible();
+        expect(
+          await link.evaluate((el) => {
+            const box = el.getBoundingClientRect();
+            const stack = document
+              .elementsFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+              .filter(
+                (node) => !node.tagName.toLowerCase().startsWith("nextjs-"),
+              );
+            const top = stack[0];
+            return top === el || el.contains(top);
+          }),
+          `${label} at ${width}px`,
+        ).toBe(true);
+      }
+    }
   });
 
   test("a signed-out reader stays inside the sign-in gate", async ({

@@ -1,0 +1,2498 @@
+{
+  "schema": "modeling.program",
+  "schemaVersion": 1,
+  "kind": "model.create",
+  "intent": "ursly sdlc galaxy: 9 planets with rings orbiting a central sun",
+  "units": {
+    "length": "m",
+    "angle": "rad",
+    "time": "s"
+  },
+  "coordinateSystem": {
+    "handedness": "right",
+    "upAxis": "y",
+    "forwardAxis": "z"
+  },
+  "spatialEnvelope": {
+    "min": [
+      -0.22,
+      -0.01,
+      -0.22
+    ],
+    "max": [
+      0.22,
+      0.1,
+      0.22
+    ],
+    "tolerance": 0.02
+  },
+  "requires": [
+    "modeling.feature.axis",
+    "modeling.feature.box",
+    "modeling.feature.cylinder",
+    "modeling.feature.hollow-cylinder",
+    "modeling.feature.sphere",
+    "modeling.motion.trs",
+    "modeling.scene",
+    "modeling.spatial-envelope"
+  ],
+  "parameters": [],
+  "operations": [
+    {
+      "op": "appearance.define",
+      "opKey": "paper",
+      "key": "paper",
+      "baseColor": "#F8F5EF",
+      "metallic": 0,
+      "roughness": 0.9,
+      "emissive": "#000000"
+    },
+    {
+      "op": "appearance.define",
+      "opKey": "ink",
+      "key": "ink",
+      "baseColor": "#292735",
+      "metallic": 0.1,
+      "roughness": 0.5,
+      "emissive": "#000000"
+    },
+    {
+      "op": "appearance.define",
+      "opKey": "coral",
+      "key": "coral",
+      "baseColor": "#F27561",
+      "metallic": 0.3,
+      "roughness": 0.3,
+      "emissive": "#662010"
+    },
+    {
+      "op": "appearance.define",
+      "opKey": "coral.bright",
+      "key": "coral.bright",
+      "baseColor": "#F27561",
+      "metallic": 0.5,
+      "roughness": 0.2,
+      "emissive": "#993020"
+    },
+    {
+      "op": "appearance.define",
+      "opKey": "hairline",
+      "key": "hairline",
+      "baseColor": "#E5E0D8",
+      "metallic": 0,
+      "roughness": 0.8,
+      "emissive": "#000000"
+    },
+    {
+      "op": "feature.define",
+      "opKey": "ground.feature",
+      "key": "ground.feature",
+      "feature": {
+        "type": "primitive.cylinder",
+        "radius": 0.22,
+        "height": 0.002,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "ground.component",
+      "key": "ground.component",
+      "feature": "ground.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "ground",
+      "key": "ground",
+      "name": "Ground",
+      "component": "ground.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "sun.feature",
+      "key": "sun.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.04,
+        "widthSegments": 16,
+        "heightSegments": 12
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "sun.component",
+      "key": "sun.component",
+      "feature": "sun.feature",
+      "appearance": "coral.bright"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "sun",
+      "key": "sun",
+      "name": "Sun",
+      "component": "sun.component",
+      "transform": {
+        "translation": [
+          0,
+          0.05,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "corona.0.feature",
+      "key": "corona.0.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.05,
+        "innerRadius": 0.046,
+        "height": 0.002,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "corona.0.component",
+      "key": "corona.0.component",
+      "feature": "corona.0.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "corona.0",
+      "key": "corona.0",
+      "name": "Corona0",
+      "component": "corona.0.component",
+      "transform": {
+        "translation": [
+          0,
+          0.05,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "corona.1.feature",
+      "key": "corona.1.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.058,
+        "innerRadius": 0.055,
+        "height": 0.001,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "corona.1.component",
+      "key": "corona.1.component",
+      "feature": "corona.1.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "corona.1",
+      "key": "corona.1",
+      "name": "Corona1",
+      "component": "corona.1.component",
+      "transform": {
+        "translation": [
+          0,
+          0.05,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "orbit.ring.feature",
+      "key": "orbit.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.18,
+        "innerRadius": 0.178,
+        "height": 0.001,
+        "radialSegments": 64,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "orbit.ring.component",
+      "key": "orbit.ring.component",
+      "feature": "orbit.ring.feature",
+      "appearance": "hairline"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "orbit.ring",
+      "key": "orbit.ring",
+      "name": "OrbitRing",
+      "component": "orbit.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0.003,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.plan.feature",
+      "key": "planet.plan.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.015,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.plan.component",
+      "key": "planet.plan.component",
+      "feature": "planet.plan.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.plan",
+      "key": "planet.plan",
+      "name": "PlanetPlan",
+      "component": "planet.plan.component",
+      "transform": {
+        "translation": [
+          0,
+          0.05,
+          -0.18
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.plan.face.feature",
+      "key": "planet.plan.face.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.007,
+        "widthSegments": 8,
+        "heightSegments": 6
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.plan.face.component",
+      "key": "planet.plan.face.component",
+      "feature": "planet.plan.face.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.plan.face",
+      "key": "planet.plan.face",
+      "name": "PlanFace",
+      "parent": "planet.plan",
+      "component": "planet.plan.face.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.plan.ring.feature",
+      "key": "planet.plan.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.025,
+        "innerRadius": 0.018,
+        "height": 0.001,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.plan.ring.component",
+      "key": "planet.plan.ring.component",
+      "feature": "planet.plan.ring.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.plan.ring",
+      "key": "planet.plan.ring",
+      "name": "PlanRing",
+      "parent": "planet.plan",
+      "component": "planet.plan.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          0.3,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.design.feature",
+      "key": "planet.design.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.015,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.design.component",
+      "key": "planet.design.component",
+      "feature": "planet.design.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.design",
+      "key": "planet.design",
+      "name": "PlanetDesign",
+      "component": "planet.design.component",
+      "transform": {
+        "translation": [
+          0.11570176974357706,
+          0.05,
+          -0.13788799976141602
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.design.face.feature",
+      "key": "planet.design.face.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.012,
+          0.004,
+          0.012
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.design.face.component",
+      "key": "planet.design.face.component",
+      "feature": "planet.design.face.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.design.face",
+      "key": "planet.design.face",
+      "name": "DesignFace",
+      "parent": "planet.design",
+      "component": "planet.design.face.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.design.ring.feature",
+      "key": "planet.design.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.028,
+        "innerRadius": 0.019,
+        "height": 0.001,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.design.ring.component",
+      "key": "planet.design.ring.component",
+      "feature": "planet.design.ring.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.design.ring",
+      "key": "planet.design.ring",
+      "name": "DesignRing",
+      "parent": "planet.design",
+      "component": "planet.design.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          0.5,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.build.feature",
+      "key": "planet.build.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.015,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.build.component",
+      "key": "planet.build.component",
+      "feature": "planet.build.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.build",
+      "key": "planet.build",
+      "name": "PlanetBuild",
+      "component": "planet.build.component",
+      "transform": {
+        "translation": [
+          0.17726539554219745,
+          0.05,
+          -0.031256671980047473
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.build.face.feature",
+      "key": "planet.build.face.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.014,
+          0.003,
+          0.01
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.build.face.component",
+      "key": "planet.build.face.component",
+      "feature": "planet.build.face.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.build.face",
+      "key": "planet.build.face",
+      "name": "BuildFace",
+      "parent": "planet.build",
+      "component": "planet.build.face.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.build.ring.feature",
+      "key": "planet.build.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.03,
+        "innerRadius": 0.018,
+        "height": 0.001,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.build.ring.component",
+      "key": "planet.build.ring.component",
+      "feature": "planet.build.ring.feature",
+      "appearance": "hairline"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.build.ring",
+      "key": "planet.build.ring",
+      "name": "BuildRing",
+      "parent": "planet.build",
+      "component": "planet.build.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.integrate.feature",
+      "key": "planet.integrate.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.015,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.integrate.component",
+      "key": "planet.integrate.component",
+      "feature": "planet.integrate.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.integrate",
+      "key": "planet.integrate",
+      "name": "PlanetIntegrate",
+      "component": "planet.integrate.component",
+      "transform": {
+        "translation": [
+          0.15588457268119896,
+          0.05,
+          0.08999999999999996
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.integrate.face.feature",
+      "key": "planet.integrate.face.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.007,
+        "widthSegments": 8,
+        "heightSegments": 6
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.integrate.face.component",
+      "key": "planet.integrate.face.component",
+      "feature": "planet.integrate.face.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.integrate.face",
+      "key": "planet.integrate.face",
+      "name": "IntegrateFace",
+      "parent": "planet.integrate",
+      "component": "planet.integrate.face.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.integrate.ring.feature",
+      "key": "planet.integrate.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.027,
+        "innerRadius": 0.02,
+        "height": 0.001,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.integrate.ring.component",
+      "key": "planet.integrate.ring.component",
+      "feature": "planet.integrate.ring.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.integrate.ring",
+      "key": "planet.integrate.ring",
+      "name": "IntegrateRing",
+      "parent": "planet.integrate",
+      "component": "planet.integrate.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          0.8,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.validate.feature",
+      "key": "planet.validate.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.015,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.validate.component",
+      "key": "planet.validate.component",
+      "feature": "planet.validate.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.validate",
+      "key": "planet.validate",
+      "name": "PlanetValidate",
+      "component": "planet.validate.component",
+      "transform": {
+        "translation": [
+          0.061563625798620396,
+          0.05,
+          0.1691446717414635
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.validate.face.feature",
+      "key": "planet.validate.face.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.01,
+          0.012,
+          0.003
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.validate.face.component",
+      "key": "planet.validate.face.component",
+      "feature": "planet.validate.face.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.validate.face",
+      "key": "planet.validate.face",
+      "name": "ValidateFace",
+      "parent": "planet.validate",
+      "component": "planet.validate.face.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.validate.ring.feature",
+      "key": "planet.validate.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.024,
+        "innerRadius": 0.018,
+        "height": 0.001,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.validate.ring.component",
+      "key": "planet.validate.ring.component",
+      "feature": "planet.validate.ring.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.validate.ring",
+      "key": "planet.validate.ring",
+      "name": "ValidateRing",
+      "parent": "planet.validate",
+      "component": "planet.validate.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          0.2,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.release.feature",
+      "key": "planet.release.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.015,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.release.component",
+      "key": "planet.release.component",
+      "feature": "planet.release.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.release",
+      "key": "planet.release",
+      "name": "PlanetRelease",
+      "component": "planet.release.component",
+      "transform": {
+        "translation": [
+          -0.061563625798620354,
+          0.05,
+          0.1691446717414635
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.release.face.feature",
+      "key": "planet.release.face.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.008,
+        "innerRadius": 0.005,
+        "height": 0.004,
+        "radialSegments": 12,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.release.face.component",
+      "key": "planet.release.face.component",
+      "feature": "planet.release.face.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.release.face",
+      "key": "planet.release.face",
+      "name": "ReleaseFace",
+      "parent": "planet.release",
+      "component": "planet.release.face.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.release.ring.feature",
+      "key": "planet.release.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.032,
+        "innerRadius": 0.019,
+        "height": 0.001,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.release.ring.component",
+      "key": "planet.release.ring.component",
+      "feature": "planet.release.ring.feature",
+      "appearance": "hairline"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.release.ring",
+      "key": "planet.release.ring",
+      "name": "ReleaseRing",
+      "parent": "planet.release",
+      "component": "planet.release.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          1,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.operate.feature",
+      "key": "planet.operate.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.015,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.operate.component",
+      "key": "planet.operate.component",
+      "feature": "planet.operate.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.operate",
+      "key": "planet.operate",
+      "name": "PlanetOperate",
+      "component": "planet.operate.component",
+      "transform": {
+        "translation": [
+          -0.15588457268119893,
+          0.05,
+          0.09000000000000008
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.operate.face.feature",
+      "key": "planet.operate.face.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.004,
+          0.012,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.operate.face.component",
+      "key": "planet.operate.face.component",
+      "feature": "planet.operate.face.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.operate.face",
+      "key": "planet.operate.face",
+      "name": "OperateFace",
+      "parent": "planet.operate",
+      "component": "planet.operate.face.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.operate.ring.feature",
+      "key": "planet.operate.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.026,
+        "innerRadius": 0.018,
+        "height": 0.001,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.operate.ring.component",
+      "key": "planet.operate.ring.component",
+      "feature": "planet.operate.ring.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.operate.ring",
+      "key": "planet.operate.ring",
+      "name": "OperateRing",
+      "parent": "planet.operate",
+      "component": "planet.operate.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          0.4,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.measure.feature",
+      "key": "planet.measure.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.015,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.measure.component",
+      "key": "planet.measure.component",
+      "feature": "planet.measure.feature",
+      "appearance": "coral"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.measure",
+      "key": "planet.measure",
+      "name": "PlanetMeasure",
+      "component": "planet.measure.component",
+      "transform": {
+        "translation": [
+          -0.17726539554219745,
+          0.05,
+          -0.03125667198004739
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.measure.face.feature",
+      "key": "planet.measure.face.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.012,
+          0.008,
+          0.006
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.measure.face.component",
+      "key": "planet.measure.face.component",
+      "feature": "planet.measure.face.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.measure.face",
+      "key": "planet.measure.face",
+      "name": "MeasureFace",
+      "parent": "planet.measure",
+      "component": "planet.measure.face.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.measure.ring.feature",
+      "key": "planet.measure.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.035,
+        "innerRadius": 0.02,
+        "height": 0.001,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.measure.ring.component",
+      "key": "planet.measure.ring.component",
+      "feature": "planet.measure.ring.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.measure.ring",
+      "key": "planet.measure.ring",
+      "name": "MeasureRing",
+      "parent": "planet.measure",
+      "component": "planet.measure.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          0.6,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.listen.feature",
+      "key": "planet.listen.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.015,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.listen.component",
+      "key": "planet.listen.component",
+      "feature": "planet.listen.feature",
+      "appearance": "paper"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.listen",
+      "key": "planet.listen",
+      "name": "PlanetListen",
+      "component": "planet.listen.component",
+      "transform": {
+        "translation": [
+          -0.11570176974357713,
+          0.05,
+          -0.137887999761416
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.listen.face.feature",
+      "key": "planet.listen.face.feature",
+      "feature": {
+        "type": "primitive.box",
+        "size": [
+          0.01,
+          0.01,
+          0.004
+        ]
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.listen.face.component",
+      "key": "planet.listen.face.component",
+      "feature": "planet.listen.face.feature",
+      "appearance": "ink"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.listen.face",
+      "key": "planet.listen.face",
+      "name": "ListenFace",
+      "parent": "planet.listen",
+      "component": "planet.listen.face.component",
+      "transform": {
+        "translation": [
+          0,
+          0.01,
+          0
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "planet.listen.ring.feature",
+      "key": "planet.listen.ring.feature",
+      "feature": {
+        "type": "primitive.hollow-cylinder",
+        "outerRadius": 0.029,
+        "innerRadius": 0.019,
+        "height": 0.001,
+        "radialSegments": 32,
+        "axis": "y"
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "planet.listen.ring.component",
+      "key": "planet.listen.ring.component",
+      "feature": "planet.listen.ring.feature",
+      "appearance": "hairline"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "planet.listen.ring",
+      "key": "planet.listen.ring",
+      "name": "ListenRing",
+      "parent": "planet.listen",
+      "component": "planet.listen.ring.component",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotationRad": [
+          1.2,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "feature.define",
+      "opKey": "highlight.feature",
+      "key": "highlight.feature",
+      "feature": {
+        "type": "primitive.sphere",
+        "radius": 0.02,
+        "widthSegments": 12,
+        "heightSegments": 8
+      }
+    },
+    {
+      "op": "component.define",
+      "opKey": "highlight.component",
+      "key": "highlight.component",
+      "feature": "highlight.feature",
+      "appearance": "coral.bright"
+    },
+    {
+      "op": "occurrence.define",
+      "opKey": "highlight",
+      "key": "highlight",
+      "name": "Highlight",
+      "component": "highlight.component",
+      "transform": {
+        "translation": [
+          0,
+          0.07,
+          -0.18
+        ],
+        "rotationRad": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "op": "motion.clip.define",
+      "opKey": "anim.orbit",
+      "key": "anim.orbit",
+      "name": "OrbitSweep"
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.orbit.highlight",
+      "key": "anim.orbit.highlight",
+      "clip": "anim.orbit",
+      "target": "highlight",
+      "path": "translation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            0,
+            0.07,
+            -0.18
+          ]
+        },
+        {
+          "time": 2,
+          "value": [
+            0.11570176974357706,
+            0.07,
+            -0.13788799976141602
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            0.17726539554219745,
+            0.07,
+            -0.031256671980047473
+          ]
+        },
+        {
+          "time": 6,
+          "value": [
+            0.15588457268119896,
+            0.07,
+            0.08999999999999996
+          ]
+        },
+        {
+          "time": 8,
+          "value": [
+            0.061563625798620396,
+            0.07,
+            0.1691446717414635
+          ]
+        },
+        {
+          "time": 10,
+          "value": [
+            -0.061563625798620354,
+            0.07,
+            0.1691446717414635
+          ]
+        },
+        {
+          "time": 12,
+          "value": [
+            -0.15588457268119893,
+            0.07,
+            0.09000000000000008
+          ]
+        },
+        {
+          "time": 14,
+          "value": [
+            -0.17726539554219745,
+            0.07,
+            -0.03125667198004739
+          ]
+        },
+        {
+          "time": 16,
+          "value": [
+            -0.11570176974357713,
+            0.07,
+            -0.137887999761416
+          ]
+        },
+        {
+          "time": 18,
+          "value": [
+            0,
+            0.07,
+            -0.18
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.orbit.plan",
+      "key": "anim.orbit.plan",
+      "clip": "anim.orbit",
+      "target": "planet.plan",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 2,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 3,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 18,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.orbit.design",
+      "key": "anim.orbit.design",
+      "clip": "anim.orbit",
+      "target": "planet.design",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 2,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 5,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 6,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 18,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.orbit.build",
+      "key": "anim.orbit.build",
+      "clip": "anim.orbit",
+      "target": "planet.build",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 6,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 7,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 8,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 18,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.orbit.integrate",
+      "key": "anim.orbit.integrate",
+      "clip": "anim.orbit",
+      "target": "planet.integrate",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 6,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 8,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 9,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 10,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 18,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.orbit.validate",
+      "key": "anim.orbit.validate",
+      "clip": "anim.orbit",
+      "target": "planet.validate",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 8,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 10,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 11,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 12,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 18,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.orbit.release",
+      "key": "anim.orbit.release",
+      "clip": "anim.orbit",
+      "target": "planet.release",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 10,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 12,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 13,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 14,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 18,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.orbit.operate",
+      "key": "anim.orbit.operate",
+      "clip": "anim.orbit",
+      "target": "planet.operate",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 12,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 14,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 15,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 16,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 18,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.orbit.measure",
+      "key": "anim.orbit.measure",
+      "clip": "anim.orbit",
+      "target": "planet.measure",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 14,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 16,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 17,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 18,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.orbit.listen",
+      "key": "anim.orbit.listen",
+      "clip": "anim.orbit",
+      "target": "planet.listen",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 16,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 17,
+          "value": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        },
+        {
+          "time": 18,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.clip.define",
+      "opKey": "anim.ring.spin",
+      "key": "anim.ring.spin",
+      "name": "RingSpin"
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.ring.spin.plan",
+      "key": "anim.ring.spin.plan",
+      "clip": "anim.ring.spin",
+      "target": "planet.plan.ring",
+      "path": "rotation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            0.3,
+            0,
+            0
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            0.3,
+            1.5707963267948966,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.ring.spin.design",
+      "key": "anim.ring.spin.design",
+      "clip": "anim.ring.spin",
+      "target": "planet.design.ring",
+      "path": "rotation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            0.5,
+            0,
+            0
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            0.5,
+            3.141592653589793,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.ring.spin.build",
+      "key": "anim.ring.spin.build",
+      "clip": "anim.ring.spin",
+      "target": "planet.build.ring",
+      "path": "rotation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            0,
+            0.7853981633974483,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.ring.spin.integrate",
+      "key": "anim.ring.spin.integrate",
+      "clip": "anim.ring.spin",
+      "target": "planet.integrate.ring",
+      "path": "rotation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            0.8,
+            0,
+            0
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            0.8,
+            2.356194490192345,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.ring.spin.validate",
+      "key": "anim.ring.spin.validate",
+      "clip": "anim.ring.spin",
+      "target": "planet.validate.ring",
+      "path": "rotation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            0.2,
+            0,
+            0
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            0.2,
+            1.5707963267948966,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.ring.spin.release",
+      "key": "anim.ring.spin.release",
+      "clip": "anim.ring.spin",
+      "target": "planet.release.ring",
+      "path": "rotation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            1,
+            3.141592653589793,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.ring.spin.operate",
+      "key": "anim.ring.spin.operate",
+      "clip": "anim.ring.spin",
+      "target": "planet.operate.ring",
+      "path": "rotation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            0.4,
+            0,
+            0
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            0.4,
+            0.7853981633974483,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.ring.spin.measure",
+      "key": "anim.ring.spin.measure",
+      "clip": "anim.ring.spin",
+      "target": "planet.measure.ring",
+      "path": "rotation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            0.6,
+            0,
+            0
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            0.6,
+            2.356194490192345,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.ring.spin.listen",
+      "key": "anim.ring.spin.listen",
+      "clip": "anim.ring.spin",
+      "target": "planet.listen.ring",
+      "path": "rotation",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1.2,
+            0,
+            0
+          ]
+        },
+        {
+          "time": 4,
+          "value": [
+            1.2,
+            1.5707963267948966,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.clip.define",
+      "opKey": "anim.sun.pulse",
+      "key": "anim.sun.pulse",
+      "name": "SunPulse"
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.sun.pulse.sun",
+      "key": "anim.sun.pulse.sun",
+      "clip": "anim.sun.pulse",
+      "target": "sun",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 3,
+          "value": [
+            1.08,
+            1.08,
+            1.08
+          ]
+        },
+        {
+          "time": 6,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.sun.pulse.corona0",
+      "key": "anim.sun.pulse.corona0",
+      "clip": "anim.sun.pulse",
+      "target": "corona.0",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 3,
+          "value": [
+            1.12,
+            1,
+            1.12
+          ]
+        },
+        {
+          "time": 6,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "op": "motion.track.define",
+      "opKey": "anim.sun.pulse.corona1",
+      "key": "anim.sun.pulse.corona1",
+      "clip": "anim.sun.pulse",
+      "target": "corona.1",
+      "path": "scale",
+      "interpolation": "linear",
+      "keyframes": [
+        {
+          "time": 0,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "time": 3,
+          "value": [
+            1.15,
+            1,
+            1.15
+          ]
+        },
+        {
+          "time": 6,
+          "value": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "budget": {
+    "maxBytes": 2097152,
+    "maxNodes": 80,
+    "maxVertices": 15000,
+    "maxTriangles": 15000,
+    "maxAnimations": 8,
+    "maxAnimationTracks": 24,
+    "maxKeyframes": 120,
+    "maxAnimationDurationSeconds": 20,
+    "maxOperations": 136,
+    "maxGeneratedInstances": 64
+  }
+}

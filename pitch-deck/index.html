@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Earthly — The Interface to Everything</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0A0A0F;
+    --bg-card: rgba(255,255,255,0.03);
+    --text: #F5F0EB;
+    --text-muted: rgba(245,240,235,0.45);
+    --coral: #F47762;
+    --accent: #A84332;
+    --peach: #FBE2D6;
+    --rust: #A9513A;
+    --brand: var(--coral);
+    --slide-padding: 6vh 6vw;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100dvh;
+    width: 100vw;
+    font-feature-settings: "ss01", "ss02";
+  }
+
+  /* ── Progress bar ── */
+  .progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--coral), var(--accent));
+    z-index: 200;
+    transition: width 0.6s var(--ease-out-expo);
+    box-shadow: 0 0 10px rgba(244,119,98,0.4);
+  }
+
+  /* ── Deck ── */
+  .deck {
+    height: 100dvh;
+    width: 100vw;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: var(--slide-padding);
+    padding-top: 8vh;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    transition: none;
+    overflow-y: auto;
+  }
+
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+  }
+
+  .slide.exit-forward {
+    animation: slideExitUp 0.7s var(--ease-out-expo) forwards;
+  }
+
+  .slide.exit-backward {
+    animation: slideExitDown 0.7s var(--ease-out-expo) forwards;
+  }
+
+  .slide.enter-forward {
+    animation: slideEnterUp 0.8s var(--ease-out-expo) forwards;
+  }
+
+  .slide.enter-backward {
+    animation: slideEnterDown 0.8s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes slideExitUp {
+    from { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    to { opacity: 0; transform: translateY(-40px) scale(0.97); filter: blur(4px); }
+  }
+
+  @keyframes slideExitDown {
+    from { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    to { opacity: 0; transform: translateY(40px) scale(0.97); filter: blur(4px); }
+  }
+
+  @keyframes slideEnterUp {
+    from { opacity: 0; transform: translateY(50px) scale(0.97); filter: blur(4px); }
+    to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+
+  @keyframes slideEnterDown {
+    from { opacity: 0; transform: translateY(-50px) scale(0.97); filter: blur(4px); }
+    to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+
+  /* ── Typography ── */
+  h1 { font-size: clamp(2.2rem, 5vw, 4rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; }
+  h2 { font-size: clamp(1.3rem, 2.8vw, 2.2rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+  h3 { font-size: clamp(1rem, 1.6vw, 1.3rem); font-weight: 600; line-height: 1.3; }
+  p, .body { font-size: clamp(0.85rem, 1.2vw, 1.1rem); line-height: 1.6; font-weight: 400; }
+
+  .eyebrow {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--brand);
+    margin-bottom: 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--brand);
+  }
+
+  .accent-line {
+    width: 60px;
+    height: 2px;
+    background: var(--brand);
+    margin: 1.2rem 0;
+  }
+
+  .muted { color: var(--text-muted); }
+  .coral { color: var(--coral); }
+  .accent-color { color: var(--accent); }
+  .peach { color: var(--peach); }
+  .rust { color: var(--rust); }
+
+  /* ── Animated elements (hidden by default, revealed per-slide) ── */
+  .anim { opacity: 0; }
+  .slide.active .anim { animation-fill-mode: forwards; }
+
+  .fade-up { animation: fadeUp 0.8s var(--ease-out-expo) forwards; }
+  .fade-in { animation: fadeIn 0.6s ease forwards; }
+  .scale-in { animation: scaleIn 0.7s var(--ease-out-back) forwards; }
+  .slide-left { animation: slideLeft 0.8s var(--ease-out-expo) forwards; }
+  .slide-right { animation: slideRight 0.8s var(--ease-out-expo) forwards; }
+  .blur-in { animation: blurIn 0.9s var(--ease-out-expo) forwards; }
+  .draw-line { animation: drawLine 0.6s var(--ease-out-expo) forwards; }
+  .anim-count-up { font-variant-numeric: tabular-nums; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.7); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes slideLeft {
+    from { opacity: 0; transform: translateX(-40px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes slideRight {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes blurIn {
+    from { opacity: 0; filter: blur(8px); transform: translateY(10px); }
+    to { opacity: 1; filter: blur(0); transform: translateY(0); }
+  }
+
+  @keyframes drawLine {
+    from { width: 0; }
+    to { width: 60px; }
+  }
+
+  /* ── Slide 1: Cover ─ */
+  .cover { align-items: center; text-align: center; justify-content: center; padding-top: var(--slide-padding); }
+
+  .cover .logo-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 2rem;
+    padding: 20px 24px;
+    background: var(--coral);
+    border-radius: 16px;
+  }
+
+  .cover .logo-mark .bar {
+    width: 6px;
+    background: #292735;
+    border-radius: 3px;
+    transform-origin: center;
+  }
+
+  .slide.active .cover .logo-mark .bar {
+    animation: brandDance 1.2s ease-in-out infinite;
+  }
+
+  .cover .logo-mark .bar:nth-child(1) { height: 14px; animation-delay: 0s; }
+  .cover .logo-mark .bar:nth-child(2) { height: 40px; animation-delay: 0.15s; }
+  .cover .logo-mark .bar:nth-child(3) { height: 30px; animation-delay: 0.3s; }
+  .cover .logo-mark .bar:nth-child(4) { height: 40px; animation-delay: 0.1s; }
+  .cover .logo-mark .bar:nth-child(5) { height: 22px; animation-delay: 0.25s; }
+
+  @keyframes brandDance {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.4); }
+  }
+
+  .cover .title-letter {
+    display: inline-block;
+    opacity: 0;
+  }
+
+  .slide.cover.active .title-letter {
+    animation: blurIn 0.8s var(--ease-out-expo) forwards;
+  }
+
+  .cover .tagline {
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    color: var(--text-muted);
+    margin-top: 1.5rem;
+    font-weight: 300;
+  }
+
+  .cover .raise {
+    margin-top: 3rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 0.6rem 1.5rem;
+  }
+
+  /* Cover background pulse */
+  .cover-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .cover-bg .pulse-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200px;
+    height: 200px;
+    border: 1px solid rgba(244,119,98,0.1);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+  }
+
+  .slide.active .cover-bg .pulse-ring {
+    animation: pulseRing 3s ease-out infinite;
+  }
+
+  .slide.active .cover-bg .pulse-ring:nth-child(2) { animation-delay: 1s; }
+  .slide.active .cover-bg .pulse-ring:nth-child(3) { animation-delay: 2s; }
+
+  @keyframes pulseRing {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(8); opacity: 0; }
+  }
+
+  /* ── Slide 2: Problem ── */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  .problem-stat {
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--coral), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .problem-stat-label {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+  }
+
+  .problem-word {
+    display: inline-block;
+    opacity: 0;
+  }
+
+  .slide.active .problem-word {
+    animation: wordSlideIn 0.6s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes wordSlideIn {
+    from { opacity: 0; transform: translateX(-20px) rotate(-2deg); }
+    to { opacity: 1; transform: translateX(0) rotate(0); }
+  }
+
+  /* ── Slide 3: Vision ── */
+  .sense-grid {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .sense-card {
+    flex: 1;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 1.2rem;
+    position: relative;
+    opacity: 0;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .sense-card:hover { border-color: var(--brand); transform: translateY(-4px); }
+
+  .sense-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+
+  .slide.active .sense-card::before {
+    animation: drawTopLine 0.5s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes drawTopLine {
+    to { transform: scaleX(1); }
+  }
+
+  .sense-card:nth-child(1)::before { background: var(--coral); }
+  .sense-card:nth-child(2)::before { background: var(--accent); }
+  .sense-card:nth-child(3)::before { background: var(--peach); }
+  .sense-card:nth-child(4)::before { background: var(--rust); opacity: 0.5; }
+  .sense-card:nth-child(5)::before { background: var(--text-muted); opacity: 0.3; }
+
+  .sense-card.beta { opacity: 0.5; }
+  .sense-card.beta .beta-badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid rgba(255,255,255,0.15);
+    margin-top: 0.5rem;
+    color: var(--text-muted);
+  }
+
+  .sense-card .sense-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.8rem;
+    opacity: 0;
+  }
+
+  .slide.active .sense-card .sense-icon {
+    animation: iconRotateIn 0.6s var(--ease-out-back) forwards;
+  }
+
+  @keyframes iconRotateIn {
+    from { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+    to { opacity: 1; transform: rotate(0) scale(1); }
+  }
+
+  .sense-card h3 { margin-bottom: 0.4rem; }
+  .sense-card p { font-size: 0.9rem; color: var(--text-muted); }
+
+  /* ── Slide 4: Solution ── */
+  .solution-flow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .solution-node {
+    flex: 1;
+    text-align: center;
+    padding: 1.5rem 0.8rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--bg-card);
+    opacity: 0;
+  }
+
+  .solution-node .node-icon {
+    width: 48px; height: 48px;
+    border: 2px solid var(--coral);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+    font-size: 1.2rem;
+  }
+
+  .solution-arrow {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    opacity: 0;
+  }
+
+  .slide.active .solution-arrow {
+    animation: arrowDraw 0.4s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes arrowDraw {
+    from { opacity: 0; transform: scaleX(0); }
+    to { opacity: 1; transform: scaleX(1); }
+  }
+
+  /* ── Slide 5: Product ── */
+  .product-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+
+  .product-step {
+    position: relative;
+    opacity: 0;
+  }
+
+  .product-step .step-num {
+    font-size: 4rem;
+    font-weight: 900;
+    color: rgba(244,119,98,0.08);
+    line-height: 1;
+    margin-bottom: 1rem;
+  }
+
+  .product-step h3 { margin-bottom: 0.5rem; }
+  .product-step p { color: var(--text-muted); font-size: 0.95rem; }
+
+  /* ── Slide 6: Technology ── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .tech-card {
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 1.5rem;
+    position: relative;
+    opacity: 0;
+  }
+
+  .tech-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0;
+    width: 3px;
+    height: 0;
+  }
+
+  .slide.active .tech-card::before {
+    animation: drawSideBar 0.5s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes drawSideBar {
+    to { height: 100%; }
+  }
+
+  .tech-card:nth-child(1)::before { background: var(--coral); }
+  .tech-card:nth-child(2)::before { background: var(--accent); }
+  .tech-card:nth-child(3)::before { background: var(--rust); }
+  .tech-card:nth-child(4)::before { background: var(--peach); }
+
+  .tech-card h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+  .tech-card p { font-size: 0.9rem; color: var(--text-muted); }
+
+  .tech-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    margin-top: 0.75rem;
+    color: var(--text-muted);
+    opacity: 0;
+  }
+
+  .slide.active .tech-badge {
+    animation: badgePop 0.4s var(--ease-out-back) forwards;
+  }
+
+  @keyframes badgePop {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── Slide 7: Market ── */
+  .market-nums {
+    display: flex;
+    gap: 2.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .market-num { text-align: left; }
+
+  .market-num .big {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .market-num .label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    max-width: 180px;
+  }
+
+  .market-fill {
+    height: 4px;
+    background: var(--coral);
+    margin-top: 0.5rem;
+    width: 0;
+  }
+
+  .slide.active .market-fill {
+    animation: fillBar 1s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes fillBar {
+    to { width: 100%; }
+  }
+
+  /* ── Slide 8: Competition ── */
+  .comp-table {
+    width: 100%;
+    margin-top: 1rem;
+    border-collapse: collapse;
+  }
+
+  .comp-table th, .comp-table td {
+    padding: 0.7rem 1rem;
+    text-align: left;
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .comp-table th {
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .comp-table td:last-child { text-align: center; }
+  .comp-table th:last-child { text-align: center; }
+
+  .comp-table tbody tr {
+    opacity: 0;
+  }
+
+  .slide.active .comp-table tbody tr {
+    animation: rowSlideIn 0.5s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes rowSlideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .check { color: var(--coral); font-weight: 700; }
+  .cross { color: rgba(255,255,255,0.12); }
+
+  .comp-table tr.earthly-row td {
+    font-weight: 600;
+    color: var(--coral);
+    position: relative;
+  }
+
+  .comp-table tr.earthly-row {
+    border-bottom: 2px solid var(--coral);
+  }
+
+  /* ── Slide 9: Traction ── */
+  .traction-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .traction-item {
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 1.5rem;
+    text-align: center;
+    opacity: 0;
+  }
+
+  .traction-item .t-num {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .traction-item .t-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .traction-milestones {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .milestone {
+    flex: 1;
+    padding: 1rem;
+    border-left: 2px solid var(--brand);
+    opacity: 0;
+  }
+
+  .milestone h3 { font-size: 0.95rem; margin-bottom: 0.3rem; }
+  .milestone p { font-size: 0.85rem; color: var(--text-muted); }
+
+  .slide.active .milestone::before {
+    content: '';
+    display: block;
+    width: 2px;
+    height: 0;
+    background: var(--brand);
+    position: absolute;
+    left: 0;
+    top: 0;
+    animation: drawMilestoneBorder 0.6s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes drawMilestoneBorder {
+    to { height: 100%; }
+  }
+
+  /* ── Slide 10: The Ask ── */
+  .ask { align-items: center; text-align: center; }
+
+  .ask-amount {
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--coral), var(--accent), var(--peach), var(--coral));
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin: 1rem 0 0.5rem;
+    opacity: 0;
+  }
+
+  .slide.active .ask-amount {
+    animation: amountIn 1s var(--ease-out-back) forwards, gradientShift 4s ease infinite;
+  }
+
+  @keyframes amountIn {
+    from { opacity: 0; transform: scale(0.3); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .ask-uses {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+    text-align: center;
+  }
+
+  .ask-use {
+    flex: 1;
+    opacity: 0;
+  }
+
+  .ask-use .use-pct {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--coral);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ask-use .use-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+  }
+
+  /* ── Navigation ── */
+  .nav-bar {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.5rem;
+    z-index: 100;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(10px);
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .nav-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    cursor: pointer;
+    transition: all 0.4s var(--ease-out-expo);
+    padding: 0;
+  }
+
+  .nav-dot.active {
+    background: var(--coral);
+    box-shadow: 0 0 8px rgba(244,119,98,0.4);
+    width: 24px;
+    border-radius: 4px;
+  }
+
+  .nav-counter {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    z-index: 100;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .nav-hint {
+    position: fixed;
+    bottom: 2rem;
+    left: 2rem;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.15);
+    z-index: 100;
+    letter-spacing: 0.05em;
+    transition: opacity 0.5s;
+  }
+
+  .nav-hint.hidden { opacity: 0; }
+
+  /* ── Mute toggle ── */
+  .mute-toggle {
+    position: fixed;
+    bottom: 2rem;
+    right: 6rem;
+    z-index: 100;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-muted);
+    padding: 0.4rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+  }
+
+  .mute-toggle:hover { border-color: var(--coral); color: var(--coral); }
+  .mute-toggle.muted { opacity: 0.4; }
+
+  /* ── Ambient particles ── */
+  .ambient {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .ambient span {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: rgba(244,119,98,0.25);
+    border-radius: 50%;
+    animation: drift linear infinite;
+  }
+
+  @keyframes drift {
+    from { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    to { transform: translateY(-10vh) translateX(30px); opacity: 0; }
+  }
+
+  /* ── Per-slide backgrounds ── */
+  .slide-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .slide-bg-problem {
+    background: radial-gradient(ellipse at 0% 100%, rgba(168,67,50,0.08) 0%, transparent 50%);
+  }
+
+  .slide-bg-vision {
+    background:
+      radial-gradient(ellipse at 20% 60%, rgba(244,119,98,0.04) 0%, transparent 40%),
+      radial-gradient(ellipse at 40% 40%, rgba(168,67,50,0.04) 0%, transparent 40%),
+      radial-gradient(ellipse at 60% 70%, rgba(251,226,214,0.03) 0%, transparent 40%),
+      radial-gradient(ellipse at 75% 50%, rgba(169,81,58,0.03) 0%, transparent 40%),
+      radial-gradient(ellipse at 90% 60%, rgba(245,240,235,0.02) 0%, transparent 40%);
+  }
+
+  .slide-bg-solution {
+    background: linear-gradient(135deg, rgba(244,119,98,0.03) 0%, rgba(168,67,50,0.03) 50%, rgba(251,226,214,0.02) 100%);
+  }
+
+  .slide-bg-tech {
+    background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+
+  .slide-bg-ask {
+    background: radial-gradient(ellipse at 50% 50%, rgba(244,119,98,0.08) 0%, transparent 60%);
+  }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .anim { opacity: 1 !important; }
+    .sense-card, .solution-node, .tech-card, .product-step, .traction-item, .milestone, .ask-use, .comp-table tbody tr {
+      opacity: 1 !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true">
+  <span style="left:5%;animation-duration:18s;animation-delay:0s"></span>
+  <span style="left:15%;animation-duration:22s;animation-delay:3s"></span>
+  <span style="left:25%;animation-duration:16s;animation-delay:1s;background:rgba(168,67,50,0.25)"></span>
+  <span style="left:40%;animation-duration:20s;animation-delay:5s"></span>
+  <span style="left:55%;animation-duration:24s;animation-delay:2s;background:rgba(251,226,214,0.15)"></span>
+  <span style="left:70%;animation-duration:17s;animation-delay:4s"></span>
+  <span style="left:82%;animation-duration:21s;animation-delay:1s;background:rgba(168,67,50,0.2)"></span>
+  <span style="left:92%;animation-duration:19s;animation-delay:6s"></span>
+</div>
+
+<div class="progress-bar" id="progressBar" style="width:10%"></div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Cover -->
+  <div class="slide cover active" data-slide="1">
+    <div class="cover-bg">
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+    </div>
+    <div class="logo-mark">
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+    </div>
+    <h1><span class="title-letter" style="animation-delay:0.3s">E</span><span class="title-letter" style="animation-delay:0.38s">a</span><span class="title-letter" style="animation-delay:0.46s">r</span><span class="title-letter" style="animation-delay:0.54s">t</span><span class="title-letter" style="animation-delay:0.62s">h</span><span class="title-letter" style="animation-delay:0.7s">l</span><span class="title-letter" style="animation-delay:0.78s">y</span></h1>
+    <p class="tagline anim fade-up" style="animation-delay:1s">The interface to everything</p>
+    <div class="raise anim fade-up" style="animation-delay:1.3s">Seed Round &middot; $5M</div>
+  </div>
+
+  <!-- SLIDE 2: The Problem -->
+  <div class="slide" data-slide="2">
+    <div class="slide-bg slide-bg-problem"></div>
+    <div class="problem-grid">
+      <div>
+        <span class="eyebrow anim fade-up" style="animation-delay:0.2s">The problem</span>
+        <h2><span class="problem-word" style="animation-delay:0.4s">Every</span> <span class="problem-word" style="animation-delay:0.5s">app</span> <span class="problem-word" style="animation-delay:0.6s">is</span> <span class="problem-word" style="animation-delay:0.7s">a</span> <span class="problem-word" style="animation-delay:0.8s">walled</span> <span class="problem-word" style="animation-delay:0.9s">garden.</span><br><span class="problem-word" style="animation-delay:1.1s">Your</span> <span class="problem-word" style="animation-delay:1.2s">voice</span> <span class="problem-word" style="animation-delay:1.3s">goes</span> <span class="problem-word" style="animation-delay:1.4s">nowhere.</span></h2>
+        <div class="accent-line anim draw-line" style="animation-delay:1.6s"></div>
+        <p class="muted anim fade-up" style="animation-delay:1.8s">You see a document. A video. A contract. You have a question. You still have to open it, read it, search it, copy it, paste it. The most natural thing in the world &mdash; asking out loud &mdash; hits a wall.</p>
+      </div>
+      <div style="text-align:center">
+        <div class="problem-stat anim scale-in" data-count="4.7" data-suffix="h" style="animation-delay:0.5s">0</div>
+        <p class="problem-stat-label anim fade-up" style="animation-delay:0.8s">Average time spent daily switching between apps to find and process information</p>
+        <div style="margin-top:1.5rem">
+          <div class="problem-stat anim scale-in" style="font-size:clamp(2rem,5vw,4rem);animation-delay:1s" data-count="0">0</div>
+          <p class="problem-stat-label anim fade-up" style="animation-delay:1.2s">Apps today let you talk across all your documents and videos in one place</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: The Vision -->
+  <div class="slide" data-slide="3">
+    <div class="slide-bg slide-bg-vision"></div>
+    <span class="eyebrow anim fade-up" style="animation-delay:0.2s">The vision</span>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">Web 3.0 is not a protocol.<br>It is a <span class="coral">conversation</span>.</h2>
+    <div class="accent-line anim draw-line" style="animation-delay:0.6s"></div>
+    <p class="muted anim fade-up" style="max-width:600px;animation-delay:0.8s;margin-bottom:0.5rem">The next internet is not typed. It is spoken, gestured, glanced, sensed. Earthly is the interface layer that makes every piece of content conversational through every human sense.</p>
+    <div class="sense-grid">
+      <div class="sense-card" style="animation-delay:1s">
+        <div class="sense-icon coral">&#9678;</div>
+        <h3>Sight</h3>
+        <p>Gaze tracking. Look at what you mean. Dwell to confirm. The interface knows where your attention is.</p>
+      </div>
+      <div class="sense-card" style="animation-delay:1.15s">
+        <div class="sense-icon accent-color">&#9835;</div>
+        <h3>Hearing</h3>
+        <p>Full duplex voice. Speak naturally. Interrupt, follow up, change your mind. Real-time, not command-response.</p>
+      </div>
+      <div class="sense-card" style="animation-delay:1.3s">
+        <div class="sense-icon peach">&#9995;</div>
+        <h3>Touch</h3>
+        <p>Gesture, motion, haptic. Swipe to summarize. Point to select. Your hands are the controller.</p>
+      </div>
+      <div class="sense-card beta" style="animation-delay:1.45s">
+        <div class="sense-icon rust">&#127796;</div>
+        <h3>Smell</h3>
+        <p>Sensory interface research. The environment becomes part of the conversation.</p>
+        <span class="beta-badge">Beta</span>
+      </div>
+      <div class="sense-card beta" style="animation-delay:1.6s">
+        <div class="sense-icon" style="color:var(--text-muted)">&#127860;</div>
+        <h3>Taste</h3>
+        <p>Full sensory completion. Every human sense connected to the interface.</p>
+        <span class="beta-badge">Beta</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: The Solution -->
+  <div class="slide" data-slide="4">
+    <div class="slide-bg slide-bg-solution"></div>
+    <span class="eyebrow anim fade-up" style="animation-delay:0.2s">The solution</span>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">One interface.<br>Every document. Every video. <span class="coral">Every conversation.</span></h2>
+    <div class="accent-line anim draw-line" style="animation-delay:0.6s"></div>
+    <div class="solution-flow">
+      <div class="solution-node" style="animation-delay:0.8s">
+        <div class="node-icon">&#128196;</div>
+        <h3>Drop a source</h3>
+        <p class="muted" style="font-size:0.9rem">PDF, YouTube URL, any document</p>
+      </div>
+      <div class="solution-arrow" style="animation-delay:1s">&rarr;</div>
+      <div class="solution-node" style="animation-delay:1.1s">
+        <div class="node-icon" style="border-color:var(--accent)">&#127908;</div>
+        <h3>Speak or gesture</h3>
+        <p class="muted" style="font-size:0.9rem">Ask out loud, swipe, or look</p>
+      </div>
+      <div class="solution-arrow" style="animation-delay:1.3s">&rarr;</div>
+      <div class="solution-node" style="animation-delay:1.4s">
+        <div class="node-icon" style="border-color:var(--rust)">&#129504;</div>
+        <h3>Get answers</h3>
+        <p class="muted" style="font-size:0.9rem">Real-time, contextual, conversational</p>
+      </div>
+      <div class="solution-arrow" style="animation-delay:1.6s">&rarr;</div>
+      <div class="solution-node" style="animation-delay:1.7s">
+        <div class="node-icon" style="border-color:var(--peach)">&#9889;</div>
+        <h3>Take action</h3>
+        <p class="muted" style="font-size:0.9rem">Extract, summarize, decide</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Product -->
+  <div class="slide" data-slide="5">
+    <span class="eyebrow anim fade-up" style="animation-delay:0.2s">Product</span>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">Three steps. <span class="coral">About a minute.</span></h2>
+    <div class="accent-line anim draw-line" style="animation-delay:0.6s"></div>
+    <div class="product-steps">
+      <div class="product-step anim slide-left" style="animation-delay:0.8s">
+        <div class="step-num">01</div>
+        <h3>Bring your source</h3>
+        <p>A PDF contract. A YouTube tutorial. A research paper. Drop it in. Earthly ingests and indexes it instantly.</p>
+      </div>
+      <div class="product-step anim fade-up" style="animation-delay:1s">
+        <div class="step-num">02</div>
+        <h3>Start talking</h3>
+        <p>Ask "What is the termination clause?" or swipe down to summarize. Use your voice, your hands, or your eyes.</p>
+      </div>
+      <div class="product-step anim slide-right" style="animation-delay:1.2s">
+        <div class="step-num">03</div>
+        <h3>Go deeper</h3>
+        <p>Follow up in your own words. "Flag any risks." "Where does the auth flow start?" Earthly remembers context.</p>
+      </div>
+    </div>
+    <p class="muted anim fade-up" style="margin-top:2rem;font-size:0.9rem;animation-delay:1.5s">Works on web and mobile. No dedicated hardware. No keyboard required.</p>
+  </div>
+
+  <!-- SLIDE 6: Technology -->
+  <div class="slide" data-slide="6">
+    <div class="slide-bg slide-bg-tech"></div>
+    <span class="eyebrow anim fade-up" style="animation-delay:0.2s">Technology</span>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">Built for the <span class="accent-color">post-keyboard</span> era</h2>
+    <div class="accent-line anim draw-line" style="animation-delay:0.6s"></div>
+    <div class="tech-grid">
+      <div class="tech-card" style="animation-delay:0.8s">
+        <h3>Real-time voice engine</h3>
+        <p>WebRTC streaming to the OpenAI Realtime API. Sub-second latency. Interruptible. Full duplex. Your voice never leaves the encrypted channel.</p>
+        <span class="tech-badge" style="animation-delay:1.2s">WebRTC &middot; E2E encrypted</span>
+      </div>
+      <div class="tech-card" style="animation-delay:1s">
+        <h3>Motion &amp; gesture recognition</h3>
+        <p>On-device camera tracks hand gestures and body motion. Swipe, point, pinch. Works without wearables or depth sensors.</p>
+        <span class="tech-badge" style="animation-delay:1.4s">On-device &middot; No wearables</span>
+      </div>
+      <div class="tech-card" style="animation-delay:1.2s">
+        <h3>Gaze &amp; attention tracking</h3>
+        <p>Eye position drives the cursor. Dwell to select. The UI knows where you are looking and responds accordingly.</p>
+        <span class="tech-badge" style="animation-delay:1.6s">Spatial computing</span>
+      </div>
+      <div class="tech-card" style="animation-delay:1.4s">
+        <h3>Universal content parser</h3>
+        <p>PDFs, YouTube captions, web pages, documents. One extraction pipeline. Content is indexed once, queried forever.</p>
+        <span class="tech-badge" style="animation-delay:1.8s">Multi-format &middot; Streaming</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Market -->
+  <div class="slide" data-slide="7">
+    <span class="eyebrow anim fade-up" style="animation-delay:0.2s">Market opportunity</span>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">A <span class="coral">global gap</span> with no incumbent</h2>
+    <div class="accent-line anim draw-line" style="animation-delay:0.6s"></div>
+    <p class="muted anim fade-up" style="max-width:700px;margin-bottom:0.5rem;animation-delay:0.8s">We analyzed five major markets. No player in China, Japan, Korea, Europe, or the US combines voice-to-action and motion-to-action in a single consumer product on mobile.</p>
+    <div class="market-nums">
+      <div class="market-num">
+        <div class="big coral anim count-up" data-target="47" data-prefix="$" data-suffix="B" style="animation-delay:1s">$0B</div>
+        <div class="market-fill" style="animation-delay:1.2s"></div>
+        <p class="label anim fade-up" style="animation-delay:1.4s">Global voice assistant market by 2027</p>
+      </div>
+      <div class="market-num">
+        <div class="big accent-color anim scale-in" style="animation-delay:1.2s" data-target="5">0</div>
+        <p class="label anim fade-up" style="animation-delay:1.5s">Major markets with zero cross-app voice+motion solutions</p>
+      </div>
+      <div class="market-num">
+        <div class="big rust anim count-up" data-target="100" data-suffix="%" style="animation-delay:1.4s">0%</div>
+        <div class="market-fill" style="animation-delay:1.6s;background:var(--rust)"></div>
+        <p class="label anim fade-up" style="animation-delay:1.8s">Mobile-first. No dedicated hardware required.</p>
+      </div>
+    </div>
+    <p class="muted anim fade-up" style="margin-top:1rem;font-size:0.85rem;animation-delay:2s">Rabbit R1 shipped with 10-second latency. Humane AI Pin was discontinued. The hardware approach failed. Software wins.</p>
+  </div>
+
+  <!-- SLIDE 8: Competition -->
+  <div class="slide" data-slide="8">
+    <span class="eyebrow anim fade-up" style="animation-delay:0.2s">Competitive landscape</span>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">No one else is building <span class="coral">this</span></h2>
+    <div class="accent-line anim draw-line" style="animation-delay:0.6s"></div>
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>ByteDance</th>
+          <th>Kakao</th>
+          <th>Mistral</th>
+          <th>Samsung</th>
+          <th>Earthly</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="animation-delay:0.8s">
+          <td>Voice-to-action (cross-app)</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr style="animation-delay:0.9s">
+          <td>Motion-to-action (mobile)</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr style="animation-delay:1s">
+          <td>Gaze-driven interface</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr style="animation-delay:1.1s">
+          <td>Document + video conversation</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr style="animation-delay:1.2s">
+          <td>No dedicated hardware</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr class="earthly-row" style="animation-delay:1.3s">
+          <td style="color:var(--coral)">Real-time full duplex</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SLIDE 9: Traction & Roadmap -->
+  <div class="slide" data-slide="9">
+    <span class="eyebrow anim fade-up" style="animation-delay:0.2s">Traction &amp; roadmap</span>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">Working product. <span class="coral">960 tests passing.</span> Global ready.</h2>
+    <div class="accent-line anim draw-line" style="animation-delay:0.6s"></div>
+    <div class="traction-grid">
+      <div class="traction-item anim scale-in" style="animation-delay:0.8s">
+        <div class="t-num coral count-up" data-target="2">0</div>
+        <div class="t-label">Platforms shipped<br>Web + Mobile</div>
+      </div>
+      <div class="traction-item anim scale-in" style="animation-delay:1s">
+        <div class="t-num accent-color count-up" data-target="960">0</div>
+        <div class="t-label">Automated tests<br>Zero regressions</div>
+      </div>
+      <div class="traction-item anim scale-in" style="animation-delay:1.2s">
+        <div class="t-num rust">3D</div>
+        <div class="t-label">Spatial UI<br>React Three Fiber + AR</div>
+      </div>
+    </div>
+    <div class="traction-milestones">
+      <div class="milestone anim slide-left" style="animation-delay:1.4s">
+        <h3>Q4 2026</h3>
+        <p>Voice profile system. Speaker identification. Language auto-detect. Dialect adaptation. Noise filtering.</p>
+      </div>
+      <div class="milestone anim fade-up" style="border-color:var(--accent);animation-delay:1.6s">
+        <h3>Q1 2027</h3>
+        <p>AR navigator. Dual-reality galaxy interface. Smell + taste interface research (beta). Shared spatial sessions.</p>
+      </div>
+      <div class="milestone anim slide-right" style="border-color:var(--rust);animation-delay:1.8s">
+        <h3>Q2 2027</h3>
+        <p>Full sensory interface (all 5 senses). Brain-to-action (BCI beta). Cross-app action execution. Enterprise API.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: The Ask -->
+  <div class="slide ask" data-slide="10">
+    <div class="slide-bg slide-bg-ask"></div>
+    <span class="eyebrow anim fade-up" style="animation-delay:0.2s">The ask</span>
+    <div class="ask-amount">$5M</div>
+    <h2 class="anim fade-up" style="animation-delay:0.8s">Seed round to build the <span class="coral">post-keyboard</span> interface</h2>
+    <div class="accent-line anim draw-line" style="margin:2rem auto;animation-delay:1s"></div>
+    <p class="muted anim fade-up" style="max-width:500px;animation-delay:1.2s">18 months of runway to ship voice profiles, AR navigation, full sensory interface, and cross-app actions. To go from working prototype to category leader.</p>
+    <div class="ask-uses">
+      <div class="ask-use anim fade-up" style="animation-delay:1.4s">
+        <div class="use-pct count-up" data-target="45">0%</div>
+        <div class="use-label">Engineering<br>AI, voice, motion, AR</div>
+      </div>
+      <div class="ask-use anim fade-up" style="animation-delay:1.6s">
+        <div class="use-pct count-up" data-target="25" style="color:var(--accent)">0%</div>
+        <div class="use-label">Product &amp; Design<br>Spatial UX, onboarding</div>
+      </div>
+      <div class="ask-use anim fade-up" style="animation-delay:1.8s">
+        <div class="use-pct count-up" data-target="20" style="color:var(--rust)">0%</div>
+        <div class="use-label">Go to Market<br>Launch in 5 markets</div>
+      </div>
+      <div class="ask-use anim fade-up" style="animation-delay:2s">
+        <div class="use-pct count-up" data-target="10" style="color:var(--peach)">0%</div>
+        <div class="use-label">Operations<br>Infrastructure, legal</div>
+      </div>
+    </div>
+    <p class="anim fade-up" style="margin-top:1.5rem;font-size:1.1rem;font-weight:500;animation-delay:2.2s">Earthly is the way to interface with everything.</p>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav-bar" id="navBar"></div>
+<div class="nav-counter" id="navCounter">1 / 10</div>
+<div class="nav-hint" id="navHint">&larr; &rarr; or swipe</div>
+<button class="mute-toggle" id="muteToggle" title="Toggle sound">&#9835;</button>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  let transitioning = false;
+  let muted = false;
+
+  const navBar = document.getElementById('navBar');
+  const counter = document.getElementById('navCounter');
+  const progressBar = document.getElementById('progressBar');
+  const hint = document.getElementById('navHint');
+  const muteBtn = document.getElementById('muteToggle');
+
+  // Audio context
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  }
+
+  function playTone(freqStart, freqEnd, duration, volume) {
+    if (muted || !audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freqStart, audioCtx.currentTime);
+    osc.frequency.linearRampToValueAtTime(freqEnd, audioCtx.currentTime + duration);
+    gain.gain.setValueAtTime(volume || 0.03, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function playForward() { playTone(200, 400, 0.3, 0.03); }
+  function playBackward() { playTone(400, 200, 0.3, 0.03); }
+  function playCover() { playTone(100, 150, 0.5, 0.04); }
+  function playAsk() {
+    if (muted || !audioCtx) return;
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(200, audioCtx.currentTime);
+    osc1.frequency.linearRampToValueAtTime(500, audioCtx.currentTime + 0.5);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(300, audioCtx.currentTime);
+    osc2.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc1.start();
+    osc2.start();
+    osc1.stop(audioCtx.currentTime + 0.5);
+    osc2.stop(audioCtx.currentTime + 0.5);
+  }
+
+  // Build nav dots
+  for (let i = 0; i < total; i++) {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.addEventListener('click', () => goTo(i));
+    navBar.appendChild(dot);
+  }
+
+  // Count-up animation
+  function animateCountUp(el) {
+    const target = parseFloat(el.dataset.target || el.dataset.count);
+    if (isNaN(target) || target === 0) {
+      el.textContent = el.dataset.prefix ? el.dataset.prefix + '0' + (el.dataset.suffix || '') : '0' + (el.dataset.suffix || '');
+      return;
+    }
+    const prefix = el.dataset.prefix || '';
+    const suffix = el.dataset.suffix || '';
+    const isFloat = String(target).includes('.');
+    const duration = 1200;
+    const start = performance.now();
+
+    function update(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = target * eased;
+      el.textContent = prefix + (isFloat ? value.toFixed(1) : Math.round(value)) + suffix;
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  }
+
+  // Activate slide animations
+  function activateSlide(index) {
+    const slide = slides[index];
+    // Trigger count-up elements
+    slide.querySelectorAll('.count-up').forEach(el => {
+      setTimeout(() => animateCountUp(el), 800);
+    });
+    // Trigger sense card animations
+    slide.querySelectorAll('.sense-card').forEach(card => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(30px)';
+      const delay = parseFloat(card.style.animationDelay || 0) * 1000;
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.7s var(--ease-out-expo), transform 0.7s var(--ease-out-expo)';
+        card.style.opacity = card.classList.contains('beta') ? '0.5' : '1';
+        card.style.transform = 'translateY(0)';
+      }, delay);
+    });
+    // Trigger solution nodes
+    slide.querySelectorAll('.solution-node').forEach(node => {
+      node.style.opacity = '0';
+      node.style.transform = 'translateX(-30px)';
+      const delay = parseFloat(node.style.animationDelay || 0) * 1000;
+      setTimeout(() => {
+        node.style.transition = 'opacity 0.7s var(--ease-out-expo), transform 0.7s var(--ease-out-expo)';
+        node.style.opacity = '1';
+        node.style.transform = 'translateX(0)';
+      }, delay);
+    });
+    // Trigger tech cards
+    slide.querySelectorAll('.tech-card').forEach(card => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(20px)';
+      const delay = parseFloat(card.style.animationDelay || 0) * 1000;
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.6s var(--ease-out-expo), transform 0.6s var(--ease-out-expo)';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, delay);
+    });
+    // Trigger traction items
+    slide.querySelectorAll('.traction-item').forEach(item => {
+      item.style.opacity = '0';
+      item.style.transform = 'scale(0.7)';
+      const delay = parseFloat(item.style.animationDelay || 0) * 1000;
+      setTimeout(() => {
+        item.style.transition = 'opacity 0.6s var(--ease-out-back), transform 0.6s var(--ease-out-back)';
+        item.style.opacity = '1';
+        item.style.transform = 'scale(1)';
+      }, delay);
+    });
+    // Trigger milestones
+    slide.querySelectorAll('.milestone').forEach(ms => {
+      ms.style.opacity = '0';
+      ms.style.transform = 'translateX(-20px)';
+      const delay = parseFloat(ms.style.animationDelay || 0) * 1000;
+      setTimeout(() => {
+        ms.style.transition = 'opacity 0.6s var(--ease-out-expo), transform 0.6s var(--ease-out-expo)';
+        ms.style.opacity = '1';
+        ms.style.transform = 'translateX(0)';
+      }, delay);
+    });
+    // Trigger ask-use boxes
+    slide.querySelectorAll('.ask-use').forEach(box => {
+      box.style.opacity = '0';
+      box.style.transform = 'translateY(20px)';
+      const delay = parseFloat(box.style.animationDelay || 0) * 1000;
+      setTimeout(() => {
+        box.style.transition = 'opacity 0.6s var(--ease-out-expo), transform 0.6s var(--ease-out-expo)';
+        box.style.opacity = '1';
+        box.style.transform = 'translateY(0)';
+      }, delay);
+      // Count-up for percentages
+      box.querySelectorAll('.count-up').forEach(el => {
+        setTimeout(() => animateCountUp(el), delay + 200);
+      });
+    });
+    // Trigger product steps
+    slide.querySelectorAll('.product-step').forEach(step => {
+      step.style.opacity = '0';
+      const delay = parseFloat(step.style.animationDelay || 0) * 1000;
+      setTimeout(() => {
+        step.style.transition = 'opacity 0.7s var(--ease-out-expo), transform 0.7s var(--ease-out-expo)';
+        step.style.opacity = '1';
+      }, delay);
+    });
+    // Trigger table rows
+    slide.querySelectorAll('.comp-table tbody tr').forEach(row => {
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(20px)';
+      const delay = parseFloat(row.style.animationDelay || 0) * 1000;
+      setTimeout(() => {
+        row.style.transition = 'opacity 0.5s var(--ease-out-expo), transform 0.5s var(--ease-out-expo)';
+        row.style.opacity = '1';
+        row.style.transform = 'translateX(0)';
+      }, delay);
+    });
+    // Trigger problem words
+    slide.querySelectorAll('.problem-word').forEach(word => {
+      word.style.opacity = '0';
+    });
+    // Trigger market count-ups
+    slide.querySelectorAll('.market-num .count-up').forEach(el => {
+      setTimeout(() => animateCountUp(el), 1000);
+    });
+  }
+
+  function goTo(index) {
+    if (index < 0 || index >= total || index === current || transitioning) return;
+    transitioning = true;
+    initAudio();
+
+    const direction = index > current ? 'forward' : 'backward';
+    const prevSlide = slides[current];
+    const nextSlide = slides[index];
+
+    // Play sound
+    if (index === 0) playCover();
+    else if (index === total - 1) playAsk();
+    else if (direction === 'forward') playForward();
+    else playBackward();
+
+    // Hide hint after first interaction
+    hint.classList.add('hidden');
+
+    // Exit current
+    prevSlide.classList.remove('active');
+    prevSlide.classList.add('exit-' + direction);
+
+    // Enter next
+    setTimeout(() => {
+      prevSlide.classList.remove('exit-' + direction);
+      nextSlide.classList.add('active');
+      nextSlide.classList.add('enter-' + direction);
+      activateSlide(index);
+
+      setTimeout(() => {
+        nextSlide.classList.remove('enter-' + direction);
+        transitioning = false;
+      }, 800);
+    }, 350);
+
+    current = index;
+    navBar.children[current].classList.add('active');
+    navBar.children[index === current ? current : current - (index > current ? -1 : 1)]?.classList.remove('active');
+
+    // Update all dots
+    for (let i = 0; i < total; i++) {
+      navBar.children[i].classList.toggle('active', i === index);
+    }
+
+    counter.textContent = (index + 1) + ' / ' + total;
+    progressBar.style.width = ((index + 1) / total * 100) + '%';
+  }
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    initAudio();
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault();
+      goTo(current + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      goTo(current - 1);
+    }
+  });
+
+  // Touch
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    initAudio();
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) {
+      dx < 0 ? goTo(current + 1) : goTo(current - 1);
+    }
+  }, { passive: true });
+
+  // Wheel
+  let wheelCooldown = false;
+  document.addEventListener('wheel', (e) => {
+    if (wheelCooldown) return;
+    initAudio();
+    if (Math.abs(e.deltaY) > 30) {
+      wheelCooldown = true;
+      e.deltaY > 0 ? goTo(current + 1) : goTo(current - 1);
+      setTimeout(() => { wheelCooldown = false; }, 900);
+    }
+  }, { passive: true });
+
+  // Mute toggle
+  muteBtn.addEventListener('click', () => {
+    muted = !muted;
+    muteBtn.classList.toggle('muted', muted);
+    muteBtn.textContent = muted ? '&#10005;' : '&#9835;';
+  });
+
+  // Initialize first slide
+  activateSlide(0);
+})();
+</script>
+
+</body>
+</html>

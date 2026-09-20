@@ -5,7 +5,7 @@ import {
   type MotionFrame,
   type MotionGestureId,
 } from "../../packages/core/src/domain/motionGestures";
-import { MOTION_LEGEND } from "../../apps/web/app/components/MotionActions";
+import { MOTION_LEGEND } from "../../apps/web/app/content/motion-legend";
 import type { Step, World } from "./steps";
 
 /**

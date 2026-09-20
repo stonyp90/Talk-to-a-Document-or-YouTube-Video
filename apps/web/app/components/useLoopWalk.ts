@@ -101,6 +101,8 @@ export type Loop = {
   innerTurns: number;
   innerActive: boolean;
   playing: boolean;
+  /** True only while the picture is on screen, playing, and motion is allowed. */
+  animating: boolean;
   reduced: boolean;
   timing: LoopTiming;
   select: (index: number) => void;
@@ -162,6 +164,7 @@ export function useLoopWalk(timing: LoopTiming = LOOP_TIMING): Loop {
     innerTurns: walk.innerTurns,
     innerActive: walk.index === INNER_INDEX,
     playing,
+    animating: autoplay,
     reduced,
     timing,
     select(index: number) {

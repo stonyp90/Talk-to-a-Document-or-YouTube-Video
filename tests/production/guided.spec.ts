@@ -14,7 +14,7 @@ async function upload(
     mimeType: "application/pdf",
     buffer: pdfFixture(text),
   });
-  await page.getByRole("button", { name: "Continue to questions" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(
     page.getByLabel("Ask a question", { exact: true }),
   ).toBeFocused();
@@ -74,7 +74,7 @@ test("invalid source has an understandable recovery path", async ({ page }) => {
   await page.goto(APP_PATH);
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill("https://example.com/not-a-video");
-  await page.getByRole("button", { name: "Continue to questions" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.locator("main").getByRole("alert")).toContainText(
     /valid YouTube URL/i,
   );

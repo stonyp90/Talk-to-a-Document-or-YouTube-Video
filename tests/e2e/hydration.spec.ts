@@ -34,7 +34,7 @@ test("a PDF chosen before the script runs is not lost", async ({ page }) => {
   // The page adopts what the picker already holds, so the reader carries on
   // instead of choosing the same file twice.
   await expect(
-    page.getByRole("button", { name: "Continue to questions" }),
+    page.getByRole("button", { name: "Continue" }),
   ).toBeEnabled();
   await expect(page.locator(".dropzone strong")).toHaveText("chosen-early.pdf");
 });

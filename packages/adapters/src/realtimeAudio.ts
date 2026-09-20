@@ -6,6 +6,8 @@
  * a code change, and so each setting can be proven in a test.
  */
 
+import { VOICE_SPEED_RANGE } from "@/packages/core/src/domain/voiceControls";
+
 /** Voices the provider ships. Anything else must be a provisioned voice id. */
 export const BUILT_IN_VOICES = [
   "alloy",
@@ -23,7 +25,7 @@ export const BUILT_IN_VOICES = [
 /** The two voices trained for the realtime model; the rest predate it. */
 const DEFAULT_VOICE = "marin";
 const DEFAULT_TRANSCRIBE_MODEL = "gpt-4o-transcribe";
-const SPEED_RANGE = { minimum: 0.25, maximum: 1.5, default: 1 } as const;
+const SPEED_RANGE = VOICE_SPEED_RANGE;
 const EAGERNESS = ["low", "medium", "high", "auto"] as const;
 const NOISE_REDUCTION = ["near_field", "far_field"] as const;
 

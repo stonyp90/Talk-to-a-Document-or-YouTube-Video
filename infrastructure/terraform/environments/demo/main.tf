@@ -66,6 +66,18 @@ variable "ses_from_address" {
   default = ""
 }
 
+# Canary deployment: progressive rollout variables. Both default to the
+# existing direct-deploy behaviour (no canary). The weight is the percentage
+# of traffic routed to the canary image; the tag names the canary image.
+variable "canary_weight" {
+  type    = number
+  default = 0
+}
+variable "canary_image_tag" {
+  type    = string
+  default = ""
+}
+
 module "demo" {
   source                     = "../../modules/demo"
   region                     = var.region
@@ -81,6 +93,8 @@ module "demo" {
   ses_identity_arn           = var.ses_identity_arn
   ses_configuration_set_name = var.ses_configuration_set_name
   ses_from_address           = var.ses_from_address
+  canary_weight              = var.canary_weight
+  canary_image_tag           = var.canary_image_tag
 }
 output "public_url" { value = module.demo.public_url }
 # The stage the browser dials when no custom domain fronts the socket, and the
@@ -88,3 +102,4 @@ output "public_url" { value = module.demo.public_url }
 output "socket_url" { value = module.demo.socket_url }
 output "socket_api_id" { value = module.demo.socket_api_id }
 output "upload_bucket" { value = module.demo.upload_bucket }
+output "canary_weight" { value = module.demo.canary_weight }

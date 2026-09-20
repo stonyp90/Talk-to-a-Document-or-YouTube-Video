@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "profile": "qoder-glb-safe",
+  "status": "complete",
+  "capabilities": [
+    {
+      "id": "artifact.glb.create",
+      "status": "implemented",
+      "evidence": [
+        "revision:1"
+      ]
+    },
+    {
+      "id": "transaction.dry-run",
+      "status": "implemented",
+      "evidence": [
+        "lifecycle:createModelBundle"
+      ]
+    },
+    {
+      "id": "transaction.expected-state",
+      "status": "implemented",
+      "evidence": [
+        "state:sha256:2cd086d97e3a2c9699e38f3435885f968d6ce2a1d1b8b878df91d7723b371979"
+      ]
+    },
+    {
+      "id": "project.sidecar",
+      "status": "implemented",
+      "evidence": [
+        "revision:1"
+      ]
+    },
+    {
+      "id": "validation.khronos",
+      "status": "implemented",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    },
+    {
+      "id": "validation.spatial-envelope",
+      "status": "implemented",
+      "evidence": [
+        "preflight:world-bounds"
+      ]
+    },
+    {
+      "id": "geometry.primitive.cylinder",
+      "status": "implemented",
+      "evidence": [
+        "feature:ground.feature"
+      ]
+    },
+    {
+      "id": "geometry.axis",
+      "status": "implemented",
+      "evidence": [
+        "feature:ground.feature:y",
+        "feature:corona.0.feature:y",
+        "feature:corona.1.feature:y",
+        "feature:orbit.ring.feature:y",
+        "feature:planet.plan.ring.feature:y",
+        "feature:planet.design.ring.feature:y",
+        "feature:planet.build.ring.feature:y",
+        "feature:planet.integrate.ring.feature:y",
+        "feature:planet.validate.ring.feature:y",
+        "feature:planet.release.face.feature:y",
+        "feature:planet.release.ring.feature:y",
+        "feature:planet.operate.ring.feature:y",
+        "feature:planet.measure.ring.feature:y",
+        "feature:planet.listen.ring.feature:y"
+      ]
+    },
+    {
+      "id": "geometry.primitive.sphere",
+      "status": "implemented",
+      "evidence": [
+        "feature:sun.feature",
+        "feature:planet.plan.feature",
+        "feature:planet.plan.face.feature",
+        "feature:planet.design.feature",
+        "feature:planet.build.feature",
+        "feature:planet.integrate.feature",
+        "feature:planet.integrate.face.feature",
+        "feature:planet.validate.feature",
+        "feature:planet.release.feature",
+        "feature:planet.operate.feature",
+        "feature:planet.measure.feature",
+        "feature:planet.listen.feature",
+        "feature:highlight.feature"
+      ]
+    },
+    {
+      "id": "geometry.primitive.hollow-cylinder",
+      "status": "implemented",
+      "evidence": [
+        "feature:corona.0.feature",
+        "feature:corona.1.feature",
+        "feature:orbit.ring.feature",
+        "feature:planet.plan.ring.feature",
+        "feature:planet.design.ring.feature",
+        "feature:planet.build.ring.feature",
+        "feature:planet.integrate.ring.feature",
+        "feature:planet.validate.ring.feature",
+        "feature:planet.release.face.feature",
+        "feature:planet.release.ring.feature",
+        "feature:planet.operate.ring.feature",
+        "feature:planet.measure.ring.feature",
+        "feature:planet.listen.ring.feature"
+      ]
+    },
+    {
+      "id": "node.hierarchy.create",
+      "status": "implemented",
+      "evidence": [
+        "occurrence:planet.plan.face",
+        "occurrence:planet.plan.ring",
+        "occurrence:planet.design.face",
+        "occurrence:planet.design.ring",
+        "occurrence:planet.build.face",
+        "occurrence:planet.build.ring",
+        "occurrence:planet.integrate.face",
+        "occurrence:planet.integrate.ring",
+        "occurrence:planet.validate.face",
+        "occurrence:planet.validate.ring",
+        "occurrence:planet.release.face",
+        "occurrence:planet.release.ring",
+        "occurrence:planet.operate.face",
+        "occurrence:planet.operate.ring",
+        "occurrence:planet.measure.face",
+        "occurrence:planet.measure.ring",
+        "occurrence:planet.listen.face",
+        "occurrence:planet.listen.ring"
+      ]
+    },
+    {
+      "id": "geometry.primitive.box",
+      "status": "implemented",
+      "evidence": [
+        "feature:planet.design.face.feature",
+        "feature:planet.build.face.feature",
+        "feature:planet.validate.face.feature",
+        "feature:planet.operate.face.feature",
+        "feature:planet.measure.face.feature",
+        "feature:planet.listen.face.feature"
+      ]
+    },
+    {
+      "id": "animation.trs.create",
+      "status": "implemented",
+      "evidence": [
+        "track:anim.orbit.highlight",
+        "track:anim.orbit.plan",
+        "track:anim.orbit.design",
+        "track:anim.orbit.build",
+        "track:anim.orbit.integrate",
+        "track:anim.orbit.validate",
+        "track:anim.orbit.release",
+        "track:anim.orbit.operate",
+        "track:anim.orbit.measure",
+        "track:anim.orbit.listen",
+        "track:anim.ring.spin.plan",
+        "track:anim.ring.spin.design",
+        "track:anim.ring.spin.build",
+        "track:anim.ring.spin.integrate",
+        "track:anim.ring.spin.validate",
+        "track:anim.ring.spin.release",
+        "track:anim.ring.spin.operate",
+        "track:anim.ring.spin.measure",
+        "track:anim.ring.spin.listen",
+        "track:anim.sun.pulse.sun"
+      ]
+    },
+    {
+      "id": "animation.trs.edit",
+      "status": "implemented",
+      "evidence": [
+        "stable-track:anim.orbit.highlight",
+        "stable-track:anim.orbit.plan",
+        "stable-track:anim.orbit.design",
+        "stable-track:anim.orbit.build",
+        "stable-track:anim.orbit.integrate",
+        "stable-track:anim.orbit.validate",
+        "stable-track:anim.orbit.release",
+        "stable-track:anim.orbit.operate",
+        "stable-track:anim.orbit.measure",
+        "stable-track:anim.orbit.listen",
+        "stable-track:anim.ring.spin.plan",
+        "stable-track:anim.ring.spin.design",
+        "stable-track:anim.ring.spin.build",
+        "stable-track:anim.ring.spin.integrate",
+        "stable-track:anim.ring.spin.validate",
+        "stable-track:anim.ring.spin.release",
+        "stable-track:anim.ring.spin.operate",
+        "stable-track:anim.ring.spin.measure",
+        "stable-track:anim.ring.spin.listen",
+        "stable-track:anim.sun.pulse.sun"
+      ]
+    },
+    {
+      "id": "geometry.edit",
+      "status": "unsupported",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    },
+    {
+      "id": "animation.edit",
+      "status": "unsupported",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    },
+    {
+      "id": "texture.import",
+      "status": "unsupported",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    }
+  ]
+}

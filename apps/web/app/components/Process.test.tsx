@@ -19,13 +19,12 @@ import {
 } from "../content/process";
 
 const copy = resolveProcessCopy("en");
-const appHref = "/en/app";
 /** Looked up by name rather than by position, so order is asserted once. */
 const stage = (id: ProcessStepId) => copy.steps.find((s) => s.id === id)!;
 
 /** The words alone. The picture stands beside them, drawn by Arrival. */
 function Words({ locale }: { locale?: string }) {
-  return <Process locale={locale} appHref={appHref} loop={useLoopWalk()} />;
+  return <Process locale={locale} loop={useLoopWalk()} />;
 }
 
 /** Picture and words over one walk, the way the first screen wires them. */
@@ -34,7 +33,7 @@ function FirstScreen() {
   return (
     <>
       <LoopDiagram loop={loop} />
-      <Process appHref={appHref} loop={loop} />
+      <Process loop={loop} />
     </>
   );
 }
@@ -87,9 +86,9 @@ describe("Process", () => {
     expect(
       screen.getByRole("heading", { name: copy.mission.heading }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: copy.mission.primary }),
-    ).toHaveAttribute("href", appHref);
+    // The way in belongs to the hero and the invitation. A third button here
+    // would be a third door on the same page.
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
 
   it("drives the same walk the picture draws, from the list", () => {

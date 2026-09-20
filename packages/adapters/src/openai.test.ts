@@ -169,3 +169,38 @@ describe("streamed text answers", () => {
     expect(cancelled).toHaveBeenCalled();
   });
 });
+
+describe("voice controls in the realtime session", () => {
+  it("names the assistant and asks for intent-driven controls", async () => {
+    const session = await createRealtimeSession(source, {
+      assistantName: "Nova",
+    });
+    expect(session.instructions).toContain("Your name is Nova.");
+    expect(session.instructions).toContain("set_voice_output");
+    // Guidance is instruction, so it has to sit before the untrusted source.
+    expect(session.instructions.indexOf("Your name is Nova.")).toBeLessThan(
+      session.instructions.indexOf(source.text),
+    );
+  });
+
+  it("sends the tools and the caller's speed to the provider", async () => {
+    vi.stubEnv("PROVIDER_MODE", "live");
+    vi.stubEnv("OPENAI_API_KEY", "sk-test");
+    const request = vi.fn(async (_url: string, _init?: RequestInit) =>
+      Response.json({ value: "ek_test", expires_at: 1 }),
+    );
+    vi.stubGlobal("fetch", request);
+    await createRealtimeSession(source, { speed: 9 });
+    const body = JSON.parse(String(request.mock.calls[0][1]?.body));
+    expect(body.session.audio.output.speed).toBe(1.5);
+    expect(
+      body.session.tools.map((tool: { name: string }) => tool.name),
+    ).toEqual([
+      "set_voice_output",
+      "set_voice_speed",
+      "set_assistant_name",
+      "express_mood",
+    ]);
+    expect(body.session.tools[0].type).toBe("function");
+  });
+});

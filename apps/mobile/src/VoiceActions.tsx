@@ -4,7 +4,14 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type Ref,
+} from "react";
 import {
   AppState,
   KeyboardAvoidingView,
@@ -19,6 +26,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Language, TranslationKey } from "./i18n";
+import type {
+  NativeSenseChannelControl,
+  NativeSenseChannelActivity,
+} from "./senseSession";
+import { SENSE_TEST_MODE, senseTestInputs } from "./senseTestInputs";
+import { voiceSilenceTimeoutMs } from "./voiceInputPolicy";
 import { palette as c, serif, Touch, Wave } from "./design";
 import {
   findVoiceTriggerMatches,
@@ -26,7 +39,14 @@ import {
 } from "./voiceCommandMatcher";
 
 export type MobileVoiceActionId =
-  "youtube" | "upload" | "voice" | "summarize" | "back" | "next" | "cancel" | "open";
+  | "youtube"
+  | "upload"
+  | "voice"
+  | "summarize"
+  | "back"
+  | "next"
+  | "cancel"
+  | "open";
 
 type VoiceTrigger = {
   id: string;
@@ -34,7 +54,14 @@ type VoiceTrigger = {
   action: MobileVoiceActionId;
 };
 
-type Props = {
+export type MobileVoiceActionsProps = {
+  presentation?: "panel" | "merged";
+  controlRef?: Ref<NativeSenseChannelControl>;
+  onActivityChange?: (activity: NativeSenseChannelActivity) => void;
+  onDictate?: (text: string) => void;
+  onTranscript?: (text: string, isFinal: boolean, lang?: string) => void;
+  commandSettingsOpen?: boolean;
+  onCommandSettingsClose?: () => void;
   language: Language;
   motion: boolean;
   voiceBusy: boolean;
@@ -45,10 +72,11 @@ type Props = {
 };
 
 const storageKey = "ursly-mobile-voice-triggers-v1";
+const speedStorageKey = "ursly-voice-speed-v1";
+const SPEED_PRESETS = [0.5, 1.0, 1.5] as const;
 const MAX_TRIGGER_LENGTH = 80;
 const MAX_SAVED_TRIGGERS = 32;
 const MAX_LISTENING_MS = 30_000;
-const SILENCE_TIMEOUT_MS = 8_000;
 const RESTART_DELAY_MS = 250;
 const actionLabels: Record<MobileVoiceActionId, TranslationKey> = {
   youtube: "Open the YouTube source",
@@ -121,7 +149,15 @@ export function MobileVoiceActions({
   t,
   onAction,
   onNotice,
-}: Props) {
+  onTranscript,
+  presentation = "panel",
+  controlRef,
+  onActivityChange,
+  onDictate,
+  commandSettingsOpen = false,
+  onCommandSettingsClose,
+}: MobileVoiceActionsProps) {
+  const merged = presentation === "merged";
   const [open, setOpen] = useState(false);
   const [phrase, setPhrase] = useState("");
   const [action, setAction] = useState<MobileVoiceActionId>("upload");
@@ -129,10 +165,15 @@ export function MobileVoiceActions({
   const [triggers, setTriggers] = useState<VoiceTrigger[]>([]);
   const [armed, setArmed] = useState(false);
   const [recognizing, setRecognizing] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [heard, setHeard] = useState("");
   const [revealedExample, setRevealedExample] =
     useState<MobileVoiceActionId | null>(null);
   const [notice, setNotice] = useState(t("Voice actions are off"));
+  const [editorFeedback, setEditorFeedback] = useState<{
+    text: string;
+    error: boolean;
+  } | null>(null);
   const previousLanguage = useRef(language);
   const armedRef = useRef(false);
   const triggersRef = useRef(triggers);
@@ -150,7 +191,19 @@ export function MobileVoiceActions({
   const startInFlight = useRef(false);
   const resumeAfterSpeech = useRef(false);
   const onActionRef = useRef(onAction);
-  triggersRef.current = triggers;
+  const [voiceSpeed, setVoiceSpeed] = useState(1.0);
+  const voiceSpeedRef = useRef(voiceSpeed);
+  voiceSpeedRef.current = voiceSpeed;
+  triggersRef.current = merged
+    ? [
+        ...triggers,
+        ...examples.map((example) => ({
+          id: `builtin-${example.action}`,
+          phrase: t(example.phrase),
+          action: example.action,
+        })),
+      ]
+    : triggers;
   tRef.current = t;
 
   const clearListeningTimers = useCallback(() => {
@@ -170,11 +223,12 @@ export function MobileVoiceActions({
       resumeAfterSpeech.current = false;
       clearListeningTimers();
       try {
-        ExpoSpeechRecognitionModule.stop();
+        if (!SENSE_TEST_MODE) ExpoSpeechRecognitionModule.stop();
       } catch {
         /* Native recognition stop is idempotent from the app's perspective. */
       }
       setArmed(false);
+      setConnecting(false);
       setRecognizing(false);
       setNotice(message);
     },
@@ -186,7 +240,7 @@ export function MobileVoiceActions({
   }, [onAction]);
 
   useEffect(() => {
-    if (!armed && !recognizing && triggers.length === 0) {
+    if (!merged && !armed && !recognizing && triggers.length === 0) {
       const resetNotice = setTimeout(
         () =>
           setNotice(
@@ -196,7 +250,7 @@ export function MobileVoiceActions({
       );
       return () => clearTimeout(resetNotice);
     }
-  }, [armed, language, recognizing, t, triggers.length]);
+  }, [armed, language, recognizing, t, triggers.length, merged]);
   useEffect(() => {
     if (previousLanguage.current === language) return;
     previousLanguage.current = language;
@@ -213,7 +267,30 @@ export function MobileVoiceActions({
       0,
     );
     return () => clearTimeout(resetNotice);
-  }, [armed, language, recognizing, t, triggers.length]);
+  }, [armed, language, recognizing, t, triggers.length, merged]);
+  useEffect(() => {
+    let mounted = true;
+    void AsyncStorage.getItem(speedStorageKey).then((value) => {
+      if (!mounted || value === null) return;
+      const parsed = Number.parseFloat(value);
+      if (Number.isFinite(parsed)) {
+        setVoiceSpeed(Math.min(1.5, Math.max(0.5, parsed)));
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const updateVoiceSpeed = useCallback(
+    (next: number) => {
+      const clamped = Math.min(1.5, Math.max(0.5, next));
+      setVoiceSpeed(clamped);
+      void AsyncStorage.setItem(speedStorageKey, String(clamped));
+    },
+    [],
+  );
+
   useEffect(() => {
     let mounted = true;
     void AsyncStorage.getItem(storageKey).then((value) => {
@@ -252,7 +329,7 @@ export function MobileVoiceActions({
       if (maximumTimer.current) clearTimeout(maximumTimer.current);
       if (silenceTimer.current) clearTimeout(silenceTimer.current);
       try {
-        ExpoSpeechRecognitionModule.abort();
+        if (!SENSE_TEST_MODE) ExpoSpeechRecognitionModule.abort();
       } catch {
         /* The native recognizer may already be gone during unmount. */
       }
@@ -260,13 +337,13 @@ export function MobileVoiceActions({
     [],
   );
   useEffect(() => {
-    if (!voiceBusy || !armedRef.current) return;
+    if (!voiceBusy || (!armedRef.current && !startInFlight.current)) return;
     stopListening(t("Voice actions paused while Ursly is busy."));
   }, [t, voiceBusy, stopListening]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state !== "active" && armedRef.current)
+      if (state === "background" && (armedRef.current || startInFlight.current))
         stopListening(
           t("Voice actions stopped when the app was backgrounded."),
         );
@@ -277,14 +354,28 @@ export function MobileVoiceActions({
   function resetSilenceTimer(epoch: number) {
     if (!armedRef.current || epoch !== listeningEpoch.current) return;
     if (silenceTimer.current) clearTimeout(silenceTimer.current);
+    silenceTimer.current = undefined;
+    const timeoutMs = voiceSilenceTimeoutMs({
+      merged,
+      testMode: SENSE_TEST_MODE,
+    });
+    if (timeoutMs === undefined) return;
     silenceTimer.current = setTimeout(() => {
       if (epoch !== listeningEpoch.current || !armedRef.current) return;
-      stopListening(t("Voice actions stopped after 8 seconds without speech."));
-    }, SILENCE_TIMEOUT_MS);
+      stopListening(
+        t(
+          merged
+            ? "Listening stopped after a period of silence."
+            : "Voice actions stopped after 8 seconds without speech.",
+        ),
+      );
+    }, timeoutMs);
   }
 
   function closeBuilder() {
     setOpen(false);
+    setEditorFeedback(null);
+    onCommandSettingsClose?.();
     setPhrase("");
     setEditingId(null);
     setAction("upload");
@@ -294,7 +385,7 @@ export function MobileVoiceActions({
     void Speech.stop();
     Speech.speak(t(reply), {
       language: language === "fr" ? "fr-FR" : "en-US",
-      rate: 0.98,
+      rate: voiceSpeedRef.current,
       onDone,
     });
   }
@@ -311,6 +402,13 @@ export function MobileVoiceActions({
           "Start voice chat becomes available after you add a PDF or YouTube source.",
         ),
       );
+      return;
+    }
+    if (merged) {
+      if (trigger.action === "voice" || trigger.action === "cancel")
+        stopListening();
+      setNotice(`${t("Triggered action")}: ${trigger.phrase}.`);
+      onActionRef.current(trigger.action);
       return;
     }
     const continueListening =
@@ -344,7 +442,7 @@ export function MobileVoiceActions({
 
   function startListening() {
     if (voiceBusy || armedRef.current || startInFlight.current) return;
-    if (!triggers.length) {
+    if (!merged && !triggers.length) {
       setOpen(true);
       setNotice(t("Create at least one trigger before arming voice actions."));
       return;
@@ -352,16 +450,29 @@ export function MobileVoiceActions({
     const epoch = listeningEpoch.current + 1;
     listeningEpoch.current = epoch;
     startInFlight.current = true;
+    setConnecting(true);
+    setHeard("");
+    if (SENSE_TEST_MODE && merged) {
+      startInFlight.current = false;
+      armedRef.current = true;
+      setConnecting(false);
+      setArmed(true);
+      setRecognizing(true);
+      setNotice(t("Voice actions are listening"));
+      return;
+    }
     void Promise.resolve()
       .then(() => ExpoSpeechRecognitionModule.requestPermissionsAsync())
       .then((permission) => {
         if (epoch !== listeningEpoch.current || voiceBusy) return;
         if (!permission.granted) {
           startInFlight.current = false;
+          setConnecting(false);
           setNotice(t("Voice actions need microphone and speech permissions."));
           return;
         }
         startInFlight.current = false;
+        setConnecting(false);
         armedRef.current = true;
         setArmed(true);
         setNotice(
@@ -375,12 +486,13 @@ export function MobileVoiceActions({
             maxAlternatives: 1,
             contextualStrings: triggersRef.current.map((item) => item.phrase),
           });
-          maximumTimer.current = setTimeout(() => {
-            if (epoch === listeningEpoch.current && armedRef.current)
-              stopListening(
-                t("Voice actions stopped after 30 seconds for your privacy."),
-              );
-          }, MAX_LISTENING_MS);
+          if (!merged)
+            maximumTimer.current = setTimeout(() => {
+              if (epoch === listeningEpoch.current && armedRef.current)
+                stopListening(
+                  t("Voice actions stopped after 30 seconds for your privacy."),
+                );
+            }, MAX_LISTENING_MS);
         } catch {
           stopListening(t("Voice actions could not start. Try again."));
         }
@@ -388,19 +500,27 @@ export function MobileVoiceActions({
       .catch(() => {
         if (epoch !== listeningEpoch.current) return;
         startInFlight.current = false;
+        setConnecting(false);
         setNotice(t("Voice actions need microphone and speech permissions."));
       });
+  }
+
+  function reportEditor(text: string, error = true) {
+    setEditorFeedback({ text, error });
+    if (!merged) setNotice(text);
   }
 
   function saveTrigger() {
     const nextPhrase = phrase.trim();
     const normalizedPhrase = normalizeVoiceText(nextPhrase);
     if (!normalizedPhrase) {
-      setNotice(t("Use at least one letter or number in the trigger phrase."));
+      reportEditor(
+        t("Use at least one letter or number in the trigger phrase."),
+      );
       return;
     }
     if (nextPhrase.length > MAX_TRIGGER_LENGTH) {
-      setNotice(t("Keep trigger phrases to 80 characters or fewer."));
+      reportEditor(t("Keep trigger phrases to 80 characters or fewer."));
       return;
     }
     if (
@@ -410,14 +530,16 @@ export function MobileVoiceActions({
           normalizeVoiceText(trigger.phrase) === normalizedPhrase,
       )
     ) {
-      setNotice(t("That trigger is already saved. Choose a different phrase."));
+      reportEditor(
+        t("That trigger is already saved. Choose a different phrase."),
+      );
       onNotice?.(
         t("That trigger is already saved. Choose a different phrase."),
       );
       return;
     }
     if (!editingId && triggers.length >= MAX_SAVED_TRIGGERS) {
-      setNotice(t("You can save up to 32 voice triggers."));
+      reportEditor(t("You can save up to 32 voice triggers."));
       return;
     }
     setTriggers((current) => {
@@ -433,7 +555,7 @@ export function MobileVoiceActions({
     setPhrase("");
     setEditingId(null);
     const confirmation = `${t(editingId ? "Updated trigger" : "Saved trigger")}: ${nextPhrase}.`;
-    setNotice(confirmation);
+    reportEditor(confirmation, false);
     onNotice?.(confirmation);
   }
 
@@ -465,154 +587,198 @@ export function MobileVoiceActions({
       }
     }, RESTART_DELAY_MS);
   });
-  useSpeechRecognitionEvent("result", (event) => {
-    if (!armedRef.current) return;
-    const transcript = event.results
-      .map((result) => result.transcript)
-      .join(" ")
-      .trim();
-    if (!transcript) return;
+  function receiveTranscript(transcript: string, isFinal: boolean, lang?: string) {
+    if (!armedRef.current || !transcript.trim()) return;
     resetSilenceTimer(listeningEpoch.current);
     setHeard(transcript);
-    for (const match of findVoiceTriggerMatches(
-      transcript,
-      triggersRef.current,
-    )) {
+    onTranscript?.(transcript, isFinal, lang);
+    if (merged && !isFinal) return;
+    const matches = findVoiceTriggerMatches(transcript, triggersRef.current);
+    if (merged) {
+      // Saved commands have priority; a final utterance produces one action.
+      if (matches[0]) runAction(matches[0], transcript);
+      else onDictate?.(transcript);
+      return;
+    }
+    for (const match of matches) {
       if (handledTriggers.current.has(match.id)) continue;
       handledTriggers.current.add(match.id);
       runAction(match, transcript);
       if (!armedRef.current) break;
     }
+  }
+  useSpeechRecognitionEvent("result", (event) => {
+    const detectedLocale = language === "fr" ? "fr-FR" : "en-US";
+    receiveTranscript(
+      event.results
+        .map((result) => result.transcript)
+        .join(" ")
+        .trim(),
+      event.isFinal,
+      detectedLocale,
+    );
   });
+  const receiveRef = useRef(receiveTranscript);
+  receiveRef.current = receiveTranscript;
+  useEffect(() => {
+    if (!merged || !SENSE_TEST_MODE) return;
+    return senseTestInputs.subscribe((input) => {
+      if (input.type === "voice") receiveRef.current(input.text, true);
+    });
+  }, [merged]);
+  useImperativeHandle(controlRef, () => ({
+    start: startListening,
+    stop: () => stopListening(),
+  }));
+  useEffect(() => {
+    onActivityChange?.({ active: armed, connecting });
+  }, [armed, connecting, onActivityChange]);
   useSpeechRecognitionEvent("error", () => {
     if (!armedRef.current) return;
     stopListening(t("Voice actions need microphone and speech permissions."));
   });
 
   return (
-    <View style={s.card}>
-      <View style={s.headingRow}>
-        <View style={s.flex}>
-          <Text style={s.eyebrow}>{t("VOICE ACTIONS")}</Text>
-          <Text style={s.title}>{t("Say a word. Take the next step.")}</Text>
-          <Text style={s.description}>
-            {t(
-              "Create a spoken trigger for an app action. Say that word anywhere in a sentence and Ursly acts as soon as it hears it.",
-            )}
-          </Text>
-        </View>
-        <Touch
-          label={t(open ? "Close trigger builder" : "Create voice trigger")}
-          motion={motion}
-          onPress={() => (open ? closeBuilder() : setOpen(true))}
-          style={s.builderToggle}
-        >
-          <Text style={s.builderToggleText}>{open ? "×" : "+"}</Text>
-        </Touch>
-      </View>
-      <View
-        accessibilityLiveRegion="polite"
-        style={[s.statusPanel, armed && s.statusPanelActive]}
-      >
-        <View style={s.statusCopy}>
-          <View style={[s.dot, armed && s.dotActive]} />
-          <View style={s.flex}>
-            <Text style={s.statusTitle}>
-              {armed
-                ? t("Voice actions are listening")
-                : t("Voice actions are off")}
-            </Text>
-            <Text style={s.statusNotice}>{notice}</Text>
-            {recognizing && (
-              <Text accessibilityLiveRegion="polite" style={s.heard}>
-                {t("Heard")}: {heard}
-              </Text>
-            )}
-          </View>
-        </View>
-        <Touch
-          label={t(armed ? "Stop listening" : "Arm voice actions")}
-          motion={motion}
-          disabled={voiceBusy}
-          onPress={armed ? () => stopListening() : startListening}
-          style={s.armButton}
-        >
-          <View style={s.armContent}>
-            <Wave motion={false} color={c.ink} />
-            <Text style={s.armText}>
-              {armed ? t("Stop listening") : t("Arm voice actions")}
-            </Text>
-          </View>
-        </Touch>
-      </View>
-      <View style={s.exampleHeading}>
-        <Text style={s.exampleLabel}>{t("Try an example")}</Text>
-        <Text style={s.exampleHint}>
-          {t("Try the action or reveal the words to say")}
+    <View style={merged ? undefined : s.card}>
+      {merged &&
+      notice !== t("Voice actions are off") &&
+      notice !== t("Voice actions are listening") &&
+      !notice.startsWith(t("Listening for")) ? (
+        <Text accessibilityLiveRegion="polite" style={s.statusNotice}>
+          {notice}
         </Text>
-      </View>
-      <View style={s.exampleGrid}>
-        {examples.map((example) => (
-          <View
-            key={example.phrase}
-            style={[s.example, example.action === "cancel" && s.exampleWide]}
-          >
-            <Touch
-              label={`“${t(example.phrase)}” ${t(example.result)}`}
-              motion={motion}
-              disabled={voiceBusy}
-              onPress={() =>
-                runAction({
-                  id: `example-${example.action}`,
-                  phrase: t(example.phrase),
-                  action: example.action,
-                })
-              }
-              style={s.exampleMain}
-            >
-              <View style={s.exampleCopy}>
-                <Text style={s.exampleResult}>{t(example.result)}</Text>
-                <Text style={s.exampleTry}>{t("Try it")}</Text>
-              </View>
-              <Text style={s.exampleArrow}>↗</Text>
-            </Touch>
-            <Touch
-              label={t(
-                revealedExample === example.action
-                  ? "Hide trigger"
-                  : "Show trigger",
-              )}
-              motion={motion}
-              onPress={() =>
-                setRevealedExample((current) =>
-                  current === example.action ? null : example.action,
-                )
-              }
-              style={s.exampleReveal}
-              selected={revealedExample === example.action}
-            >
-              <View style={s.eyeIcon}>
-                <View style={s.eyePupil} />
-              </View>
-              <Text style={s.exampleRevealText}>
+      ) : null}
+      {!merged && (
+        <>
+          <View style={s.headingRow}>
+            <View style={s.flex}>
+              <Text style={s.eyebrow}>{t("VOICE ACTIONS")}</Text>
+              <Text style={s.title}>
+                {t("Say a word. Take the next step.")}
+              </Text>
+              <Text style={s.description}>
                 {t(
-                  revealedExample === example.action
-                    ? "Hide phrase"
-                    : "Show phrase",
+                  "Create a spoken trigger for an app action. Say that word anywhere in a sentence and Ursly acts as soon as it hears it.",
                 )}
               </Text>
+            </View>
+            <Touch
+              label={t(open ? "Close trigger builder" : "Create voice trigger")}
+              motion={motion}
+              onPress={() => (open ? closeBuilder() : setOpen(true))}
+              style={s.builderToggle}
+            >
+              <Text style={s.builderToggleText}>{open ? "×" : "+"}</Text>
             </Touch>
-            {revealedExample === example.action && (
-              <View style={s.exampleTrigger}>
-                <Text style={s.exampleTriggerLabel}>{t("Say this")}</Text>
-                <Text style={s.examplePhrase}>“{t(example.phrase)}”</Text>
-              </View>
-            )}
           </View>
-        ))}
-      </View>
+          <View
+            accessibilityLiveRegion="polite"
+            style={[s.statusPanel, armed && s.statusPanelActive]}
+          >
+            <View style={s.statusCopy}>
+              <View style={[s.dot, armed && s.dotActive]} />
+              <View style={s.flex}>
+                <Text style={s.statusTitle}>
+                  {armed
+                    ? t("Voice actions are listening")
+                    : t("Voice actions are off")}
+                </Text>
+                <Text style={s.statusNotice}>{notice}</Text>
+                {recognizing && (
+                  <Text accessibilityLiveRegion="polite" style={s.heard}>
+                    {t("Heard")}: {heard}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <Touch
+              label={t(armed ? "Stop listening" : "Arm voice actions")}
+              motion={motion}
+              disabled={voiceBusy}
+              onPress={armed ? () => stopListening() : startListening}
+              style={s.armButton}
+            >
+              <View style={s.armContent}>
+                <Wave motion={false} color={c.ink} />
+                <Text style={s.armText}>
+                  {armed ? t("Stop listening") : t("Arm voice actions")}
+                </Text>
+              </View>
+            </Touch>
+          </View>
+          <View style={s.exampleHeading}>
+            <Text style={s.exampleLabel}>{t("Try an example")}</Text>
+            <Text style={s.exampleHint}>
+              {t("Try the action or reveal the words to say")}
+            </Text>
+          </View>
+          <View style={s.exampleGrid}>
+            {examples.map((example) => (
+              <View
+                key={example.phrase}
+                style={[
+                  s.example,
+                  example.action === "cancel" && s.exampleWide,
+                ]}
+              >
+                <Touch
+                  label={`“${t(example.phrase)}” ${t(example.result)}`}
+                  motion={motion}
+                  disabled={voiceBusy}
+                  onPress={() =>
+                    runAction({
+                      id: `example-${example.action}`,
+                      phrase: t(example.phrase),
+                      action: example.action,
+                    })
+                  }
+                  style={s.exampleMain}
+                >
+                  <View style={s.exampleCopy}>
+                    <Text style={s.exampleResult}>{t(example.result)}</Text>
+                    <Text style={s.exampleTry}>{t("Try it")}</Text>
+                  </View>
+                  <Text style={s.exampleArrow}>↗</Text>
+                </Touch>
+                <Touch
+                  label={t(
+                    revealedExample === example.action
+                      ? "Hide trigger"
+                      : "Show trigger",
+                  )}
+                  motion={motion}
+                  onPress={() =>
+                    setRevealedExample((current) =>
+                      current === example.action ? null : example.action,
+                    )
+                  }
+                  style={s.exampleReveal}
+                  selected={revealedExample === example.action}
+                >
+                  <View style={s.eyeIcon}>
+                    <View style={s.eyePupil} />
+                  </View>
+                  <Text style={s.exampleRevealText}>
+                    {t(
+                      revealedExample === example.action
+                        ? "Hide phrase"
+                        : "Show phrase",
+                    )}
+                  </Text>
+                </Touch>
+                {revealedExample === example.action && (
+                  <View style={s.exampleTrigger}>
+                    <Text style={s.exampleTriggerLabel}>{t("Say this")}</Text>
+                    <Text style={s.examplePhrase}>“{t(example.phrase)}”</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        </>
+      )}
       <Modal
-        visible={open}
+        visible={open || commandSettingsOpen}
         transparent
         animationType={motion ? "slide" : "none"}
         onRequestClose={closeBuilder}
@@ -662,6 +828,33 @@ export function MobileVoiceActions({
               <Text style={s.builderDescription}>
                 {t("Voice actions are saved on this device.")}
               </Text>
+              <View style={s.speedSection}>
+                <Text style={s.speedLabel}>{t("Voice speed")}</Text>
+                <View style={s.speedPresets}>
+                  {SPEED_PRESETS.map((preset) => (
+                    <Touch
+                      key={preset}
+                      label={`${preset.toFixed(1)}×`}
+                      motion={motion}
+                      selected={voiceSpeed === preset}
+                      onPress={() => updateVoiceSpeed(preset)}
+                      style={[
+                        s.speedPreset,
+                        voiceSpeed === preset && s.speedPresetSelected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          s.speedPresetText,
+                          voiceSpeed === preset && s.speedPresetTextSelected,
+                        ]}
+                      >
+                        {preset.toFixed(1)}×
+                      </Text>
+                    </Touch>
+                  ))}
+                </View>
+              </View>
               <View style={s.builderStep}>
                 <Text style={s.builderStepNumber}>01</Text>
                 <Text style={s.inputLabel}>{t("Trigger word or phrase")}</Text>
@@ -753,7 +946,7 @@ export function MobileVoiceActions({
                             setAction("upload");
                           }
                           const confirmation = `${t("Removed trigger")}: ${trigger.phrase}.`;
-                          setNotice(confirmation);
+                          reportEditor(confirmation, false);
                           onNotice?.(confirmation);
                         }}
                         style={s.remove}
@@ -776,6 +969,15 @@ export function MobileVoiceActions({
                   "For uploads, your phone will ask you to choose a local file.",
                 )}
               </Text>
+              {editorFeedback && (
+                <Text
+                  accessibilityRole={editorFeedback.error ? "alert" : undefined}
+                  accessibilityLiveRegion="polite"
+                  style={s.statusNotice}
+                >
+                  {editorFeedback.text}
+                </Text>
+              )}
               <View style={s.builderFooter}>
                 <Touch
                   label={t(editingId ? "Update trigger" : "Save trigger")}
@@ -1050,6 +1252,27 @@ const s = StyleSheet.create({
   },
   builderTitle: { color: c.ink, fontFamily: serif, fontSize: 25 },
   builderDescription: { color: c.muted, fontSize: 14, lineHeight: 20 },
+  speedSection: { gap: 8 },
+  speedLabel: { color: c.ink, fontSize: 14, fontWeight: "800" },
+  speedPresets: { flexDirection: "row", gap: 8 },
+  speedPreset: {
+    backgroundColor: c.white,
+    borderColor: c.strongLine,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    flexGrow: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minWidth: 64,
+    alignItems: "center",
+  },
+  speedPresetSelected: {
+    backgroundColor: c.selectedBg,
+    borderColor: c.coral,
+    borderWidth: 2,
+  },
+  speedPresetText: { color: c.ink, fontSize: 14, fontWeight: "700" },
+  speedPresetTextSelected: { color: c.ink, fontWeight: "800" },
   inputLabel: { color: c.ink, fontSize: 14, fontWeight: "800", marginTop: 3 },
   builderHint: { color: c.muted, fontSize: 13, lineHeight: 18, marginTop: -5 },
   input: {

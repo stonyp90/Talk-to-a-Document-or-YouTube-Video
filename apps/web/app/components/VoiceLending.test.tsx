@@ -7,9 +7,11 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VoiceLending, type VoiceCapture } from "./VoiceLending";
+import { WorkspaceDialog } from "./WorkspaceDialog";
 
 function fakeCapture(overrides: Partial<VoiceCapture> = {}) {
   const capture = {
@@ -27,7 +29,9 @@ function mount(capture = fakeCapture()) {
 }
 
 const lend = () =>
-  screen.getByRole("button", { name: /lend ursly your voice/i });
+  screen.getByRole("button", {
+    name: /lend ursly your voice|record a voice sample/i,
+  });
 const toast = () => screen.queryByRole("alertdialog");
 const keep = () => screen.getByRole("button", { name: /keep the recording/i });
 const discard = () => screen.getByRole("button", { name: /discard it/i });
@@ -57,6 +61,125 @@ afterEach(() => {
  * only after being told to.
  */
 describe("VoiceLending", () => {
+  it("describes the embedded local sample without implying a cloned response voice", async () => {
+    const capture = fakeCapture();
+    render(<VoiceLending embedded capture={() => capture} />);
+    const panel = screen.getByRole("region", { name: "Response voice" });
+    expect(panel).toHaveTextContent("Answers use a preset voice.");
+    expect(panel).not.toHaveTextContent(/Ursly/);
+    expect(capture.open).not.toHaveBeenCalled();
+    await press(screen.getByRole("button", { name: "Record a voice sample" }));
+    const consent = screen.getByRole("alertdialog", {
+      name: "Recording your voice",
+    });
+    expect(consent).toHaveTextContent(/only if you approve/);
+    expect(consent).toHaveTextContent(
+      /not uploaded or used to change the response voice/,
+    );
+    await speakFor(12);
+    await press(keep());
+    expect(panel).toHaveTextContent(/12 seconds.*this browser.*page is open/);
+    expect(panel).toHaveTextContent(/Answers still use the preset voice/);
+    await press(screen.getByRole("button", { name: "Delete the recording" }));
+    expect(panel).not.toHaveTextContent(/Ursly/);
+  });
+
+  it.each(["keep", "discard"] as const)(
+    "keeps embedded consent inside settings for the %s decision",
+    async (decision) => {
+      const capture = fakeCapture();
+      render(
+        <WorkspaceDialog
+          title="Workspace settings"
+          closeLabel="Close settings"
+          onClose={() => {}}
+        >
+          <VoiceLending embedded capture={() => capture} />
+        </WorkspaceDialog>,
+      );
+      await press(lend());
+      const settings = screen.getByRole("dialog", {
+        name: "Workspace settings",
+      });
+      const consent = within(settings).getByRole("alertdialog");
+      expect(consent).toHaveFocus();
+      await speakFor(12);
+      await press(
+        within(consent).getByRole("button", {
+          name: decision === "keep" ? "Keep the recording" : "Discard it",
+        }),
+      );
+      expect(toast()).toBeNull();
+      expect(
+        decision === "keep" ? capture.close : capture.abandon,
+      ).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("abandons an unapproved recording when settings closes", async () => {
+    const capture = fakeCapture();
+    const view = render(
+      <VoiceLending embedded active capture={() => capture} />,
+    );
+    await press(lend());
+    view.rerender(
+      <VoiceLending embedded active={false} capture={() => capture} />,
+    );
+    expect(capture.abandon).toHaveBeenCalledOnce();
+    expect(toast()).toBeNull();
+    view.rerender(<VoiceLending embedded active capture={() => capture} />);
+    expect(toast()).toBeNull();
+    expect(lend()).toBeInTheDocument();
+  });
+
+  it("preserves an approved sample while settings is closed", async () => {
+    const capture = fakeCapture();
+    const view = render(
+      <VoiceLending embedded active capture={() => capture} />,
+    );
+    await press(lend());
+    await speakFor(12);
+    await press(keep());
+    view.rerender(
+      <VoiceLending embedded active={false} capture={() => capture} />,
+    );
+    view.rerender(<VoiceLending embedded active capture={() => capture} />);
+    expect(
+      screen.getByRole("button", { name: "Delete the recording" }),
+    ).toBeInTheDocument();
+    expect(capture.abandon).not.toHaveBeenCalled();
+  });
+
+  it.each(["close", "unmount"] as const)(
+    "abandons capture that resolves after settings %s",
+    async (action) => {
+      let resolveOpen: () => void = () => {};
+      const capture = fakeCapture({
+        open: vi.fn(
+          () =>
+            new Promise<void>((resolve) => {
+              resolveOpen = resolve;
+            }),
+        ),
+      });
+      const view = render(
+        <VoiceLending embedded active capture={() => capture} />,
+      );
+      fireEvent.click(lend());
+      if (action === "close")
+        view.rerender(
+          <VoiceLending embedded active={false} capture={() => capture} />,
+        );
+      else view.unmount();
+      await act(async () => {
+        resolveOpen();
+      });
+      expect(capture.abandon).toHaveBeenCalledOnce();
+      expect(capture.close).not.toHaveBeenCalled();
+      expect(toast()).toBeNull();
+    },
+  );
+
   it("answers in the preset voice and records nobody until asked", () => {
     const capture = mount();
     expect(

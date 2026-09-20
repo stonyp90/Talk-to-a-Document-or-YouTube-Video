@@ -1,10 +1,23 @@
-# Native companion
+# Sense to Action on mobile
 
 Expo SDK 57 / React Native 0.86 companion for the primary web application.
 This directory has its own manifest and lockfile; run its npm commands here.
 No root package changes are required. `src/client.ts` imports the shared
 `IngestedSource` type directly from `packages/core/src/domain/ingestion.ts` using a type-only
 import, so no server code or provider credentials enter the native bundle.
+
+The native app opens the same single Sense workspace as the web: source,
+conversation, and one Start/Stop experience control. Sense combines the inputs;
+Keyboard carries the Legacy tag and Brain carries the Beta tag and remains
+unavailable. The orbit control opens settings, language, and saved commands.
+Source changes and keyboard preference keep the input components mounted.
+
+The interface uses the native design tokens and animated wave/orbit motif.
+Animations stop when the app is backgrounded or reduced motion is enabled.
+Native input adapters handle speech recognition, a consented camera preview,
+and calibrated physical device tilt. The merged experience does not use the
+older simulated face/body detectors. UI orchestration and permission/tilt
+logic are separate from platform adapters in `src/senseSession.ts`.
 
 ## Local loop
 
@@ -88,10 +101,20 @@ retry. Starting a new voice session preserves the displayed transcript.
 
 Voice actions also use the native `expo-speech-recognition` module, so rebuild
 the development client after adding or changing the speech-recognition plugin.
-The home-screen voice-action card can listen for saved phrases such as
+The unified experience can listen for saved phrases such as
 “YouTube”, “Upload”, “Let’s talk”, and “Summarize this”.
 Back, Next, and Cancel are enabled by default, can be renamed or remapped in
 the trigger editor, and provide spoken confirmations through `expo-speech`.
+Customize commands from the orbit control; voice and movement share the same
+start/stop control.
+
+For deterministic simulator checks, start a development bundle with
+`EXPO_PUBLIC_SENSE_TEST_MODE=1`. The settings sheet then exposes **Simulated
+inputs**, with explicit voice text and tilt controls. This mode requires
+`__DEV__` as well as the flag, so release bundles use the real adapters. It
+does not request microphone/camera permissions or generate random gestures.
+Mock input checks establish UI and orchestration behavior, not physical
+microphone, camera, sensor, or heard-audio quality.
 
 Mock sessions simulate connection controls and use the backend text answer
 route. They do not produce or verify microphone/remote audio. The app labels

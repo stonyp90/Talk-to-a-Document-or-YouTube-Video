@@ -1,25 +1,28 @@
 "use client";
 
-import { Icon } from "./Icon";
-import { ConversationDemo } from "./ConversationDemo";
 import { useLanguage } from "../i18n/LanguageProvider";
 
-const STEPS = [
+/**
+ * Written as literals at the call site rather than as an English constant
+ * translated later: the dictionary is checked against the strings this section
+ * asks for, and a key hidden behind a variable is a key nobody audits.
+ */
+const steps = (t: (source: string) => string) => [
   {
-    title: "Bring your source",
-    text: "Choose a text-based PDF up to 25 MB or a captioned YouTube video, then check the extracted text in the preview.",
+    title: t("Bring your source"),
+    text: t("A PDF or a captioned YouTube video."),
   },
   {
-    title: "Start talking",
-    text: "Select Start Voice Chat, allow the microphone, and ask out loud. Interrupt or mute whenever you want. The keyboard is still there, it is simply no longer the way in.",
+    title: t("Start talking"),
+    text: t("Allow the microphone and ask out loud."),
   },
   {
-    title: "Go a little deeper",
-    text: "Use a suggestion or ask a follow-up in your own words. Keep the source nearby to check important details.",
+    title: t("Go deeper"),
+    text: t("Follow up in your own words."),
   },
-] as const;
+];
 
-export function HowItWorks({ appHref }: { appHref: string }) {
+export function HowItWorks() {
   const { t } = useLanguage();
   return (
     <section
@@ -28,27 +31,20 @@ export function HowItWorks({ appHref }: { appHref: string }) {
       aria-labelledby="how-heading"
     >
       <div className="guide-heading">
-        <span className="eyebrow">{t("A little guidance")}</span>
-        <h2 id="how-heading">{t("From information to understanding.")}</h2>
+        <span className="eyebrow">{t("How it works")}</span>
+        <h2 id="how-heading">{t("Three steps. About a minute.")}</h2>
       </div>
-      <div className="guide-grid">
-        {STEPS.map((step, index) => (
-          <article key={step.title}>
-            <span className="guide-number">0{index + 1}</span>
-            <h3>{t(step.title)}</h3>
-            <p>{t(step.text)}</p>
-          </article>
+      <ol className="guide-steps">
+        {steps(t).map((step, index) => (
+          <li key={step.title} className="guide-step">
+            <span className="guide-step-number">{index + 1}</span>
+            <div>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </div>
+          </li>
         ))}
-      </div>
-      <p className="guide-action">
-        <a className="primary" href={appHref}>
-          <Icon name="arrow" /> {t("Open the app")}
-        </a>
-        <span className="guide-action-note">
-          {t("Three steps, about a minute. Nothing to install.")}
-        </span>
-      </p>
-      <ConversationDemo />
+      </ol>
       <details className="help-detail">
         <summary>
           {t("Having trouble with a source or your microphone?")}

@@ -16,15 +16,15 @@ export const SITE_NAME = "Ursly";
 
 export const SITE_COPY: Record<Language, SiteCopy> = {
   en: {
-    title: "Ursly — The joy of understanding",
+    title: "Ursly — The human interface.",
     description:
-      "The next generation of internet. Bring a PDF or a captioned YouTube video and ask your questions by voice, without a keyboard.",
-    social: "Explore your documents and videos by voice.",
+      "Make the keyboard obsolete. Speak, gesture, look, move — the interface adapts to you. No menus, no buttons, no typing.",
+    social: "Ursly is the human interface.",
   },
   fr: {
-    title: "Ursly — Le plaisir de comprendre",
+    title: "Ursly — L'interface humaine.",
     description:
-      "La nouvelle génération d'internet. Apportez un PDF ou une vidéo YouTube sous-titrée et posez vos questions à la voix, sans clavier.",
-    social: "Explorez vos documents et vos vidéos à la voix.",
+      "Rendez le clavier obsolète. Parlez, gestuez, regardez, bougez — l'interface s'adapte à vous. Pas de menus, pas de boutons, pas de saisie.",
+    social: "Ursly est l'interface humaine.",
   },
 };

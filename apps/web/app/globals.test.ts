@@ -57,4 +57,22 @@ describe("the global stylesheet", () => {
     expect(guard?.[1]).toContain("background: var(--nav-solid)");
     expect(stylesheet).toContain("--nav-solid:");
   });
+
+  /**
+   * The plate is painted behind the ring that stands on it, so it arrives with
+   * it. Wiping the field in while the ring still waits out its delay left a
+   * large empty plate where the loop was about to be — the one frame the
+   * opening should never produce.
+   */
+  it("enters the field on the same beat as the ring standing on it", () => {
+    const shorthand = (selector: string) =>
+      new RegExp(`${selector}[^{]*\\{[^}]*animation:\\s*([^;}]+)`)
+        .exec(stylesheet)?.[1]
+        .replace(/\s+/g, " ");
+    const beats = (value: string | undefined) =>
+      value?.match(/[\d.]+m?s\b|var\(--motion-[a-z]+\)/g) ?? [];
+    const plate = beats(shorthand("\\.arrival-loop::before"));
+    expect(plate.length).toBeGreaterThan(1);
+    expect(beats(shorthand("\\.arrival-loop > \\*"))).toEqual(plate);
+  });
 });

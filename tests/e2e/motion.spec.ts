@@ -1,18 +1,17 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./base";
 import { APP_PATH, LANDING_PATH } from "../routes";
-
-const modes = (page: Page) =>
-  page
-    .getByRole("navigation", { name: "Primary" })
-    .getByRole("radiogroup", { name: "Control mode" });
+import { installSpeech } from "./voice-harness";
 
 test("reduced motion keeps source tabs usable without animation", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(APP_PATH);
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(
+    page.getByRole("main", { name: "Sense to Action" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Add a source", exact: true }).click();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await expect(page.getByLabel("YouTube URL")).toBeVisible();
   const motion = await page.evaluate(() => ({
@@ -23,14 +22,11 @@ test("reduced motion keeps source tabs usable without animation", async ({
       .transitionDuration,
   }));
   expect(motion).toEqual({ animations: 0, transition: "0s" });
-  await page.getByRole("tab", { name: "PDF document" }).click();
+  await page.getByRole("tab", { name: "PDF file" }).click();
   await expect(page.getByLabel("PDF file")).toBeVisible();
 });
 
-for (const [name, path] of [
-  ["the landing page", LANDING_PATH],
-  ["the application", APP_PATH],
-] as const) {
+for (const [name, path] of [["the landing page", LANDING_PATH]] as const) {
   test(`decorative motion on ${name} settles instead of continuously distracting`, async ({
     page,
   }) => {
@@ -55,6 +51,42 @@ for (const [name, path] of [
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 }
+
+test("ambient workspace motion stops when reduced motion is requested", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto(APP_PATH);
+  const workspace = page.getByRole("main", { name: "Sense to Action" });
+  await expect(workspace).toBeVisible();
+  await expect
+    .poll(() =>
+      workspace.evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState === "running").length,
+      ),
+    )
+    .toBeGreaterThan(0);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect
+    .poll(() =>
+      workspace.evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState === "running").length,
+      ),
+    )
+    .toBe(0);
+  await expect(
+    page.getByRole("button", { name: "Start experience", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Start motion", exact: true }),
+  ).toHaveCount(0);
+});
 
 const running = (page: Page) =>
   page.evaluate(
@@ -111,64 +143,67 @@ test("the landing page adds no animation under reduced motion", async ({
   ).toBe(0);
 });
 
-test("choosing motion hands the reader the panel, with the camera still off", async ({
+test("the shared dock keeps the camera off until motion is requested", async ({
   page,
 }) => {
-  // No camera is granted here on purpose. Everything below is what a reader
-  // sees before they decide to start one, which is the part a browser can be
-  // held to without a webcam.
+  await installSpeech(page);
+  await page.route("**/api/health", (route) =>
+    route.fulfill({ json: { commandSpeech: "browser" } }),
+  );
+  await page.addInitScript(() => {
+    const requests: MediaStreamConstraints[] = [];
+    Object.defineProperty(window, "__cameraRequests", { value: requests });
+    Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
+      configurable: true,
+      value: (constraints: MediaStreamConstraints) => {
+        requests.push(constraints);
+        return Promise.reject(
+          new DOMException("Camera denied by test", "NotAllowedError"),
+        );
+      },
+    });
+  });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(APP_PATH);
-  const motion = modes(page).getByRole("radio", { name: /Motion to action/ });
-  await motion.click();
-  await expect(motion).toHaveAttribute("aria-checked", "true");
+  const motion = page.getByRole("button", {
+    name: "Start experience",
+    exact: true,
+  });
+  await expect(motion).toBeVisible();
+  await expect(motion).toHaveAttribute("aria-pressed", "false");
   await expect(
-    modes(page).getByRole("radio", { name: "Voice to action" }),
-  ).toHaveAttribute("aria-checked", "false");
-
-  const panel = page.getByRole("region", { name: "Motion to action" });
-  await expect(panel).toBeVisible();
-  // The panel is a sibling of the conversation card. A malformed merged
-  // selector once made its layout conditional on being inside that card.
-  await expect(panel).toHaveCSS("display", "grid");
-  const cameraBox = await panel.locator(".motion-stage").boundingBox();
-  const controlsBox = await panel.locator(".motion-controls").boundingBox();
-  expect(cameraBox).not.toBeNull();
-  expect(controlsBox).not.toBeNull();
-  expect(controlsBox!.y - (cameraBox!.y + cameraBox!.height)).toBeGreaterThan(
-    8,
-  );
-  await expect(
-    panel.getByRole("button", { name: /Start motion/ }),
+    page.getByRole("button", { name: "Start experience", exact: true }),
   ).toBeVisible();
-  await expect(panel.locator(".motion-legend li")).toHaveCount(5);
-  for (const meaning of [
-    "Next question",
-    "Previous question",
-    "Ask it",
-    "Summarize the source",
-    "Stop",
-  ])
-    await expect(panel.locator(".motion-legend")).toContainText(meaning);
-
-  // The camera is a thing a reader turns on, never a thing a page takes.
-  await expect(panel.locator(".motion-idle")).toContainText(
-    "The camera is off. Nothing is recorded or sent.",
-  );
-  await expect(panel.locator(".motion-stage")).not.toHaveAttribute(
-    "data-watching",
-    "true",
-  );
-  await expect(panel.getByRole("button", { name: /Stop motion/ })).toHaveCount(
-    0,
-  );
-
-  // And the mode is reachable on a phone without the page growing sideways.
+  await expect(page.getByLabel("Motion preview")).toBeHidden();
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as Window & { __cameraRequests: unknown[] })
+          .__cameraRequests,
+    ),
+  ).toEqual([]);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(panel).toBeVisible();
+  await expect(motion).toBeInViewport();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBeTruthy();
+  await motion.click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Camera access was denied." }),
+  ).toContainText("Camera access was denied.");
+  await expect(page.getByLabel("Motion preview")).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: "Stop experience", exact: true }),
+  ).toBeEnabled();
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as Window & { __cameraRequests: unknown[] })
+          .__cameraRequests,
+    ),
+  ).toEqual([
+    { video: { facingMode: "user", width: 320, height: 240 }, audio: false },
+  ]);
 });

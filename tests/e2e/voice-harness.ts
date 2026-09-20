@@ -48,6 +48,8 @@ export async function installSpeech(
       interimResults = false;
       lang = "";
       maxAlternatives = 1;
+      startCount = 0;
+      stopCount = 0;
       onstart: (() => void) | null = null;
       onend: (() => void) | null = null;
       onerror: ((event: Event) => void) | null = null;
@@ -60,10 +62,12 @@ export async function installSpeech(
       }
 
       start() {
+        this.startCount++;
         this.onstart?.();
       }
 
       stop() {
+        this.stopCount++;
         this.onend?.();
       }
 

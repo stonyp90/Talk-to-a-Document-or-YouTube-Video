@@ -11,6 +11,7 @@ export default defineConfig({
       "apps/web/**/*.test.tsx",
       "tests/**/*.test.ts",
       "services/chat/src/**/*.test.ts",
+      "services/slack-bot/src/**/*.test.ts",
     ],
     exclude: [
       "**/node_modules/**",

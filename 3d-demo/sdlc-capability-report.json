@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "profile": "qoder-glb-safe",
+  "status": "complete",
+  "capabilities": [
+    {
+      "id": "artifact.glb.create",
+      "status": "implemented",
+      "evidence": [
+        "revision:1"
+      ]
+    },
+    {
+      "id": "transaction.dry-run",
+      "status": "implemented",
+      "evidence": [
+        "lifecycle:createModelBundle"
+      ]
+    },
+    {
+      "id": "transaction.expected-state",
+      "status": "implemented",
+      "evidence": [
+        "state:sha256:0d0b633069061cfd6ac225a7a38d54042ac1d8ae5ca9b8bff48d5e167c68691f"
+      ]
+    },
+    {
+      "id": "project.sidecar",
+      "status": "implemented",
+      "evidence": [
+        "revision:1"
+      ]
+    },
+    {
+      "id": "validation.khronos",
+      "status": "implemented",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    },
+    {
+      "id": "validation.spatial-envelope",
+      "status": "implemented",
+      "evidence": [
+        "preflight:world-bounds"
+      ]
+    },
+    {
+      "id": "geometry.primitive.cylinder",
+      "status": "implemented",
+      "evidence": [
+        "feature:ground.feature",
+        "feature:mission.base.feature",
+        "feature:stage.plan.feature",
+        "feature:stage.design.feature",
+        "feature:stage.build.feature",
+        "feature:stage.integrate.feature",
+        "feature:stage.validate.feature",
+        "feature:stage.release.feature",
+        "feature:stage.operate.feature",
+        "feature:stage.measure.feature",
+        "feature:stage.listen.feature"
+      ]
+    },
+    {
+      "id": "geometry.axis",
+      "status": "implemented",
+      "evidence": [
+        "feature:ground.feature:y",
+        "feature:mission.base.feature:y",
+        "feature:path.ring.feature:y",
+        "feature:stage.plan.feature:y",
+        "feature:stage.design.feature:y",
+        "feature:stage.build.feature:y",
+        "feature:stage.integrate.feature:y",
+        "feature:stage.validate.feature:y",
+        "feature:stage.release.feature:y",
+        "feature:stage.release.icon.feature:y",
+        "feature:stage.operate.feature:y",
+        "feature:stage.measure.feature:y",
+        "feature:stage.listen.feature:y"
+      ]
+    },
+    {
+      "id": "geometry.primitive.box",
+      "status": "implemented",
+      "evidence": [
+        "feature:mission.text.0.feature",
+        "feature:mission.text.1.feature",
+        "feature:mission.text.2.feature",
+        "feature:stage.design.icon.feature",
+        "feature:stage.build.icon.feature",
+        "feature:stage.validate.icon.feature",
+        "feature:stage.operate.icon.feature",
+        "feature:stage.measure.icon.feature",
+        "feature:stage.listen.icon.feature",
+        "feature:arrow.0.feature",
+        "feature:arrow.1.feature",
+        "feature:arrow.2.feature",
+        "feature:arrow.3.feature",
+        "feature:arrow.4.feature",
+        "feature:arrow.5.feature",
+        "feature:arrow.6.feature",
+        "feature:arrow.7.feature",
+        "feature:arrow.8.feature"
+      ]
+    },
+    {
+      "id": "node.hierarchy.create",
+      "status": "implemented",
+      "evidence": [
+        "occurrence:mission.text.0",
+        "occurrence:mission.text.1",
+        "occurrence:mission.text.2",
+        "occurrence:stage.plan.icon",
+        "occurrence:stage.design.icon",
+        "occurrence:stage.build.icon",
+        "occurrence:stage.integrate.icon",
+        "occurrence:stage.validate.icon",
+        "occurrence:stage.release.icon",
+        "occurrence:stage.operate.icon",
+        "occurrence:stage.measure.icon",
+        "occurrence:stage.listen.icon"
+      ]
+    },
+    {
+      "id": "geometry.primitive.hollow-cylinder",
+      "status": "implemented",
+      "evidence": [
+        "feature:path.ring.feature",
+        "feature:stage.release.icon.feature"
+      ]
+    },
+    {
+      "id": "geometry.primitive.sphere",
+      "status": "implemented",
+      "evidence": [
+        "feature:stage.plan.icon.feature",
+        "feature:stage.integrate.icon.feature",
+        "feature:active.indicator.feature"
+      ]
+    },
+    {
+      "id": "animation.trs.create",
+      "status": "implemented",
+      "evidence": [
+        "track:anim.cycle.indicator",
+        "track:anim.stage.pulse.plan",
+        "track:anim.stage.pulse.design",
+        "track:anim.stage.pulse.build",
+        "track:anim.stage.pulse.integrate",
+        "track:anim.stage.pulse.validate",
+        "track:anim.stage.pulse.release",
+        "track:anim.stage.pulse.operate",
+        "track:anim.stage.pulse.measure",
+        "track:anim.stage.pulse.listen",
+        "track:anim.mission.pulse.base",
+        "track:anim.path.rotate.ring"
+      ]
+    },
+    {
+      "id": "animation.trs.edit",
+      "status": "implemented",
+      "evidence": [
+        "stable-track:anim.cycle.indicator",
+        "stable-track:anim.stage.pulse.plan",
+        "stable-track:anim.stage.pulse.design",
+        "stable-track:anim.stage.pulse.build",
+        "stable-track:anim.stage.pulse.integrate",
+        "stable-track:anim.stage.pulse.validate",
+        "stable-track:anim.stage.pulse.release",
+        "stable-track:anim.stage.pulse.operate",
+        "stable-track:anim.stage.pulse.measure",
+        "stable-track:anim.stage.pulse.listen",
+        "stable-track:anim.mission.pulse.base",
+        "stable-track:anim.path.rotate.ring"
+      ]
+    },
+    {
+      "id": "geometry.edit",
+      "status": "unsupported",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    },
+    {
+      "id": "animation.edit",
+      "status": "unsupported",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    },
+    {
+      "id": "texture.import",
+      "status": "unsupported",
+      "evidence": [
+        "profile:qoder-glb-safe"
+      ]
+    }
+  ]
+}

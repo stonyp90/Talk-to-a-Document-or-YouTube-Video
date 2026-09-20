@@ -158,7 +158,7 @@ const TRAIL = [
  */
 export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
   const copy = resolveProcessCopy(locale);
-  const { index, position, innerTurns, innerActive, playing, reduced, attach } =
+  const { index, position, innerTurns, innerActive, playing, animating, reduced, attach } =
     loop;
   const narration = useLoopNarration(locale ?? "en");
   const [hovered, setHovered] = useState<ProcessStepId | null>(null);
@@ -194,7 +194,7 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
   } as CSSProperties;
 
   return (
-    <div className={styles.stage} ref={attach}>
+    <div className={`${styles.stage}${animating ? "" : ` ${styles.paused}`}`} ref={attach}>
       {/* The list further down carries the words; this is for the eye. */}
       <div className={styles.diagramViewport}>
         <svg
@@ -522,8 +522,11 @@ export function LoopDiagram({ locale, loop }: { locale?: string; loop: Loop }) {
         </section>
       )}
       <p className={styles.target}>
-        {copy.target.eyebrow} {copy.target.statement.join(" ")}{" "}
-        {copy.target.note}
+        <span className="eyebrow">{copy.target.eyebrow}</span>
+        <span className={styles.targetStatement}>
+          {copy.target.statement.join(" ")}
+        </span>
+        <span className={styles.targetNote}>{copy.target.note}</span>
       </p>
 
       <p

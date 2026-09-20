@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import React, { createRef } from "react";
+import React from "react";
 import {
-  act,
   cleanup,
   fireEvent,
   render,
@@ -10,10 +9,8 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TopNav } from "./TopNav";
+import { AppPreferences, TopNav } from "./TopNav";
 import { LanguageProvider } from "../i18n/LanguageProvider";
-import { MENU_SECTIONS } from "../content/story";
-import { appDownloads } from "../content/downloads";
 import { dictionaryFor } from "../i18n/dictionaries";
 import { french } from "../i18n/fr";
 
@@ -27,24 +24,13 @@ const mount = (ui: React.ReactElement) =>
     </LanguageProvider>,
   );
 
-const landing = () =>
-  mount(
-    <TopNav
-      page="landing"
-      onReplayIntro={() => {}}
-      replayButton={createRef<HTMLButtonElement>()}
-    />,
-  );
+const landing = () => mount(<TopNav page="landing" />);
 
 /** The same bar, read by someone whose page is in French. */
 const landingInFrench = () =>
   render(
     <LanguageProvider language="fr" dictionary={dictionaryFor("fr")}>
-      <TopNav
-        page="landing"
-        onReplayIntro={() => {}}
-        replayButton={createRef<HTMLButtonElement>()}
-      />
+      <TopNav page="landing" />
     </LanguageProvider>,
   );
 
@@ -53,22 +39,6 @@ const navigation = () => screen.getByRole("navigation", { name: "Primary" });
 afterEach(cleanup);
 
 describe("the fixed top menu", () => {
-  it("numbers the story anchors, so the bar reads as an index", () => {
-    landing();
-    const indices = navigation().querySelectorAll(".nav-index");
-    expect(indices).toHaveLength(MENU_SECTIONS.length);
-    // Counted off the menu itself rather than written out here, so a section
-    // joining or leaving the bar needs no edit to this test.
-    expect([...indices].map((node) => node.textContent)).toEqual(
-      MENU_SECTIONS.map((_, position) => String(position + 1).padStart(2, "0")),
-    );
-    // Decoration: the accessible name stays the section's own name.
-    for (const index of indices) expect(index).toHaveAttribute("aria-hidden");
-    expect(
-      screen.getByRole("link", { name: MENU_SECTIONS[0].label }),
-    ).toHaveAttribute("href", `#${MENU_SECTIONS[0].id}`);
-  });
-
   it("carries the way into the app as a voice mark, not a plain button", () => {
     landing();
     const open = screen.getByRole("link", { name: "Open the app" });
@@ -78,101 +48,119 @@ describe("the fixed top menu", () => {
     expect(open.querySelector(".nav-orb")).toHaveAttribute("aria-hidden");
   });
 
-  it("reports how far the story has been read, for the bar to draw", () => {
-    landing();
-    Object.defineProperty(document.documentElement, "scrollHeight", {
-      value: 3000,
-      configurable: true,
-    });
-    Object.defineProperty(window, "innerHeight", {
-      value: 1000,
-      configurable: true,
-    });
-    window.scrollY = 500;
-    act(() => {
-      window.dispatchEvent(new Event("scroll"));
-    });
-    expect(navigation().style.getPropertyValue("--nav-progress")).toBe("0.25");
-    expect(navigation()).toHaveAttribute("data-scrolled", "true");
+  it("names the app Sense to Action while retaining the wave logo", () => {
+    mount(<TopNav page="app" mode="human" onModeChange={() => {}} />);
+    const brand = screen.getByRole("link", { name: "Sense to Action home" });
+    expect(brand).toHaveTextContent("Sense to Action");
+    expect(brand.querySelector(".brand-mark")).toHaveAttribute(
+      "src",
+      "/brand/ursly-mark.svg",
+    );
+    expect(brand.querySelector(".brand-dot")).toBeNull();
   });
 
-  it("leaves the story index behind in the application", () => {
-    mount(<TopNav page="app" mode="voice" onModeChange={() => {}} />);
-    expect(navigation().querySelectorAll(".nav-index")).toHaveLength(0);
+  it("preserves the existing landing brand", () => {
+    landing();
+    const brand = screen.getByRole("link", { name: "Ursly home" });
+    expect(brand).toHaveTextContent("ursly.");
+    expect(brand.querySelector(".brand-mark")).toHaveAttribute(
+      "src",
+      "/brand/ursly-mark.svg",
+    );
+  });
+
+  it("keeps the app header to the brand and input choices", () => {
+    mount(<TopNav page="app" mode="human" onModeChange={() => {}} />);
+    expect(screen.getByRole("radio", { name: "Sense" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open menu" })).toBeNull();
+    expect(
+      screen.queryByRole("link", { name: "Back to the story" }),
+    ).toBeNull();
+    expect(screen.queryByRole("link", { name: "Français" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Use .* theme/ })).toBeNull();
+  });
+
+  it("keeps story, language and theme available together in settings", () => {
+    mount(<AppPreferences />);
     expect(
       screen.getByRole("link", { name: "Back to the story" }),
     ).toHaveAttribute("href", "/en");
+    expect(screen.getByRole("link", { name: "Français" })).toHaveAttribute(
+      "href",
+      "/fr",
+    );
+    expect(screen.getByRole("link", { name: "English" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    const toggle = screen.getByRole("button", { name: "Use dark theme" });
+    fireEvent.click(toggle);
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    fireEvent.click(screen.getByRole("button", { name: "Use light theme" }));
+    expect(document.documentElement).toHaveAttribute("data-theme", "light");
+  });
+
+  it("represents the immersive experience as human senses", () => {
+    mount(<TopNav page="app" mode="immersive" onModeChange={() => {}} />);
+    expect(screen.getByRole("radio", { name: "Sense" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.getByText("Legacy")).toBeInTheDocument();
+    expect(screen.getByText("Beta")).toBeInTheDocument();
+  });
+
+  it("reflects keyboard selection without leaving the application", () => {
+    const onModeChange = vi.fn();
+    mount(<TopNav page="app" mode="text" onModeChange={onModeChange} />);
+    expect(
+      screen.getByRole("radio", { name: "Keyboard to action" }),
+    ).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(screen.getByRole("radio", { name: "Sense" }));
+    expect(onModeChange).toHaveBeenCalledWith("human");
   });
 
   /**
-   * Two ways in, and they are not the same way: "Open the app" opens the web
-   * application, "Get the app" descends to the builds you install. A reader
-   * who wants the APK must not have to guess which one carries it, so the
-   * downloads control is a plain in-page anchor to the applications section
-   * rather than something that only reveals itself once pressed.
+   * The drawer is the whole menu on a narrow screen, and the part of the page
+   * most often reworded without anyone reaching for French. Its four labels
+   * come from the dictionary, so they are checked there rather than spelled
+   * out again: a key that goes missing reads English to a French reader, and
+   * a key that is renamed reads English to both.
    */
-  it("carries a 'Get the app' that descends to the downloads", () => {
-    landing();
-    const get = screen.getByRole("link", { name: "Get the app" });
-    expect(get).toHaveAttribute("href", "#applications");
-    expect(get.querySelector(".icon-download")).toBeInTheDocument();
-    // Distinct from the way into the web application, not a second name for it.
-    expect(screen.getByRole("link", { name: "Open the app" })).not.toBe(get);
-  });
-
-  it("offers the builds themselves once the control is reached", () => {
-    landing();
-    const get = screen.getByRole("link", { name: "Get the app" });
-    expect(screen.queryByRole("link", { name: /Android APK/ })).toBeNull();
-    act(() => {
-      fireEvent.focus(get);
-    });
-    for (const build of appDownloads)
-      expect(
-        screen.getByRole("link", { name: new RegExp(build.label) }),
-      ).toHaveAttribute("href", build.url);
-  });
-
-  /** From the application the section is a page away, not a scroll away. */
-  it("keeps the downloads reachable from the application page", () => {
-    mount(<TopNav page="app" mode="voice" onModeChange={() => {}} />);
-    expect(screen.getByRole("link", { name: "Get the app" })).toHaveAttribute(
-      "href",
-      "/en#applications",
-    );
-  });
-
-  it("names the downloads control in French", () => {
+  it("speaks French in the narrow-screen drawer", () => {
     landingInFrench();
+    const trigger = screen.getByRole("button", { name: french["Open menu"] });
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-label", french["Close menu"]);
+    const panel = document.getElementById("mobile-navigation");
+    expect(panel).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: french["Get the app"] }),
-    ).toHaveAttribute("href", "#applications");
+      within(panel as HTMLElement).getByText(french.Navigate),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(panel as HTMLElement).getByRole("button", {
+        name: french.Close,
+      }),
+    );
+    expect(trigger).toHaveAttribute("aria-label", french["Open menu"]);
   });
 
-  it("provides a mobile menu with the story links and a centered page signal", () => {
+  it("speaks French in the bar itself", () => {
+    landingInFrench();
+    const open = screen.getByRole("link", { name: french["Open the app"] });
+    expect(open).toHaveAttribute("href", "/fr/app");
+    expect(open.querySelector(".nav-cta-short")).toHaveTextContent(french.App);
+  });
+
+  it("provides a mobile menu", () => {
     landing();
-    expect(navigation().querySelector(".nav-mobile-center")).toHaveTextContent(
-      "The joy of understanding",
-    );
     const trigger = screen.getByRole("button", { name: "Open menu" });
     fireEvent.click(trigger);
     const panel = document.getElementById("mobile-navigation");
     expect(panel).toBeInTheDocument();
-    expect(
-      within(panel as HTMLElement).getByRole("link", {
-        name: MENU_SECTIONS[0].label,
-      }),
-    ).toHaveAttribute("href", `#${MENU_SECTIONS[0].id}`);
     fireEvent.click(screen.getByRole("button", { name: "Close menu" }));
     expect(
       screen.getByRole("button", { name: "Open menu" }),
     ).toBeInTheDocument();
-  });
-
-  it("updates the centered signal for the selected app mode", () => {
-    mount(<TopNav page="app" mode="motion" onModeChange={() => {}} />);
-    expect(navigation().querySelector(".nav-mobile-center")).toHaveTextContent(
-      "Motion to action",
-    );
   });
 });

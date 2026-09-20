@@ -16,102 +16,102 @@ afterEach(cleanup);
 const radios = () => screen.getAllByRole("radio");
 const radio = (name: RegExp) => screen.getByRole("radio", { name });
 
-function mount(mode: EntryMode = "voice") {
+function mount(mode: EntryMode = "human") {
   const onChange = vi.fn();
   render(<ModeSwitcher mode={mode} onChange={onChange} />);
   return onChange;
 }
 
-/**
- * The switcher carries the product argument, not only a preference: voice is
- * the way in, motion is the beta a reader can already use, and the keyboard is
- * the old way that still works. The order and the two badges are the whole
- * story, so they are asserted here rather than left to a screenshot.
- */
 describe("ModeSwitcher", () => {
-  it("reads voice first, motion next and the keyboard last", () => {
+  it("offers human senses together with keyboard input in one control", () => {
     mount();
     expect(radios().map((item) => item.getAttribute("aria-label"))).toEqual([
-      "Voice to action",
-      "Motion to action",
+      "Sense",
       "Keyboard to action",
     ]);
+    expect(screen.queryByRole("radio", { name: "Voice to action" })).toBeNull();
+    expect(
+      screen.queryByRole("radio", { name: "Motion to action" }),
+    ).toBeNull();
   });
 
-  it("marks motion as the beta and the keyboard as legacy", () => {
+  it.each(["voice", "motion"] as const)(
+    "maps saved %s preferences to human senses",
+    (mode) => {
+      mount(mode);
+      expect(radio(/^Sense$/)).toHaveAttribute("aria-checked", "true");
+      expect(radios()).toHaveLength(2);
+    },
+  );
+
+  it("keeps Sense clear and shows small status tags on keyboard and brain", () => {
     mount();
-    expect(within(radio(/Motion to action/)).getByText("Beta")).toHaveClass(
-      "mode-detail",
-    );
+    expect(within(radio(/^Sense$/)).queryByText(/^(Beta|Legacy)$/)).toBeNull();
     expect(within(radio(/Keyboard to action/)).getByText("Legacy")).toHaveClass(
       "mode-detail",
     );
-    expect(radio(/Voice to action/).querySelector(".mode-detail")).toBeNull();
+    expect(
+      within(screen.getByRole("button", { name: "Brain to action" })).getByText(
+        "Beta",
+      ),
+    ).toHaveClass("mode-detail");
+    expect(radio(/^Sense$/).querySelector(".icon")).toBeInTheDocument();
   });
 
-  it("shows brain as a research beta without pretending it is available", () => {
-    mount();
+  it("keeps brain unavailable without claiming functional support", () => {
+    const onChange = mount();
     const brain = screen.getByRole("button", { name: "Brain to action" });
     expect(brain).toHaveAttribute("aria-disabled", "true");
     expect(brain).toHaveClass("mode-brain", "mode-unavailable");
-    expect(within(brain).getByText("Beta")).toHaveClass("mode-detail");
+    fireEvent.click(brain);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("demotes the keyboard without disabling it", () => {
+  it("keeps keyboard input selectable with its Legacy tag", () => {
     const onChange = mount();
     const keyboard = radio(/Keyboard to action/);
-    expect(keyboard).toHaveClass("mode-legacy");
     expect(keyboard).not.toHaveAttribute("aria-disabled");
     fireEvent.click(keyboard);
     expect(onChange).toHaveBeenCalledWith("text");
   });
 
-  it("selects the beta rather than explaining it away", () => {
+  it("returns to the shared human sense experience", () => {
+    const onChange = mount("text");
+    fireEvent.click(radio(/^Sense$/));
+    expect(onChange).toHaveBeenCalledWith("human");
+  });
+
+  it("walks arrow keys through the available inputs and moves focus", () => {
     const onChange = mount();
-    const motion = radio(/Motion to action/);
-    expect(motion).not.toHaveAttribute("aria-disabled");
-    fireEvent.click(motion);
-    expect(onChange).toHaveBeenCalledWith("motion");
-    // Nothing sits between the reader and the mode: no tooltip, no excuse.
-    expect(screen.queryByRole("tooltip")).toBeNull();
-    expect(motion).not.toHaveAttribute("aria-describedby");
-  });
-
-  it("keeps the beta badge on a mode that works", () => {
-    mount("motion");
-    const motion = radio(/Motion to action/);
-    expect(motion).toHaveAttribute("aria-checked", "true");
-    // Beta is a promise about how well it reads movement, not about whether a
-    // reader may use it, so the badge stays on the selected mode.
-    expect(within(motion).getByText("Beta")).toHaveClass("mode-detail");
-  });
-
-  it("walks the arrow keys through all three modes", () => {
-    const onChange = mount();
-    fireEvent.keyDown(radio(/Voice to action/), { key: "ArrowRight" });
-    expect(onChange).toHaveBeenLastCalledWith("motion");
-    fireEvent.keyDown(radio(/Motion to action/), { key: "ArrowRight" });
+    const human = radio(/^Sense$/);
+    const keyboard = radio(/Keyboard to action/);
+    fireEvent.keyDown(human, { key: "ArrowRight" });
     expect(onChange).toHaveBeenLastCalledWith("text");
-    fireEvent.keyDown(radio(/Keyboard to action/), { key: "ArrowRight" });
-    expect(onChange).toHaveBeenLastCalledWith("voice");
-    fireEvent.keyDown(radio(/Voice to action/), { key: "ArrowLeft" });
+    expect(keyboard).toHaveFocus();
+    fireEvent.keyDown(keyboard, { key: "ArrowRight" });
+    expect(onChange).toHaveBeenLastCalledWith("human");
+    expect(human).toHaveFocus();
+    fireEvent.keyDown(human, { key: "ArrowLeft" });
     expect(onChange).toHaveBeenLastCalledWith("text");
-    fireEvent.keyDown(radio(/Keyboard to action/), { key: "ArrowLeft" });
-    expect(onChange).toHaveBeenLastCalledWith("motion");
   });
 
-  it("sends Home to voice and End to the keyboard", () => {
+  it("sends Home to human senses and End to the keyboard", () => {
     const onChange = mount("text");
     fireEvent.keyDown(radio(/Keyboard to action/), { key: "Home" });
-    expect(onChange).toHaveBeenLastCalledWith("voice");
-    fireEvent.keyDown(radio(/Keyboard to action/), { key: "End" });
+    expect(onChange).toHaveBeenLastCalledWith("human");
+    fireEvent.keyDown(radio(/^Sense$/), { key: "End" });
     expect(onChange).toHaveBeenLastCalledWith("text");
   });
 
-  it("keeps one radio in the tab sequence", () => {
-    mount("text");
-    expect(radio(/Keyboard to action/)).toHaveAttribute("tabindex", "0");
-    expect(radio(/Voice to action/)).toHaveAttribute("tabindex", "-1");
-    expect(radio(/Motion to action/)).toHaveAttribute("tabindex", "-1");
-  });
+  it.each(["human", "text"] as const)(
+    "keeps only the selected %s input in the tab sequence",
+    (mode) => {
+      mount(mode);
+      expect(radios().filter((item) => item.tabIndex === 0)).toHaveLength(1);
+      const selected =
+        mode === "human" ? radio(/^Sense$/) : radio(/Keyboard to action/);
+      expect(selected).toHaveAttribute("aria-checked", "true");
+      expect(selected).toHaveAttribute("tabindex", "0");
+    },
+  );
 });

@@ -44,7 +44,7 @@ async function ingest(page: Page, id = "dQw4w9WgXcQ") {
     await page.getByText("Change source", { exact: true }).click();
   await page.getByRole("tab", { name: "YouTube video" }).click();
   await page.getByLabel("YouTube URL").fill(`https://youtu.be/${id}`);
-  await page.getByRole("button", { name: "Continue to questions" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.locator(".preview-text")).toHaveText(`Source ${id}`);
 }
 
@@ -251,14 +251,14 @@ test("blackholed PDF upload times out after sixty seconds and unlocks retry", as
     mimeType: "application/pdf",
     buffer: pdfFixture(),
   });
-  await page.getByRole("button", { name: "Continue to questions" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect
     .poll(() => page.evaluate(() => window.race.uploadRequested))
     .toBe(1);
   await page.clock.runFor(60001);
   await expect(page.locator(".error")).toContainText(/timed out.*retry/i);
   await expect(
-    page.getByRole("button", { name: "Continue to questions" }),
+    page.getByRole("button", { name: "Continue" }),
   ).toBeEnabled();
 });
 
@@ -374,7 +374,7 @@ test("realtime send failure is surfaced without an unhandled rejection", async (
     .fill("Can you hear me?");
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(
-    page.getByRole("region", { name: "2. Ask a question" }).getByRole("alert"),
+    page.getByRole("region", { name: "Conversation" }).getByRole("alert"),
   ).toContainText("Injected data channel send failure");
   expect(errors).toEqual([]);
 });

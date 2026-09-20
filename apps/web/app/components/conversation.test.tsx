@@ -66,13 +66,12 @@ async function withSource(handler: Handler) {
   const fetchMock = vi.fn(handler);
   vi.stubGlobal("fetch", fetchMock);
   render(<HomePage />);
+  fireEvent.click(screen.getByRole("button", { name: "Add a source" }));
   fireEvent.click(screen.getByRole("tab", { name: "YouTube video" }));
   fireEvent.change(screen.getByLabelText("YouTube URL"), {
     target: { value: "https://youtu.be/dQw4w9WgXcQ" },
   });
-  fireEvent.click(
-    screen.getByRole("button", { name: "Continue to questions" }),
-  );
+  fireEvent.click(screen.getByRole("button", { name: /^Continue$/i }));
   await screen.findAllByText("Fixture");
   return fetchMock;
 }
@@ -201,15 +200,19 @@ describe("the conversation", () => {
   });
 });
 
-describe("voice to action", () => {
+describe("the unified sense experience", () => {
   it("stays available once a source is ready, where the questions are", async () => {
     await withSource(baseline);
-    expect(screen.getByRole("button", { name: /Speak/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start experience" }),
+    ).toBeInTheDocument();
   });
 
-  it("offers voice to action before a source exists too", () => {
+  it("offers the experience before a source exists too", () => {
     vi.stubGlobal("fetch", vi.fn(baseline));
     render(<HomePage />);
-    expect(screen.getByRole("button", { name: /Speak/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start experience" }),
+    ).toBeInTheDocument();
   });
 });

@@ -17,6 +17,7 @@ import {
   validatePdf,
   type IngestedSource,
 } from "@/packages/core/src/domain/ingestion";
+import type { VoicePreferences } from "@/packages/core/src/domain/voiceControls";
 import {
   buildContextWindow,
   resolveContextBudget,
@@ -115,8 +116,10 @@ export const resolveSession = (reference: SourceReference) =>
 export const recordTurns = (id: string, turns: ConversationTurn[]) =>
   sessions.record(id, turns);
 
-export const createRealtimeSession = (source: IngestedSource) =>
-  conversation().createRealtimeSession(source);
+export const createRealtimeSession = (
+  source: IngestedSource,
+  preferences?: VoicePreferences,
+) => conversation().createRealtimeSession(source, preferences);
 export const createRealtimeCallAnswer = (sdp: string, source: IngestedSource) =>
   conversation().createRealtimeCallAnswer(sdp, source);
 export const answerTextQuestion = (

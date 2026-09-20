@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
     mimeType: "application/pdf",
     buffer: pdfFixture("Transport test source"),
   });
-  await page.getByRole("button", { name: "Continue to questions" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.locator(".preview-text")).toContainText(
     "Transport test source",
   );

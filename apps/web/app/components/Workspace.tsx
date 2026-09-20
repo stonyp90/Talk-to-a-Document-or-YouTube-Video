@@ -63,6 +63,7 @@ import { InteractionFeedback } from "./InteractionFeedback";
 import { ConversationStream } from "./ConversationStream";
 import { LivingLogo } from "./LivingLogo";
 import { LogoOnboarding } from "./LogoOnboarding";
+import { FeedbackOverlay } from "./FeedbackOverlay";
 
 type SourceTab = "pdf" | "youtube";
 
@@ -1526,6 +1527,7 @@ export default function Workspace() {
             </p>
           )}
         </div>
+        <FeedbackOverlay />
 
         <div className={styles.interaction}>
           {source && (

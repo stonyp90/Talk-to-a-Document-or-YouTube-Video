@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ursly — Investor Pitch Deck</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-page: #0a0a12;
+    --bg-card: #12111a;
+    --bg-elevated: #1a1926;
+    --bg-card-hover: #1f1e2e;
+    --text-light: #e8e6f0;
+    --text-muted: #9b97a8;
+    --text-dim: #6b6780;
+    --line: #2a2840;
+    --line-strong: #4a4568;
+    --accent-primary: #00f0ff;
+    --accent-secondary: #8b5cf6;
+    --accent-tertiary: #10b981;
+    --accent-quaternary: #ec4899;
+    --card-radius: 20px;
+    --slide-padding: 6vh 6vw;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --display: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
+    --shadow-lg: 0 16px 48px rgba(0,0,0,0.5);
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-page);
+    color: var(--bg-card);
+    overflow: hidden;
+    height: 100dvh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-feature-settings: "ss01", "ss02";
+  }
+
+  /* ── Deck container ── */
+  .deck {
+    width: 90vw;
+    height: 85vh;
+    max-width: 1400px;
+    max-height: 900px;
+    position: relative;
+    background: var(--bg-card);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-lg), 0 0 0 1px var(--line);
+    overflow: hidden;
+    outline: none;
+  }
+
+  .deck:focus-visible {
+    box-shadow: var(--shadow-lg), 0 0 0 2px rgba(0,240,255,0.4);
+  }
+
+  /* ── Slides ── */
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: var(--slide-padding);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    transition: none;
+    display: flex;
+    flex-direction: column;
+    will-change: opacity, transform;
+  }
+
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+  }
+
+  .slide.exit-forward {
+    animation: slideExitUp 0.7s var(--ease-out-expo) forwards;
+  }
+
+  .slide.exit-backward {
+    animation: slideExitDown 0.7s var(--ease-out-expo) forwards;
+  }
+
+  .slide.enter-forward {
+    animation: slideEnterUp 0.8s var(--ease-out-expo) forwards;
+  }
+
+  .slide.enter-backward {
+    animation: slideEnterDown 0.8s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes slideExitUp {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(-40px) scale(0.97); }
+  }
+
+  @keyframes slideExitDown {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(40px) scale(0.97); }
+  }
+
+  @keyframes slideEnterUp {
+    from { opacity: 0; transform: translateY(50px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes slideEnterDown {
+    from { opacity: 0; transform: translateY(-50px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ── Header bar ── */
+  .slide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3vh;
+  }
+
+  .slide-section {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent-primary);
+  }
+
+  .slide-number {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Typography ─ */
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(3rem, 6vw, 5rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+  }
+
+  h2 {
+    font-family: var(--display);
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--text-light);
+    margin-bottom: 1.2rem;
+  }
+
+  h3 {
+    font-size: clamp(1.15rem, 1.8vw, 1.4rem);
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text-light);
+    margin-bottom: 0.6rem;
+  }
+
+  p, .body {
+    font-size: clamp(0.95rem, 1.3vw, 1.1rem);
+    line-height: 1.7;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .accent { color: var(--accent-primary); }
+  .blue { color: var(--accent-secondary); }
+  .green { color: var(--accent-tertiary); }
+  .red { color: var(--accent-quaternary); }
+
+  /* ── Animated elements ── */
+  .anim { opacity: 0; will-change: opacity, transform; }
+  .slide.active .anim { animation-fill-mode: forwards; }
+
+  .fade-up { animation: fadeUp 0.8s var(--ease-out-expo) forwards; }
+  .fade-in { animation: fadeIn 0.6s ease forwards; }
+  .scale-in { animation: scaleIn 0.7s var(--ease-out-back) forwards; }
+  .slide-left { animation: slideLeft 0.8s var(--ease-out-expo) forwards; }
+  .slide-right { animation: slideRight 0.8s var(--ease-out-expo) forwards; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.7); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes slideLeft {
+    from { opacity: 0; transform: translateX(-40px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes slideRight {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ─ Slide 1: Cover ── */
+  .cover {
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .cover-logo {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 2.5rem;
+    opacity: 0;
+  }
+
+  .slide.active .cover-logo {
+    animation: logoEntrance 1.2s var(--ease-out-back) forwards;
+  }
+
+  @keyframes logoEntrance {
+    0% {
+      opacity: 0;
+      transform: scale(0.3) rotate(-180deg);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.1) rotate(10deg);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0);
+    }
+  }
+
+  .cover-logo svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 30px rgba(0,240,255,0.5));
+  }
+
+  .logo-wave {
+    fill: none;
+    stroke: var(--accent-primary);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+  }
+
+  .slide.active .logo-wave {
+    animation: waveDraw 1.5s var(--ease-out-expo) 0.3s forwards;
+  }
+
+  @keyframes waveDraw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .logo-orbit {
+    fill: none;
+    stroke: var(--accent-primary);
+    stroke-width: 2;
+    opacity: 0.3;
+    transform-origin: center;
+  }
+
+  .slide.active .logo-orbit {
+    animation: orbitSpin 20s linear infinite;
+  }
+
+  @keyframes orbitSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  .logo-center {
+    fill: var(--accent-primary);
+    opacity: 0;
+  }
+
+  .slide.active .logo-center {
+    animation: centerPulse 2s var(--ease-out-expo) 0.8s forwards;
+  }
+
+  @keyframes centerPulse {
+    0% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .cover h1 {
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    color: var(--text-light);
+  }
+
+  .slide.active .cover h1 {
+    animation: nameEntrance 1s var(--ease-out-expo) 0.5s both;
+  }
+
+  @keyframes nameEntrance {
+    0% {
+      opacity: 0;
+      transform: translateY(30px) scale(0.9);
+      letter-spacing: 0.3em;
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      letter-spacing: -0.02em;
+    }
+  }
+
+  .cover .tagline {
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
+    color: var(--text-muted);
+    margin-top: 1rem;
+    font-weight: 300;
+  }
+
+  .cover .raise {
+    margin-top: 3rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border: 1px solid var(--line-strong);
+    padding: 0.8rem 2rem;
+    border-radius: 8px;
+  }
+
+  /* ── Slide 2: Problem ── */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 5rem;
+    align-items: center;
+    flex: 1;
+  }
+
+  .problem-stat {
+    font-size: clamp(4.5rem, 11vw, 9rem);
+    font-weight: 900;
+    color: var(--accent-primary);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 40px rgba(0,240,255,0.3);
+  }
+
+  .problem-stat-label {
+    font-size: 1.05rem;
+    color: var(--text-dim);
+    margin-top: 1rem;
+    line-height: 1.6;
+  }
+
+  /* ── Slide 3: Vision ── */
+  .sense-grid {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2.5rem;
+  }
+
+  .sense-card {
+    flex: 1;
+    border: 1px solid var(--line);
+    padding: 1.8rem 1.5rem;
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(232,230,240,0.03), rgba(232,230,240,0.01));
+    position: relative;
+    opacity: 0;
+    transition: all 0.4s var(--ease-smooth);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .sense-card:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-6px);
+    background: linear-gradient(145deg, rgba(0,240,255,0.05), rgba(232,230,240,0.02));
+    box-shadow: var(--shadow-md), 0 0 20px rgba(0,240,255,0.1);
+  }
+
+  .sense-card .sense-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 1rem;
+    opacity: 0;
+  }
+
+  .sense-card .sense-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .slide.active .sense-card .sense-icon {
+    animation: iconRotateIn 0.6s var(--ease-out-back) forwards;
+  }
+
+  @keyframes iconRotateIn {
+    from { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+    to { opacity: 1; transform: rotate(0) scale(1); }
+  }
+
+  .sense-icon svg path,
+  .sense-icon svg circle,
+  .sense-icon svg line {
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .sense-icon svg .icon-fill {
+    fill: currentColor;
+    stroke: none;
+  }
+
+  .sense-card h3 { margin-bottom: 0.5rem; font-size: 1.2rem; }
+  .sense-card p { font-size: 0.9rem; color: var(--text-dim); line-height: 1.5; }
+
+  .sense-card.beta { opacity: 0.4; }
+  .sense-card.beta .beta-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    margin-top: 0.6rem;
+    color: var(--text-dim);
+  }
+
+  /* ── Slide 4: Solution ── */
+  .solution-flow {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    margin-top: 3.5rem;
+  }
+
+  .solution-node {
+    flex: 1;
+    text-align: center;
+    padding: 2.2rem 1.2rem;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(232,230,240,0.03), rgba(232,230,240,0.01));
+    opacity: 0;
+    transition: all 0.4s var(--ease-smooth);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .solution-node:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .solution-node .node-icon {
+    width: 68px; height: 68px;
+    border: 2px solid var(--accent-primary);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.2rem;
+    background: rgba(0,240,255,0.05);
+    transition: all 0.3s var(--ease-smooth);
+  }
+
+  .solution-node .node-icon svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .solution-node .node-icon svg path,
+  .solution-node .node-icon svg circle,
+  .solution-node .node-icon svg line,
+  .solution-node .node-icon svg rect {
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .solution-node .node-icon svg .icon-fill {
+    fill: currentColor;
+    stroke: none;
+  }
+
+  .solution-node:hover .node-icon {
+    background: rgba(0,240,255,0.1);
+    transform: scale(1.05);
+  }
+
+  .solution-arrow {
+    font-size: 2rem;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    opacity: 0;
+  }
+
+  .slide.active .solution-arrow {
+    animation: arrowDraw 0.4s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes arrowDraw {
+    from { opacity: 0; transform: scaleX(0); }
+    to { opacity: 1; transform: scaleX(1); }
+  }
+
+  /* ── Slide 5: Product ── */
+  .product-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+    margin-top: 3rem;
+  }
+
+  .product-step {
+    position: relative;
+    opacity: 0;
+  }
+
+  .product-step .step-num {
+    font-size: 5rem;
+    font-weight: 900;
+    color: rgba(0,240,255,0.08);
+    line-height: 1;
+    margin-bottom: 1.5rem;
+  }
+
+  .product-step h3 { margin-bottom: 0.8rem; }
+  .product-step p { color: var(--text-dim); font-size: 1rem; line-height: 1.6; }
+
+  /* ── Slide 6: Technology ── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.8rem;
+    margin-top: 2.5rem;
+  }
+
+  .tech-card {
+    border: 1px solid var(--line);
+    padding: 2.2rem;
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(232,230,240,0.03), rgba(232,230,240,0.01));
+    position: relative;
+    opacity: 0;
+    transition: all 0.4s var(--ease-smooth);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .tech-card:hover {
+    border-color: var(--accent-secondary);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md), 0 0 20px rgba(139,92,246,0.1);
+  }
+
+  .tech-card .tech-icon {
+    width: 44px; height: 44px; margin-bottom: 1.2rem; opacity: 0;
+  }
+  .slide.active .tech-card .tech-icon {
+    animation: fadeScale 0.6s var(--ease-out-back) forwards;
+  }
+  .tech-card .tech-icon svg { width: 100%; height: 100%; }
+  .tech-card .tech-icon svg path,
+  .tech-card .tech-icon svg circle,
+  .tech-card .tech-icon svg line,
+  .tech-card .tech-icon svg rect,
+  .tech-card .tech-icon svg polyline {
+    stroke: currentColor; fill: none; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .tech-card .tech-icon svg .icon-fill { fill: currentColor; stroke: none; }
+
+  .tech-card h3 { font-size: 1.35rem; margin-bottom: 0.8rem; }
+  .tech-card p { font-size: 0.95rem; color: var(--text-dim); line-height: 1.7; }
+
+  .tech-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    margin-top: 1rem;
+    color: var(--text-dim);
+    opacity: 0;
+  }
+
+  .slide.active .tech-badge {
+    animation: badgePop 0.4s var(--ease-out-back) forwards;
+  }
+
+  @keyframes badgePop {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── Slide 7: Market ── */
+  .market-nums {
+    display: flex;
+    gap: 5rem;
+    margin-top: 3rem;
+  }
+
+  .market-num { text-align: left; }
+
+  .market-num .big {
+    font-size: clamp(3.5rem, 7vw, 5.5rem);
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 30px currentColor;
+  }
+
+  .market-num .label {
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    margin-top: 1rem;
+    max-width: 220px;
+    line-height: 1.6;
+  }
+
+  /* ── Slide 8: Competition ── */
+  .comp-table {
+    width: 100%;
+    margin-top: 2rem;
+    border-collapse: collapse;
+  }
+
+  .comp-table th, .comp-table td {
+    padding: 1rem 1.2rem;
+    text-align: left;
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .comp-table th {
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .comp-table td:last-child { text-align: center; }
+  .comp-table th:last-child { text-align: center; }
+
+  .comp-table tbody tr {
+    opacity: 0;
+  }
+
+  .slide.active .comp-table tbody tr {
+    animation: rowSlideIn 0.5s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes rowSlideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .check { color: var(--accent-primary); font-weight: 700; font-size: 1.2rem; }
+  .cross { color: rgba(232,230,240,0.1); }
+
+  .comp-table tr.ursly-row td {
+    font-weight: 600;
+    color: var(--accent-primary);
+  }
+
+  .comp-table tr.ursly-row {
+    border-bottom: 2px solid var(--accent-primary);
+  }
+
+  /* ── Slide 9: Traction ── */
+  .traction-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.8rem;
+    margin-top: 2.5rem;
+  }
+
+  .traction-item {
+    border: 1px solid var(--line);
+    padding: 2.5rem 2rem;
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(232,230,240,0.03), rgba(232,230,240,0.01));
+    text-align: center;
+    opacity: 0;
+    transition: all 0.4s var(--ease-smooth);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .traction-item:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .traction-item .t-icon {
+    width: 40px; height: 40px; margin: 0 auto 1rem;
+    opacity: 0;
+  }
+  .slide.active .traction-item .t-icon {
+    animation: fadeScale 0.5s var(--ease-out-back) forwards;
+  }
+  .traction-item .t-icon svg { width: 100%; height: 100%; }
+  .traction-item .t-icon svg path,
+  .traction-item .t-icon svg circle,
+  .traction-item .t-icon svg line,
+  .traction-item .t-icon svg rect,
+  .traction-item .t-icon svg polyline {
+    stroke: currentColor; fill: none; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .traction-item .t-icon svg .icon-fill { fill: currentColor; stroke: none; }
+
+  .traction-item .t-num {
+    font-size: 4rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .traction-item .t-label {
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* ── Slide 10: The Ask ── */
+  .ask {
+    align-items: center;
+    text-align: center;
+  }
+
+  .ask-amount {
+    font-size: clamp(5rem, 12vw, 9rem);
+    font-weight: 900;
+    color: var(--accent-primary);
+    line-height: 1;
+    margin: 0.5rem 0 0.8rem;
+    opacity: 0;
+    text-shadow: 0 0 60px rgba(0,240,255,0.4);
+  }
+
+  .slide.active .ask-amount {
+    animation: amountIn 1.2s var(--ease-out-back) forwards;
+  }
+
+  @keyframes amountIn {
+    from { opacity: 0; transform: scale(0.3); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .ask-uses {
+    display: flex;
+    gap: 4rem;
+    margin-top: 2rem;
+    text-align: center;
+  }
+
+  .ask-use {
+    flex: 1;
+    opacity: 0;
+  }
+
+  .ask-use .use-icon {
+    width: 32px; height: 32px; margin: 0 auto 0.8rem;
+    opacity: 0;
+  }
+  .slide.active .ask-use .use-icon {
+    animation: fadeScale 0.5s var(--ease-out-back) forwards;
+  }
+  .ask-use .use-icon svg { width: 100%; height: 100%; }
+  .ask-use .use-icon svg path,
+  .ask-use .use-icon svg circle,
+  .ask-use .use-icon svg line {
+    stroke: currentColor; fill: none; stroke-width: 1.5;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .ask-use .use-pct {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-bottom: 0.8rem;
+  }
+
+  .ask-use .use-label {
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* ── Navigation ── */
+  .nav-bar {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.7rem;
+    z-index: 100;
+    background: rgba(10,10,18,0.95);
+    backdrop-filter: blur(12px);
+    padding: 0.7rem 1.4rem;
+    border-radius: 24px;
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow-md);
+  }
+
+  .nav-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(232,230,240,0.15);
+    border: none;
+    cursor: pointer;
+    transition: all 0.4s var(--ease-smooth);
+    padding: 0;
+  }
+
+  .nav-dot:hover {
+    background: rgba(232,230,240,0.3);
+    transform: scale(1.2);
+  }
+
+  .nav-dot.active {
+    background: var(--accent-primary);
+    box-shadow: 0 0 12px rgba(0,240,255,0.5);
+    width: 32px;
+    border-radius: 5px;
+  }
+
+  .nav-counter {
+    position: absolute;
+    bottom: 2.5rem;
+    right: 3.5rem;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    z-index: 100;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  .nav-hint {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 3.5rem;
+    font-size: 0.8rem;
+    color: rgba(232,230,240,0.2);
+    z-index: 100;
+    letter-spacing: 0.05em;
+    transition: opacity 0.5s;
+  }
+
+  .nav-hint.hidden { opacity: 0; }
+
+  /* ── Progress bar ── */
+  .progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    z-index: 200;
+    transition: width 0.6s var(--ease-out-expo);
+    border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 10px rgba(0,240,255,0.3);
+  }
+
+  /* ── Slide accents ── */
+  .slide-accent {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.5s ease;
+  }
+  .slide.active .slide-accent { opacity: 1; }
+
+  /* ── Transition types ── */
+  .slide.exit-cube { animation: exitCube 0.7s var(--ease-out-expo) forwards; }
+  .slide.enter-cube { animation: enterCube 0.8s var(--ease-out-expo) forwards; }
+  .slide.exit-zoom { animation: exitZoom 0.7s var(--ease-out-expo) forwards; }
+  .slide.enter-zoom { animation: enterZoom 0.8s var(--ease-out-expo) forwards; }
+  .slide.exit-flip { animation: exitFlip 0.7s var(--ease-out-expo) forwards; }
+  .slide.enter-flip { animation: enterFlip 0.8s var(--ease-out-expo) forwards; }
+  .slide.exit-slide { animation: exitSlide 0.7s var(--ease-out-expo) forwards; }
+  .slide.enter-slide { animation: enterSlide 0.8s var(--ease-out-expo) forwards; }
+  .slide.exit-curtain { animation: exitCurtain 0.7s var(--ease-out-expo) forwards; }
+  .slide.enter-curtain { animation: enterCurtain 0.8s var(--ease-out-expo) forwards; }
+  .slide.exit-fade-scale { animation: exitFadeScale 0.7s var(--ease-out-expo) forwards; }
+  .slide.enter-fade-scale { animation: enterFadeScale 0.8s var(--ease-out-expo) forwards; }
+
+  @keyframes exitCube {
+    from { opacity: 1; transform: perspective(1200px) rotateY(0); }
+    to { opacity: 0; transform: perspective(1200px) rotateY(-35deg) translateZ(-100px); }
+  }
+  @keyframes enterCube {
+    from { opacity: 0; transform: perspective(1200px) rotateY(35deg) translateZ(-100px); }
+    to { opacity: 1; transform: perspective(1200px) rotateY(0); }
+  }
+  @keyframes exitZoom {
+    from { opacity: 1; transform: scale(1); filter: blur(0); }
+    to { opacity: 0; transform: scale(1.3); filter: blur(8px); }
+  }
+  @keyframes enterZoom {
+    from { opacity: 0; transform: scale(0.6); filter: blur(8px); }
+    to { opacity: 1; transform: scale(1); filter: blur(0); }
+  }
+  @keyframes exitFlip {
+    from { opacity: 1; transform: perspective(1200px) rotateX(0); }
+    to { opacity: 0; transform: perspective(1200px) rotateX(35deg) translateZ(-80px); }
+  }
+  @keyframes enterFlip {
+    from { opacity: 0; transform: perspective(1200px) rotateX(-35deg) translateZ(-80px); }
+    to { opacity: 1; transform: perspective(1200px) rotateX(0); }
+  }
+  @keyframes exitSlide {
+    from { opacity: 1; transform: translateX(0) scale(1); }
+    to { opacity: 0; transform: translateX(-60%) scale(0.92); }
+  }
+  @keyframes enterSlide {
+    from { opacity: 0; transform: translateX(60%) scale(0.92); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+  }
+  @keyframes exitCurtain {
+    from { clip-path: inset(0 0 0 0); opacity: 1; }
+    to { clip-path: inset(0 0 0 100%); opacity: 0; }
+  }
+  @keyframes enterCurtain {
+    from { clip-path: inset(0 100% 0 0); opacity: 0; }
+    to { clip-path: inset(0 0 0 0); opacity: 1; }
+  }
+  @keyframes exitFadeScale {
+    from { opacity: 1; transform: scale(1) rotate(0); }
+    to { opacity: 0; transform: scale(0.85) rotate(1.5deg); }
+  }
+  @keyframes enterFadeScale {
+    from { opacity: 0; transform: scale(1.12) rotate(-1.5deg); }
+    to { opacity: 1; transform: scale(1) rotate(0); }
+  }
+
+  /* ── Ask proof ── */
+  .ask-proof {
+    display: inline-block;
+    border: 1px solid var(--line-strong);
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 1.5rem;
+    opacity: 0;
+  }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .anim, .sense-card, .solution-node, .tech-card, .product-step, .traction-item, .ask-use, .comp-table tbody tr {
+      opacity: 1 !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+  <div class="progress-bar" id="progressBar" style="width:10%"></div>
+
+  <!-- SLIDE 1: Cover -->
+  <div class="slide cover active" data-slide="1">
+    <div class="cover-logo">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer orbit ring -->
+        <circle class="logo-orbit" cx="60" cy="60" r="55"/>
+        
+        <!-- Wave pattern representing voice/interface -->
+        <path class="logo-wave" d="M 30 60 Q 40 30, 50 60 T 70 60 T 90 60"/>
+        <path class="logo-wave" d="M 30 60 Q 40 90, 50 60 T 70 60 T 90 60" style="animation-delay: 0.5s"/>
+        
+        <!-- Center dot representing the user/core -->
+        <circle class="logo-center" cx="60" cy="60" r="8"/>
+        
+        <!-- Connection points -->
+        <circle class="logo-center" cx="30" cy="60" r="4" style="animation-delay: 1s"/>
+        <circle class="logo-center" cx="90" cy="60" r="4" style="animation-delay: 1.1s"/>
+      </svg>
+    </div>
+    <h1>Ursly</h1>
+    <p class="tagline anim fade-up" style="animation-delay:0.8s">The interface to everything</p>
+    <div class="raise anim fade-up" style="animation-delay:1.1s">Seed Round &middot; $5M</div>
+  </div>
+
+  <!-- SLIDE 2: The Problem -->
+  <div class="slide" data-slide="2">
+    <div class="slide-header">
+      <div class="slide-section anim fade-up" style="animation-delay:0.2s">The Problem</div>
+      <div class="slide-number anim fade-in" style="animation-delay:0.2s">01</div>
+    </div>
+    <div class="problem-grid">
+      <div>
+        <h2 class="anim fade-up" style="animation-delay:0.4s">Every app is a <span class="accent">walled garden.</span><br>Your voice goes nowhere.</h2>
+        <p class="anim fade-up" style="animation-delay:0.7s;margin-top:2rem;line-height:1.7">You see a document. A video. A contract. You have a question. You still have to open it, read it, search it, copy it, paste it. The most natural thing in the world — asking out loud — hits a wall.</p>
+        <p class="anim fade-up" style="animation-delay:0.9s;margin-top:1.5rem;line-height:1.7;color:var(--text-dim)">Users spend hours daily switching between apps. Zero apps let you talk across all your content in one place.</p>
+      </div>
+      <div style="text-align:center">
+        <div class="problem-stat anim scale-in" data-count="4.7" data-suffix="h" style="animation-delay:0.6s">0</div>
+        <p class="problem-stat-label anim fade-up" style="animation-delay:0.9s">Average time spent daily<br>switching between apps</p>
+        <div style="margin-top:3rem">
+          <div class="problem-stat anim scale-in" style="font-size:clamp(3rem,6vw,5rem);animation-delay:1.1s" data-count="0">0</div>
+          <p class="problem-stat-label anim fade-up" style="animation-delay:1.3s">Apps that let you talk across<br>all your documents and videos</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: The Vision -->
+  <div class="slide" data-slide="3">
+    <div class="slide-header">
+      <div class="slide-section anim fade-up" style="animation-delay:0.2s">The Vision</div>
+      <div class="slide-number anim fade-in" style="animation-delay:0.2s">02</div>
+    </div>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">Web 3.0 is not a protocol.<br>It is a <span class="accent">conversation</span>.</h2>
+    <p class="anim fade-up" style="max-width:700px;animation-delay:0.7s;margin-bottom:1rem">The next internet is not typed. It is spoken, gestured, glanced, sensed. Ursly is the interface layer that makes every piece of content conversational through every human sense.</p>
+    <div class="sense-grid">
+      <div class="sense-card" style="animation-delay:1s">
+        <div class="sense-icon accent">
+          <svg viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="8"/>
+            <circle cx="24" cy="24" r="16" opacity="0.3"/>
+            <line x1="24" y1="4" x2="24" y2="12"/>
+            <line x1="24" y1="36" x2="24" y2="44"/>
+            <line x1="4" y1="24" x2="12" y2="24"/>
+            <line x1="36" y1="24" x2="44" y2="24"/>
+          </svg>
+        </div>
+        <h3>Sight</h3>
+        <p>Gaze tracking. Look at what you mean. Dwell to confirm. The interface knows where your attention is.</p>
+      </div>
+      <div class="sense-card" style="animation-delay:1.15s">
+        <div class="sense-icon blue">
+          <svg viewBox="0 0 48 48">
+            <path d="M12 20 Q12 12, 20 12 L28 12 Q36 12, 36 20 L36 28 Q36 36, 28 36 L20 36 Q12 36, 12 28 Z"/>
+            <path d="M18 20 L18 28 M24 18 L24 30 M30 22 L30 26" stroke-width="2.5"/>
+          </svg>
+        </div>
+        <h3>Hearing</h3>
+        <p>Full duplex voice. Speak naturally. Interrupt, follow up, change your mind. Real-time, not command-response.</p>
+      </div>
+      <div class="sense-card" style="animation-delay:1.3s">
+        <div class="sense-icon green">
+          <svg viewBox="0 0 48 48">
+            <path d="M16 24 L24 16 L32 24 L24 32 Z"/>
+            <path d="M16 24 L8 24 M32 24 L40 24 M24 16 L24 8 M24 32 L24 40" opacity="0.5"/>
+            <circle cx="24" cy="24" r="4" class="icon-fill"/>
+          </svg>
+        </div>
+        <h3>Touch</h3>
+        <p>Gesture, motion, haptic. Swipe to summarize. Point to select. Your hands are the controller.</p>
+      </div>
+      <div class="sense-card beta" style="animation-delay:1.45s">
+        <div class="sense-icon red">
+          <svg viewBox="0 0 48 48">
+            <path d="M24 8 Q32 8, 36 16 Q40 24, 32 32 L24 40 L16 32 Q8 24, 12 16 Q16 8, 24 8 Z"/>
+            <path d="M20 20 Q24 16, 28 20 Q32 24, 28 28 Q24 32, 20 28 Q16 24, 20 20" opacity="0.5"/>
+          </svg>
+        </div>
+        <h3>Smell</h3>
+        <p>Sensory interface research. The environment becomes part of the conversation.</p>
+        <span class="beta-badge">Beta</span>
+      </div>
+      <div class="sense-card beta" style="animation-delay:1.6s">
+        <div class="sense-icon" style="color:var(--text-dim)">
+          <svg viewBox="0 0 48 48">
+            <circle cx="24" cy="20" r="12"/>
+            <path d="M16 32 Q16 40, 24 40 Q32 40, 32 32"/>
+            <circle cx="20" cy="18" r="2" class="icon-fill"/>
+            <circle cx="28" cy="18" r="2" class="icon-fill"/>
+            <path d="M20 24 Q24 28, 28 24" opacity="0.5"/>
+          </svg>
+        </div>
+        <h3>Taste</h3>
+        <p>Full sensory completion. Every human sense connected to the interface.</p>
+        <span class="beta-badge">Beta</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: The Solution -->
+  <div class="slide" data-slide="4">
+    <div class="slide-header">
+      <div class="slide-section anim fade-up" style="animation-delay:0.2s">The Solution</div>
+      <div class="slide-number anim fade-in" style="animation-delay:0.2s">03</div>
+    </div>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">One interface.<br>Every document. Every video. <span class="accent">Every conversation.</span></h2>
+    <div class="solution-flow">
+      <div class="solution-node" style="animation-delay:0.8s">
+        <div class="node-icon">
+          <svg viewBox="0 0 32 32">
+            <path d="M8 8 L24 8 L24 24 L8 24 Z"/>
+            <path d="M12 12 L20 12 M12 16 L20 16 M12 20 L16 20"/>
+            <circle cx="24" cy="8" r="3" class="icon-fill"/>
+          </svg>
+        </div>
+        <h3>Drop a source</h3>
+        <p style="color:var(--text-dim);font-size:0.95rem;margin-top:0.5rem">PDF, YouTube URL, any document</p>
+      </div>
+      <div class="solution-arrow" style="animation-delay:1s">&rarr;</div>
+      <div class="solution-node" style="animation-delay:1.1s">
+        <div class="node-icon" style="border-color:var(--accent-secondary)">
+          <svg viewBox="0 0 32 32" style="color:var(--accent-secondary)">
+            <path d="M8 16 Q8 10, 14 10 L18 10 Q24 10, 24 16 L24 22 Q24 28, 18 28 L14 28 Q8 28, 8 22 Z"/>
+            <path d="M12 16 L12 22 M16 14 L16 24 M20 18 L20 20" stroke-width="2.5"/>
+          </svg>
+        </div>
+        <h3>Speak or gesture</h3>
+        <p style="color:var(--text-dim);font-size:0.95rem;margin-top:0.5rem">Ask out loud, swipe, or look</p>
+      </div>
+      <div class="solution-arrow" style="animation-delay:1.3s">&rarr;</div>
+      <div class="solution-node" style="animation-delay:1.4s">
+        <div class="node-icon" style="border-color:var(--accent-tertiary)">
+          <svg viewBox="0 0 32 32" style="color:var(--accent-tertiary)">
+            <circle cx="16" cy="16" r="10"/>
+            <circle cx="16" cy="16" r="5" class="icon-fill"/>
+            <path d="M16 6 L16 10 M16 22 L16 26 M6 16 L10 16 M22 16 L26 16" opacity="0.5"/>
+          </svg>
+        </div>
+        <h3>Get answers</h3>
+        <p style="color:var(--text-dim);font-size:0.95rem;margin-top:0.5rem">Real-time, contextual, conversational</p>
+      </div>
+      <div class="solution-arrow" style="animation-delay:1.6s">&rarr;</div>
+      <div class="solution-node" style="animation-delay:1.7s">
+        <div class="node-icon" style="border-color:var(--accent-quaternary)">
+          <svg viewBox="0 0 32 32" style="color:var(--accent-quaternary)">
+            <path d="M16 4 L20 12 L28 14 L22 20 L24 28 L16 24 L8 28 L10 20 L4 14 L12 12 Z"/>
+            <circle cx="16" cy="16" r="3" class="icon-fill"/>
+          </svg>
+        </div>
+        <h3>Take action</h3>
+        <p style="color:var(--text-dim);font-size:0.95rem;margin-top:0.5rem">Extract, summarize, decide</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Product -->
+  <div class="slide" data-slide="5">
+    <div class="slide-header">
+      <div class="slide-section anim fade-up" style="animation-delay:0.2s">Product</div>
+      <div class="slide-number anim fade-in" style="animation-delay:0.2s">04</div>
+    </div>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">Three steps. <span class="accent">About a minute.</span></h2>
+    <div class="product-steps">
+      <div class="product-step anim slide-left" style="animation-delay:0.8s">
+        <div class="step-num">01</div>
+        <h3>Bring your source</h3>
+        <p>A PDF contract. A YouTube tutorial. A research paper. Drop it in. Ursly ingests and indexes it instantly.</p>
+      </div>
+      <div class="product-step anim fade-up" style="animation-delay:1s">
+        <div class="step-num">02</div>
+        <h3>Start talking</h3>
+        <p>Ask "What is the termination clause?" or swipe down to summarize. Use your voice, your hands, or your eyes.</p>
+      </div>
+      <div class="product-step anim slide-right" style="animation-delay:1.2s">
+        <div class="step-num">03</div>
+        <h3>Go deeper</h3>
+        <p>Follow up in your own words. "Flag any risks." "Where does the auth flow start?" Ursly remembers context.</p>
+      </div>
+    </div>
+    <p class="anim fade-up" style="margin-top:3rem;font-size:1rem;animation-delay:1.5s;color:var(--text-dim)">Works on web and mobile. No dedicated hardware. No keyboard required.</p>
+  </div>
+
+  <!-- SLIDE 6: Technology -->
+  <div class="slide" data-slide="6">
+    <div class="slide-header">
+      <div class="slide-section anim fade-up" style="animation-delay:0.2s">Technology</div>
+      <div class="slide-number anim fade-in" style="animation-delay:0.2s">05</div>
+    </div>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">Built for the <span class="blue">post-keyboard</span> era</h2>
+    <div class="tech-grid">
+      <div class="tech-card" style="animation-delay:0.8s">
+        <div class="tech-icon" style="color:var(--accent-primary)">
+          <svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 22 Q8 10, 12 22 T20 22 T28 22 T36 22 T44 22"/>
+            <path d="M4 22 Q8 34, 12 22 T20 22 T28 22 T36 22 T44 22" opacity="0.4"/>
+            <circle cx="22" cy="22" r="3" class="icon-fill"/>
+          </svg>
+        </div>
+        <h3>Real-time voice engine</h3>
+        <p>WebRTC streaming to the OpenAI Realtime API. Sub-second latency. Interruptible. Full duplex. Your voice never leaves the encrypted channel.</p>
+        <span class="tech-badge" style="animation-delay:1.2s">WebRTC &middot; E2E encrypted</span>
+      </div>
+      <div class="tech-card" style="animation-delay:1s">
+        <div class="tech-icon" style="color:var(--accent-secondary)">
+          <svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 38 L16 20 Q16 16, 20 16 L24 16 Q28 16, 28 20 L28 24"/>
+            <path d="M12 24 L12 18 Q12 14, 16 14"/>
+            <path d="M28 24 L28 18 Q28 14, 32 14 L32 26 Q32 34, 24 38 L16 38"/>
+            <path d="M8 12 L6 8" opacity="0.5"/>
+            <path d="M14 10 L14 6" opacity="0.5"/>
+            <path d="M20 10 L22 6" opacity="0.5"/>
+          </svg>
+        </div>
+        <h3>Motion & gesture recognition</h3>
+        <p>On-device camera tracks hand gestures and body motion. Swipe, point, pinch. Works without wearables or depth sensors.</p>
+        <span class="tech-badge" style="animation-delay:1.4s">On-device &middot; No wearables</span>
+      </div>
+      <div class="tech-card" style="animation-delay:1.2s">
+        <div class="tech-icon" style="color:var(--accent-tertiary)">
+          <svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 22 Q12 8, 22 8 Q32 8, 42 22 Q32 36, 22 36 Q12 36, 2 22 Z"/>
+            <circle cx="22" cy="22" r="7"/>
+            <circle cx="22" cy="22" r="3" class="icon-fill"/>
+            <line x1="22" y1="2" x2="22" y2="8" opacity="0.4"/>
+            <line x1="22" y1="36" x2="22" y2="42" opacity="0.4"/>
+            <line x1="2" y1="22" x2="8" y2="22" opacity="0.4"/>
+            <line x1="36" y1="22" x2="42" y2="22" opacity="0.4"/>
+          </svg>
+        </div>
+        <h3>Gaze & attention tracking</h3>
+        <p>Eye position drives the cursor. Dwell to select. The UI knows where you are looking and responds accordingly.</p>
+        <span class="tech-badge" style="animation-delay:1.6s">Spatial computing</span>
+      </div>
+      <div class="tech-card" style="animation-delay:1.4s">
+        <div class="tech-icon" style="color:var(--accent-quaternary)">
+          <svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="4" width="22" height="28" rx="2"/>
+            <rect x="14" y="10" width="22" height="28" rx="2" opacity="0.5"/>
+            <line x1="13" y1="12" x2="25" y2="12"/>
+            <line x1="13" y1="17" x2="25" y2="17"/>
+            <line x1="13" y1="22" x2="20" y2="22"/>
+            <circle cx="34" cy="34" r="8" opacity="0.6"/>
+            <path d="M31 34 L33 36 L37 32" opacity="0.8"/>
+          </svg>
+        </div>
+        <h3>Universal content parser</h3>
+        <p>PDFs, YouTube captions, web pages, documents. One extraction pipeline. Content is indexed once, queried forever.</p>
+        <span class="tech-badge" style="animation-delay:1.8s">Multi-format &middot; Streaming</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Market -->
+  <div class="slide" data-slide="7">
+    <div class="slide-header">
+      <div class="slide-section anim fade-up" style="animation-delay:0.2s">Market Opportunity</div>
+      <div class="slide-number anim fade-in" style="animation-delay:0.2s">06</div>
+    </div>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">A <span class="accent">global gap</span> with no incumbent</h2>
+    <p class="anim fade-up" style="max-width:800px;margin-bottom:1rem;animation-delay:0.7s">We analyzed five major markets. No player in China, Japan, Korea, Europe, or the US combines voice-to-action and motion-to-action in a single consumer product on mobile.</p>
+    <div class="market-nums">
+      <div class="market-num">
+        <div class="big accent anim count-up" data-target="47" data-prefix="$" data-suffix="B" style="animation-delay:1s">$0B</div>
+        <p class="label anim fade-up" style="animation-delay:1.3s">Global voice assistant market by 2027</p>
+      </div>
+      <div class="market-num">
+        <div class="big blue anim scale-in" style="animation-delay:1.2s" data-target="5">0</div>
+        <p class="label anim fade-up" style="animation-delay:1.5s">Major markets with zero cross-app voice+motion solutions</p>
+      </div>
+      <div class="market-num">
+        <div class="big green anim count-up" data-target="100" data-suffix="%" style="animation-delay:1.4s">0%</div>
+        <p class="label anim fade-up" style="animation-delay:1.7s">Mobile-first. No dedicated hardware required.</p>
+      </div>
+    </div>
+    <p class="anim fade-up" style="margin-top:2rem;font-size:0.9rem;animation-delay:2s;color:var(--text-dim)">Rabbit R1 shipped with 10-second latency. Humane AI Pin was discontinued. The hardware approach failed. Software wins.</p>
+  </div>
+
+  <!-- SLIDE 8: Competition -->
+  <div class="slide" data-slide="8">
+    <div class="slide-header">
+      <div class="slide-section anim fade-up" style="animation-delay:0.2s">Competitive Landscape</div>
+      <div class="slide-number anim fade-in" style="animation-delay:0.2s">07</div>
+    </div>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">No one else is building <span class="accent">this</span></h2>
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>ByteDance</th>
+          <th>Kakao</th>
+          <th>Mistral</th>
+          <th>Samsung</th>
+          <th>Ursly</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="animation-delay:0.8s">
+          <td>Voice-to-action (cross-app)</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr style="animation-delay:0.9s">
+          <td>Motion-to-action (mobile)</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr style="animation-delay:1s">
+          <td>Gaze-driven interface</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr style="animation-delay:1.1s">
+          <td>Document + video conversation</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr style="animation-delay:1.2s">
+          <td>No dedicated hardware</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr class="ursly-row" style="animation-delay:1.3s">
+          <td style="color:var(--accent-primary)">Real-time full duplex</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="cross">&#10005;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SLIDE 9: Traction -->
+  <div class="slide" data-slide="9">
+    <div class="slide-header">
+      <div class="slide-section anim fade-up" style="animation-delay:0.2s">Traction & Roadmap</div>
+      <div class="slide-number anim fade-in" style="animation-delay:0.2s">08</div>
+    </div>
+    <h2 class="anim fade-up" style="animation-delay:0.4s">Working product. <span class="accent">1,079 tests passing.</span> Zero regressions.</h2>
+    <div class="traction-grid">
+      <div class="traction-item anim scale-in" style="animation-delay:0.8s">
+        <div class="t-icon" style="color:var(--accent-primary)">
+          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="8" width="18" height="24" rx="2"/>
+            <line x1="2" y1="28" x2="20" y2="28" opacity="0.4"/>
+            <rect x="22" y="4" width="16" height="12" rx="1"/>
+            <line x1="26" y1="16" x2="34" y2="16" opacity="0.4"/>
+            <line x1="30" y1="16" x2="30" y2="20" opacity="0.4"/>
+            <line x1="26" y1="20" x2="34" y2="20" opacity="0.4"/>
+          </svg>
+        </div>
+        <div class="t-num accent count-up" data-target="2">0</div>
+        <div class="t-label">Platforms shipped<br>Web + Mobile (iOS &amp; Android)</div>
+      </div>
+      <div class="traction-item anim scale-in" style="animation-delay:1s">
+        <div class="t-icon" style="color:var(--accent-secondary)">
+          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 4 L20 8"/>
+            <path d="M20 8 Q8 8, 8 20 L8 28 Q8 36, 20 36 Q32 36, 32 28 L32 20 Q32 8, 20 8Z"/>
+            <path d="M14 20 L18 24 L26 16"/>
+          </svg>
+        </div>
+        <div class="t-num blue count-up" data-target="1079">0</div>
+        <div class="t-label">Automated tests<br>100% pass rate</div>
+      </div>
+      <div class="traction-item anim scale-in" style="animation-delay:1.2s">
+        <div class="t-icon" style="color:var(--accent-tertiary)">
+          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="20" cy="12" r="5"/>
+            <circle cx="10" cy="20" r="4" opacity="0.7"/>
+            <circle cx="30" cy="20" r="4" opacity="0.7"/>
+            <circle cx="13" cy="30" r="4" opacity="0.5"/>
+            <circle cx="27" cy="30" r="4" opacity="0.5"/>
+            <line x1="20" y1="17" x2="20" y2="20" opacity="0.3"/>
+            <line x1="14" y1="16" x2="12" y2="18" opacity="0.3"/>
+            <line x1="26" y1="16" x2="28" y2="18" opacity="0.3"/>
+            <line x1="16" y1="24" x2="14" y2="28" opacity="0.3"/>
+            <line x1="24" y1="24" x2="26" y2="28" opacity="0.3"/>
+          </svg>
+        </div>
+        <div class="t-num green">5</div>
+        <div class="t-label">Human senses<br>Sight, hearing, touch, smell, taste</div>
+      </div>
+    </div>
+    <div style="margin-top:3rem;display:flex;gap:2rem">
+      <div class="anim slide-left" style="animation-delay:1.4s;flex:1;border-left:3px solid var(--accent-primary);padding-left:1.5rem">
+        <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem">
+          <svg width="20" height="20" viewBox="0 0 20 20" style="color:var(--accent-primary)"><path d="M10 2 Q6 2, 6 6 L6 10 Q6 14, 10 14 Q14 14, 14 10 L14 6 Q14 2, 10 2Z" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round"/><path d="M4 10 Q4 16, 10 16 Q16 16, 16 10" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="16" x2="10" y2="19" stroke="currentColor" stroke-width="1.5"/></svg>
+          <h3 style="font-size:1.1rem;margin:0">Q4 2026</h3>
+        </div>
+        <p style="font-size:0.9rem;color:var(--text-dim);line-height:1.6">Voice profile system. Speaker identification. Language auto-detect. Dialect adaptation. Noise filtering.</p>
+      </div>
+      <div class="anim fade-up" style="animation-delay:1.6s;flex:1;border-left:3px solid var(--accent-secondary);padding-left:1.5rem">
+        <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem">
+          <svg width="20" height="20" viewBox="0 0 20 20" style="color:var(--accent-secondary)"><rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" fill="none" stroke-width="1.5"/><circle cx="10" cy="10" r="3" stroke="currentColor" fill="none" stroke-width="1.5"/><line x1="10" y1="2" x2="10" y2="4" stroke="currentColor" stroke-width="1.5" opacity="0.5"/><line x1="6" y1="18" x2="14" y2="18" stroke="currentColor" stroke-width="1.5" opacity="0.5"/></svg>
+          <h3 style="font-size:1.1rem;margin:0">Q1 2027</h3>
+        </div>
+        <p style="font-size:0.9rem;color:var(--text-dim);line-height:1.6">AR navigator. Dual-reality galaxy interface. Smell + taste interface research (beta). Shared spatial sessions.</p>
+      </div>
+      <div class="anim slide-right" style="animation-delay:1.8s;flex:1;border-left:3px solid var(--accent-tertiary);padding-left:1.5rem">
+        <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem">
+          <svg width="20" height="20" viewBox="0 0 20 20" style="color:var(--accent-tertiary)"><circle cx="10" cy="10" r="2" stroke="currentColor" fill="none" stroke-width="1.5"/><circle cx="4" cy="4" r="1.5" stroke="currentColor" fill="none" stroke-width="1.2"/><circle cx="16" cy="4" r="1.5" stroke="currentColor" fill="none" stroke-width="1.2"/><circle cx="4" cy="16" r="1.5" stroke="currentColor" fill="none" stroke-width="1.2"/><circle cx="16" cy="16" r="1.5" stroke="currentColor" fill="none" stroke-width="1.2"/><line x1="8" y1="8" x2="5" y2="5" stroke="currentColor" stroke-width="1" opacity="0.5"/><line x1="12" y1="8" x2="15" y2="5" stroke="currentColor" stroke-width="1" opacity="0.5"/><line x1="8" y1="12" x2="5" y2="15" stroke="currentColor" stroke-width="1" opacity="0.5"/><line x1="12" y1="12" x2="15" y2="15" stroke="currentColor" stroke-width="1" opacity="0.5"/></svg>
+          <h3 style="font-size:1.1rem;margin:0">Q2 2027</h3>
+        </div>
+        <p style="font-size:0.9rem;color:var(--text-dim);line-height:1.6">Full sensory interface (all 5 senses). Brain-to-action (BCI beta). Cross-app action execution. Enterprise API.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: The Ask -->
+  <div class="slide ask" data-slide="10">
+    <div class="ask-amount anim" style="animation-delay:0.2s">$5M</div>
+    <h2 class="anim fade-up" style="animation-delay:0.6s">The future is not coming.<br><span class="accent">We are already in it.</span></h2>
+    <p class="anim fade-up" style="max-width:650px;animation-delay:1s;margin-top:1rem">The technology exists. Voice, motion, gaze. All working today. Ursly is the human interface layer that connects every sense to every piece of content on earth.</p>
+    <div class="ask-proof anim fade-up" style="animation-delay:1.3s">Working proof of concept &middot; 1,079 tests &middot; 100% pass rate</div>
+    <div class="ask-uses">
+      <div class="ask-use anim fade-up" style="animation-delay:1.6s">
+        <div class="use-icon" style="color:var(--accent-primary)">
+          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="6"/>
+            <path d="M16 4 L16 8"/>
+            <path d="M16 24 L16 28"/>
+            <path d="M4 16 L8 16"/>
+            <path d="M24 16 L28 16"/>
+            <path d="M7.5 7.5 L10.3 10.3"/>
+            <path d="M21.7 21.7 L24.5 24.5"/>
+            <path d="M7.5 24.5 L10.3 21.7"/>
+            <path d="M21.7 10.3 L24.5 7.5"/>
+          </svg>
+        </div>
+        <div class="use-pct count-up" data-target="50">0%</div>
+        <div class="use-label">Engineering<br>Voice, motion, AR, all 5 senses</div>
+      </div>
+      <div class="ask-use anim fade-up" style="animation-delay:1.8s">
+        <div class="use-icon" style="color:var(--accent-secondary)">
+          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 16 Q8 6, 16 6 Q24 6, 30 16 Q24 26, 16 26 Q8 26, 2 16 Z"/>
+            <circle cx="16" cy="16" r="5"/>
+            <circle cx="16" cy="16" r="2"/>
+          </svg>
+        </div>
+        <div class="use-pct count-up" data-target="25" style="color:var(--accent-secondary)">0%</div>
+        <div class="use-label">Product<br>The invisible interface</div>
+      </div>
+      <div class="ask-use anim fade-up" style="animation-delay:2s">
+        <div class="use-icon" style="color:var(--accent-tertiary)">
+          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="12"/>
+            <path d="M4 16 L28 16" opacity="0.4"/>
+            <path d="M16 4 Q10 10, 10 16 Q10 22, 16 28" opacity="0.4"/>
+            <path d="M16 4 Q22 10, 22 16 Q22 22, 16 28" opacity="0.4"/>
+            <path d="M6 10 L26 10" opacity="0.3"/>
+            <path d="M6 22 L26 22" opacity="0.3"/>
+          </svg>
+        </div>
+        <div class="use-pct count-up" data-target="25" style="color:var(--accent-tertiary)">0%</div>
+        <div class="use-label">Go to Market<br>5 markets, zero incumbents</div>
+      </div>
+    </div>
+    <p class="anim fade-up" style="margin-top:1.5rem;font-size:1.2rem;font-weight:600;animation-delay:2.3s;color:var(--text-light)">We are not building an app. We are building the interface.</p>
+    <p class="anim fade-up" style="margin-top:0.5rem;font-size:0.95rem;animation-delay:2.6s;color:var(--text-dim)">Come see it work.</p>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav-bar" id="navBar"></div>
+<div class="nav-counter" id="navCounter">1 / 10</div>
+<div class="nav-hint" id="navHint">&larr; &rarr; or swipe</div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  let transitioning = false;
+
+  const navBar = document.getElementById('navBar');
+  const counter = document.getElementById('navCounter');
+  const progressBar = document.getElementById('progressBar');
+  const hint = document.getElementById('navHint');
+  const deck = document.getElementById('deck');
+
+  // Build nav dots
+  for (let i = 0; i < total; i++) {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+    dot.addEventListener('click', () => goTo(i));
+    navBar.appendChild(dot);
+  }
+
+  // Per-slide accent orb
+  const accentConfigs = [
+    { color: 'rgba(0,240,255,0.06)', size: 350, top: '15%', right: '8%' },
+    { color: 'rgba(139,92,246,0.05)', size: 400, bottom: '5%', left: '5%' },
+    { color: 'rgba(16,185,129,0.05)', size: 300, top: '50%', right: '15%' },
+    { color: 'rgba(0,240,255,0.04)', size: 450, bottom: '10%', left: '20%' },
+    { color: 'rgba(139,92,246,0.06)', size: 350, top: '10%', left: '10%' },
+    { color: 'rgba(236,72,153,0.05)', size: 380, bottom: '15%', right: '10%' },
+    { color: 'rgba(0,240,255,0.05)', size: 420, top: '20%', left: '50%' },
+    { color: 'rgba(16,185,129,0.06)', size: 300, top: '5%', right: '30%' },
+    { color: 'rgba(139,92,246,0.04)', size: 360, bottom: '20%', left: '5%' },
+    { color: 'rgba(0,240,255,0.07)', size: 500, top: '25%', right: '5%' },
+  ];
+  slides.forEach((slide, i) => {
+    const cfg = accentConfigs[i];
+    const el = document.createElement('div');
+    el.className = 'slide-accent';
+    el.style.cssText = `width:${cfg.size}px;height:${cfg.size}px;background:${cfg.color};top:${cfg.top || 'auto'};bottom:${cfg.bottom || 'auto'};left:${cfg.left || 'auto'};right:${cfg.right || 'auto'}`;
+    slide.appendChild(el);
+  });
+
+  // Transition pool: each slide has a unique transition type
+  const transitionMap = ['fade-scale', 'cube', 'zoom', 'flip', 'slide', 'curtain', 'fade-scale', 'cube', 'zoom', 'flip'];
+
+  // Count-up animation
+  function animateCountUp(el) {
+    const target = parseFloat(el.dataset.target || el.dataset.count);
+    if (isNaN(target) || target === 0) {
+      el.textContent = (el.dataset.prefix || '') + '0' + (el.dataset.suffix || '');
+      return;
+    }
+    const prefix = el.dataset.prefix || '';
+    const suffix = el.dataset.suffix || '';
+    const isFloat = String(target).includes('.');
+    const duration = 1500;
+    const start = performance.now();
+
+    function update(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 4);
+      const value = target * eased;
+      el.textContent = prefix + (isFloat ? value.toFixed(1) : Math.round(value).toLocaleString()) + suffix;
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  }
+
+  // Reset all animated elements on a slide so they can re-animate
+  function resetSlideAnimations(slide) {
+    slide.querySelectorAll('.anim').forEach(el => {
+      el.style.animation = 'none';
+      el.offsetHeight; // force reflow
+      el.style.animation = '';
+    });
+    slide.querySelectorAll('.sense-card').forEach(card => {
+      card.style.opacity = '';
+      card.style.transform = '';
+      card.style.transition = '';
+    });
+    slide.querySelectorAll('.solution-node').forEach(node => {
+      node.style.opacity = '';
+      node.style.transform = '';
+      node.style.transition = '';
+    });
+    slide.querySelectorAll('.tech-card').forEach(card => {
+      card.style.opacity = '';
+      card.style.transform = '';
+      card.style.transition = '';
+    });
+    slide.querySelectorAll('.traction-item').forEach(item => {
+      item.style.opacity = '';
+      item.style.transform = '';
+      item.style.transition = '';
+    });
+    slide.querySelectorAll('.ask-use').forEach(box => {
+      box.style.opacity = '';
+      box.style.transform = '';
+      box.style.transition = '';
+    });
+    slide.querySelectorAll('.product-step').forEach(step => {
+      step.style.opacity = '';
+      step.style.transition = '';
+    });
+    slide.querySelectorAll('.comp-table tbody tr').forEach(row => {
+      row.style.opacity = '';
+      row.style.transform = '';
+      row.style.transition = '';
+    });
+    slide.querySelectorAll('.count-up').forEach(el => {
+      const target = parseFloat(el.dataset.target || el.dataset.count);
+      if (!isNaN(target) && target > 0) {
+        const prefix = el.dataset.prefix || '';
+        const suffix = el.dataset.suffix || '';
+        el.textContent = prefix + '0' + suffix;
+      }
+    });
+  }
+
+  // Activate slide animations with staggered delays
+  function activateSlide(index) {
+    const slide = slides[index];
+
+    // Count-up elements
+    slide.querySelectorAll('.count-up').forEach(el => {
+      const delay = parseFloat(el.style.animationDelay || 0) * 1000;
+      setTimeout(() => animateCountUp(el), delay + 400);
+    });
+
+    // Sense cards - JS-driven fade up
+    slide.querySelectorAll('.sense-card').forEach(card => {
+      const delay = parseFloat(card.style.animationDelay || 0) * 1000;
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(30px)';
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1)';
+        card.style.opacity = card.classList.contains('beta') ? '0.4' : '1';
+        card.style.transform = 'translateY(0)';
+      }, delay + 200);
+    });
+
+    // Solution nodes
+    slide.querySelectorAll('.solution-node').forEach(node => {
+      const delay = parseFloat(node.style.animationDelay || 0) * 1000;
+      node.style.opacity = '0';
+      node.style.transform = 'translateY(20px)';
+      setTimeout(() => {
+        node.style.transition = 'opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1)';
+        node.style.opacity = '1';
+        node.style.transform = 'translateY(0)';
+      }, delay + 200);
+    });
+
+    // Tech cards
+    slide.querySelectorAll('.tech-card').forEach(card => {
+      const delay = parseFloat(card.style.animationDelay || 0) * 1000;
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(20px)';
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, delay + 200);
+    });
+
+    // Traction items
+    slide.querySelectorAll('.traction-item').forEach(item => {
+      const delay = parseFloat(item.style.animationDelay || 0) * 1000;
+      item.style.opacity = '0';
+      item.style.transform = 'scale(0.8)';
+      setTimeout(() => {
+        item.style.transition = 'opacity 0.6s cubic-bezier(0.34,1.56,0.64,1), transform 0.6s cubic-bezier(0.34,1.56,0.64,1)';
+        item.style.opacity = '1';
+        item.style.transform = 'scale(1)';
+      }, delay + 200);
+    });
+
+    // Ask-use boxes
+    slide.querySelectorAll('.ask-use').forEach(box => {
+      const delay = parseFloat(box.style.animationDelay || 0) * 1000;
+      box.style.opacity = '0';
+      box.style.transform = 'translateY(20px)';
+      setTimeout(() => {
+        box.style.transition = 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)';
+        box.style.opacity = '1';
+        box.style.transform = 'translateY(0)';
+      }, delay + 200);
+    });
+
+    // Product steps
+    slide.querySelectorAll('.product-step').forEach(step => {
+      const delay = parseFloat(step.style.animationDelay || 0) * 1000;
+      step.style.opacity = '0';
+      setTimeout(() => {
+        step.style.transition = 'opacity 0.7s cubic-bezier(0.16,1,0.3,1)';
+        step.style.opacity = '1';
+      }, delay + 200);
+    });
+
+    // Table rows
+    slide.querySelectorAll('.comp-table tbody tr').forEach(row => {
+      const delay = parseFloat(row.style.animationDelay || 0) * 1000;
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(30px)';
+      setTimeout(() => {
+        row.style.transition = 'opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.5s cubic-bezier(0.16,1,0.3,1)';
+        row.style.opacity = '1';
+        row.style.transform = 'translateX(0)';
+      }, delay + 200);
+    });
+  }
+
+  function goTo(index) {
+    if (index < 0 || index >= total || index === current || transitioning) return;
+    transitioning = true;
+
+    const direction = index > current ? 'forward' : 'backward';
+    const prevSlide = slides[current];
+    const nextSlide = slides[index];
+    const tType = transitionMap[index];
+
+    hint.classList.add('hidden');
+    resetSlideAnimations(nextSlide);
+
+    prevSlide.classList.remove('active');
+    prevSlide.classList.add('exit-' + direction, 'exit-' + tType);
+
+    setTimeout(() => {
+      prevSlide.classList.remove('exit-' + direction, 'exit-' + tType);
+      nextSlide.classList.add('active');
+      nextSlide.classList.add('enter-' + direction, 'enter-' + tType);
+      activateSlide(index);
+
+      setTimeout(() => {
+        nextSlide.classList.remove('enter-' + direction, 'enter-' + tType);
+        transitioning = false;
+      }, 750);
+    }, 300);
+
+    current = index;
+
+    for (let i = 0; i < total; i++) {
+      navBar.children[i].classList.toggle('active', i === index);
+    }
+
+    counter.textContent = (index + 1) + ' / ' + total;
+    progressBar.style.width = ((index + 1) / total * 100) + '%';
+  }
+
+  // Expose globally for external control
+  window.goTo = goTo;
+
+  // Keyboard - attach to deck for reliable focus
+  deck.setAttribute('tabindex', '0');
+  deck.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault();
+      goTo(current + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      goTo(current - 1);
+    }
+  });
+
+  // Also listen on document as fallback
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault();
+      goTo(current + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      goTo(current - 1);
+    }
+  });
+
+  // Touch
+  let touchStartX = 0;
+  deck.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  deck.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) {
+      dx < 0 ? goTo(current + 1) : goTo(current - 1);
+    }
+  }, { passive: true });
+
+  // Wheel
+  let wheelCooldown = false;
+  deck.addEventListener('wheel', (e) => {
+    if (wheelCooldown) return;
+    if (Math.abs(e.deltaY) > 30) {
+      wheelCooldown = true;
+      e.deltaY > 0 ? goTo(current + 1) : goTo(current - 1);
+      setTimeout(() => { wheelCooldown = false; }, 1000);
+    }
+  }, { passive: true });
+
+  // Click on deck to focus
+  deck.addEventListener('click', () => deck.focus());
+
+  // Initialize first slide
+  activateSlide(0);
+  deck.focus();
+})();
+</script>
+
+</body>
+</html>

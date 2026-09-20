@@ -1,0 +1,96 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
+  z-index: var(--z-portal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.panel {
+  width: min(480px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  padding: 24px;
+}
+
+.section {
+  border-top: 2px solid var(--accent);
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.section:first-child {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.sectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.row label {
+  color: var(--ink);
+}
+
+.toggle {
+  padding: 6px 16px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toggle[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--paper);
+}
+
+.textInput {
+  padding: 6px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.875rem;
+}
+
+.textInput:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+  .toggle {
+    transition: none;
+  }
+}

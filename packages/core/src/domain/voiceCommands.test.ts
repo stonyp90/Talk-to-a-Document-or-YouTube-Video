@@ -80,6 +80,7 @@ describe("the vocabulary", () => {
       "open",
       "select",
       "search",
+      "settings",
     ]);
   });
 
@@ -556,5 +557,26 @@ describe("what is left after a command", () => {
   it("has nothing to keep when nothing is left", () => {
     expect(isSpokenContent("")).toBe(false);
     expect(isSpokenContent("   ")).toBe(false);
+  });
+});
+
+describe("voiceCommands extensions", () => {
+  it("includes settings action in phrases", () => {
+    const phrases = defaultPhrases("en");
+    expect(phrases).toHaveProperty("settings");
+  });
+
+  it('matches "settings" in English', () => {
+    const triggers = defaultTriggers("en");
+    const matches = matchCommands("open settings", triggers, { language: "en" });
+    expect(matches.some((m) => m.trigger.action === "settings")).toBe(true);
+  });
+
+  it('matches "paramètres" in French', () => {
+    const triggers = defaultTriggers("fr");
+    const matches = matchCommands("ouvre les paramètres", triggers, {
+      language: "fr",
+    });
+    expect(matches.some((m) => m.trigger.action === "settings")).toBe(true);
   });
 });

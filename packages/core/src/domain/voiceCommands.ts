@@ -23,7 +23,8 @@ export type VoiceActionId =
   | "cancel"
   | "open"
   | "select"
-  | "search";
+  | "search"
+  | "settings";
 
 export type VoiceLanguage = "en" | "fr";
 
@@ -57,6 +58,7 @@ export const VOICE_ACTIONS: readonly VoiceActionId[] = [
   "open",
   "select",
   "search",
+  "settings",
 ];
 
 /**
@@ -100,6 +102,7 @@ const PHRASES: Record<VoiceLanguage, Record<VoiceActionId, string[]>> = {
     open: ["open"],
     select: ["select"],
     search: ["search"],
+    settings: ["settings", "menu", "preferences"],
   },
   // Written the way a reader would write them, accents and all. Matching folds
   // both sides, so the spelling here is free to be the one shown on screen.
@@ -128,6 +131,7 @@ const PHRASES: Record<VoiceLanguage, Record<VoiceActionId, string[]>> = {
     open: ["ouvrir"],
     select: ["sélectionner"],
     search: ["chercher"],
+    settings: ["paramètres", "menu", "préférences"],
   },
 };
 

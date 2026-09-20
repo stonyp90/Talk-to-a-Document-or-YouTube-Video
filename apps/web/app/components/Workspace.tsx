@@ -64,6 +64,7 @@ import { ConversationStream } from "./ConversationStream";
 import { LivingLogo } from "./LivingLogo";
 import { LogoOnboarding } from "./LogoOnboarding";
 import { FeedbackOverlay } from "./FeedbackOverlay";
+import { QuickToggleBar } from "./QuickToggleBar";
 
 type SourceTab = "pdf" | "youtube";
 
@@ -251,6 +252,7 @@ export default function Workspace() {
   const [searchingVideos, setSearchingVideos] = useState(false);
   const [videoId, setVideoId] = useState<string | undefined>(undefined);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
   const [fileSystem] = useState(createMemoryFileSystem);
   const [gazePosition, setGazePosition] = useState<{
     x: number;
@@ -1867,6 +1869,14 @@ export default function Workspace() {
           </div>
         )}
       </main>
+      <QuickToggleBar
+        voiceActive={sessionLive}
+        cameraActive={cameraActive}
+        onToggleVoice={() => {
+          sessionLive ? stopVoice() : void startVoice();
+        }}
+        onToggleCamera={() => setCameraActive((prev) => !prev)}
+      />
       <ImmersiveFileBrowser
         open={fileBrowserOpen}
         fs={fileSystem}

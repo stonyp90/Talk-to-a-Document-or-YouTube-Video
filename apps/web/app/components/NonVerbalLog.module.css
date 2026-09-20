@@ -1,0 +1,25 @@
+.log {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 8px;
+}
+
+.entry {
+  padding: 4px 8px;
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+
+.entry:last-child {
+  border-bottom: none;
+}
+
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 24px;
+}

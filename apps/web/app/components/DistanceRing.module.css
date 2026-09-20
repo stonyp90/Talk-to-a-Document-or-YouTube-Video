@@ -1,0 +1,38 @@
+.ring {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  pointer-events: none;
+  z-index: 11;
+  transition: all 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.close {
+  width: 60vmin;
+  height: 60vmin;
+  border-color: var(--accent);
+  opacity: 0.6;
+}
+
+.medium {
+  width: 75vmin;
+  height: 75vmin;
+  border-color: var(--accent);
+  opacity: 0.4;
+}
+
+.far {
+  width: 90vmin;
+  height: 90vmin;
+  border-color: var(--plasma-cyan, #00f0ff);
+  opacity: 0.3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    transition: none;
+  }
+}
